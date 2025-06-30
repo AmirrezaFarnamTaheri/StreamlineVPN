@@ -1,9 +1,3 @@
-Of course. The issue is that the links in your table of contents are formatted as Google search queries instead of internal page anchors. I'll correct the links so they navigate to the proper sections within the document.
-
-Here is the final, corrected version of your Markdown file.
-
------
-
 # VPN Subscription Merger 🚀
 
 [](https://www.google.com/search?q=https://github.com/AmirrezaFarnamTaheri/CleanConfigs-SubMerger/actions)
