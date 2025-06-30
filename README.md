@@ -12,7 +12,8 @@ This guide is designed for **everyone**, from absolute beginners with no coding 
 1. Install **Python 3.8+** and clone this repository.
 2. Run `pip install -r requirements.txt` in the project folder.
 3. Execute `python vpn_merger.py` and wait for the `output` directory.
-4. Import the `output/vpn_subscription_base64.txt` link into your VPN app.
+4. *(Optional)* pass extra flags like `--max-ping 200` or `--concurrent-limit 10` to suit your connection.
+5. Import the `output/vpn_subscription_base64.txt` link into your VPN app.
 
 ## ✨ Key Features & Use Cases
 
@@ -29,6 +30,9 @@ This guide is designed for **everyone**, from absolute beginners with no coding 
 | **Custom Output Dir** | Use `--output-dir` to choose where files are saved. | Organize results anywhere you like. |
 | **Set Test Timeout** | Tune connection checks with `--test-timeout`. | Useful for slow or distant servers. |
 | **Disable Features** | Flags `--no-url-test` and `--no-sort` give full control. | Run fast tests or skip sorting when not needed. |
+| **Max Ping Filter** | Remove configs with latency above `--max-ping` ms. | Keep only fast servers for gaming or streaming. |
+| **Concurrent Limit / Retries** | Tweak network load with `--concurrent-limit` and `--max-retries`. | Prevent crashes on slow networks or strict hosts. |
+| **Logging to File** | Save all output to a file with `--log-file`. | Useful for headless servers or debugging. |
 
 ### 🔍 Feature Breakdown
 
@@ -63,6 +67,18 @@ This guide is designed for **everyone**, from absolute beginners with no coding 
 **Custom Output Dir / Test Timeout / Disable Features**
 
 > Tailor where files are saved, how long connection tests run and whether optional steps run at all. These switches allow the script to fit many different environments, from low-power devices to cloud servers.
+
+**Max Ping Filter**
+
+> With `--max-ping` you can drop any server that responds slower than a certain number of milliseconds. Perfect for gaming or streaming when only low latency will do.
+
+**Concurrent Limit / Retries**
+
+> The `--concurrent-limit` and `--max-retries` options control how many requests run in parallel and how many times each download is retried. Lower the numbers on unstable networks to avoid crashes.
+
+**Logging to File**
+
+> Use `--log-file myrun.log` to save all console output to a file for later review. Helpful when running the script unattended on a server.
 
 ## 📖 Table of Contents
 
