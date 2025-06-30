@@ -77,10 +77,10 @@ This is the best method. You will create a personal copy (a "fork") of this repo
 
 1.  Once the workflow is complete (it will have a green checkmark ✓), go back to the main page of your repository (the **`< > Code`** tab).
 2.  You will now see a new `output` folder. Click on it.
-3.  Click on the file named `ultimate_vpn_subscription_base64.txt`.
+3.  Click on the file named `vpn_subscription_base64.txt`.
 4.  On the file view page, click the **`Raw`** button.
 5.  **This is your link\!** The URL in your browser's address bar is your permanent, auto-updating subscription link. Copy it. It will look like this:
-    `https://raw.githubusercontent.com/YOUR_USERNAME/CleanConfigs-SubMerger/main/output/ultimate_vpn_subscription_base64.txt`
+    `https://raw.githubusercontent.com/YOUR_USERNAME/CleanConfigs-SubMerger/main/output/vpn_subscription_base64.txt`
 
 You are now ready to use this link in any VPN app\!
 
@@ -109,10 +109,10 @@ If you don't have it, download from [python.org](https://www.python.org/download
 In the same terminal, run:
 
 ```bash
-python ultimate_vpn_merger.py
+python vpn_merger.py
 ```
 
-After 5-15 minutes, the `output` folder will appear with your files. To use the output, you'll need to upload the content of `ultimate_vpn_subscription_base64.txt` somewhere (like a private [GitHub Gist](https://gist.github.com/)) and use that file's "Raw" URL.
+After 5-15 minutes, the `output` folder will appear with your files. To use the output, you'll need to upload the content of `vpn_subscription_base64.txt` somewhere (like a private [GitHub Gist](https://gist.github.com/)) and use that file's "Raw" URL.
 
 ### Method 3: Using Google Colab (Easy, No Setup)
 
@@ -202,10 +202,10 @@ Here’s how to add your new subscription link to the best **free** applications
 
 | File Name                              | Purpose                                                                                                  |
 | -------------------------------------- | -------------------------------------------------------------------------------------------------------- |
-| `ultimate_vpn_subscription_base64.txt` | A base64-encoded file. Most apps import directly from this file's raw URL.                               |
-| `ultimate_vpn_subscription_raw.txt`    | A plain text list of all the VPN configuration links.                                                    |
-| `ultimate_vpn_detailed.csv`            | A spreadsheet with detailed info about each server, including protocol, host, and ping time.             |
-| `ultimate_vpn_report.json`             | A detailed report with all stats and configurations in a developer-friendly format.                      |
+| `vpn_subscription_base64.txt` | A base64-encoded file. Most apps import directly from this file's raw URL.                               |
+| `vpn_subscription_raw.txt`    | A plain text list of all the VPN configuration links.                                                    |
+| `vpn_detailed.csv`            | A spreadsheet with detailed info about each server, including protocol, host, and ping time.             |
+| `vpn_report.json`             | A detailed report with all stats and configurations in a developer-friendly format.                      |
 
 -----
 
