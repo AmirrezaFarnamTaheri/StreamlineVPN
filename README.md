@@ -221,13 +221,3 @@ If you have your own subscription links you'd like to merge, you can add them to
 2.  Find the `UnifiedSources` class.
 3.  Add your links to the `SOURCES` list.
 4.  Save the file and run the script. If you are using the GitHub Actions method, commit the change, and the workflow will use your updated list.
-
-\<details\>
-\<summary\>\<strong\>Click here to see the full Python Script\</strong\>\</summary\>
-
-```python
-# The full, unabbreviated Python script would be placed here.
-# This keeps the README clean while still providing the complete code.
-```
-
-\</details\>
