@@ -674,7 +674,7 @@ class EnhancedConfigProcessor:
         if not CONFIG.enable_url_testing:
             return None
             
-        self.start_time = time.time()
+        start = time.time()
         try:
             # TCP connection test with timeout
             _, writer = await asyncio.wait_for(
@@ -683,7 +683,7 @@ class EnhancedConfigProcessor:
             )
             writer.close()
             await writer.wait_closed()
-            return time.time() - start_time
+            return time.time() - start
         except Exception:
             return None
     
@@ -823,13 +823,14 @@ class UltimateVPNMerger:
         print()
         
         start_time = time.time()
+        self.start_time = start_time
         
         # Step 1: Test source availability and remove dead links
         print("🔄 [1/6] Testing source availability and removing dead links...")
         self.available_sources = await self._test_and_filter_sources()
         
         # Step 2: Fetch all configs from available sources
-        print(f"\n🔄 [2/6] Fetching configs from {len(available_sources)} available sources...")
+        print(f"\n🔄 [2/6] Fetching configs from {len(self.available_sources)} available sources...")
         self.all_results = await self._fetch_all_sources(self.available_sources)
         
         # Step 3: Deduplicate efficiently  
@@ -993,7 +994,11 @@ class UltimateVPNMerger:
         
         duplicates = len(results) - len(unique_results)
         print(f"   🗑️ Duplicates removed: {duplicates:,}")
-        print(f"   📊 Deduplication efficiency: {duplicates/len(results)*100:.1f}%")
+        if len(results) > 0:
+            efficiency = duplicates / len(results) * 100
+        else:
+            efficiency = 0
+        print(f"   📊 Deduplication efficiency: {efficiency:.1f}%")
         return unique_results
     
     def _sort_by_performance(self, results: List[ConfigResult]) -> List[ConfigResult]:
@@ -1052,9 +1057,10 @@ class UltimateVPNMerger:
         # Print comprehensive breakdown
         total = len(results)
         reachable = sum(1 for r in results if r.is_reachable)
-        
+
         print(f"   📊 Total configs: {total:,}")
-        print(f"   🌐 Reachable configs: {reachable:,} ({reachable/total*100:.1f}%)")
+        reach_pct = (reachable / total * 100) if total else 0
+        print(f"   🌐 Reachable configs: {reachable:,} ({reach_pct:.1f}%)")
         print(f"   🔗 Available sources: {len(available_sources)}")
         print(f"   📋 Protocol breakdown:")
         
@@ -1224,12 +1230,20 @@ def main():
                         help="Keep only the N best configs after sorting (0 = all)")
     parser.add_argument("--fragment", type=str, default=CONFIG.fragment_filter,
                         help="Only keep configs containing this fragment")
+    parser.add_argument("--no-url-test", action="store_true",
+                        help="Disable server reachability testing")
+    parser.add_argument("--no-sort", action="store_true",
+                        help="Disable performance-based sorting")
     args = parser.parse_args()
 
     CONFIG.batch_size = max(0, args.batch_size)
     CONFIG.threshold = max(0, args.threshold)
     CONFIG.top_n = max(0, args.top_n)
     CONFIG.fragment_filter = args.fragment
+    if args.no_url_test:
+        CONFIG.enable_url_testing = False
+    if args.no_sort:
+        CONFIG.enable_sorting = False
 
     print("🔧 VPN Merger - Checking environment...")
 

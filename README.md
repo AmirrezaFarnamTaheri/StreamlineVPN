@@ -7,6 +7,18 @@ Welcome to the VPN Subscription Merger! This project provides a powerful Python 
 
 This guide is designed for **everyone**, from absolute beginners with no coding experience to advanced users who want full automation.
 
+## ✨ Key Features & Use Cases
+
+| Feature | Description | Typical Use Case |
+| ------- | ----------- | ---------------- |
+| **Huge Source List** | Over 470 public subscription sources are built in. | Get a massive selection of servers with a single command. |
+| **Availability Testing** | Checks each source before downloading. | Skip dead links and save time. |
+| **Connectivity Testing** | Optional TCP checks measure real latency. | Prioritize servers that actually respond. |
+| **Smart Sorting** | Orders the final list by reachability and speed. | Quickly pick the best server in your VPN client. |
+| **Batch Saving** | Periodically saves intermediate results with `--batch-size`. | Useful on unreliable connections. |
+| **Protocol Filtering** | Use `--fragment` or `--top-n` to trim the output. | Keep only certain protocols or the fastest N entries. |
+| **Disable Features** | Flags `--no-url-test` and `--no-sort` give full control. | Run fast tests or skip sorting when not needed. |
+
 ## 📖 Table of Contents
 
   * [How It Works](#-how-it-works)
@@ -178,7 +190,7 @@ Here’s how to add your new subscription link to the best **free** applications
 6.  Go back to the **`Dashboard`** tab. You'll see your new group. Tap it to select a server.
 7.  Tap the floating "Connect" button in the bottom-right to connect.
 
-###  macOS & iOS (iPhone/iPad)
+### 🍎 macOS & iOS (iPhone/iPad)
 
 #### **App: Hiddify-Next (Recommended Cross-Platform Client)**
 
@@ -216,6 +228,8 @@ Run `python vpn_merger.py --help` to see all options. Important flags include:
 
   * `--batch-size N` - save intermediate files every `N` configs.
   * `--threshold N` - stop once `N` unique configs are collected.
+  * `--no-url-test` - skip reachability testing for faster execution.
+  * `--no-sort` - keep configs in the order retrieved without sorting.
   * `--top-n N` - keep only the best `N` configs after sorting.
   * `--fragment TEXT` - only keep configs containing `TEXT`.
 
