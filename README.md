@@ -1,1 +1,235 @@
-# CleanConfigs-SubMerger
+# VPN Subscription Merger 🚀
+
+[](https://www.google.com/search?q=https://github.com/AmirrezaFarnamTaheri/CleanConfigs-SubMerger/actions)
+[](https://opensource.org/licenses/MIT)
+
+Welcome to the VPN Subscription Merger\! This project provides a powerful Python script that automatically fetches VPN configurations from over 470 public sources, tests their connectivity, and merges them into a single, performance-sorted subscription link for use in your favorite VPN client.
+
+This guide is designed for **everyone**, from absolute beginners with no coding experience to advanced users who want full automation.
+
+## 📖 Table of Contents
+
+  * [How It Works](https://www.google.com/search?q=%23-how-it-works)
+  * [🛡️ Important Security & Privacy Disclaimer](https://www.google.com/search?q=%23%EF%B8%8F-important-security--privacy-disclaimer)
+  * [🛠️ How to Get Your Subscription Link (Choose One Method)](https://www.google.com/search?q=%23%EF%B8%8F-how-to-get-your-subscription-link-choose-one-method)
+      * [Method 1: Fully Automated with GitHub Actions (Recommended)](https://www.google.com/search?q=%23method-1-fully-automated-with-github-actions-recommended)
+      * [Method 2: On Your Local Computer](https://www.google.com/search?q=%23method-2-on-your-local-computer)
+      * [Method 3: Using Google Colab (Easy, No Setup)](https://www.google.com/search?q=%23method-3-using-google-colab-easy-no-setup)
+  * [📲 How to Use Your Link in VPN Apps](https://www.google.com/search?q=%23-how-to-use-your-link-in-vpn-apps)
+      * [Windows & Linux](https://www.google.com/search?q=%23%EF%B8%8F-windows--linux)
+      * [Android](https://www.google.com/search?q=%23-android)
+      * [macOS & iOS (iPhone/iPad)](https://www.google.com/search?q=%23-macos--ios-iphoneipad)
+  * [📂 Understanding the Output Files](https://www.google.com/search?q=%23-understanding-the-output-files)
+  * [⚙️ Advanced Usage & Troubleshooting](https://www.google.com/search?q=%23%EF%B8%8F-advanced-usage--troubleshooting)
+
+## 🧠 How It Works
+
+The script automates a simple but powerful process to create the best possible subscription link from public sources:
+
+1.  **📰 Gathers Sources**: It starts with a massive, built-in list of over 470 links where VPN configurations are publicly shared.
+2.  **✅ Tests Source Availability**: It quickly checks each of the 470+ links to see which ones are currently online and accessible.
+3.  **📥 Fetches All Configs**: It visits every active link and downloads all the individual VPN server configurations (`vless://`, `vmess://`, etc.).
+4.  **⚡ Tests Server Performance**: This is the key step. It attempts a direct connection to each individual server to measure its real-world connection speed (latency/ping). Servers that are offline or too slow are discarded.
+5.  **🧹 Cleans and Sorts**: Finally, it removes any duplicate servers and sorts the remaining, working servers from **fastest to slowest**.
+6.  **📦 Generates Outputs**: It saves this final, sorted list into multiple formats, including the `base64` subscription file that you use in your app.
+
+## 🛡️ Important Security & Privacy Disclaimer
+
+**Please read this carefully.**
+
+  * **These are public servers.** The VPN configurations are sourced from public channels. You should assume that the server operators are **unknown and untrusted**.
+  * **Do NOT use for sensitive data.** Do not log into banking sites, handle personal emails, or transmit any sensitive information while connected to these servers. Your traffic may not be private.
+  * **For general-purpose use only.** This service is excellent for general Browse, bypassing geo-restrictions, and accessing blocked content. It is **not** a replacement for a reputable, paid VPN service if you require high security and privacy.
+  * **You are using this at your own risk.** The creators of this script are not responsible for how you use these servers.
+
+-----
+
+## 🛠️ How to Get Your Subscription Link (Choose One Method)
+
+### Method 1: Fully Automated with GitHub Actions (Recommended)
+
+This is the best method. You will create a personal copy (a "fork") of this repository, and GitHub's servers will automatically run the script for you every 6 hours. This gives you a personal, auto-updating subscription link.
+
+**Step 1: Fork the Repository**
+
+1.  Make sure you are logged into your GitHub account.
+2.  Go to the top of this repository's page.
+3.  Click the **`Fork`** button. A "fork" is simply your own personal copy of a project.
+4.  On the "Create a new fork" page, you can leave all the settings as they are and just click the green **`Create fork`** button.
+
+**Step 2: Enable Workflows in Your Fork**
+
+1.  After forking, you will be on the main page of *your* new repository. Click on the **`Actions`** tab.
+2.  GitHub disables workflows on forks by default for security. You will see a yellow banner. Click the green button that says **`I understand my workflows, go ahead and enable them`**.
+    *`[Placeholder for a screenshot showing the "Enable Actions" button]`*
+
+**Step 3: Run the Workflow for the First Time**
+
+1.  In the left sidebar, click on the workflow named **`Merge VPN Subscriptions`**.
+2.  You will see a blue banner that says "This workflow has a `workflow_dispatch` event trigger." Look to the right side of the screen and click the **`Run workflow`** dropdown button.
+3.  Leave the settings as they are and click the final green **`Run workflow`** button.
+4.  The script will now start running on GitHub's servers. Wait about 3-5 minutes for it to complete. You can click on the run to see its progress.
+
+**Step 4: Get Your Personal, Permanent Subscription Link**
+
+1.  Once the workflow is complete (it will have a green checkmark ✓), go back to the main page of your repository (the **`< > Code`** tab).
+2.  You will now see a new `output` folder. Click on it.
+3.  Click on the file named `ultimate_vpn_subscription_base64.txt`.
+4.  On the file view page, click the **`Raw`** button.
+    *`[Placeholder for a screenshot showing the "Raw" button]`*
+5.  **This is your link\!** The URL in your browser's address bar is your permanent, auto-updating subscription link. Copy it. It will look like this:
+    `https://raw.githubusercontent.com/YOUR_USERNAME/ultimate-vpn-merger/main/output/ultimate_vpn_subscription_base64.txt`
+
+You are now ready to use this link in any VPN app\!
+
+### Method 2: On Your Local Computer
+
+Use this method if you want to run the script on your own machine.
+
+**Step 1: Install Python**
+If you don't have it, download from [python.org](https://www.python.org/downloads/).
+
+> **Important**: On Windows, check the box that says "**Add Python to PATH**" during installation.
+
+**Step 2: Download the Project**
+
+1.  Click the green **`< > Code`** button on this page -\> **`Download ZIP`**.
+2.  Extract the ZIP file to a folder on your computer.
+
+**Step 3: Install Dependencies**
+
+1.  Open a terminal (or `cmd` on Windows).
+2.  Navigate to the project folder: `cd path/to/your/folder`.
+3.  Run: `pip install -r requirements.txt`.
+      * *Troubleshooting*: If you get a "permission denied" error, try `sudo pip install -r requirements.txt` on macOS/Linux, or right-click `cmd` and "Run as administrator" on Windows.
+
+**Step 4: Run the Script**
+In the same terminal, run:
+
+```bash
+python ultimate_vpn_merger.py
+```
+
+After 5-15 minutes, the `output` folder will appear with your files. To use the output, you'll need to upload the content of `ultimate_vpn_subscription_base64.txt` somewhere (like a private [GitHub Gist](https://gist.github.com/)) and use that file's "Raw" URL.
+
+### Method 3: Using Google Colab (Easy, No Setup)
+
+1.  Go to [colab.research.google.com](https://colab.research.google.com) and click **`File`** -\> **`New notebook`**.
+2.  Copy the entire code from the `ultimate_vpn_merger.py` file in this repository.
+3.  Paste it into the Colab cell and click the "Play" button (▶️).
+4.  When it finishes, find the `output` folder in the file explorer on the left. Right-click the files to download them. (Like Method 2, you'll need to host the `base64.txt` file's content to get a usable link).
+
+-----
+
+## 📲 How to Use Your Link in VPN Apps
+
+Here’s how to add your new subscription link to the best **free** applications.
+
+### 🖥️ Windows & Linux
+
+#### **App: NekoRay / NekoBox**
+
+  * **About**: A powerful and popular client for Windows and Linux.
+  * **Download**: Get it from the [NekoRay GitHub Releases](https://github.com/MatsuriDayo/nekoray/releases).
+
+**Instructions:**
+
+1.  Open NekoRay.
+2.  From the top menu, go to **`Program`** -\> **`Add profile from URL`**.
+3.  Paste your subscription link into the **`URL`** field and give it a name in the **`Name`** field.
+4.  Click **`OK`**.
+5.  In the main window, right-click on the new subscription group and select **`Update`**.
+6.  Select a server from the list and press `Enter` to set it as active.
+7.  To route your system's traffic, go to the top menu, select **`TUN Mode`**, and make sure it is checked.
+
+### 📱 Android
+
+#### **App 1: v2rayNG (Recommended for Beginners)**
+
+  * **About**: The most widely used and stable V2Ray client for Android.
+  * **Download**: Get it from the [Google Play Store](https://www.google.com/search?q=https://play.google.com/store/apps/details%3Fid%3Dcom.v2ray.ang) or [GitHub Releases](https://github.com/2dust/v2rayNG/releases).
+
+**Instructions:**
+
+1.  Open v2rayNG.
+2.  Tap the **`☰`** menu icon (top-left).
+3.  Select **`Subscription group setting`**.
+4.  Tap the **`+`** icon (top-right).
+5.  Give it a name in the **`Remark`** field (e.g., "Ultimate").
+6.  Paste your subscription link into the **`URL`** field.
+7.  Tap the checkmark (**`✓`**) to save.
+8.  Back on the main screen, tap the three-dots menu (**`⋮`**) and select **`Update subscriptions`**.
+9.  After it updates, you can run a real-world speed test by tapping the three-dots menu (**`⋮`**) -\> **`Test all configurations (real delay)`**.
+10. Tap a server with good speed, then tap the large **`V`** icon at the bottom to connect.
+
+#### **App 2: NekoBox for Android**
+
+  * **About**: A modern client with a beautiful interface, supporting multiple protocols.
+  * **Download**: Get it from [GitHub Releases](https://github.com/MatsuriDayo/NekoBoxForAndroid/releases).
+
+**Instructions:**
+
+1.  Open NekoBox and tap the **`Profiles`** tab at the bottom.
+2.  Tap the **`+`** icon (top-right), then select **`Add subscription`**.
+3.  Give the profile a name.
+4.  Paste your subscription link into the **`Subscription URL`** field.
+5.  Tap **`OK`**.
+6.  Go back to the **`Dashboard`** tab. You'll see your new group. Tap it to select a server.
+7.  Tap the floating "Connect" button in the bottom-right to connect.
+
+###  macOS & iOS (iPhone/iPad)
+
+#### **App: Hiddify-Next (Recommended Cross-Platform Client)**
+
+  * **About**: A fantastic, modern, and open-source client that works on nearly every platform.
+  * **Download**: Find it on the [App Store](https://www.google.com/search?q=https://apps.apple.com/us/app/hiddify-next/id6444434822) for iOS/macOS or from [GitHub](https://github.com/hiddify/hiddify-next/releases).
+
+**Instructions (same for macOS and iOS):**
+
+1.  Open Hiddify-Next.
+2.  Tap the large **`+`** button on the main screen.
+3.  Select **`Add from URL`**.
+4.  Paste your subscription link into the field.
+5.  Tap **`Continue`**. The app will import the profile.
+6.  Select the new profile from the list.
+7.  Tap the large "Connect" slider to turn it on. The app will automatically test and select the best server for you.
+
+-----
+
+## 📂 Understanding the Output Files
+
+| File Name                                  | Purpose                                                                                                  |
+| ------------------------------------------ | -------------------------------------------------------------------------------------------------------- |
+| `ultimate_vpn_subscription_base64.txt`     | A base64-encoded file. Most apps import directly from this file's raw URL.                               |
+| `ultimate_vpn_subscription_raw.txt`        | A plain text list of all the VPN configuration links.                                                    |
+| `ultimate_vpn_detailed.csv`                | A spreadsheet with detailed info about each server, including protocol, host, and ping time.             |
+| `ultimate_vpn_report.json`                 | A detailed report with all stats and configurations in a developer-friendly format.                      |
+
+-----
+
+## ⚙️ Advanced Usage & Troubleshooting
+
+#### **Command-Line Arguments**
+
+  * `--no-test`: Skips server connection testing. Much faster but provides no ping data.
+  * `--resume`: Resumes from the last checkpoint (skips source testing).
+  * `-o <FolderName>`: Specify a different output folder name.
+
+#### **Adding Your Own Sources**
+
+If you have your own subscription links you'd like to merge, you can add them to the script:
+
+1.  Open the `ultimate_vpn_merger.py` file in a text editor.
+2.  Find the `UnifiedSources` class.
+3.  Add your links to the `SOURCES` list.
+4.  Save the file and run the script. If you are using the GitHub Actions method, commit the change, and the workflow will use your updated list.
+
+\<details\>
+\<summary\>\<strong\>Click here to see the full Python Script\</strong\>\</summary\>
+
+```python
+# The full, unabbreviated Python script would be placed here.
+# This keeps the README clean while still providing the complete code.
+```
+
+\</details\>
