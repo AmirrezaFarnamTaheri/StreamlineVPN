@@ -7,6 +7,13 @@ Welcome to the VPN Subscription Merger! This project provides a powerful Python 
 
 This guide is designed for **everyone**, from absolute beginners with no coding experience to advanced users who want full automation.
 
+### ⚡ Quick Start
+
+1. Install **Python 3.8+** and clone this repository.
+2. Run `pip install -r requirements.txt` in the project folder.
+3. Execute `python vpn_merger.py` and wait for the `output` directory.
+4. Import the `output/vpn_subscription_base64.txt` link into your VPN app.
+
 ## ✨ Key Features & Use Cases
 
 | Feature | Description | Typical Use Case |
@@ -241,3 +248,18 @@ If you have your own subscription links you'd like to merge, you can add them to
 2.  Find the `UnifiedSources` class.
 3.  Add your links to the `SOURCES` list.
 4.  Save the file and run the script. If you are using the GitHub Actions method, commit the change, and the workflow will use your updated list.
+
+#### **Retesting an Existing Output**
+
+If you already generated a subscription file, run `python vpn_retester.py <path>` to check all servers again and sort them by current latency. The script accepts raw or base64 files.
+
+Example:
+
+```bash
+python vpn_retester.py output/vpn_subscription_raw.txt --top-n 50
+```
+
+New files will appear in the `output` directory:
+- `vpn_retested_raw.txt`
+- `vpn_retested_base64.txt`
+- `vpn_retested_detailed.csv`
