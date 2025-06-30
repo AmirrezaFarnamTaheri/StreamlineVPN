@@ -97,6 +97,9 @@ class Config:
     include_protocols: Optional[Set[str]]
     exclude_protocols: Optional[Set[str]]
     resume_file: Optional[str]
+    reachable_batch_size: int
+    max_ping_ms: Optional[int]
+    log_file: Optional[str]
 
 CONFIG = Config(
     headers={
@@ -129,7 +132,10 @@ CONFIG = Config(
     tls_fragment=None,
     include_protocols=None,
     exclude_protocols=None,
-    resume_file=None
+    resume_file=None,
+    reachable_batch_size=100,
+    max_ping_ms=None,
+    log_file=None
 )
 
 # ============================================================================
@@ -811,6 +817,8 @@ class UltimateVPNMerger:
         self.fetcher = AsyncSourceFetcher(self.processor)
         self.batch_counter = 0
         self.next_batch_threshold = CONFIG.batch_size if CONFIG.batch_size else float('inf')
+        self.next_reachable_threshold = CONFIG.reachable_batch_size if CONFIG.reachable_batch_size else float('inf')
+        self.reachable_count = 0
         self.start_time = 0.0
         self.available_sources: List[str] = []
         self.all_results: List[ConfigResult] = []
@@ -890,7 +898,14 @@ class UltimateVPNMerger:
         if CONFIG.top_n > 0:
             unique_results = unique_results[:CONFIG.top_n]
             print(f"   🔝 Keeping top {CONFIG.top_n} configs")
-        
+
+        if CONFIG.max_ping_ms is not None and CONFIG.enable_url_testing:
+            before = len(unique_results)
+            unique_results = [r for r in unique_results
+                              if r.ping_time is not None and r.ping_time * 1000 <= CONFIG.max_ping_ms]
+            removed = before - len(unique_results)
+            print(f"   ⏱️  Removed {removed} configs over {CONFIG.max_ping_ms} ms")
+
         # Step 5: Analyze protocols and performance
         print(f"\n📋 [5/6] Analyzing {len(unique_results):,} unique configs...")
         stats = self._analyze_results(unique_results, self.available_sources)
@@ -974,6 +989,7 @@ class UltimateVPNMerger:
                 if results:
                     successful_sources += 1
                     reachable = sum(1 for r in results if r.is_reachable)
+                    self.reachable_count += reachable
                     status = f"✓ {len(results):,} configs ({reachable} reachable)"
                 else:
                     status = "✗ No configs"
@@ -999,13 +1015,21 @@ class UltimateVPNMerger:
 
     async def _maybe_save_batch(self) -> None:
         """Save intermediate output if batch size reached."""
-        if CONFIG.batch_size <= 0:
+        if CONFIG.batch_size <= 0 and CONFIG.reachable_batch_size <= 0:
             return
-        if len(self.all_results) < self.next_batch_threshold:
+
+        save = False
+        if CONFIG.batch_size > 0 and len(self.all_results) >= self.next_batch_threshold:
+            save = True
+            self.next_batch_threshold += CONFIG.batch_size
+        if CONFIG.reachable_batch_size > 0 and self.reachable_count >= self.next_reachable_threshold:
+            save = True
+            self.next_reachable_threshold += CONFIG.reachable_batch_size
+        if not save:
             return
 
         self.batch_counter += 1
-        print(f"\n💾 Saving batch {self.batch_counter} with {len(self.all_results):,} configs...")
+        print(f"\n💾 Saving batch {self.batch_counter} with {self.reachable_count:,} reachable configs...")
 
         unique = self._deduplicate_config_results(self.all_results)
         if CONFIG.enable_sorting:
@@ -1015,8 +1039,6 @@ class UltimateVPNMerger:
 
         stats = self._analyze_results(unique, self.available_sources)
         await self._generate_comprehensive_outputs(unique, stats, self.start_time, prefix=f"batch_{self.batch_counter}_")
-
-        self.next_batch_threshold += CONFIG.batch_size
 
         if CONFIG.threshold > 0 and len(unique) >= CONFIG.threshold:
             print(f"\n⏹️  Threshold of {CONFIG.threshold} configs reached. Stopping early.")
@@ -1271,6 +1293,8 @@ def main():
     parser = argparse.ArgumentParser(description="VPN Merger")
     parser.add_argument("--batch-size", type=int, default=CONFIG.batch_size,
                         help="Save intermediate output every N configs (0 to disable)")
+    parser.add_argument("--reachable-batch-size", type=int, default=CONFIG.reachable_batch_size,
+                        help="Save output every N reachable configs (0 to disable)")
     parser.add_argument("--threshold", type=int, default=CONFIG.threshold,
                         help="Stop processing after N unique configs (0 = unlimited)")
     parser.add_argument("--top-n", type=int, default=CONFIG.top_n,
@@ -1291,11 +1315,20 @@ def main():
                         help="Disable server reachability testing")
     parser.add_argument("--no-sort", action="store_true",
                         help="Disable performance-based sorting")
+    parser.add_argument("--concurrent-limit", type=int, default=CONFIG.concurrent_limit,
+                        help="Number of concurrent requests")
+    parser.add_argument("--max-retries", type=int, default=CONFIG.max_retries,
+                        help="Retry attempts when fetching sources")
+    parser.add_argument("--max-ping", type=int, default=0,
+                        help="Discard configs slower than this ping in ms (0 = no limit)")
+    parser.add_argument("--log-file", type=str, default=None,
+                        help="Write output messages to a log file")
     args, unknown = parser.parse_known_args()
     if unknown:
         logging.warning("Ignoring unknown arguments: %s", unknown)
 
     CONFIG.batch_size = max(0, args.batch_size)
+    CONFIG.reachable_batch_size = max(0, args.reachable_batch_size)
     CONFIG.threshold = max(0, args.threshold)
     CONFIG.top_n = max(0, args.top_n)
     CONFIG.tls_fragment = args.tls_fragment
@@ -1306,10 +1339,18 @@ def main():
     CONFIG.resume_file = args.resume
     CONFIG.output_dir = args.output_dir
     CONFIG.test_timeout = max(0.1, args.test_timeout)
+    CONFIG.concurrent_limit = max(1, args.concurrent_limit)
+    CONFIG.max_retries = max(1, args.max_retries)
+    CONFIG.max_ping_ms = args.max_ping if args.max_ping > 0 else None
+    CONFIG.log_file = args.log_file
     if args.no_url_test:
         CONFIG.enable_url_testing = False
     if args.no_sort:
         CONFIG.enable_sorting = False
+
+    if CONFIG.log_file:
+        logging.basicConfig(filename=CONFIG.log_file, level=logging.INFO,
+                            format='%(asctime)s %(levelname)s:%(message)s')
 
     print("🔧 VPN Merger - Checking environment...")
 
