@@ -94,6 +94,9 @@ class Config:
     threshold: int
     top_n: int
     tls_fragment: Optional[str]
+    include_protocols: Optional[Set[str]]
+    exclude_protocols: Optional[Set[str]]
+    resume_file: Optional[str]
 
 CONFIG = Config(
     headers={
@@ -123,7 +126,10 @@ CONFIG = Config(
     batch_size=0,
     threshold=0,
     top_n=0,
-    tls_fragment=None
+    tls_fragment=None,
+    include_protocols=None,
+    exclude_protocols=None,
+    resume_file=None
 )
 
 # ============================================================================
@@ -809,6 +815,38 @@ class UltimateVPNMerger:
         self.available_sources: List[str] = []
         self.all_results: List[ConfigResult] = []
         self.stop_fetching = False
+
+    def _load_existing_results(self, path: str) -> List[ConfigResult]:
+        """Load previously saved configs from a raw or base64 file."""
+        try:
+            text = Path(path).read_text(encoding="utf-8").strip()
+        except Exception as e:
+            print(f"⚠️  Failed to read resume file: {e}")
+            return []
+
+        if text and '://' not in text.splitlines()[0]:
+            try:
+                text = base64.b64decode(text).decode("utf-8")
+            except Exception:
+                pass
+
+        results = []
+        for line in text.splitlines():
+            line = line.strip()
+            if not line:
+                continue
+            protocol = self.processor.categorize_protocol(line)
+            host, port = self.processor.extract_host_port(line)
+            results.append(
+                ConfigResult(
+                    config=line,
+                    protocol=protocol,
+                    host=host,
+                    port=port,
+                    source_url="(resume)"
+                )
+            )
+        return results
         
     async def run(self) -> None:
         """Execute the complete unified merging process."""
@@ -824,7 +862,12 @@ class UltimateVPNMerger:
         
         start_time = time.time()
         self.start_time = start_time
-        
+
+        if CONFIG.resume_file:
+            print(f"🔄 Loading existing configs from {CONFIG.resume_file} ...")
+            self.all_results.extend(self._load_existing_results(CONFIG.resume_file))
+            print(f"   ✔ Loaded {len(self.all_results)} configs from resume file")
+
         # Step 1: Test source availability and remove dead links
         print("🔄 [1/6] Testing source availability and removing dead links...")
         self.available_sources = await self._test_and_filter_sources()
@@ -986,6 +1029,10 @@ class UltimateVPNMerger:
 
         for result in results:
             if CONFIG.tls_fragment and CONFIG.tls_fragment.lower() not in result.config.lower():
+                continue
+            if CONFIG.include_protocols and result.protocol.upper() not in CONFIG.include_protocols:
+                continue
+            if CONFIG.exclude_protocols and result.protocol.upper() in CONFIG.exclude_protocols:
                 continue
             config_hash = self.processor.create_semantic_hash(result.config)
             if config_hash not in seen_hashes:
@@ -1230,6 +1277,12 @@ def main():
                         help="Keep only the N best configs after sorting (0 = all)")
     parser.add_argument("--tls-fragment", type=str, default=CONFIG.tls_fragment,
                         help="Only keep configs containing this TLS fragment")
+    parser.add_argument("--include-protocols", type=str, default=None,
+                        help="Comma-separated list of protocols to include")
+    parser.add_argument("--exclude-protocols", type=str, default=None,
+                        help="Comma-separated list of protocols to exclude")
+    parser.add_argument("--resume", type=str, default=None,
+                        help="Resume processing from existing raw/base64 file")
     parser.add_argument("--output-dir", type=str, default=CONFIG.output_dir,
                         help="Directory to save output files")
     parser.add_argument("--test-timeout", type=float, default=CONFIG.test_timeout,
@@ -1244,6 +1297,11 @@ def main():
     CONFIG.threshold = max(0, args.threshold)
     CONFIG.top_n = max(0, args.top_n)
     CONFIG.tls_fragment = args.tls_fragment
+    if args.include_protocols:
+        CONFIG.include_protocols = {p.strip().upper() for p in args.include_protocols.split(',') if p.strip()}
+    if args.exclude_protocols:
+        CONFIG.exclude_protocols = {p.strip().upper() for p in args.exclude_protocols.split(',') if p.strip()}
+    CONFIG.resume_file = args.resume
     CONFIG.output_dir = args.output_dir
     CONFIG.test_timeout = max(0.1, args.test_timeout)
     if args.no_url_test:
