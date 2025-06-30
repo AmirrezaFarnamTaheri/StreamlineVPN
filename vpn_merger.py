@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-Ultimate VPN Subscription Merger - Final Unified & Polished Edition
+VPN Subscription Merger
 ===================================================================
 
 The definitive VPN subscription merger combining 450+ sources with comprehensive
@@ -797,7 +797,7 @@ class AsyncSourceFetcher:
 # ============================================================================
 
 class UltimateVPNMerger:
-    """Ultimate VPN merger with unified functionality and comprehensive testing."""
+    """VPN merger with unified functionality and comprehensive testing."""
     
     def __init__(self):
         self.sources = UnifiedSources.get_all_sources()
@@ -812,7 +812,7 @@ class UltimateVPNMerger:
         
     async def run(self) -> None:
         """Execute the complete unified merging process."""
-        print("🚀 Ultimate VPN Subscription Merger - Final Unified & Polished Edition")
+        print("🚀 VPN Subscription Merger - Final Unified & Polished Edition")
         print("=" * 85)
         print(f"📊 Total unified sources: {len(self.sources)}")
         print(f"🇮🇷 Iranian priority: {len(UnifiedSources.IRANIAN_PRIORITY)}")
@@ -1085,16 +1085,16 @@ class UltimateVPNMerger:
         configs = [result.config for result in results]
         
         # Raw text output
-        raw_file = output_dir / f"{prefix}ultimate_vpn_subscription_raw.txt"
+        raw_file = output_dir / f"{prefix}vpn_subscription_raw.txt"
         raw_file.write_text("\n".join(configs), encoding="utf-8")
         
         # Base64 output
         base64_content = base64.b64encode("\n".join(configs).encode("utf-8")).decode("utf-8")
-        base64_file = output_dir / f"{prefix}ultimate_vpn_subscription_base64.txt"
+        base64_file = output_dir / f"{prefix}vpn_subscription_base64.txt"
         base64_file.write_text(base64_content, encoding="utf-8")
         
         # Enhanced CSV with comprehensive performance data
-        csv_file = output_dir / f"{prefix}ultimate_vpn_detailed.csv"
+        csv_file = output_dir / f"{prefix}vpn_detailed.csv"
         with open(csv_file, 'w', newline='', encoding='utf-8') as f:
             writer = csv.writer(f)
             writer.writerow(['Config', 'Protocol', 'Host', 'Port', 'Ping_MS', 'Reachable', 'Source'])
@@ -1110,7 +1110,7 @@ class UltimateVPNMerger:
             "generation_info": {
                 "timestamp_utc": datetime.now(timezone.utc).isoformat(),
                 "processing_time_seconds": round(time.time() - start_time, 2),
-                "script_version": "Ultimate Unified & Polished Edition",
+                "script_version": "Unified & Polished Edition",
                 "url_testing_enabled": CONFIG.enable_url_testing,
                 "sorting_enabled": CONFIG.enable_sorting,
             },
@@ -1125,7 +1125,7 @@ class UltimateVPNMerger:
                 "raw": str(raw_file),
                 "base64": str(base64_file),
                 "detailed_csv": str(csv_file),
-                "json_report": "ultimate_vpn_report.json",
+                "json_report": "vpn_report.json",
             },
             "usage_instructions": {
                 "base64_subscription": "Copy content of base64 file as subscription URL",
@@ -1138,13 +1138,13 @@ class UltimateVPNMerger:
             }
         }
         
-        report_file = output_dir / f"{prefix}ultimate_vpn_report.json"
+        report_file = output_dir / f"{prefix}vpn_report.json"
         report_file.write_text(json.dumps(report, indent=2, ensure_ascii=False), encoding="utf-8")
     
     def _print_final_summary(self, config_count: int, elapsed_time: float, stats: Dict) -> None:
         """Print comprehensive final summary."""
         print("\n" + "=" * 85)
-        print("🎉 ULTIMATE UNIFIED VPN MERGER COMPLETE!")
+        print("🎉 UNIFIED VPN MERGER COMPLETE!")
         print(f"⏱️  Total processing time: {elapsed_time:.2f} seconds")
         print(f"📊 Final unique configs: {config_count:,}")
         print(f"🌐 Reachable configs: {stats['reachable_configs']:,}")
@@ -1215,7 +1215,7 @@ def main():
 
     import argparse
 
-    parser = argparse.ArgumentParser(description="Ultimate VPN Merger")
+    parser = argparse.ArgumentParser(description="VPN Merger")
     parser.add_argument("--batch-size", type=int, default=CONFIG.batch_size,
                         help="Save intermediate output every N configs (0 to disable)")
     parser.add_argument("--threshold", type=int, default=CONFIG.threshold,
@@ -1231,7 +1231,7 @@ def main():
     CONFIG.top_n = max(0, args.top_n)
     CONFIG.fragment_filter = args.fragment
 
-    print("🔧 Ultimate VPN Merger - Checking environment...")
+    print("🔧 VPN Merger - Checking environment...")
 
     try:
         return detect_and_run()
@@ -1249,7 +1249,7 @@ if __name__ == "__main__":
 # ============================================================================
 
 print("""
-🚀 Ultimate VPN Subscription Merger - Final Unified Edition
+🚀 VPN Subscription Merger - Final Unified Edition
 
 📋 Execution Methods:
    • Regular Python: python script.py
@@ -1274,8 +1274,8 @@ print("""
    • Performance-optimized final list
 
 📁 Output Files:
-   • ultimate_vpn_subscription_raw.txt (for hosting)
-   • ultimate_vpn_subscription_base64.txt (for direct import)
-   • ultimate_vpn_detailed.csv (with performance metrics)
-   • ultimate_vpn_report.json (comprehensive statistics)
+   • vpn_subscription_raw.txt (for hosting)
+   • vpn_subscription_base64.txt (for direct import)
+   • vpn_detailed.csv (with performance metrics)
+   • vpn_report.json (comprehensive statistics)
 """)
