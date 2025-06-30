@@ -9,18 +9,20 @@ This guide is designed for **everyone**, from absolute beginners with no coding 
 
 ## 📖 Table of Contents
 
-  * [How It Works](https://www.google.com/search?q=%23-how-it-works)
-  * [🛡️ Important Security & Privacy Disclaimer](https://www.google.com/search?q=%23%EF%B8%8F-important-security--privacy-disclaimer)
-  * [🛠️ How to Get Your Subscription Link (Choose One Method)](https://www.google.com/search?q=%23%EF%B8%8F-how-to-get-your-subscription-link-choose-one-method)
-      * [Method 1: Fully Automated with GitHub Actions (Recommended)](https://www.google.com/search?q=%23method-1-fully-automated-with-github-actions-recommended)
-      * [Method 2: On Your Local Computer](https://www.google.com/search?q=%23method-2-on-your-local-computer)
-      * [Method 3: Using Google Colab (Easy, No Setup)](https://www.google.com/search?q=%23method-3-using-google-colab-easy-no-setup)
-  * [📲 How to Use Your Link in VPN Apps](https://www.google.com/search?q=%23-how-to-use-your-link-in-vpn-apps)
-      * [Windows & Linux](https://www.google.com/search?q=%23%EF%B8%8F-windows--linux)
-      * [Android](https://www.google.com/search?q=%23-android)
-      * [macOS & iOS (iPhone/iPad)](https://www.google.com/search?q=%23-macos--ios-iphoneipad)
-  * [📂 Understanding the Output Files](https://www.google.com/search?q=%23-understanding-the-output-files)
-  * [⚙️ Advanced Usage & Troubleshooting](https://www.google.com/search?q=%23%EF%B8%8F-advanced-usage--troubleshooting)
+## 📖 Table of Contents
+
+  * [How It Works](#-how-it-works)
+  * [🛡️ Important Security & Privacy Disclaimer](#️-important-security--privacy-disclaimer)
+  * [🛠️ How to Get Your Subscription Link (Choose One Method)](#️-how-to-get-your-subscription-link-choose-one-method)
+      * [Method 1: Fully Automated with GitHub Actions (Recommended)](#method-1-fully-automated-with-github-actions-recommended)
+      * [Method 2: On Your Local Computer](#method-2-on-your-local-computer)
+      * [Method 3: Using Google Colab (Easy, No Setup)](#method-3-using-google-colab-easy-no-setup)
+  * [📲 How to Use Your Link in VPN Apps](#-how-to-use-your-link-in-vpn-apps)
+      * [Windows & Linux](#️-windows--linux)
+      * [Android](#-android)
+      * [macOS & iOS (iPhone/iPad)](#-macos--ios-iphoneipad)
+  * [📂 Understanding the Output Files](#-understanding-the-output-files)
+  * [⚙️ Advanced Usage & Troubleshooting](#️-advanced-usage--troubleshooting)
 
 ## 🧠 How It Works
 
