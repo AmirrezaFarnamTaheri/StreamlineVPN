@@ -94,6 +94,9 @@ class Config:
     threshold: int
     top_n: int
     fragment_filter: Optional[str]
+    protocol_filters: Optional[List[str]]
+    require_tls_fragment: bool
+    test_host: str
 
 CONFIG = Config(
     headers={
@@ -123,7 +126,10 @@ CONFIG = Config(
     batch_size=0,
     threshold=0,
     top_n=0,
-    fragment_filter=None
+    fragment_filter=None,
+    protocol_filters=None,
+    require_tls_fragment=False,
+    test_host="www.google.com"
 )
 
 # ============================================================================
@@ -674,7 +680,7 @@ class EnhancedConfigProcessor:
         if not CONFIG.enable_url_testing:
             return None
             
-        self.start_time = time.time()
+        start_time = time.time()
         try:
             # TCP connection test with timeout
             _, writer = await asyncio.wait_for(
@@ -686,6 +692,14 @@ class EnhancedConfigProcessor:
             return time.time() - start_time
         except Exception:
             return None
+
+    async def check_connectivity(self, host: str) -> bool:
+        """Check internet connectivity by connecting to a known host."""
+        try:
+            await asyncio.wait_for(asyncio.open_connection(host, 80), timeout=CONFIG.test_timeout)
+            return True
+        except Exception:
+            return False
     
     def categorize_protocol(self, config: str) -> str:
         """Categorize configuration by protocol."""
@@ -821,20 +835,29 @@ class UltimateVPNMerger:
         print(f"🔧 URL Testing: {'Enabled' if CONFIG.enable_url_testing else 'Disabled'}")
         print(f"📈 Smart Sorting: {'Enabled' if CONFIG.enable_sorting else 'Disabled'}")
         print()
-        
-        start_time = time.time()
+
+        # Basic connectivity check
+        if not await self.processor.check_connectivity(CONFIG.test_host):
+            print(f"❌ Cannot reach {CONFIG.test_host}. Please check your internet connection or use --test-host")
+            return
+
+        self.start_time = time.time()
         
         # Step 1: Test source availability and remove dead links
         print("🔄 [1/6] Testing source availability and removing dead links...")
         self.available_sources = await self._test_and_filter_sources()
         
         # Step 2: Fetch all configs from available sources
-        print(f"\n🔄 [2/6] Fetching configs from {len(available_sources)} available sources...")
+        print(f"\n🔄 [2/6] Fetching configs from {len(self.available_sources)} available sources...")
         self.all_results = await self._fetch_all_sources(self.available_sources)
         
         # Step 3: Deduplicate efficiently  
         print(f"\n🔍 [3/6] Deduplicating {len(self.all_results):,} configs...")
         unique_results = self._deduplicate_config_results(self.all_results)
+
+        if CONFIG.threshold > 0 and len(unique_results) >= CONFIG.threshold:
+            unique_results = unique_results[:CONFIG.threshold]
+            print(f"   ⏹️ Threshold reached: keeping first {CONFIG.threshold} configs")
         
         # Step 4: Sort by performance if enabled
         if CONFIG.enable_sorting:
@@ -985,6 +1008,10 @@ class UltimateVPNMerger:
 
         for result in results:
             if CONFIG.fragment_filter and CONFIG.fragment_filter.lower() not in result.config.lower():
+                continue
+            if CONFIG.require_tls_fragment and 'fragment' not in result.config.lower():
+                continue
+            if CONFIG.protocol_filters and result.protocol.lower() not in CONFIG.protocol_filters:
                 continue
             config_hash = self.processor.create_semantic_hash(result.config)
             if config_hash not in seen_hashes:
@@ -1223,13 +1250,23 @@ def main():
     parser.add_argument("--top-n", type=int, default=CONFIG.top_n,
                         help="Keep only the N best configs after sorting (0 = all)")
     parser.add_argument("--fragment", type=str, default=CONFIG.fragment_filter,
-                        help="Only keep configs containing this fragment")
+                        help="Only keep configs containing this TLS fragment text")
+    parser.add_argument("--require-fragment", action="store_true",
+                        help="Keep only configs that specify TLS fragmentation")
+    parser.add_argument("--protocols", type=str, default=None,
+                        help="Comma-separated list of allowed protocols")
+    parser.add_argument("--test-host", type=str, default=CONFIG.test_host,
+                        help="Host used to verify internet connectivity")
     args = parser.parse_args()
 
     CONFIG.batch_size = max(0, args.batch_size)
     CONFIG.threshold = max(0, args.threshold)
     CONFIG.top_n = max(0, args.top_n)
     CONFIG.fragment_filter = args.fragment
+    CONFIG.require_tls_fragment = args.require_fragment
+    CONFIG.test_host = args.test_host
+    if args.protocols:
+        CONFIG.protocol_filters = [p.strip().lower() for p in args.protocols.split(',') if p.strip()]
 
     print("🔧 Ultimate VPN Merger - Checking environment...")
 

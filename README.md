@@ -3,7 +3,7 @@
 [](https://www.google.com/search?q=https://github.com/AmirrezaFarnamTaheri/CleanConfigs-SubMerger/actions)
 [](https://opensource.org/licenses/MIT)
 
-Welcome to the VPN Subscription Merger! This project provides a powerful Python script that automatically fetches VPN configurations from over 470 public sources, tests their connectivity, and merges them into a single, performance-sorted subscription link for use in your favorite VPN client. It can even save incremental batches while running so you always have up-to-date results.
+Welcome to the VPN Subscription Merger! This project provides a powerful Python script that automatically fetches VPN configurations from over 470 public sources, tests their connectivity, and merges them into a single, performance-sorted subscription link for use in your favorite VPN client. It can even save incremental batches while running so you always have up-to-date results. Advanced options let you stop early once enough servers are found, keep only the fastest ones, or filter by protocol and TLS fragment settings.
 
 This guide is designed for **everyone**, from absolute beginners with no coding experience to advanced users who want full automation.
 
@@ -33,6 +33,9 @@ The script automates a simple but powerful process to create the best possible s
 5.  **🧹 Cleans and Sorts**: Finally, it removes any duplicate servers and sorts the remaining, working servers from **fastest to slowest**.
 6.  **📦 Generates Outputs**: It saves this final, sorted list into multiple formats, including the `base64` subscription file that you use in your app.
 7.  **📁 Optional Batch Saving**: With `--batch-size`, the script periodically saves intermediate results while it runs.
+8.  **⏱️ Early Stop Threshold**: `--threshold` lets you finish once enough valid configs are collected.
+9.  **🏅 Keep Top Servers**: `--top-n` keeps only the best-performing configs.
+10. **🔎 Advanced Filters**: Filter by protocol or require TLS fragmentation for even cleaner results.
 
 -----
 
@@ -217,7 +220,20 @@ Run `python vpn_merger.py --help` to see all options. Important flags include:
   * `--batch-size N` - save intermediate files every `N` configs.
   * `--threshold N` - stop once `N` unique configs are collected.
   * `--top-n N` - keep only the best `N` configs after sorting.
-  * `--fragment TEXT` - only keep configs containing `TEXT`.
+  * `--fragment TEXT` - only keep configs containing a specific TLS fragment.
+  * `--require-fragment` - discard configs that do not specify TLS fragmentation.
+  * `--protocols LIST` - keep only the listed protocols (comma separated).
+  * `--test-host HOST` - host used for the initial connectivity test.
+
+The connectivity test runs at startup to ensure your network can reach the internet. If your network blocks Google, you can pass `--test-host cloudflare.com` (or any other reachable domain) to continue.
+
+Example:
+
+```bash
+python vpn_merger.py --batch-size 100 --threshold 500 \
+  --top-n 200 --protocols vless,vmess --require-fragment \
+  --test-host cloudflare.com
+```
 
 #### **Adding Your Own Sources**
 
