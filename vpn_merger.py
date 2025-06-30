@@ -97,6 +97,8 @@ class Config:
     include_protocols: Optional[Set[str]]
     exclude_protocols: Optional[Set[str]]
     resume_file: Optional[str]
+    max_ping_ms: Optional[int]
+    log_file: Optional[str]
 
 CONFIG = Config(
     headers={
@@ -129,7 +131,9 @@ CONFIG = Config(
     tls_fragment=None,
     include_protocols=None,
     exclude_protocols=None,
-    resume_file=None
+    resume_file=None,
+    max_ping_ms=None,
+    log_file=None
 )
 
 # ============================================================================
@@ -890,7 +894,14 @@ class UltimateVPNMerger:
         if CONFIG.top_n > 0:
             unique_results = unique_results[:CONFIG.top_n]
             print(f"   🔝 Keeping top {CONFIG.top_n} configs")
-        
+
+        if CONFIG.max_ping_ms is not None and CONFIG.enable_url_testing:
+            before = len(unique_results)
+            unique_results = [r for r in unique_results
+                              if r.ping_time is not None and r.ping_time * 1000 <= CONFIG.max_ping_ms]
+            removed = before - len(unique_results)
+            print(f"   ⏱️  Removed {removed} configs over {CONFIG.max_ping_ms} ms")
+
         # Step 5: Analyze protocols and performance
         print(f"\n📋 [5/6] Analyzing {len(unique_results):,} unique configs...")
         stats = self._analyze_results(unique_results, self.available_sources)
@@ -1291,6 +1302,14 @@ def main():
                         help="Disable server reachability testing")
     parser.add_argument("--no-sort", action="store_true",
                         help="Disable performance-based sorting")
+    parser.add_argument("--concurrent-limit", type=int, default=CONFIG.concurrent_limit,
+                        help="Number of concurrent requests")
+    parser.add_argument("--max-retries", type=int, default=CONFIG.max_retries,
+                        help="Retry attempts when fetching sources")
+    parser.add_argument("--max-ping", type=int, default=0,
+                        help="Discard configs slower than this ping in ms (0 = no limit)")
+    parser.add_argument("--log-file", type=str, default=None,
+                        help="Write output messages to a log file")
     args, unknown = parser.parse_known_args()
     if unknown:
         logging.warning("Ignoring unknown arguments: %s", unknown)
@@ -1306,10 +1325,18 @@ def main():
     CONFIG.resume_file = args.resume
     CONFIG.output_dir = args.output_dir
     CONFIG.test_timeout = max(0.1, args.test_timeout)
+    CONFIG.concurrent_limit = max(1, args.concurrent_limit)
+    CONFIG.max_retries = max(1, args.max_retries)
+    CONFIG.max_ping_ms = args.max_ping if args.max_ping > 0 else None
+    CONFIG.log_file = args.log_file
     if args.no_url_test:
         CONFIG.enable_url_testing = False
     if args.no_sort:
         CONFIG.enable_sorting = False
+
+    if CONFIG.log_file:
+        logging.basicConfig(filename=CONFIG.log_file, level=logging.INFO,
+                            format='%(asctime)s %(levelname)s:%(message)s')
 
     print("🔧 VPN Merger - Checking environment...")
 
