@@ -23,7 +23,9 @@ This guide is designed for **everyone**, from absolute beginners with no coding 
 | **Connectivity Testing** | Optional TCP checks measure real latency. | Prioritize servers that actually respond. |
 | **Smart Sorting** | Orders the final list by reachability and speed. | Quickly pick the best server in your VPN client. |
 | **Batch Saving** | Periodically saves intermediate results with `--batch-size`. | Useful on unreliable connections. |
-| **Protocol Filtering** | Use `--fragment` or `--top-n` to trim the output. | Keep only certain protocols or the fastest N entries. |
+| **Protocol Filtering** | Use `--tls-fragment` or `--top-n` to trim the output. | Keep only certain protocols or the fastest N entries. |
+| **Custom Output Dir** | Use `--output-dir` to choose where files are saved. | Organize results anywhere you like. |
+| **Set Test Timeout** | Tune connection checks with `--test-timeout`. | Useful for slow or distant servers. |
 | **Disable Features** | Flags `--no-url-test` and `--no-sort` give full control. | Run fast tests or skip sorting when not needed. |
 
 ## 📖 Table of Contents
@@ -238,7 +240,14 @@ Run `python vpn_merger.py --help` to see all options. Important flags include:
   * `--no-url-test` - skip reachability testing for faster execution.
   * `--no-sort` - keep configs in the order retrieved without sorting.
   * `--top-n N` - keep only the best `N` configs after sorting.
-  * `--fragment TEXT` - only keep configs containing `TEXT`.
+  * `--tls-fragment TEXT` - only keep configs containing this TLS fragment.
+  * `--output-dir DIR` - specify where output files are stored.
+  * `--test-timeout SEC` - adjust connection test timeout.
+
+TLS fragments help obscure the real Server Name Indication (SNI) of each
+connection by splitting the handshake into pieces. This makes it harder for
+filtering systems to detect the destination server, especially when weak SNI
+protections would otherwise expose it.
 
 #### **Adding Your Own Sources**
 
