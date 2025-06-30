@@ -1291,7 +1291,9 @@ def main():
                         help="Disable server reachability testing")
     parser.add_argument("--no-sort", action="store_true",
                         help="Disable performance-based sorting")
-    args = parser.parse_args()
+    args, unknown = parser.parse_known_args()
+    if unknown:
+        logging.warning("Ignoring unknown arguments: %s", unknown)
 
     CONFIG.batch_size = max(0, args.batch_size)
     CONFIG.threshold = max(0, args.threshold)
