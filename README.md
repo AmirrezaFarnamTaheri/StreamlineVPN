@@ -61,7 +61,6 @@ This is the best method. You will create a personal copy (a "fork") of this repo
 
 1.  After forking, you will be on the main page of *your* new repository. Click on the **`Actions`** tab.
 2.  GitHub disables workflows on forks by default for security. You will see a yellow banner. Click the green button that says **`I understand my workflows, go ahead and enable them`**.
-    *`[Placeholder for a screenshot showing the "Enable Actions" button]`*
 
 **Step 3: Run the Workflow for the First Time**
 
@@ -76,9 +75,8 @@ This is the best method. You will create a personal copy (a "fork") of this repo
 2.  You will now see a new `output` folder. Click on it.
 3.  Click on the file named `ultimate_vpn_subscription_base64.txt`.
 4.  On the file view page, click the **`Raw`** button.
-    *`[Placeholder for a screenshot showing the "Raw" button]`*
 5.  **This is your link\!** The URL in your browser's address bar is your permanent, auto-updating subscription link. Copy it. It will look like this:
-    `https://raw.githubusercontent.com/YOUR_USERNAME/ultimate-vpn-merger/main/output/ultimate_vpn_subscription_base64.txt`
+    `https://raw.githubusercontent.com/YOUR_USERNAME/CleanConfigs-SubMerger/main/output/ultimate_vpn_subscription_base64.txt`
 
 You are now ready to use this link in any VPN app\!
 
@@ -219,7 +217,7 @@ Here’s how to add your new subscription link to the best **free** applications
 
 If you have your own subscription links you'd like to merge, you can add them to the script:
 
-1.  Open the `ultimate_vpn_merger.py` file in a text editor.
+1.  Open the `vpn_merger.py` file in a text editor.
 2.  Find the `UnifiedSources` class.
 3.  Add your links to the `SOURCES` list.
 4.  Save the file and run the script. If you are using the GitHub Actions method, commit the change, and the workflow will use your updated list.
