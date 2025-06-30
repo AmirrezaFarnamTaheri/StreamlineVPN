@@ -113,7 +113,7 @@ After 5-15 minutes, the `output` folder will appear with your files. To use the 
 ### Method 3: Using Google Colab (Easy, No Setup)
 
 1.  Go to [colab.research.google.com](https://colab.research.google.com) and click **`File`** -\> **`New notebook`**.
-2.  Copy the entire code from the `ultimate_vpn_merger.py` file in this repository.
+2.  Copy the entire code from the `vpn_merger.py` file in this repository.
 3.  Paste it into the Colab cell and click the "Play" button (▶️).
 4.  When it finishes, find the `output` folder in the file explorer on the left. Right-click the files to download them. (Like Method 2, you'll need to host the `base64.txt` file's content to get a usable link).
 
