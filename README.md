@@ -23,10 +23,46 @@ This guide is designed for **everyone**, from absolute beginners with no coding 
 | **Connectivity Testing** | Optional TCP checks measure real latency. | Prioritize servers that actually respond. |
 | **Smart Sorting** | Orders the final list by reachability and speed. | Quickly pick the best server in your VPN client. |
 | **Batch Saving** | Periodically saves intermediate results with `--batch-size`. | Useful on unreliable connections. |
-| **Protocol Filtering** | Use `--tls-fragment` or `--top-n` to trim the output. | Keep only certain protocols or the fastest N entries. |
+| **Protocol Filtering** | Use `--include-protocols` or `--exclude-protocols` to filter by protocol. | Keep only VLESS servers or drop Shadowsocks, etc. |
+| **TLS Fragment / Top N** | Use `--tls-fragment` or `--top-n` to trim the output. | Obscure SNI or keep only the fastest N entries. |
+| **Resume from File** | `--resume` loads a previous raw/base64 output before fetching. | Continue a crashed run without starting over. |
 | **Custom Output Dir** | Use `--output-dir` to choose where files are saved. | Organize results anywhere you like. |
 | **Set Test Timeout** | Tune connection checks with `--test-timeout`. | Useful for slow or distant servers. |
 | **Disable Features** | Flags `--no-url-test` and `--no-sort` give full control. | Run fast tests or skip sorting when not needed. |
+
+### 🔍 Feature Breakdown
+
+**Huge Source List**
+
+> Built-in links cover hundreds of GitHub projects, Telegram channels and personal blogs. Instead of hunting for URLs yourself, you get a curated list that is updated regularly. Perfect when you need a one-click way to access lots of servers.
+
+**Availability Testing**
+
+> Before any downloads happen, the script checks every URL to see if it is still alive. Dead links are skipped so you don't waste time waiting on missing content.
+
+**Connectivity Testing**
+
+> Optionally, the script opens a real TCP connection to each server and measures the latency. This ensures the final list contains servers that actually respond and are fast enough for browsing or streaming.
+
+**Smart Sorting**
+
+> Configurations are sorted with reachable and low-latency servers first. Your VPN client will show the best options at the top so you can connect quickly.
+
+**Batch Saving**
+
+> With `--batch-size` you can periodically save progress. Useful on unstable networks; if the run stops, resume with `--resume` and only new servers will be fetched.
+
+**Protocol Filtering**
+
+> Use `--include-protocols` or `--exclude-protocols` to keep only certain technologies (e.g. just Reality) or remove unwanted ones (like Shadowsocks). Combine with `--tls-fragment` or `--top-n` for even finer control.
+
+**Resume from File**
+
+> If the process is interrupted, run again with `--resume path/to/old_output.txt` and previous results will be loaded before new sources are scanned.
+
+**Custom Output Dir / Test Timeout / Disable Features**
+
+> Tailor where files are saved, how long connection tests run and whether optional steps run at all. These switches allow the script to fit many different environments, from low-power devices to cloud servers.
 
 ## 📖 Table of Contents
 
@@ -241,6 +277,9 @@ Run `python vpn_merger.py --help` to see all options. Important flags include:
   * `--no-sort` - keep configs in the order retrieved without sorting.
   * `--top-n N` - keep only the best `N` configs after sorting.
   * `--tls-fragment TEXT` - only keep configs containing this TLS fragment.
+  * `--include-protocols LIST` - comma-separated protocols to include (e.g. `VLESS,Reality`).
+  * `--exclude-protocols LIST` - comma-separated protocols to exclude.
+  * `--resume FILE` - load a previous output file before fetching new sources.
   * `--output-dir DIR` - specify where output files are stored.
   * `--test-timeout SEC` - adjust connection test timeout.
 
