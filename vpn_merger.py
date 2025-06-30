@@ -85,9 +85,15 @@ class Config:
     enable_url_testing: bool
     enable_sorting: bool
     test_timeout: float
-    
+
     # Output settings
     output_dir: str
+
+    # New features
+    batch_size: int
+    threshold: int
+    top_n: int
+    fragment_filter: Optional[str]
 
 CONFIG = Config(
     headers={
@@ -113,7 +119,11 @@ CONFIG = Config(
     enable_url_testing=True,
     enable_sorting=True,
     test_timeout=5.0,
-    output_dir="output"
+    output_dir="output",
+    batch_size=0,
+    threshold=0,
+    top_n=0,
+    fragment_filter=None
 )
 
 # ============================================================================
@@ -664,7 +674,7 @@ class EnhancedConfigProcessor:
         if not CONFIG.enable_url_testing:
             return None
             
-        start_time = time.time()
+        self.start_time = time.time()
         try:
             # TCP connection test with timeout
             _, writer = await asyncio.wait_for(
@@ -793,6 +803,12 @@ class UltimateVPNMerger:
         self.sources = UnifiedSources.get_all_sources()
         self.processor = EnhancedConfigProcessor()
         self.fetcher = AsyncSourceFetcher(self.processor)
+        self.batch_counter = 0
+        self.next_batch_threshold = CONFIG.batch_size if CONFIG.batch_size else float('inf')
+        self.start_time = 0.0
+        self.available_sources: List[str] = []
+        self.all_results: List[ConfigResult] = []
+        self.stop_fetching = False
         
     async def run(self) -> None:
         """Execute the complete unified merging process."""
@@ -810,15 +826,15 @@ class UltimateVPNMerger:
         
         # Step 1: Test source availability and remove dead links
         print("🔄 [1/6] Testing source availability and removing dead links...")
-        available_sources = await self._test_and_filter_sources()
+        self.available_sources = await self._test_and_filter_sources()
         
         # Step 2: Fetch all configs from available sources
         print(f"\n🔄 [2/6] Fetching configs from {len(available_sources)} available sources...")
-        all_config_results = await self._fetch_all_sources(available_sources)
+        self.all_results = await self._fetch_all_sources(self.available_sources)
         
         # Step 3: Deduplicate efficiently  
-        print(f"\n🔍 [3/6] Deduplicating {len(all_config_results):,} configs...")
-        unique_results = self._deduplicate_config_results(all_config_results)
+        print(f"\n🔍 [3/6] Deduplicating {len(self.all_results):,} configs...")
+        unique_results = self._deduplicate_config_results(self.all_results)
         
         # Step 4: Sort by performance if enabled
         if CONFIG.enable_sorting:
@@ -826,16 +842,20 @@ class UltimateVPNMerger:
             unique_results = self._sort_by_performance(unique_results)
         else:
             print(f"\n⏭️ [4/6] Skipping sorting (disabled)")
+
+        if CONFIG.top_n > 0:
+            unique_results = unique_results[:CONFIG.top_n]
+            print(f"   🔝 Keeping top {CONFIG.top_n} configs")
         
         # Step 5: Analyze protocols and performance
         print(f"\n📋 [5/6] Analyzing {len(unique_results):,} unique configs...")
-        stats = self._analyze_results(unique_results, available_sources)
+        stats = self._analyze_results(unique_results, self.available_sources)
         
         # Step 6: Generate comprehensive outputs
         print("\n💾 [6/6] Generating comprehensive outputs...")
-        await self._generate_comprehensive_outputs(unique_results, stats, start_time)
-        
-        self._print_final_summary(len(unique_results), time.time() - start_time, stats)
+        await self._generate_comprehensive_outputs(unique_results, stats, self.start_time)
+
+        self._print_final_summary(len(unique_results), time.time() - self.start_time, stats)
     
     async def _test_and_filter_sources(self) -> List[str]:
         """Test all sources for availability and filter out dead links."""
@@ -916,20 +936,56 @@ class UltimateVPNMerger:
                 
                 domain = urlparse(url).netloc or url[:50] + "..."
                 print(f"  [{completed:03d}/{len(available_sources)}] {status} - {domain}")
-            
+
+                await self._maybe_save_batch()
+
+                if self.stop_fetching:
+                    break
+
+            if self.stop_fetching:
+                for t in tasks:
+                    t.cancel()
+
             print(f"\n   📈 Sources with configs: {successful_sources}/{len(available_sources)}")
             
         finally:
             await self.fetcher.session.close()
-        
+
         return all_results
+
+    async def _maybe_save_batch(self) -> None:
+        """Save intermediate output if batch size reached."""
+        if CONFIG.batch_size <= 0:
+            return
+        if len(self.all_results) < self.next_batch_threshold:
+            return
+
+        self.batch_counter += 1
+        print(f"\n💾 Saving batch {self.batch_counter} with {len(self.all_results):,} configs...")
+
+        unique = self._deduplicate_config_results(self.all_results)
+        if CONFIG.enable_sorting:
+            unique = self._sort_by_performance(unique)
+        if CONFIG.top_n > 0:
+            unique = unique[:CONFIG.top_n]
+
+        stats = self._analyze_results(unique, self.available_sources)
+        await self._generate_comprehensive_outputs(unique, stats, self.start_time, prefix=f"batch_{self.batch_counter}_")
+
+        self.next_batch_threshold += CONFIG.batch_size
+
+        if CONFIG.threshold > 0 and len(unique) >= CONFIG.threshold:
+            print(f"\n⏹️  Threshold of {CONFIG.threshold} configs reached. Stopping early.")
+            self.stop_fetching = True
     
     def _deduplicate_config_results(self, results: List[ConfigResult]) -> List[ConfigResult]:
         """Efficient deduplication of config results using semantic hashing."""
         seen_hashes: Set[str] = set()
         unique_results: List[ConfigResult] = []
-        
+
         for result in results:
+            if CONFIG.fragment_filter and CONFIG.fragment_filter.lower() not in result.config.lower():
+                continue
             config_hash = self.processor.create_semantic_hash(result.config)
             if config_hash not in seen_hashes:
                 seen_hashes.add(config_hash)
@@ -1019,7 +1075,7 @@ class UltimateVPNMerger:
             "total_sources": len(self.sources)
         }
     
-    async def _generate_comprehensive_outputs(self, results: List[ConfigResult], stats: Dict, start_time: float) -> None:
+    async def _generate_comprehensive_outputs(self, results: List[ConfigResult], stats: Dict, start_time: float, prefix: str = "") -> None:
         """Generate comprehensive output files with all formats."""
         # Create output directory
         output_dir = Path(CONFIG.output_dir)
@@ -1029,16 +1085,16 @@ class UltimateVPNMerger:
         configs = [result.config for result in results]
         
         # Raw text output
-        raw_file = output_dir / "ultimate_vpn_subscription_raw.txt"
+        raw_file = output_dir / f"{prefix}ultimate_vpn_subscription_raw.txt"
         raw_file.write_text("\n".join(configs), encoding="utf-8")
         
         # Base64 output
         base64_content = base64.b64encode("\n".join(configs).encode("utf-8")).decode("utf-8")
-        base64_file = output_dir / "ultimate_vpn_subscription_base64.txt"
+        base64_file = output_dir / f"{prefix}ultimate_vpn_subscription_base64.txt"
         base64_file.write_text(base64_content, encoding="utf-8")
         
         # Enhanced CSV with comprehensive performance data
-        csv_file = output_dir / "ultimate_vpn_detailed.csv"
+        csv_file = output_dir / f"{prefix}ultimate_vpn_detailed.csv"
         with open(csv_file, 'w', newline='', encoding='utf-8') as f:
             writer = csv.writer(f)
             writer.writerow(['Config', 'Protocol', 'Host', 'Port', 'Ping_MS', 'Reachable', 'Source'])
@@ -1082,7 +1138,7 @@ class UltimateVPNMerger:
             }
         }
         
-        report_file = output_dir / "ultimate_vpn_report.json"
+        report_file = output_dir / f"{prefix}ultimate_vpn_report.json"
         report_file.write_text(json.dumps(report, indent=2, ensure_ascii=False), encoding="utf-8")
     
     def _print_final_summary(self, config_count: int, elapsed_time: float, stats: Dict) -> None:
@@ -1156,9 +1212,27 @@ def main():
     if sys.version_info < (3, 8):
         print("❌ Python 3.8+ required")
         sys.exit(1)
-    
+
+    import argparse
+
+    parser = argparse.ArgumentParser(description="Ultimate VPN Merger")
+    parser.add_argument("--batch-size", type=int, default=CONFIG.batch_size,
+                        help="Save intermediate output every N configs (0 to disable)")
+    parser.add_argument("--threshold", type=int, default=CONFIG.threshold,
+                        help="Stop processing after N unique configs (0 = unlimited)")
+    parser.add_argument("--top-n", type=int, default=CONFIG.top_n,
+                        help="Keep only the N best configs after sorting (0 = all)")
+    parser.add_argument("--fragment", type=str, default=CONFIG.fragment_filter,
+                        help="Only keep configs containing this fragment")
+    args = parser.parse_args()
+
+    CONFIG.batch_size = max(0, args.batch_size)
+    CONFIG.threshold = max(0, args.threshold)
+    CONFIG.top_n = max(0, args.top_n)
+    CONFIG.fragment_filter = args.fragment
+
     print("🔧 Ultimate VPN Merger - Checking environment...")
-    
+
     try:
         return detect_and_run()
     except Exception as e:
