@@ -93,7 +93,7 @@ class Config:
     batch_size: int
     threshold: int
     top_n: int
-    fragment_filter: Optional[str]
+    tls_fragment: Optional[str]
 
 CONFIG = Config(
     headers={
@@ -123,7 +123,7 @@ CONFIG = Config(
     batch_size=0,
     threshold=0,
     top_n=0,
-    fragment_filter=None
+    tls_fragment=None
 )
 
 # ============================================================================
@@ -985,7 +985,7 @@ class UltimateVPNMerger:
         unique_results: List[ConfigResult] = []
 
         for result in results:
-            if CONFIG.fragment_filter and CONFIG.fragment_filter.lower() not in result.config.lower():
+            if CONFIG.tls_fragment and CONFIG.tls_fragment.lower() not in result.config.lower():
                 continue
             config_hash = self.processor.create_semantic_hash(result.config)
             if config_hash not in seen_hashes:
@@ -1228,8 +1228,12 @@ def main():
                         help="Stop processing after N unique configs (0 = unlimited)")
     parser.add_argument("--top-n", type=int, default=CONFIG.top_n,
                         help="Keep only the N best configs after sorting (0 = all)")
-    parser.add_argument("--fragment", type=str, default=CONFIG.fragment_filter,
-                        help="Only keep configs containing this fragment")
+    parser.add_argument("--tls-fragment", type=str, default=CONFIG.tls_fragment,
+                        help="Only keep configs containing this TLS fragment")
+    parser.add_argument("--output-dir", type=str, default=CONFIG.output_dir,
+                        help="Directory to save output files")
+    parser.add_argument("--test-timeout", type=float, default=CONFIG.test_timeout,
+                        help="TCP connection test timeout in seconds")
     parser.add_argument("--no-url-test", action="store_true",
                         help="Disable server reachability testing")
     parser.add_argument("--no-sort", action="store_true",
@@ -1239,7 +1243,9 @@ def main():
     CONFIG.batch_size = max(0, args.batch_size)
     CONFIG.threshold = max(0, args.threshold)
     CONFIG.top_n = max(0, args.top_n)
-    CONFIG.fragment_filter = args.fragment
+    CONFIG.tls_fragment = args.tls_fragment
+    CONFIG.output_dir = args.output_dir
+    CONFIG.test_timeout = max(0.1, args.test_timeout)
     if args.no_url_test:
         CONFIG.enable_url_testing = False
     if args.no_sort:
