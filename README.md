@@ -3,11 +3,9 @@
 [](https://www.google.com/search?q=https://github.com/AmirrezaFarnamTaheri/CleanConfigs-SubMerger/actions)
 [](https://opensource.org/licenses/MIT)
 
-Welcome to the VPN Subscription Merger\! This project provides a powerful Python script that automatically fetches VPN configurations from over 470 public sources, tests their connectivity, and merges them into a single, performance-sorted subscription link for use in your favorite VPN client.
+Welcome to the VPN Subscription Merger! This project provides a powerful Python script that automatically fetches VPN configurations from over 470 public sources, tests their connectivity, and merges them into a single, performance-sorted subscription link for use in your favorite VPN client. It can even save incremental batches while running so you always have up-to-date results.
 
 This guide is designed for **everyone**, from absolute beginners with no coding experience to advanced users who want full automation.
-
-## 📖 Table of Contents
 
 ## 📖 Table of Contents
 
@@ -34,6 +32,7 @@ The script automates a simple but powerful process to create the best possible s
 4.  **⚡ Tests Server Performance**: This is the key step. It attempts a direct connection to each individual server to measure its real-world connection speed (latency/ping). Servers that are offline or too slow are discarded.
 5.  **🧹 Cleans and Sorts**: Finally, it removes any duplicate servers and sorts the remaining, working servers from **fastest to slowest**.
 6.  **📦 Generates Outputs**: It saves this final, sorted list into multiple formats, including the `base64` subscription file that you use in your app.
+7.  **📁 Optional Batch Saving**: With `--batch-size`, the script periodically saves intermediate results while it runs.
 
 -----
 
@@ -213,9 +212,12 @@ Here’s how to add your new subscription link to the best **free** applications
 
 #### **Command-Line Arguments**
 
-  * `--no-test`: Skips server connection testing. Much faster but provides no ping data.
-  * `--resume`: Resumes from the last checkpoint (skips source testing).
-  * `-o <FolderName>`: Specify a different output folder name.
+Run `python vpn_merger.py --help` to see all options. Important flags include:
+
+  * `--batch-size N` - save intermediate files every `N` configs.
+  * `--threshold N` - stop once `N` unique configs are collected.
+  * `--top-n N` - keep only the best `N` configs after sorting.
+  * `--fragment TEXT` - only keep configs containing `TEXT`.
 
 #### **Adding Your Own Sources**
 
