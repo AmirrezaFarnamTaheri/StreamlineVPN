@@ -638,6 +638,8 @@ class ConfigResult:
 class EnhancedConfigProcessor:
     """Advanced configuration processor with comprehensive testing capabilities."""
     
+    MAX_DECODE_SIZE = 256 * 1024  # 256 kB safety limit for base64 payloads
+
     def __init__(self):
         self.dns_cache = {}
         
@@ -647,12 +649,15 @@ class EnhancedConfigProcessor:
             if config.startswith(("vmess://", "vless://")):
                 try:
                     json_part = config.split("://", 1)[1]
-                    decoded = base64.b64decode(json_part).decode("utf-8", "ignore")
+                    decoded_bytes = base64.b64decode(json_part)
+                    if len(decoded_bytes) > self.MAX_DECODE_SIZE:
+                        return None, None
+                    decoded = decoded_bytes.decode("utf-8", "ignore")
                     data = json.loads(decoded)
                     host = data.get("add") or data.get("host")
                     port = data.get("port")
                     return host, int(port) if port else None
-                except:
+                except Exception:
                     pass
             
             # Parse URI-style configs
