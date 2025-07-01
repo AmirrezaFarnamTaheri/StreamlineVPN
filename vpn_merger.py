@@ -889,7 +889,7 @@ class UltimateVPNMerger:
         
         # Step 2: Fetch all configs from available sources
         print(f"\n🔄 [2/6] Fetching configs from {len(self.available_sources)} available sources...")
-        self.all_results = await self._fetch_all_sources(self.available_sources)
+        await self._fetch_all_sources(self.available_sources)
         
         # Step 3: Deduplicate efficiently  
         print(f"\n🔍 [3/6] Deduplicating {len(self.all_results):,} configs...")
@@ -973,7 +973,8 @@ class UltimateVPNMerger:
     
     async def _fetch_all_sources(self, available_sources: List[str]) -> List[ConfigResult]:
         """Fetch all configs from available sources."""
-        all_results = []
+        # Append results directly to self.all_results so that _maybe_save_batch
+        # sees the running total and can save incremental batches.
         successful_sources = 0
         
         try:
@@ -992,7 +993,8 @@ class UltimateVPNMerger:
                 url, results = await coro
                 completed += 1
                 
-                all_results.extend(results)
+                # Append directly to the instance-level list
+                self.all_results.extend(results)
                 if results:
                     successful_sources += 1
                     reachable = sum(1 for r in results if r.is_reachable)
@@ -1017,7 +1019,8 @@ class UltimateVPNMerger:
         finally:
             await self.fetcher.session.close()
 
-        return all_results
+        # Return the accumulated list for backward compatibility
+        return self.all_results
 
     async def _maybe_save_batch(self) -> None:
         """Save intermediate output if batch size reached."""
