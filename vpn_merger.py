@@ -158,6 +158,7 @@ class UnifiedSources:
     """Complete unified collection of all VPN subscription sources."""
     
     # Iranian Priority Sources (High Quality, Frequently Updated)
+    # Iranian Priority Sources (High Quality, Frequently Updated)
     IRANIAN_PRIORITY = [
         # barry-far comprehensive collection (all variants)
         "https://raw.githubusercontent.com/barry-far/V2ray-config/main/Sub1.txt",
@@ -188,9 +189,11 @@ class UnifiedSources:
         # Rayan-Config ecosystem (Iranian-focused)
         "https://Rayan-Config.github.io/NG",
         "https://Rayan-Config.github.io/NB",
+        "https://Rayan-Config.github.io/all",
         "https://raw.githubusercontent.com/Rayan-Config/C-Sub/refs/heads/main/configs/proxy.txt",
         "https://raw.githubusercontent.com/Rayan-Config/C-Sub/refs/heads/main/configs/singbox_configs.json",
-        
+        "https://raw.githubusercontent.com/Rayan-Config/C-Sub/refs/heads/main/configs/all",
+
         # MhdiTaheri V2rayCollector (comprehensive)
         "https://raw.githubusercontent.com/MhdiTaheri/V2rayCollector/refs/heads/main/sub/mix",
         "https://raw.githubusercontent.com/MhdiTaheri/V2rayCollector/refs/heads/main/sub/vless",
@@ -715,6 +718,91 @@ class UnifiedSources:
 
     # Misc tiny short-links (still valid subscription payloads)
     "https://bit.ly/2D5fWhX",
+
+        # --- big auto-updated GitHub feeds ---
+    "https://raw.githubusercontent.com/ebrasha/free-v2ray-public-list/refs/heads/main/V2Ray-Config-By-EbraSha.txt",
+    "https://raw.githubusercontent.com/ebrasha/free-v2ray-public-list/refs/heads/main/V2Ray-Config-By-EbraSha-All-Type.txt",
+    "https://raw.githubusercontent.com/SnapdragonLee/SystemProxy/master/dist/clash_config.yaml",
+    "https://raw.githubusercontent.com/SnapdragonLee/SystemProxy/master/dist/clash_config_extra.yaml",
+    "https://raw.githubusercontent.com/SnapdragonLee/SystemProxy/master/dist/clash_config_extra_US.yaml",
+    "https://raw.githubusercontent.com/mfuu/v2ray/master/clash.yaml",
+    "https://raw.githubusercontent.com/mfuu/v2ray/master/v2ray",
+    "https://raw.githubusercontent.com/ermaozi/get_subscribe/main/subscribe/clash.yml",
+    "https://raw.githubusercontent.com/ermaozi/get_subscribe/main/subscribe/vmess.txt",
+    "https://raw.githubusercontent.com/ermaozi/get_subscribe/main/subscribe/vless.txt",
+    "https://raw.githubusercontent.com/V2RaySSR/Tools/master/clash.yaml",
+    "https://raw.githubusercontent.com/du5/free/master/file/0312/clash.yaml",
+    "https://raw.githubusercontent.com/du5/free/master/file/0312/clash2.yaml",
+    "https://raw.githubusercontent.com/du5/free/master/file/0312/quan.conf",
+    "https://raw.githubusercontent.com/Ptechgithub/configs/main/clash12.yaml",
+    "https://raw.githubusercontent.com/SunBK201/MySCR/master/clash/SunBK201_conf.yaml",
+    "https://raw.githubusercontent.com/AzadNetCH/Clash/main/AzadNet.txt",
+    "https://raw.githubusercontent.com/AzadNetCH/Clash/main/AzadNet.json",
+    "https://raw.githubusercontent.com/AzadNetCH/Clash/main/AzadNet_hy.txt",
+    "https://raw.githubusercontent.com/AzadNetCH/Clash/main/AzadNet_iOS.txt",
+    "https://raw.githubusercontent.com/mahdibland/V2RayAggregator/master/sub/sub_list.json",
+    "https://raw.githubusercontent.com/mahdibland/ShadowsocksAggregator/master/Eternity.yml",
+    # --- NiREvil warp / WG / hiddify mixes ---
+    "https://raw.githubusercontent.com/NiREvil/vless/refs/heads/main/warp.json",
+    "https://raw.githubusercontent.com/NiREvil/vless/refs/heads/main/sub/v2rayng-wg.txt",
+    "https://raw.githubusercontent.com/NiREvil/vless/refs/heads/main/sub/nekobox-wg.txt",
+    "https://raw.githubusercontent.com/NiREvil/vless/refs/heads/main/sub/husi-wg.txt",
+    "https://raw.githubusercontent.com/NiREvil/vless/refs/heads/main/sub/exclave-wg.txt",
+    "https://raw.githubusercontent.com/NiREvil/vless/refs/heads/main/hiddify/Windscribe%20on%20H2",
+    "https://raw.githubusercontent.com/NiREvil/vless/refs/heads/main/hiddify/WarpOnWarp.json",
+    "https://raw.githubusercontent.com/NiREvil/vless/main/Cloudflare-IPs.json",
+    "https://raw.githubusercontent.com/NiREvil/vless/refs/heads/main/sub/clash-meta-wg.yml",
+    "https://raw.githubusercontent.com/10ium/MihomoSaz/main/Sublist/NiREvil_SSTime.yaml",
+    # --- public Clash / YAML feeds ---
+    "https://nodefree.org/dy/2024/07/20240725.yaml",
+    "https://cdn.jsdelivr.net/gh/vxiaov/free_proxies@main/clash/clash.provider.yaml",
+    "https://freenode.openrunner.net/uploads/20240617-clash.yaml",
+    "https://tt.vg/freeclash",
+    "https://github.com/zu1k/proxypool/releases/download/latest/subscription.txt",
+    # --- token-style v2board / Hiddify endpoints ---
+    "https://qingyun.zybs.eu.org/api/v1/client/subscribe?token=9cd4a1826b992055a8e87a3f6594ba94",
+    "https://api.xyurl.site/api/v1/client/subscribe?token=fed4ab7c582c2a41a08a858f91644430",
+    "https://xqsub.e54.site/api/v1/client/subscribe?token=d1fd4dcc61491a02f566f6a45c56ccab&types=vless",
+    "https://ch.owokkvsxks.store/api/v1/client/subscribe?token=ad180e3b9514176a8cb26bf2962d5f1e",
+    "https://api.xqc.best/api/v1/client/subscribe?token=fb08adc269ff5522ba953933f6a9e9b6",
+    "https://csadata4g.me/api/v1/client/subscribe?token=04a09188b487e088f7ab9773f617dd1a",
+    "https://sub.lingche.icu/api/v1/client/subscribe?token=48e95450735e7d06d61b56f9bdb349fc",
+    "https://cloud.targoo.live/api/v1/client/subscribe?token=1d0a9f1ee09199aac2ac946a1f7d2a0a",
+    "https://www.992266.xyz/api/v1/client/subscribe?token=ab825616355b0973e4cdfb659665965f",
+    "https://v2y.xyz/api/v1/client/subscribe?token=2533ce3df935ebaf4143fcc3df068ebd",
+    "http://xn--nlua550ns4y.com/api/v1/client/subscribe?token=f83cdcc48766976526ab2451380b8dd0",
+    "http://davgp416ip6zl8pfrusvvag.zhuyingsu.today/api/v1/client/subscribe?token=b9df9a624e3fdb1e72b10ea81cc9d437",
+    "https://pqjc.site/api/v1/client/subscribe?token=0d41f5bd237d1ab92b907e1e7d5e5cb3&flag=meta",
+    "http://113.31.116.212:13800/api/v1/client/subscribe?token=b5d84c66256755e551704d05600ada67",
+    "http://1.1598888.xyz/api/v1/client/subscribe?token=e2c8421cd8543cd904f255fbef4490cd",
+    "http://nuxyun.v2rayflash.top/api/v1/client/subscribe?token=531e0be2dbbfc393dfac550abee6ce57",
+    "https://13.112.134.19:13800/api/v1/client/subscribe?token=ce41d51e5664e57b9470f9061c1f61c0",
+    "https://tc.ztcloud.xyz/api/v1/client/subscribe?token=26cec3bda11795769be5d18126c4b354",
+    "https://cloud.targoo.live/api/v1/client/subscribe?token=9f56998ea1b1c5e3c3a857e3ac274edf",
+    "https://xqsub.minictx.top/api/v1/client/subscribe?token=ef279b9e8696510c45b1f21f1653e2c9",
+    "https://chan.aztv.asia/api/v1/client/subscribe?token=264d99c3ad7b418f9e7eab1f0d2862c7",
+    "https://freeyuan.maimaihuo.com/api/v1/client/subscribe?token=e61032f58d4b00db023be1347f7f6911",
+    "https://api.wlins.org/api/v1/client/subscribe?token=fd8e56ea45a735e5d2fba98f3e97c7b6",
+    "https://v2sub.purelife.org/api/v1/client/subscribe?token=4ff1f9623ea62a005102b1701f2fd56a",
+    "https://free.jinan.cloud/api/v1/client/subscribe?token=6b9e32193f128651ed4cbf6cb0f3c3f0",
+    # --- generic link-style subs (Clash=1) ---
+    "https://sub.idsvip.com/link/abcd1234?clash=1",
+    "https://sub.nerdz.pro/link/xyz987?clash=1",
+    # --- misc raw / WG / JSON feeds ---
+    "https://raw.githubusercontent.com/4n0nymou3/ss-config-updater/refs/heads/main/configs.txt",
+    "https://raw.githubusercontent.com/darknessm427/WoW/refs/heads/main/subwarp/warp",
+    "https://raw.githubusercontent.com/arshiacomplus/WoW-fix/main/Xray-WoW.json",
+    "https://raw.githubusercontent.com/ndsphonemy/proxy-sub/refs/heads/main/mobile.txt",
+    "https://raw.githubusercontent.com/ndsphonemy/proxy-sub/refs/heads/main/wg.txt",
+    "https://raw.githubusercontent.com/10ium/ScrapeAndCategorize/refs/heads/main/output_configs/WireGuard.txt",
+    "https://raw.githubusercontent.com/Alanbobs999/TopFreeProxies/master/proxies.txt",
+    # --- spare token endpoints to round it out ---
+    "https://okcloud.cc/api/v1/client/subscribe?token=7b2a9e8f0c373725f9c3d6bd6d1fbe43",
+    "https://sub.tangcloud.xyz/api/v1/client/subscribe?token=a3d1c180cf35e5ad9d1fba2d4c5e4bf2",
+    "https://vfree.xyz/api/v1/client/subscribe?token=96b51236cddc2df523d9e83a9d457f23",
+    "https://free.tailsub.com/api/v1/client/subscribe?token=35b677cab1d1e8349a3e45dc367cbdfa",
+    "https://raw.githubusercontent.com/ermaozi/ClashRforWindows/main/sub/2025-07-01.yml",
+
     ]
     
     @classmethod
