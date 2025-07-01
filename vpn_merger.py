@@ -677,8 +677,26 @@ class EnhancedConfigProcessor:
     def create_semantic_hash(self, config: str) -> str:
         """Create semantic hash for intelligent deduplication."""
         host, port = self.extract_host_port(config)
+        user_id = None
+
+        if config.startswith(("vmess://", "vless://")):
+            try:
+                after_scheme = config.split("://", 1)[1]
+                parsed = urlparse(config)
+                if parsed.username:
+                    user_id = parsed.username
+                else:
+                    padded = after_scheme + "=" * (-len(after_scheme) % 4)
+                    decoded = base64.b64decode(padded).decode("utf-8", "ignore")
+                    data = json.loads(decoded)
+                    user_id = data.get("id") or data.get("uuid") or data.get("user")
+            except Exception:
+                pass
+
         if host and port:
             key = f"{host}:{port}"
+            if user_id:
+                key = f"{user_id}@{key}"
         else:
             normalized = re.sub(r'#.*$', '', config).strip()
             key = normalized
