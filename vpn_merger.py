@@ -1322,6 +1322,18 @@ async def run_in_jupyter():
     print("🔄 Running in Jupyter/async environment")
     await main_async()
 
+def _get_script_dir() -> Path:
+    """
+    Return a safe base directory for writing output.
+    • In a regular script run, that’s the directory the script lives in.
+    • In interactive/Jupyter runs, fall back to the current working dir.
+    """
+    try:
+        return Path(__file__).resolve().parent        # normal execution
+    except NameError:
+        return Path.cwd()                             # Jupyter / interactive
+
+
 def main():
     """Main entry point with event loop detection."""
     if sys.version_info < (3, 8):
@@ -1379,7 +1391,7 @@ def main():
         CONFIG.exclude_protocols = {p.strip().upper() for p in args.exclude_protocols.split(',') if p.strip()}
     CONFIG.resume_file = args.resume
     # Resolve and validate output directory to prevent path traversal
-    allowed_base = Path(__file__).resolve().parent
+    allowed_base = _get_script_dir()
     resolved_output = Path(args.output_dir).expanduser().resolve()
     try:
         resolved_output.relative_to(allowed_base)
