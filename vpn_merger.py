@@ -106,6 +106,8 @@ class Config:
     cumulative_batches: bool
     strict_batch: bool
     shuffle_sources: bool
+    write_base64: bool
+    write_csv: bool
 
 CONFIG = Config(
     headers={
@@ -143,7 +145,9 @@ CONFIG = Config(
     log_file=None,
     cumulative_batches=False,
     strict_batch=True,
-    shuffle_sources=False
+    shuffle_sources=False,
+    write_base64=True,
+    write_csv=True
 )
 
 # ============================================================================
