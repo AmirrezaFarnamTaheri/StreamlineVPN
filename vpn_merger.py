@@ -1323,7 +1323,14 @@ def main():
     if args.exclude_protocols:
         CONFIG.exclude_protocols = {p.strip().upper() for p in args.exclude_protocols.split(',') if p.strip()}
     CONFIG.resume_file = args.resume
-    CONFIG.output_dir = args.output_dir
+    # Resolve and validate output directory to prevent path traversal
+    allowed_base = Path(__file__).resolve().parent
+    resolved_output = Path(args.output_dir).expanduser().resolve()
+    try:
+        resolved_output.relative_to(allowed_base)
+    except ValueError:
+        parser.error(f"--output-dir must be within {allowed_base}")
+    CONFIG.output_dir = str(resolved_output)
     CONFIG.test_timeout = max(0.1, args.test_timeout)
     CONFIG.concurrent_limit = max(1, args.concurrent_limit)
     CONFIG.max_retries = max(1, args.max_retries)
