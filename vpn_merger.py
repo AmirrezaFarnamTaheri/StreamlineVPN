@@ -738,7 +738,18 @@ class AsyncSourceFetcher:
         try:
             timeout = aiohttp.ClientTimeout(total=10)
             async with self.session.head(url, timeout=timeout, allow_redirects=True) as response:
-                return response.status == 200
+                status = response.status
+                if status == 200:
+                    return True
+                if 400 <= status < 500:
+                    async with self.session.get(
+                        url,
+                        headers={**CONFIG.headers, 'Range': 'bytes=0-0'},
+                        timeout=timeout,
+                        allow_redirects=True,
+                    ) as get_resp:
+                        return get_resp.status in (200, 206)
+                return False
         except Exception:
             return False
         
