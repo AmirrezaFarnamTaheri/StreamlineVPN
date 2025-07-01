@@ -16,7 +16,7 @@ Features:
 • Advanced deduplication with semantic analysis
 • Multiple output formats (raw, base64, CSV, JSON)
 • Comprehensive error handling and retry logic
-• Best practices implementation throughout
+• Best practices implemented throughout
 
 Requirements: pip install aiohttp aiodns nest-asyncio
 Author: Final Unified Edition - June 30, 2025
@@ -24,7 +24,6 @@ Expected Output: 800k-1.2M+ tested and sorted configs
 """
 
 import asyncio
-import aiohttp
 import base64
 import csv
 import hashlib
@@ -35,11 +34,13 @@ import ssl
 import sys
 import time
 import socket
+from dataclasses import dataclass, asdict
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import Dict, List, Optional, Set, Tuple, Union
-from dataclasses import dataclass, asdict
 from urllib.parse import urlparse
-from datetime import datetime, timezone
+
+import aiohttp
 
 # Event loop compatibility fix
 try:
