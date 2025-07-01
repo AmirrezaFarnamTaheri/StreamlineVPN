@@ -1164,10 +1164,15 @@ class UltimateVPNMerger:
             writer.writerow(['Config', 'Protocol', 'Host', 'Port', 'Ping_MS', 'Reachable', 'Source'])
             for result in results:
                 ping_ms = round(result.ping_time * 1000, 2) if result.ping_time else None
-                writer.writerow([
+                row = [
                     result.config, result.protocol, result.host, result.port,
                     ping_ms, result.is_reachable, result.source_url
-                ])
+                ]
+                sanitized = [
+                    f"'{cell}" if isinstance(cell, str) and str(cell).startswith(('=', '+', '-', '@')) else cell
+                    for cell in row
+                ]
+                writer.writerow(sanitized)
         
         # Comprehensive JSON report
         report = {
