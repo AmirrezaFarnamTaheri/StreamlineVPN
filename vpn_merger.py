@@ -30,6 +30,7 @@ import csv
 import hashlib
 import json
 import logging
+import random
 import re
 import ssl
 import sys
@@ -833,7 +834,8 @@ class AsyncSourceFetcher:
                     
             except Exception:
                 if attempt < CONFIG.max_retries - 1:
-                    await asyncio.sleep(2 ** attempt)
+                    # Use a capped and jittered delay to reduce tail latency
+                    await asyncio.sleep(min(3, 1.5 + random.random()))
                     
         return url, []
 
