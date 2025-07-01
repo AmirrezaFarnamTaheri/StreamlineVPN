@@ -325,15 +325,24 @@ If you have your own subscription links you'd like to merge, you can add them to
 
 #### **Retesting an Existing Output**
 
-If you already generated a subscription file, run `python vpn_retester.py <path>` to check all servers again and sort them by current latency. The script accepts raw or base64 files.
+If you already generated a subscription file, run `python vpn_retester.py <path>` to check all servers again and sort them by current latency. The script accepts raw or base64 files and now exposes several tuning options:
+
+* `--concurrent-limit` limit how many tests run in parallel
+* `--test-timeout` set the connection timeout in seconds
+* `--max-ping` drop configs slower than this ping (ms)
+* `--include-protocols` or `--exclude-protocols` filter by protocol
+* `--output-dir` choose where results are written
+* `--no-base64` / `--no-csv` disable those outputs
 
 Example:
 
 ```bash
-python vpn_retester.py output/vpn_subscription_raw.txt --top-n 50
+python vpn_retester.py output/vpn_subscription_raw.txt \
+  --include-protocols VLESS,REALITY --max-ping 250 \
+  --concurrent-limit 20 --test-timeout 3 --output-dir retested --no-base64
 ```
 
-New files will appear in the `output` directory:
+New files will appear in the chosen output directory:
 - `vpn_retested_raw.txt`
-- `vpn_retested_base64.txt`
-- `vpn_retested_detailed.csv`
+- *(optional)* `vpn_retested_base64.txt`
+- *(optional)* `vpn_retested_detailed.csv`
