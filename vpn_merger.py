@@ -42,6 +42,7 @@ from typing import Dict, List, Optional, Set, Tuple, Union
 from urllib.parse import urlparse
 
 import aiohttp
+from aiohttp.resolver import AsyncResolver
 
 # Event loop compatibility fix
 try:
@@ -128,7 +129,7 @@ CONFIG = Config(
     enable_sorting=True,
     test_timeout=5.0,
     output_dir="output",
-    batch_size=0,
+    batch_size=100,
     threshold=0,
     top_n=0,
     tls_fragment=None,
@@ -958,7 +959,7 @@ class UltimateVPNMerger:
             limit_per_host=10,
             ttl_dns_cache=300,
             ssl=ssl.create_default_context(),
-            resolver=aiodns.AsyncResolver()
+            resolver=AsyncResolver()
         )
         
         self.fetcher.session = aiohttp.ClientSession(connector=connector)
@@ -1330,8 +1331,12 @@ def main():
     import argparse
 
     parser = argparse.ArgumentParser(description="VPN Merger")
-    parser.add_argument("--batch-size", type=int, default=CONFIG.batch_size,
-                        help="Save intermediate output every N configs (0 to disable)")
+    parser.add_argument(
+        "--batch-size",
+        type=int,
+        default=CONFIG.batch_size,
+        help="Save intermediate output every N configs (0 disables, default 100)"
+    )
     parser.add_argument("--threshold", type=int, default=CONFIG.threshold,
                         help="Stop processing after N unique configs (0 = unlimited)")
     parser.add_argument("--top-n", type=int, default=CONFIG.top_n,

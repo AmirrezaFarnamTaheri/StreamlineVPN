@@ -23,7 +23,7 @@ This guide is designed for **everyone**, from absolute beginners with no coding 
 | **Availability Testing** | Checks each source before downloading. | Skip dead links and save time. |
 | **Connectivity Testing** | Optional TCP checks measure real latency. | Prioritize servers that actually respond. |
 | **Smart Sorting** | Orders the final list by reachability and speed. | Quickly pick the best server in your VPN client. |
-| **Batch Saving** | Periodically saves intermediate results with `--batch-size`. | Useful on unreliable connections. |
+| **Batch Saving** | Periodically saves intermediate results with `--batch-size` (default `100`). | Useful on unreliable connections. |
 | **Protocol Filtering** | Use `--include-protocols` or `--exclude-protocols` to filter by protocol. | Keep only VLESS servers or drop Shadowsocks, etc. |
 | **TLS Fragment / Top N** | Use `--tls-fragment` or `--top-n` to trim the output. | Obscure SNI or keep only the fastest N entries. |
 | **Resume from File** | `--resume` loads a previous raw/base64 output before fetching. | Continue a crashed run without starting over. |
@@ -54,7 +54,7 @@ This guide is designed for **everyone**, from absolute beginners with no coding 
 
 **Batch Saving**
 
-> With `--batch-size` you can periodically save progress. Useful on unstable networks; if the run stops, resume with `--resume` and only new servers will be fetched.
+> With `--batch-size` (default `100`) you can periodically save progress. Useful on unstable networks; if the run stops, resume with `--resume` and only new servers will be fetched.
 
 **Protocol Filtering**
 
@@ -105,7 +105,7 @@ The script automates a simple but powerful process to create the best possible s
 4.  **⚡ Tests Server Performance**: This is the key step. It attempts a direct connection to each individual server to measure its real-world connection speed (latency/ping). Servers that are offline or too slow are discarded.
 5.  **🧹 Cleans and Sorts**: Finally, it removes any duplicate servers and sorts the remaining, working servers from **fastest to slowest**.
 6.  **📦 Generates Outputs**: It saves this final, sorted list into multiple formats, including the `base64` subscription file that you use in your app.
-7.  **📁 Optional Batch Saving**: With `--batch-size`, the script periodically saves intermediate results while it runs.
+7.  **📁 Optional Batch Saving**: With `--batch-size` (default `100`), the script periodically saves intermediate results while it runs.
 
 -----
 
@@ -287,7 +287,7 @@ Here’s how to add your new subscription link to the best **free** applications
 
 Run `python vpn_merger.py --help` to see all options. Important flags include:
 
-  * `--batch-size N` - save intermediate files every `N` configs.
+  * `--batch-size N` - save intermediate files every `N` configs (default `100`, `0` to disable).
   * `--threshold N` - stop once `N` unique configs are collected.
   * `--no-url-test` - skip reachability testing for faster execution.
   * `--no-sort` - keep configs in the order retrieved without sorting.
