@@ -1189,16 +1189,21 @@ class UltimateVPNMerger:
         
         # Raw text output
         raw_file = output_dir / f"{prefix}vpn_subscription_raw.txt"
-        raw_file.write_text("\n".join(configs), encoding="utf-8")
+        tmp_raw = raw_file.with_suffix('.tmp')
+        tmp_raw.write_text("\n".join(configs), encoding="utf-8")
+        tmp_raw.replace(raw_file)
         
         # Base64 output
         base64_content = base64.b64encode("\n".join(configs).encode("utf-8")).decode("utf-8")
         base64_file = output_dir / f"{prefix}vpn_subscription_base64.txt"
-        base64_file.write_text(base64_content, encoding="utf-8")
+        tmp_base64 = base64_file.with_suffix('.tmp')
+        tmp_base64.write_text(base64_content, encoding="utf-8")
+        tmp_base64.replace(base64_file)
         
         # Enhanced CSV with comprehensive performance data
         csv_file = output_dir / f"{prefix}vpn_detailed.csv"
-        with open(csv_file, 'w', newline='', encoding='utf-8') as f:
+        tmp_csv = csv_file.with_suffix('.tmp')
+        with open(tmp_csv, 'w', newline='', encoding='utf-8') as f:
             writer = csv.writer(f)
             writer.writerow(['Config', 'Protocol', 'Host', 'Port', 'Ping_MS', 'Reachable', 'Source'])
             for result in results:
@@ -1207,6 +1212,7 @@ class UltimateVPNMerger:
                     result.config, result.protocol, result.host, result.port,
                     ping_ms, result.is_reachable, result.source_url
                 ])
+        tmp_csv.replace(csv_file)
         
         # Comprehensive JSON report
         report = {
@@ -1242,7 +1248,9 @@ class UltimateVPNMerger:
         }
         
         report_file = output_dir / f"{prefix}vpn_report.json"
-        report_file.write_text(json.dumps(report, indent=2, ensure_ascii=False), encoding="utf-8")
+        tmp_report = report_file.with_suffix('.tmp')
+        tmp_report.write_text(json.dumps(report, indent=2, ensure_ascii=False), encoding="utf-8")
+        tmp_report.replace(report_file)
     
     def _print_final_summary(self, config_count: int, elapsed_time: float, stats: Dict) -> None:
         """Print comprehensive final summary."""
