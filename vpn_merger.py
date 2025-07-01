@@ -59,6 +59,7 @@ except ImportError:
     print("📦 Installing aiodns...")
     import subprocess
     subprocess.check_call([sys.executable, "-m", "pip", "install", "aiodns"])
+    import aiodns
 
 # ============================================================================
 # CONFIGURATION & SETTINGS
@@ -919,7 +920,8 @@ class UltimateVPNMerger:
             limit=CONFIG.concurrent_limit,
             limit_per_host=10,
             ttl_dns_cache=300,
-            ssl=ssl.create_default_context()
+            ssl=ssl.create_default_context(),
+            resolver=aiodns.AsyncResolver()
         )
         
         self.fetcher.session = aiohttp.ClientSession(connector=connector)
