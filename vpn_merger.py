@@ -103,6 +103,9 @@ class Config:
     resume_file: Optional[str]
     max_ping_ms: Optional[int]
     log_file: Optional[str]
+    cumulative_batches: bool
+    strict_batch: bool
+    shuffle_sources: bool
 
 CONFIG = Config(
     headers={
@@ -137,7 +140,10 @@ CONFIG = Config(
     exclude_protocols=None,
     resume_file=None,
     max_ping_ms=None,
-    log_file=None
+    log_file=None,
+    cumulative_batches=False,
+    strict_batch=True,
+    shuffle_sources=False
 )
 
 # ============================================================================
@@ -939,6 +945,8 @@ class UltimateVPNMerger:
     
     def __init__(self):
         self.sources = UnifiedSources.get_all_sources()
+        if CONFIG.shuffle_sources:
+            random.shuffle(self.sources)
         self.processor = EnhancedConfigProcessor()
         self.fetcher = AsyncSourceFetcher(self.processor)
         self.batch_counter = 0
@@ -947,6 +955,10 @@ class UltimateVPNMerger:
         self.available_sources: List[str] = []
         self.all_results: List[ConfigResult] = []
         self.stop_fetching = False
+        self.saved_hashes: Set[str] = set()
+        self.cumulative_unique: List[ConfigResult] = []
+        self.last_processed_index = 0
+        self.last_saved_count = 0
 
     def _load_existing_results(self, path: str) -> List[ConfigResult]:
         """Load previously saved configs from a raw or base64 file."""
@@ -1141,29 +1153,76 @@ class UltimateVPNMerger:
         return self.all_results
 
     async def _maybe_save_batch(self) -> None:
-        """Save intermediate output if batch size reached."""
+        """Save intermediate output based on batch settings."""
         if CONFIG.batch_size <= 0:
             return
-        if len(self.all_results) < self.next_batch_threshold:
-            return
 
-        self.batch_counter += 1
-        print(f"\n💾 Saving batch {self.batch_counter} with {len(self.all_results):,} configs...")
+        # Process new results since last call
+        new_slice = self.all_results[self.last_processed_index:]
+        self.last_processed_index = len(self.all_results)
+        for r in new_slice:
+            if CONFIG.tls_fragment and CONFIG.tls_fragment.lower() not in r.config.lower():
+                continue
+            if CONFIG.include_protocols and r.protocol.upper() not in CONFIG.include_protocols:
+                continue
+            if CONFIG.exclude_protocols and r.protocol.upper() in CONFIG.exclude_protocols:
+                continue
+            h = self.processor.create_semantic_hash(r.config)
+            if h not in self.saved_hashes:
+                self.saved_hashes.add(h)
+                self.cumulative_unique.append(r)
 
-        unique = self._deduplicate_config_results(self.all_results)
-        if CONFIG.enable_sorting:
-            unique = self._sort_by_performance(unique)
-        if CONFIG.top_n > 0:
-            unique = unique[:CONFIG.top_n]
+        if CONFIG.strict_batch:
+            while len(self.cumulative_unique) - self.last_saved_count >= CONFIG.batch_size:
+                self.batch_counter += 1
+                if CONFIG.cumulative_batches:
+                    batch_results = self.cumulative_unique[:]
+                else:
+                    start = self.last_saved_count
+                    end = start + CONFIG.batch_size
+                    batch_results = self.cumulative_unique[start:end]
+                    self.last_saved_count = end
 
-        stats = self._analyze_results(unique, self.available_sources)
-        await self._generate_comprehensive_outputs(unique, stats, self.start_time, prefix=f"batch_{self.batch_counter}_")
+                if CONFIG.enable_sorting:
+                    batch_results = self._sort_by_performance(batch_results)
+                if CONFIG.top_n > 0:
+                    batch_results = batch_results[:CONFIG.top_n]
 
-        self.next_batch_threshold += CONFIG.batch_size
+                stats = self._analyze_results(batch_results, self.available_sources)
+                await self._generate_comprehensive_outputs(batch_results, stats, self.start_time, prefix=f"batch_{self.batch_counter}_")
 
-        if CONFIG.threshold > 0 and len(unique) >= CONFIG.threshold:
-            print(f"\n⏹️  Threshold of {CONFIG.threshold} configs reached. Stopping early.")
-            self.stop_fetching = True
+                cumulative_stats = self._analyze_results(self.cumulative_unique, self.available_sources)
+                await self._generate_comprehensive_outputs(self.cumulative_unique, cumulative_stats, self.start_time, prefix="cumulative_")
+
+                if CONFIG.threshold > 0 and len(self.cumulative_unique) >= CONFIG.threshold:
+                    print(f"\n⏹️  Threshold of {CONFIG.threshold} configs reached. Stopping early.")
+                    self.stop_fetching = True
+                    break
+        else:
+            if len(self.cumulative_unique) >= self.next_batch_threshold:
+                self.batch_counter += 1
+                if CONFIG.cumulative_batches:
+                    batch_results = self.cumulative_unique[:]
+                else:
+                    batch_results = self.cumulative_unique[self.last_saved_count:]
+                    self.last_saved_count = len(self.cumulative_unique)
+
+                if CONFIG.enable_sorting:
+                    batch_results = self._sort_by_performance(batch_results)
+                if CONFIG.top_n > 0:
+                    batch_results = batch_results[:CONFIG.top_n]
+
+                stats = self._analyze_results(batch_results, self.available_sources)
+                await self._generate_comprehensive_outputs(batch_results, stats, self.start_time, prefix=f"batch_{self.batch_counter}_")
+
+                cumulative_stats = self._analyze_results(self.cumulative_unique, self.available_sources)
+                await self._generate_comprehensive_outputs(self.cumulative_unique, cumulative_stats, self.start_time, prefix="cumulative_")
+
+                self.next_batch_threshold += CONFIG.batch_size
+
+                if CONFIG.threshold > 0 and len(self.cumulative_unique) >= CONFIG.threshold:
+                    print(f"\n⏹️  Threshold of {CONFIG.threshold} configs reached. Stopping early.")
+                    self.stop_fetching = True
     
     def _deduplicate_config_results(self, results: List[ConfigResult]) -> List[ConfigResult]:
         """Efficient deduplication of config results using semantic hashing."""
@@ -1328,6 +1387,7 @@ class UltimateVPNMerger:
                 "base64": str(base64_file),
                 "detailed_csv": str(csv_file),
                 "json_report": "vpn_report.json",
+                "singbox": str(output_dir / f"{prefix}vpn_singbox.json"),
             },
             "usage_instructions": {
                 "base64_subscription": "Copy content of base64 file as subscription URL",
@@ -1344,6 +1404,23 @@ class UltimateVPNMerger:
         tmp_report = report_file.with_suffix('.tmp')
         tmp_report.write_text(json.dumps(report, indent=2, ensure_ascii=False), encoding="utf-8")
         tmp_report.replace(report_file)
+
+        # Simple outbounds JSON
+        outbounds = []
+        for idx, r in enumerate(results):
+            ob = {
+                "type": r.protocol.lower(),
+                "tag": f"{r.protocol} {idx}",
+                "server": r.host or "",
+                "server_port": r.port,
+                "raw": r.config
+            }
+            outbounds.append(ob)
+
+        singbox_file = output_dir / f"{prefix}vpn_singbox.json"
+        tmp_singbox = singbox_file.with_suffix('.tmp')
+        tmp_singbox.write_text(json.dumps({"outbounds": outbounds}, indent=2, ensure_ascii=False), encoding="utf-8")
+        tmp_singbox.replace(singbox_file)
     
     def _print_final_summary(self, config_count: int, elapsed_time: float, stats: Dict) -> None:
         """Print comprehensive final summary."""
@@ -1466,6 +1543,12 @@ def main():
                         help="Discard configs slower than this ping in ms (0 = no limit)")
     parser.add_argument("--log-file", type=str, default=None,
                         help="Write output messages to a log file")
+    parser.add_argument("--cumulative-batches", action="store_true",
+                        help="Save each batch as cumulative rather than standalone")
+    parser.add_argument("--no-strict-batch", action="store_true",
+                        help="Use batch size only as update threshold")
+    parser.add_argument("--shuffle-sources", action="store_true",
+                        help="Process sources in random order")
     args, unknown = parser.parse_known_args()
     if unknown:
         logging.warning("Ignoring unknown arguments: %s", unknown)
@@ -1492,6 +1575,9 @@ def main():
     CONFIG.max_retries = max(1, args.max_retries)
     CONFIG.max_ping_ms = args.max_ping if args.max_ping > 0 else None
     CONFIG.log_file = args.log_file
+    CONFIG.cumulative_batches = args.cumulative_batches
+    CONFIG.strict_batch = not args.no_strict_batch
+    CONFIG.shuffle_sources = args.shuffle_sources
     if args.no_url_test:
         CONFIG.enable_url_testing = False
     if args.no_sort:
