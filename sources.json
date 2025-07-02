@@ -1,14 +1,14 @@
 {
   "v2ray": [
-    "https://example.com/v2ray.txt"
+    "https://raw.githubusercontent.com/ermaozi/get_subscribe/main/subscribe/v2ray.txt"
   ],
   "http_injector": [
-    "https://example.com/ehi_list.txt"
+    "https://raw.githubusercontent.com/hndko/payload-injector-generator/master/README.md"
   ],
   "argo": [
-    "https://example.com/argo.txt"
+    "https://raw.githubusercontent.com/cloudflare/cloudflared/master/LICENSE"
   ],
   "tunnel_bridge": [
-    "endpoints.txt"
+    "https://raw.githubusercontent.com/TheSpeedX/PROXY-List/master/socks5.txt"
   ]
 }
