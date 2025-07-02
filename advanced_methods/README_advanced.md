@@ -15,6 +15,14 @@ the `--sources` option, the default URLs are read from the project-wide
 3. All scripts accept the common options `--proxy` to route requests through a
    proxy and `--output-dir` to choose where files are written.
 
+## Output Overview
+
+| Script | Output File | How to Import |
+| ------ | ----------- | ------------- |
+| `http_injector_merger.py` | `http_injector_raw.txt` | Use **Import Config** in the HTTP Injector app or PC edition. |
+| `argo_merger.py` | `argo_domains.txt` | Load as an Argo domain list in ArgoVPN or Hiddify Next. |
+| `tunnel_bridge_merger.py` | `tunnel_endpoints.txt` | Add endpoints from this file in NekoRay or SocksDroid. |
+
 ## `http_injector_merger.py`
 1. Gather one or more `.ehi` links or text files and pass them with `--sources`.
 2. Run the merger:
@@ -63,3 +71,7 @@ the `--sources` option, the default URLs are read from the project-wide
   different `--output-dir`.
 - **Import fails in your client** – Make sure the file is saved in UTF‑8 and that
   your client supports the selected protocol.
+- **ModuleNotFoundError** – Install the required packages with
+  `pip install -r requirements.txt`.
+- **Connection errors or timeouts** – The hosts may be unreachable from your
+  network. Try using `--proxy` or lower `--concurrent-limit` to reduce load.
