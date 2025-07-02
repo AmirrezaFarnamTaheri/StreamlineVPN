@@ -329,6 +329,25 @@ If you have your own subscription links you'd like to merge, you can add them to
 3.  Add your links to the `SOURCES` list.
 4.  Save the file and run the script. If you are using the GitHub Actions method, commit the change, and the workflow will use your updated list.
 
+#### **Using `sources.json`**
+
+Advanced merger scripts like `http_injector_merger.py` and `argo_merger.py` will
+read default URLs from the `sources.json` file in the project root when no
+`--sources` option is supplied. Edit this JSON file to point to your own lists or
+public repositories. The structure is simply:
+
+```json
+{
+  "v2ray": ["https://example.com/v2ray.txt"],
+  "http_injector": ["https://example.com/payloads.txt"],
+  "argo": ["https://example.com/argo.txt"],
+  "tunnel_bridge": ["my_endpoints.txt"]
+}
+```
+
+Replace each URL with any accessible source or local path and then run the
+corresponding merger script.
+
 #### **Retesting an Existing Output**
 
 If you already generated a subscription file, run `python vpn_retester.py <path>` to check all servers again and sort them by current latency. The script accepts raw or base64 files and now exposes several tuning options:
