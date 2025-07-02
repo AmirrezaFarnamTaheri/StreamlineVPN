@@ -117,6 +117,9 @@ class Config:
     write_base64: bool
     write_csv: bool
     proxy: Optional[str]
+    output_clash: bool
+    prefer_protocols: Optional[List[str]]
+    app_tests: Optional[List[str]]
 
 CONFIG = Config(
     headers={
@@ -158,7 +161,10 @@ CONFIG = Config(
     shuffle_sources=False,
     write_base64=True,
     write_csv=True,
-    proxy=None
+    proxy=None,
+    output_clash=False,
+    prefer_protocols=None,
+    app_tests=None
 )
 
 # ============================================================================
@@ -1386,10 +1392,13 @@ class UltimateVPNMerger:
         """Sort results by connection performance and protocol preference."""
         # Protocol priority ranking
         protocol_priority = {
-            "VLESS": 1, "VMess": 2, "Reality": 3, "Hysteria2": 4, 
+            "VLESS": 1, "VMess": 2, "Reality": 3, "Hysteria2": 4,
             "Trojan": 5, "Shadowsocks": 6, "TUIC": 7, "Hysteria": 8,
             "Naive": 9, "Juicity": 10, "WireGuard": 11, "Other": 12
         }
+        if CONFIG.prefer_protocols:
+            for idx, proto in enumerate(CONFIG.prefer_protocols, start=1):
+                protocol_priority[proto] = idx
         
         def sort_key(result: ConfigResult) -> Tuple:
             is_reachable = 1 if result.is_reachable else 0
@@ -1562,6 +1571,17 @@ class UltimateVPNMerger:
         tmp_singbox = singbox_file.with_suffix('.tmp')
         tmp_singbox.write_text(json.dumps({"outbounds": outbounds}, indent=2, ensure_ascii=False), encoding="utf-8")
         tmp_singbox.replace(singbox_file)
+
+        if CONFIG.output_clash:
+            try:
+                import yaml
+            except ImportError:
+                print("⚠️  PyYAML not installed, cannot write clash.yaml")
+            else:
+                clash_file = output_dir / f"{prefix}clash.yaml"
+                tmp_clash = clash_file.with_suffix('.tmp')
+                yaml.safe_dump({"proxies": configs}, tmp_clash.open('w', encoding='utf-8'))
+                tmp_clash.replace(clash_file)
     
     def _print_final_summary(self, config_count: int, elapsed_time: float, stats: Dict) -> None:
         """Print comprehensive final summary."""
@@ -1694,6 +1714,12 @@ def main():
                         help="Process sources in random order")
     parser.add_argument("--full-test", action="store_true",
                         help="Perform full TLS handshake when applicable")
+    parser.add_argument("--output-clash", action="store_true",
+                        help="Generate a clash.yaml file from results")
+    parser.add_argument("--prefer-protocols", type=str, default=None,
+                        help="Comma-separated protocol priority list")
+    parser.add_argument("--app-tests", type=str, default=None,
+                        help="Comma-separated list of services to test via configs")
     args, unknown = parser.parse_known_args()
     if unknown:
         logging.warning("Ignoring unknown arguments: %s", unknown)
@@ -1725,6 +1751,11 @@ def main():
     CONFIG.strict_batch = not args.no_strict_batch
     CONFIG.shuffle_sources = args.shuffle_sources
     CONFIG.full_test = args.full_test
+    CONFIG.output_clash = args.output_clash
+    if args.prefer_protocols:
+        CONFIG.prefer_protocols = [p.strip().upper() for p in args.prefer_protocols.split(',') if p.strip()]
+    if args.app_tests:
+        CONFIG.app_tests = [p.strip().lower() for p in args.app_tests.split(',') if p.strip()]
     if args.no_url_test:
         CONFIG.enable_url_testing = False
     if args.no_sort:

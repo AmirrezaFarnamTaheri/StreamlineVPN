@@ -1,0 +1,14 @@
+{
+  "v2ray": [
+    "https://example.com/v2ray.txt"
+  ],
+  "http_injector": [
+    "https://example.com/ehi_list.txt"
+  ],
+  "argo": [
+    "https://example.com/argo.txt"
+  ],
+  "tunnel_bridge": [
+    "endpoints.txt"
+  ]
+}

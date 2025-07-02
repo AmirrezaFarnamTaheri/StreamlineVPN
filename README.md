@@ -14,6 +14,7 @@ This guide is designed for **everyone**, from absolute beginners with no coding 
 3. Execute `python vpn_merger.py` and wait for the `output` directory.
 4. *(Optional)* pass extra flags like `--max-ping 200`, `--concurrent-limit 10`, or `--proxy socks5://127.0.0.1:9050` to suit your connection.
 5. Import the `output/vpn_subscription_base64.txt` link into your VPN app or load `vpn_singbox.json` in clients like sing-box.
+6. For non-standard protocols like HTTP Injector or ArgoVPN see [`advanced_methods/README_advanced.md`](advanced_methods/README_advanced.md).
 
 ## ✨ Key Features & Use Cases
 
@@ -310,6 +311,9 @@ Run `python vpn_merger.py --help` to see all options. Important flags include:
   * `--cumulative-batches` - make each batch cumulative instead of standalone.
   * `--no-strict-batch` - don't split strictly by `--batch-size`, just trigger when exceeded.
   * `--shuffle-sources` - randomize source processing order.
+  * `--output-clash` - also generate a `clash.yaml` configuration.
+  * `--prefer-protocols "Reality,VMess"` - override protocol sorting priority.
+  * `--app-tests telegram,youtube` - verify selected services through the fastest configs.
 
 TLS fragments help obscure the real Server Name Indication (SNI) of each
 connection by splitting the handshake into pieces. This makes it harder for
@@ -348,6 +352,8 @@ New files will appear in the chosen output directory:
 - `vpn_retested_raw.txt`
 - *(optional)* `vpn_retested_base64.txt`
 - *(optional)* `vpn_retested_detailed.csv`
+
+For merging HTTP Injector, ArgoVPN or generic tunnel configurations see the detailed guide in [`advanced_methods/README_advanced.md`](advanced_methods/README_advanced.md).
 
 ## License
 
