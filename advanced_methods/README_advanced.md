@@ -12,6 +12,7 @@ the `--sources` option, the default URLs are read from the project-wide
    ```bash
    pip install -r requirements.txt
    ```
+   This installs `aiohttp`, `aiodns`, `nest-asyncio`, `PyYAML` and `tqdm`.
 3. All scripts accept the common options `--proxy` to route requests through a
    proxy, `--test-timeout` to adjust connection checks, and `--output-dir` to
    choose where files are written.
