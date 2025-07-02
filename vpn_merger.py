@@ -41,8 +41,15 @@ from pathlib import Path
 from typing import Dict, List, Optional, Set, Tuple, Union
 from urllib.parse import urlparse
 
-import aiohttp
-from aiohttp.resolver import AsyncResolver
+try:
+    import aiohttp
+    from aiohttp.resolver import AsyncResolver
+except ImportError:
+    print("📦 Installing aiohttp...")
+    import subprocess
+    subprocess.check_call([sys.executable, "-m", "pip", "install", "aiohttp"])
+    import aiohttp
+    from aiohttp.resolver import AsyncResolver
 
 # Event loop compatibility fix
 try:
