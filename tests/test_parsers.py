@@ -1,9 +1,14 @@
-import base64
 import os
 import sys
 import types
 
-sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
+import pytest
+from advanced_methods.http_injector_merger import parse_ehi
+from advanced_methods.tunnel_bridge_merger import parse_line
+sys.path.insert(
+    0,
+    os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
+)
 
 # Provide minimal stubs for external dependencies so the modules under test can
 # be imported without installing the real packages.
@@ -17,9 +22,6 @@ if "aiohttp" not in sys.modules:
     aiohttp_stub.ClientSession = object
     sys.modules["aiohttp"] = aiohttp_stub
 
-from advanced_methods.http_injector_merger import parse_ehi
-from advanced_methods.tunnel_bridge_merger import parse_line
-
 
 def test_parse_ehi_plain():
     data = b"payload1\npayload2\n"
@@ -28,6 +30,7 @@ def test_parse_ehi_plain():
 
 
 def test_parse_ehi_base64():
+    import base64
     raw = "line1\nline2"
     b64 = base64.b64encode(raw.encode())
     result = parse_ehi(b64)
@@ -35,7 +38,8 @@ def test_parse_ehi_base64():
 
 
 def test_parse_ehi_zip(tmp_path):
-    import zipfile, json
+    import zipfile
+    import json
     payload = {"payload": "zipline"}
     zpath = tmp_path / "test.ehi"
     with zipfile.ZipFile(zpath, "w") as zf:
@@ -49,14 +53,15 @@ def test_parse_line():
     assert parse_line("ssh://user:pass@host:22") == "ssh://user:pass@host:22"
 
 
-def test_parse_ehi_base64():
+def test_parse_ehi_base64_text():
+    import base64
     text = "payload1\npayload2\n"
     b64 = base64.b64encode(text.encode("utf-8"))
     result = parse_ehi(b64)
     assert result == ["payload1", "payload2"]
 
 
-def test_parse_ehi_zip():
+def test_parse_ehi_zip_buffer():
     import io
     import json
     import zipfile
@@ -74,6 +79,7 @@ def test_parse_ehi_base64_zip():
     import io
     import json
     import zipfile
+    import base64
 
     buf = io.BytesIO()
     with zipfile.ZipFile(buf, "w") as zf:
@@ -82,9 +88,6 @@ def test_parse_ehi_base64_zip():
     result = parse_ehi(b64)
     assert len(result) == 1
     assert result[0].startswith("PK")
-
-
-import pytest
 
 
 def test_parse_line_none():
