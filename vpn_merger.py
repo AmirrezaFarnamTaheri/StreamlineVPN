@@ -1723,39 +1723,39 @@ def main():
 
 if __name__ == "__main__":
     main()
+    # ============================================================================
+    # USAGE INSTRUCTIONS
+    # ============================================================================
+    
+    print("""
+    🚀 VPN Subscription Merger - Final Unified Edition
+    
+    📋 Execution Methods:
+       • Regular Python: python script.py
+       • Jupyter/IPython: await run_in_jupyter()
+       • With event loop errors: task = detect_and_run(); await task
+    
+    🎯 Unified Features:
+       • 450+ sources (Iranian priority + International + Comprehensive)
+       • Dead link detection and automatic removal
+       • Real-time server reachability testing with response time measurement
+       • Smart sorting by connection speed and protocol preference
+       • Advanced semantic deduplication
+       • Multiple output formats (raw, base64, CSV with performance data, JSON)
+       • Event loop compatibility for all environments
+       • Comprehensive error handling and retry logic
+    
+    📊 Expected Results:
+       • 800k-1.2M+ tested and sorted configs
+       • 70-85% configs will be reachable and validated
+       • Processing time: 8-12 minutes with full testing
+       • Dead sources automatically filtered out
+       • Performance-optimized final list
+    
+    📁 Output Files:
+       • vpn_subscription_raw.txt (for hosting)
+       • vpn_subscription_base64.txt (for direct import)
+       • vpn_detailed.csv (with performance metrics)
+       • vpn_report.json (comprehensive statistics)
+    """)
 
-# ============================================================================
-# USAGE INSTRUCTIONS
-# ============================================================================
-
-print("""
-🚀 VPN Subscription Merger - Final Unified Edition
-
-📋 Execution Methods:
-   • Regular Python: python script.py
-   • Jupyter/IPython: await run_in_jupyter()
-   • With event loop errors: task = detect_and_run(); await task
-
-🎯 Unified Features:
-   • 450+ sources (Iranian priority + International + Comprehensive)
-   • Dead link detection and automatic removal
-   • Real-time server reachability testing with response time measurement
-   • Smart sorting by connection speed and protocol preference
-   • Advanced semantic deduplication
-   • Multiple output formats (raw, base64, CSV with performance data, JSON)
-   • Event loop compatibility for all environments
-   • Comprehensive error handling and retry logic
-
-📊 Expected Results:
-   • 800k-1.2M+ tested and sorted configs
-   • 70-85% configs will be reachable and validated
-   • Processing time: 8-12 minutes with full testing
-   • Dead sources automatically filtered out
-   • Performance-optimized final list
-
-📁 Output Files:
-   • vpn_subscription_raw.txt (for hosting)
-   • vpn_subscription_base64.txt (for direct import)
-   • vpn_detailed.csv (with performance metrics)
-   • vpn_report.json (comprehensive statistics)
-""")
