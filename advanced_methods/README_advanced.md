@@ -6,6 +6,12 @@ check and saves the working entries in its own output folder. If you do not pass
 the `--sources` option, the default URLs are read from the project-wide
 `sources.json` file. Edit that JSON file to point the tools at your own lists.
 
+## ⚠️ Security & Privacy Warning
+
+- These scripts fetch configurations from public sources run by unknown parties.
+- **Do not use them for logins, banking or other sensitive tasks.**
+- You are using the results entirely at your own risk.
+
 ## Requirements
 1. Install Python 3.8 or newer.
 2. Install dependencies with:
@@ -25,48 +31,55 @@ the `--sources` option, the default URLs are read from the project-wide
 | `tunnel_bridge_merger.py` | `tunnel_endpoints.txt` | Add endpoints from this file in NekoRay or SocksDroid. |
 
 ## `http_injector_merger.py`
-1. Gather one or more `.ehi` links or text files and pass them with `--sources`.
-2. Run the merger:
+1. **Gather sources** – collect one or more `.ehi` links or text files and pass them with `--sources`.
+2. **Run the merger**
    ```bash
-   python -m advanced_methods.http_injector_merger --sources URL1 URL2 \
+   python -m advanced_methods.http_injector_merger --sources URL1 file.txt \
        --output-dir output_http_injector --proxy socks5://127.0.0.1:9050 \
        --test-timeout 5
    ```
-3. After it finishes, open `output_http_injector/http_injector_raw.txt`.
-4. Import examples:
-   - **Windows** – HTTP Injector PC edition: choose **`Config`** → **`Import`** and
-     select the file.
-   - **Android** – HTTP Injector app: open the menu, tap **`Import Config`** and
-     pick `http_injector_raw.txt`.
+3. **Check the output** – the file `output_http_injector/http_injector_raw.txt` will contain lines such as:
+   ```
+   CONNECT example.com:80
+   CONNECT anotherhost:80
+   ```
+4. **Import into clients**
+   - **Windows** – HTTP Injector PC edition: choose **`Config`** → **`Import`** and select the file.
+   - **Android** – HTTP Injector app: open the menu, tap **`Import Config`** and pick `http_injector_raw.txt`.
 
 ## `argo_merger.py`
-1. Provide Falcon/CDN domain lists via `--sources`.
-2. Execute the script:
+1. **Prepare lists** – supply Falcon/CDN domain lists with `--sources`.
+2. **Run the merger**
    ```bash
    python -m advanced_methods.argo_merger --sources URL1 URL2 \
        --output-dir output_argo --proxy http://127.0.0.1:8080 \
        --test-timeout 5
    ```
-3. Working domains are written to `output_argo/argo_domains.txt`.
-4. Import examples:
+3. **Check the output** – the resulting file `output_argo/argo_domains.txt` may contain lines like:
+   ```
+   example.cloudflare.com
+   another.workers.dev
+   ```
+4. **Import into clients**
    - **Windows** – Hiddify Next: click the **`+`** button, choose **`Add Argo domain list`** and load the file.
-   - **Android** – ArgoVPN: go to **`Falcon`**, tap **`Import from file`** and
-     select `argo_domains.txt`.
+   - **Android** – ArgoVPN: go to **`Falcon`**, tap **`Import from file`** and select `argo_domains.txt`.
 
 ## `tunnel_bridge_merger.py`
-1. Create text files containing `ssh://`, `socks5://` and similar URLs.
-2. Run the merger:
+1. **Prepare endpoints** – create text files with `ssh://`, `socks5://` or similar URLs and pass them via `--sources`.
+2. **Run the merger**
    ```bash
    python -m advanced_methods.tunnel_bridge_merger --sources bridges1.txt bridges2.txt \
        --output-dir output_tunnel --proxy socks5://127.0.0.1:9050 \
        --test-timeout 5
    ```
-3. Results are stored in `output_tunnel/tunnel_endpoints.txt`.
-4. Import examples:
-   - **Windows** – NekoRay: use **`Program`** → **`Add profile from file`** to
-     import the endpoint list.
-   - **Android** – SocksDroid or similar tools can open the file and connect to a
-     selected endpoint.
+3. **Check the output** – `output_tunnel/tunnel_endpoints.txt` will contain lines such as:
+   ```
+   ssh://user@1.2.3.4:22
+   socks5://5.6.7.8:1080
+   ```
+4. **Import into clients**
+   - **Windows** – NekoRay: use **`Program`** → **`Add profile from file`** to import the endpoint list.
+   - **Android** – SocksDroid or similar tools can open the file and connect to a selected endpoint.
 
 ## Troubleshooting
 - **Empty output file** – The sources may be offline or blocked. Retry with a
