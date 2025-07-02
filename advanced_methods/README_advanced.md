@@ -2,7 +2,9 @@
 
 This folder contains standalone tools for protocols that are not covered by
 `vpn_merger.py`. Each script downloads sources, performs a quick connectivity
-check and saves the working entries in its own output folder.
+check and saves the working entries in its own output folder. If you do not pass
+the `--sources` option, the default URLs are read from the project-wide
+`sources.json` file. Edit that JSON file to point the tools at your own lists.
 
 ## Requirements
 1. Install Python 3.8 or newer.
