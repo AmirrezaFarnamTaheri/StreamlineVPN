@@ -332,6 +332,13 @@ Run `python vpn_merger.py --help` to see all options. Important flags include:
   * `--output-clash` - also generate a `clash.yaml` configuration.
   * `--prefer-protocols "Reality,VMess"` - override protocol sorting priority.
   * `--app-tests telegram,youtube` - run simple connectivity checks against services like Telegram or YouTube. Results are recorded in the CSV as `Telegram_OK`, `YouTube_OK` for the fastest tested configs.
+  * `--tls-fragment-size N` - size of TLS fragment to send (default `150`).
+  * `--tls-fragment-sleep N` - delay in ms between TLS fragments (default `15`).
+  * `--enable-mux` - embed MUX/SMUX settings in sing-box JSON.
+  * `--mux-protocol smux|yamux|h2mux` - choose the multiplexing protocol.
+  * `--mux-max-connections N` - number of multiplexed connections (default `4`).
+  * `--mux-min-streams N` / `--mux-max-streams N` - stream limits per connection.
+  * `--mux-padding` / `--mux-brutal` - padding and congestion options for noisy links.
 
 Example:
 
@@ -343,6 +350,30 @@ TLS fragments help obscure the real Server Name Indication (SNI) of each
 connection by splitting the handshake into pieces. This makes it harder for
 filtering systems to detect the destination server, especially when weak SNI
 protections would otherwise expose it.
+
+### TLS Fragment, MUX and SMUX from Zero to Hero
+
+**TLS Fragment** splits the TLS handshake into smaller chunks to disguise the real
+server name. Recommended values are a fragment size between **100–200** bytes and
+a sleep of **10–20 ms** between fragments. The defaults used by this project are
+size `150` and sleep `15` which work well for most networks.
+
+**MUX/SMUX** multiplexes multiple connections over one underlying link. This hides
+traffic patterns and can improve speed on unstable connections. The merger can
+embed MUX settings in the generated sing-box JSON when `--enable-mux` is passed.
+`smux` is the default protocol with 4 connections and up to 16 streams. Increase
+connections for more parallelism at the cost of extra memory. Padding and the
+`--mux-brutal` congestion option help on very noisy networks but may introduce
+latency.
+
+Example enabling all features:
+
+```bash
+python vpn_merger.py --enable-mux --tls-fragment-size 150 --tls-fragment-sleep 15
+```
+
+The generated `vpn_singbox.json` will contain `tls_fragment` and `multiplex`
+objects for each outbound so you can import directly in Hiddify Next or Sing-box.
 
 #### **Adding Your Own Sources**
 
