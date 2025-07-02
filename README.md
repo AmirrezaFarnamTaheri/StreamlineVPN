@@ -15,6 +15,7 @@ This guide is designed for **everyone**, from absolute beginners with no coding 
 4. *(Optional)* pass extra flags like `--max-ping 200`, `--concurrent-limit 10`, or `--proxy socks5://127.0.0.1:9050` to suit your connection.
 5. Import the `output/vpn_subscription_base64.txt` link into your VPN app or load `vpn_singbox.json` in clients like sing-box.
 6. For non-standard protocols like HTTP Injector or ArgoVPN see [`advanced_methods/README_advanced.md`](advanced_methods/README_advanced.md).
+7. Edit `sources.json` to point the advanced merger tools to your own lists of links.
 
 ## ✨ Key Features & Use Cases
 
