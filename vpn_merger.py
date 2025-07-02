@@ -108,6 +108,7 @@ class Config:
     shuffle_sources: bool
     write_base64: bool
     write_csv: bool
+    proxy: Optional[str]
 
 CONFIG = Config(
     headers={
@@ -147,7 +148,8 @@ CONFIG = Config(
     strict_batch=True,
     shuffle_sources=False,
     write_base64=True,
-    write_csv=True
+    write_csv=True,
+    proxy=None
 )
 
 # ============================================================================
@@ -951,7 +953,12 @@ class AsyncSourceFetcher:
         """Test if a source URL is available (returns 200 status)."""
         try:
             timeout = aiohttp.ClientTimeout(total=10)
-            async with self.session.head(url, timeout=timeout, allow_redirects=True) as response:
+            async with self.session.head(
+                url,
+                timeout=timeout,
+                allow_redirects=True,
+                proxy=CONFIG.proxy,
+            ) as response:
                 status = response.status
                 if status == 200:
                     return True
@@ -961,6 +968,7 @@ class AsyncSourceFetcher:
                         headers={**CONFIG.headers, 'Range': 'bytes=0-0'},
                         timeout=timeout,
                         allow_redirects=True,
+                        proxy=CONFIG.proxy,
                     ) as get_resp:
                         return get_resp.status in (200, 206)
                 return False
@@ -972,7 +980,12 @@ class AsyncSourceFetcher:
         for attempt in range(CONFIG.max_retries):
             try:
                 timeout = aiohttp.ClientTimeout(total=CONFIG.request_timeout)
-                async with self.session.get(url, headers=CONFIG.headers, timeout=timeout) as response:
+                async with self.session.get(
+                    url,
+                    headers=CONFIG.headers,
+                    timeout=timeout,
+                    proxy=CONFIG.proxy,
+                ) as response:
                     if response.status != 200:
                         continue
                         
@@ -1631,6 +1644,8 @@ def main():
                         help="Number of concurrent requests")
     parser.add_argument("--max-retries", type=int, default=CONFIG.max_retries,
                         help="Retry attempts when fetching sources")
+    parser.add_argument("--proxy", type=str, default=None,
+                        help="Route HTTP requests through this proxy URL")
     parser.add_argument("--max-ping", type=int, default=0,
                         help="Discard configs slower than this ping in ms (0 = no limit)")
     parser.add_argument("--log-file", type=str, default=None,
@@ -1665,6 +1680,7 @@ def main():
     CONFIG.test_timeout = max(0.1, args.test_timeout)
     CONFIG.concurrent_limit = max(1, args.concurrent_limit)
     CONFIG.max_retries = max(1, args.max_retries)
+    CONFIG.proxy = args.proxy
     CONFIG.max_ping_ms = args.max_ping if args.max_ping > 0 else None
     CONFIG.log_file = args.log_file
     CONFIG.cumulative_batches = args.cumulative_batches
