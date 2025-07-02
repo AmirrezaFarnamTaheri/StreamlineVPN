@@ -1,11 +1,13 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
+
 """
 VPN Subscription Merger
 ===================================================================
 
 The definitive VPN subscription merger combining 450+ sources with comprehensive
-testing, smart sorting, and automatic dead link removal.
+testing, smart sorting, and automatic dead link removal. Optimized for the
+Hiddify-Next client.
 
 Features:
 • Complete source collection (450+ Iranian + International repositories)
@@ -135,13 +137,26 @@ CONFIG = Config(
     max_retries=3,
     concurrent_limit=50,
     max_configs_per_source=75000,
+    # Default protocols optimized for Hiddify-Next. Other clients may not
+    # recognize some of these and might support additional protocols.
     valid_prefixes=(
-        "vmess://", "vless://", "ss://", "trojan://", "hy2://", 
-        "hysteria://", "hysteria2://", "tuic://", "reality://", 
-        "naive://", "juicity://", "shadowtls://", "wireguard://", 
-        "brook://", "socks://", "socks4://", "socks5://",
-        "http://", "https://", "grpc://", "ws://", "wss://",
-        "ssr://", "tcp://", "kcp://", "quic://", "h2://",
+        "proxy://",
+        "ss://",
+        "clash://",
+        "v2ray://",
+        "reality://",
+        "vmess://",
+        "xray://",
+        "wireguard://",
+        "ech://",
+        "vless://",
+        "hysteria://",
+        "tuic://",
+        "sing-box://",
+        "singbox://",
+        "shadowtls://",
+        "clashmeta://",
+        "hysteria2://",
     ),
     enable_url_testing=True,
     enable_sorting=True,
@@ -959,20 +974,23 @@ class EnhancedConfigProcessor:
     def categorize_protocol(self, config: str) -> str:
         """Categorize configuration by protocol."""
         protocol_map = {
-            "vmess://": "VMess",
-            "vless://": "VLESS", 
+            "proxy://": "Proxy",
             "ss://": "Shadowsocks",
-            "trojan://": "Trojan",
-            "hy2://": "Hysteria2",
-            "hysteria2://": "Hysteria2",
+            "clash://": "Clash",
+            "v2ray://": "V2Ray",
+            "reality://": "Reality",
+            "vmess://": "VMess",
+            "xray://": "XRay",
+            "wireguard://": "WireGuard",
+            "ech://": "ECH",
+            "vless://": "VLESS",
             "hysteria://": "Hysteria",
             "tuic://": "TUIC",
-            "reality://": "Reality",
-            "naive://": "Naive",
-            "juicity://": "Juicity",
-            "wireguard://": "WireGuard",
+            "sing-box://": "Sing-Box",
+            "singbox://": "SingBox",
             "shadowtls://": "ShadowTLS",
-            "brook://": "Brook",
+            "clashmeta://": "ClashMeta",
+            "hysteria2://": "Hysteria2",
         }
         
         for prefix, protocol in protocol_map.items():
