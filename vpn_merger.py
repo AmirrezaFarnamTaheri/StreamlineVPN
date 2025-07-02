@@ -39,6 +39,7 @@ from dataclasses import dataclass, asdict
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Dict, List, Optional, Set, Tuple, Union
+from tqdm import tqdm
 from urllib.parse import urlparse
 
 try:
@@ -1216,18 +1217,20 @@ class UltimateVPNMerger:
             
             completed = 0
             available_sources = []
-            
-            for coro in asyncio.as_completed(tasks):
-                result = await coro
-                completed += 1
-                
-                if result:
-                    available_sources.append(result)
-                    status = "✅ Available"
-                else:
-                    status = "❌ Dead link"
-                
-                print(f"  [{completed:03d}/{len(self.sources)}] {status}")
+
+            with tqdm(total=len(self.sources), desc="Testing sources", unit="src") as pbar:
+                for coro in asyncio.as_completed(tasks):
+                    result = await coro
+                    completed += 1
+                    pbar.update(1)
+
+                    if result:
+                        available_sources.append(result)
+                        status = "✅ Available"
+                    else:
+                        status = "❌ Dead link"
+
+                    pbar.set_postfix_str(status)
             
             removed_count = len(self.sources) - len(available_sources)
             print(f"\n   🗑️ Removed {removed_count} dead sources")
@@ -1257,26 +1260,27 @@ class UltimateVPNMerger:
             tasks = [process_single_source(url) for url in available_sources]
             
             completed = 0
-            for coro in asyncio.as_completed(tasks):
-                url, results = await coro
-                completed += 1
-                
-                # Append directly to the instance-level list
-                self.all_results.extend(results)
-                if results:
-                    successful_sources += 1
-                    reachable = sum(1 for r in results if r.is_reachable)
-                    status = f"✓ {len(results):,} configs ({reachable} reachable)"
-                else:
-                    status = "✗ No configs"
-                
-                domain = urlparse(url).netloc or url[:50] + "..."
-                print(f"  [{completed:03d}/{len(available_sources)}] {status} - {domain}")
+            with tqdm(total=len(available_sources), desc="Fetching configs", unit="src") as pbar:
+                for coro in asyncio.as_completed(tasks):
+                    url, results = await coro
+                    completed += 1
+                    pbar.update(1)
 
-                await self._maybe_save_batch()
+                    self.all_results.extend(results)
+                    if results:
+                        successful_sources += 1
+                        reachable = sum(1 for r in results if r.is_reachable)
+                        status = f"✓ {len(results):,} configs ({reachable} reachable)"
+                    else:
+                        status = "✗ No configs"
 
-                if self.stop_fetching:
-                    break
+                    domain = urlparse(url).netloc or url[:50] + "..."
+                    pbar.set_postfix_str(f"{status} - {domain}")
+
+                    await self._maybe_save_batch()
+
+                    if self.stop_fetching:
+                        break
 
             if self.stop_fetching:
                 for t in tasks:
