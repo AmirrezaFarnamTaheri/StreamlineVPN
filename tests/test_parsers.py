@@ -45,8 +45,10 @@ def test_parse_ehi_zip(tmp_path):
     assert result == ["zipline"]
 
 
-def test_parse_line():
+def test_parse_line_valid():
     assert parse_line("ssh://user:pass@host:22") == "ssh://user:pass@host:22"
+    assert parse_line(" SSH://user@host:2222 ") == "ssh://user@host:2222"
+    assert parse_line("socks5://host:1080") == "socks5://host:1080"
 
 
 def test_parse_ehi_base64():
@@ -87,14 +89,17 @@ def test_parse_ehi_base64_zip():
 import pytest
 
 
-def test_parse_line_none():
-    with pytest.raises(AttributeError):
-        parse_line(None)
-
-
-def test_parse_line_non_string():
-    with pytest.raises(AttributeError):
-        parse_line(123)
+@pytest.mark.parametrize("line", [
+    "noscheme",
+    "ssh://host",
+    "ssh://user@:22",
+    "ssh://user:pass@host:notnum",
+    None,
+    123,
+])
+def test_parse_line_invalid(line):
+    with pytest.raises((ValueError, TypeError)):
+        parse_line(line)
 
 
 def test_parse_ehi_invalid_base64():

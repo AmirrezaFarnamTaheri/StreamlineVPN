@@ -1,6 +1,7 @@
 import argparse
 import asyncio
 import json
+import re
 from pathlib import Path
 from typing import List, Optional
 
@@ -8,7 +9,64 @@ from typing import List, Optional
 
 
 def parse_line(line: str) -> str:
-    return line.strip()
+    """Validate and normalize a single endpoint line.
+
+    Parameters
+    ----------
+    line : str
+        A string like ``"ssh://user:pass@host:22"``.
+
+    Returns
+    -------
+    str
+        Normalized ``"scheme://[user:pass@]host:port"`` string.
+
+    Raises
+    ------
+    TypeError
+        If ``line`` is not a ``str``.
+    ValueError
+        If the line does not match the expected format.
+    """
+
+    if not isinstance(line, str):
+        raise TypeError("line must be a string")
+
+    text = line.strip()
+
+    pattern = re.compile(
+        r"^(?P<scheme>[A-Za-z][A-Za-z0-9+.-]*)://"
+        r"(?:(?P<user>[^:@\s]+)(?::(?P<pass>[^@\s]*))?@)?"
+        r"(?P<host>[^:@\s]+)"
+        r":(?P<port>\d+)$"
+    )
+
+    m = pattern.match(text)
+    if not m:
+        raise ValueError(f"Malformed line: {line!r}")
+
+    scheme = m.group("scheme").lower()
+    user = m.group("user")
+    password = m.group("pass")
+    host = m.group("host")
+    port_str = m.group("port")
+
+    try:
+        port = int(port_str)
+    except ValueError as exc:
+        raise ValueError(f"Invalid port in line: {line!r}") from exc
+
+    if not (0 < port < 65536):
+        raise ValueError(f"Invalid port number in line: {line!r}")
+
+    cred = ""
+    if user:
+        cred = user
+        if password is not None:
+            cred += f":{password}"
+        cred += "@"
+
+    return f"{scheme}://{cred}{host}:{port}"
 
 
 async def test_endpoint(host: str, port: int, timeout: float) -> bool:
