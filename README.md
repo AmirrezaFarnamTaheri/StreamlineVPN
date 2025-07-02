@@ -313,7 +313,7 @@ Run `python vpn_merger.py --help` to see all options. Important flags include:
   * `--shuffle-sources` - randomize source processing order.
   * `--output-clash` - also generate a `clash.yaml` configuration.
   * `--prefer-protocols "Reality,VMess"` - override protocol sorting priority.
-  * `--app-tests telegram,youtube` - verify selected services through the fastest configs.
+  * `--app-tests telegram,youtube` - run simple connectivity checks against services like Telegram or YouTube. Results are recorded in the CSV as `Telegram_OK`, `YouTube_OK` for the fastest tested configs.
 
 TLS fragments help obscure the real Server Name Indication (SNI) of each
 connection by splitting the handshake into pieces. This makes it harder for
