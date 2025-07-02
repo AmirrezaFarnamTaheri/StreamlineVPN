@@ -51,6 +51,21 @@ def test_parse_ehi_zip():
     assert result == ["zip_payload"]
 
 
+def test_parse_ehi_base64_zip():
+    """Base64 string containing a ZIP archive should not crash."""
+    import io
+    import json
+    import zipfile
+
+    buf = io.BytesIO()
+    with zipfile.ZipFile(buf, "w") as zf:
+        zf.writestr("cfg.json", json.dumps({"payload": "zip_payload"}))
+    b64 = base64.b64encode(buf.getvalue())
+    result = parse_ehi(b64)
+    assert len(result) == 1
+    assert result[0].startswith("PK")
+
+
 import pytest
 
 
@@ -62,3 +77,24 @@ def test_parse_line_none():
 def test_parse_line_non_string():
     with pytest.raises(AttributeError):
         parse_line(123)
+
+
+def test_parse_ehi_invalid_base64():
+    data = b"!notbase64!"
+    assert parse_ehi(data) == ["!notbase64!"]
+
+
+def test_parse_ehi_zip_invalid_json():
+    import io
+    import zipfile
+
+    buf = io.BytesIO()
+    with zipfile.ZipFile(buf, "w") as zf:
+        zf.writestr("cfg.json", "notjson")
+    with pytest.raises(Exception):
+        parse_ehi(buf.getvalue())
+
+
+def test_parse_ehi_none():
+    with pytest.raises(AttributeError):
+        parse_ehi(None)
