@@ -311,9 +311,16 @@ Run `python vpn_merger.py --help` to see all options. Important flags include:
   * `--cumulative-batches` - make each batch cumulative instead of standalone.
   * `--no-strict-batch` - don't split strictly by `--batch-size`, just trigger when exceeded.
   * `--shuffle-sources` - randomize source processing order.
+  * `--full-test` - perform a full TLS handshake when applicable.
   * `--output-clash` - also generate a `clash.yaml` configuration.
   * `--prefer-protocols "Reality,VMess"` - override protocol sorting priority.
   * `--app-tests telegram,youtube` - run simple connectivity checks against services like Telegram or YouTube. Results are recorded in the CSV as `Telegram_OK`, `YouTube_OK` for the fastest tested configs.
+
+Example:
+
+```bash
+python vpn_merger.py --top-n 50 --full-test --proxy socks5://127.0.0.1:9050
+```
 
 TLS fragments help obscure the real Server Name Indication (SNI) of each
 connection by splitting the handshake into pieces. This makes it harder for
