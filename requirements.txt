@@ -1,3 +1,6 @@
 aiohttp
 aiodns
 nest-asyncio
+paramiko
+PyYAML
+tqdm
