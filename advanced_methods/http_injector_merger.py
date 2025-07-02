@@ -10,9 +10,12 @@ from typing import List, Tuple, Optional
 import aiohttp
 from aiohttp import ClientSession
 
-# These advanced merger scripts are intentionally standalone and do not rely
-# on the main ``vpn_merger`` configuration.  Proxy settings and test timeouts
-# are provided via command line arguments instead.
+# These advanced merger scripts update ``vpn_merger.CONFIG.proxy`` when
+# possible so other tools share the same proxy setting.
+try:
+    from vpn_merger import CONFIG
+except Exception:  # pragma: no cover - fallback when not available
+    CONFIG = None
 
 
 async def fetch_text(session: ClientSession, url: str, proxy: Optional[str]) -> str:
@@ -118,6 +121,8 @@ def main() -> None:
         if src_file.exists():
             data = json.loads(src_file.read_text())
             sources = data.get('http_injector', [])
+    if CONFIG is not None:
+        CONFIG.proxy = args.proxy
     asyncio.run(main_async(sources, Path(args.output_dir), args.proxy, args.test_timeout))
 
 

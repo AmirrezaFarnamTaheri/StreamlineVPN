@@ -7,8 +7,11 @@ from typing import List, Optional
 
 import aiohttp
 
-# This script is standalone; proxy settings and timeouts are passed via
-# command line arguments rather than using ``vpn_merger.CONFIG``.
+# These tools share the proxy with ``vpn_merger.CONFIG`` when available.
+try:
+    from vpn_merger import CONFIG
+except Exception:  # pragma: no cover - when running standalone
+    CONFIG = None
 
 
 async def fetch_list(session: aiohttp.ClientSession, url: str, proxy: Optional[str]) -> List[str]:
@@ -77,6 +80,8 @@ def main() -> None:
         if src_file.exists():
             data = json.loads(src_file.read_text())
             sources = data.get('argo', [])
+    if CONFIG is not None:
+        CONFIG.proxy = args.proxy
     asyncio.run(main_async(sources, Path(args.output_dir), args.proxy, args.test_timeout))
 
 

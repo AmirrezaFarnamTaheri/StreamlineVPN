@@ -14,7 +14,8 @@ the `--sources` option, the default URLs are read from the project-wide
    ```
 3. All scripts accept the common options `--proxy` to route requests through a
    proxy, `--test-timeout` to adjust connection checks, and `--output-dir` to
-   choose where files are written.
+   choose where files are written. Using `--proxy` also updates
+   `vpn_merger.CONFIG.proxy` for consistency with other tools.
 
 ## Output Overview
 
