@@ -5,16 +5,19 @@ import io
 import json
 import zipfile
 from pathlib import Path
-from typing import List, Tuple
+from typing import List, Tuple, Optional
 
 import aiohttp
 from aiohttp import ClientSession
 
-from vpn_merger import CONFIG
+# These advanced merger scripts are intentionally standalone and do not rely
+# on the main ``vpn_merger`` configuration.  Proxy settings and test timeouts
+# are provided via command line arguments instead.
 
 
-async def fetch_text(session: ClientSession, url: str) -> str:
-    async with session.get(url, timeout=30, proxy=CONFIG.proxy) as resp:
+async def fetch_text(session: ClientSession, url: str, proxy: Optional[str]) -> str:
+    """Download text from ``url`` using optional HTTP/SOCKS ``proxy``."""
+    async with session.get(url, timeout=30, proxy=proxy) as resp:
         resp.raise_for_status()
         return await resp.text()
 
@@ -54,26 +57,26 @@ def parse_ehi(data: bytes) -> List[str]:
     return configs
 
 
-async def test_http_injector(payload: str) -> bool:
+async def test_http_injector(payload: str, proxy: Optional[str], timeout: float) -> bool:
     """Simple connectivity test using aiohttp."""
     try:
         url = 'http://example.com/'
         headers = {"Host": payload}
         async with aiohttp.ClientSession() as s:
-            async with s.get(url, headers=headers, proxy=CONFIG.proxy, timeout=5) as r:
+            async with s.get(url, headers=headers, proxy=proxy, timeout=timeout) as r:
                 return r.status == 200
     except Exception:
         return False
 
 
-async def process_source(url: str) -> List[Tuple[str, bool]]:
+async def process_source(url: str, proxy: Optional[str], timeout: float) -> List[Tuple[str, bool]]:
     async with aiohttp.ClientSession() as session:
-        text = await fetch_text(session, url)
+        text = await fetch_text(session, url, proxy)
         data = text.encode()
         configs = parse_ehi(data)
         results = []
         for cfg in configs:
-            ok = await test_http_injector(cfg)
+            ok = await test_http_injector(cfg, proxy, timeout)
             results.append((cfg, ok))
         return results
 
@@ -87,11 +90,11 @@ def save_output(results: List[Tuple[str, bool]], output_dir: Path) -> None:
                 f.write(cfg + '\n')
 
 
-async def main_async(sources: List[str], output_dir: Path) -> None:
+async def main_async(sources: List[str], output_dir: Path, proxy: Optional[str], timeout: float) -> None:
     all_results: List[Tuple[str, bool]] = []
     for src in sources:
         try:
-            res = await process_source(src)
+            res = await process_source(src, proxy, timeout)
             all_results.extend(res)
         except Exception as e:
             print(f"Failed to process {src}: {e}")
@@ -103,6 +106,8 @@ def main() -> None:
     parser = argparse.ArgumentParser(description='HTTP Injector merger')
     parser.add_argument('--sources', nargs='*', default=[], help='Override source URLs')
     parser.add_argument('--output-dir', default='output_http_injector', help='Output directory')
+    parser.add_argument('--proxy', default=None, help='Optional HTTP/SOCKS proxy')
+    parser.add_argument('--test-timeout', type=float, default=5.0, help='Connection test timeout in seconds')
     args = parser.parse_args()
 
     if args.sources:
@@ -113,7 +118,7 @@ def main() -> None:
         if src_file.exists():
             data = json.loads(src_file.read_text())
             sources = data.get('http_injector', [])
-    asyncio.run(main_async(sources, Path(args.output_dir)))
+    asyncio.run(main_async(sources, Path(args.output_dir), args.proxy, args.test_timeout))
 
 
 if __name__ == '__main__':

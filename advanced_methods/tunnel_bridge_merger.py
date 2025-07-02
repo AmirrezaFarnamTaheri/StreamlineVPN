@@ -2,19 +2,19 @@ import argparse
 import asyncio
 import json
 from pathlib import Path
-from typing import List
+from typing import List, Optional
 
-from vpn_merger import CONFIG
+# Standalone script: accepts its own proxy and timeout options.
 
 
 def parse_line(line: str) -> str:
     return line.strip()
 
 
-async def test_endpoint(host: str, port: int) -> bool:
+async def test_endpoint(host: str, port: int, timeout: float) -> bool:
     try:
         fut = asyncio.open_connection(host, port)
-        reader, writer = await asyncio.wait_for(fut, timeout=CONFIG.test_timeout)
+        reader, writer = await asyncio.wait_for(fut, timeout=timeout)
         writer.close()
         await writer.wait_closed()
         return True
@@ -22,7 +22,7 @@ async def test_endpoint(host: str, port: int) -> bool:
         return False
 
 
-async def process_source(path: str) -> List[str]:
+async def process_source(path: str, timeout: float) -> List[str]:
     endpoints: List[str] = []
     lines = Path(path).read_text(encoding='utf-8').splitlines()
     for line in lines:
@@ -38,7 +38,7 @@ async def process_source(path: str) -> List[str]:
                 port = int(port)
             except ValueError:
                 continue
-            if await test_endpoint(host, port):
+            if await test_endpoint(host, port, timeout):
                 endpoints.append(parsed)
     return endpoints
 
@@ -49,11 +49,14 @@ def save_output(endpoints: List[str], output_dir: Path) -> None:
     path.write_text('\n'.join(endpoints), encoding='utf-8')
 
 
-async def main_async(sources: List[str], output_dir: Path) -> None:
+from typing import Optional
+
+
+async def main_async(sources: List[str], output_dir: Path, proxy: Optional[str], timeout: float) -> None:
     good: List[str] = []
     for src in sources:
         try:
-            res = await process_source(src)
+            res = await process_source(src, timeout)
             good.extend(res)
         except Exception as e:
             print(f"Failed to read {src}: {e}")
@@ -65,6 +68,8 @@ def main() -> None:
     parser = argparse.ArgumentParser(description='Tunnel/Bridge merger')
     parser.add_argument('--sources', nargs='*', default=[], help='Files containing endpoints')
     parser.add_argument('--output-dir', default='output_tunnel', help='Output directory')
+    parser.add_argument('--proxy', default=None, help='Optional HTTP/SOCKS proxy (unused)')
+    parser.add_argument('--test-timeout', type=float, default=5.0, help='Connection test timeout in seconds')
     args = parser.parse_args()
 
     sources = args.sources
@@ -73,7 +78,7 @@ def main() -> None:
         if src_file.exists():
             data = json.loads(src_file.read_text())
             sources = data.get('tunnel_bridge', [])
-    asyncio.run(main_async(sources, Path(args.output_dir)))
+    asyncio.run(main_async(sources, Path(args.output_dir), args.proxy, args.test_timeout))
 
 
 if __name__ == '__main__':
