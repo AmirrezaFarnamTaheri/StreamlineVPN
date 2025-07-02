@@ -278,13 +278,15 @@ Here’s how to add your new subscription link to the best **free** applications
 
 ## 📂 Understanding the Output Files
 
-| File Name                              | Purpose                                                                                                  |
-| -------------------------------------- | -------------------------------------------------------------------------------------------------------- |
-| `vpn_subscription_base64.txt` | A base64-encoded file. Most apps import directly from this file's raw URL.                               |
-| `vpn_subscription_raw.txt`    | A plain text list of all the VPN configuration links.                                                    |
-| `vpn_detailed.csv`            | A spreadsheet with detailed info about each server, including protocol, host, and ping time.             |
-| `vpn_report.json`             | A detailed report with all stats and configurations in a developer-friendly format.                      |
-| `vpn_singbox.json`            | Outbound objects ready for import into sing-box/Stash.                                                   |
+| File Name | Purpose | Typical Usage |
+| --------- | ------- | ------------- |
+| `vpn_subscription_base64.txt` | Base64 subscription link | Copy the raw file URL into v2rayNG, NekoRay or other V2Ray clients |
+| `vpn_subscription_raw.txt` | Plain text list of all configuration URLs | Use for manual editing or with conversion tools; some clients accept raw lists |
+| `vpn_detailed.csv` | Spreadsheet with protocol, host and ping info | Open in Excel or LibreOffice to sort or filter servers |
+| `vpn_report.json` | Machine readable report with all collected stats | Feed into your own scripts or dashboards for custom processing |
+| `vpn_singbox.json` | sing-box outbound objects | Import via **Profiles → Import from file** in sing-box or Stash |
+| `clash.yaml` *(optional)* | Clash configuration when `--output-clash` is used | Load directly in Clash or any compatible fork |
+
 
 -----
 
