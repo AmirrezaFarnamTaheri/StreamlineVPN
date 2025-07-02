@@ -124,6 +124,17 @@ class Config:
     prefer_protocols: Optional[List[str]]
     app_tests: Optional[List[str]]
 
+    # TLS fragment and multiplexing
+    tls_fragment_size: Optional[int]
+    tls_fragment_sleep: Optional[int]
+    mux_enable: bool
+    mux_protocol: str
+    mux_max_connections: int
+    mux_min_streams: int
+    mux_max_streams: int
+    mux_padding: bool
+    mux_brutal: bool
+
 CONFIG = Config(
     headers={
         "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/125.0.0.0 Safari/537.36",
@@ -180,7 +191,16 @@ CONFIG = Config(
     proxy=None,
     output_clash=False,
     prefer_protocols=None,
-    app_tests=None
+    app_tests=None,
+    tls_fragment_size=150,
+    tls_fragment_sleep=15,
+    mux_enable=False,
+    mux_protocol="smux",
+    mux_max_connections=4,
+    mux_min_streams=4,
+    mux_max_streams=16,
+    mux_padding=False,
+    mux_brutal=False
 )
 
 # Mapping of app test keywords to URLs
@@ -1543,7 +1563,7 @@ class UltimateVPNMerger:
         output_dir.mkdir(exist_ok=True)
         
         # Extract configs for traditional outputs
-        configs = [result.config for result in results]
+        configs = [result.config.strip() for result in results]
         
         # Raw text output
         raw_file = output_dir / f"{prefix}vpn_subscription_raw.txt"
@@ -1619,9 +1639,20 @@ class UltimateVPNMerger:
                 "raw_subscription": "Host raw file and use URL as subscription link",
                 "csv_analysis": "Use CSV file for detailed analysis and custom filtering",
                 "supported_clients": [
-                    "V2rayNG", "V2rayN", "Hiddify Next", "Shadowrocket", 
+                    "V2rayNG", "V2rayN", "Hiddify Next", "Shadowrocket",
                     "NekoBox", "Clash Meta", "Sing-Box", "Streisand", "Karing"
                 ]
+            },
+            "advanced_settings": {
+                "tls_fragment_size": CONFIG.tls_fragment_size,
+                "tls_fragment_sleep": CONFIG.tls_fragment_sleep,
+                "mux_enabled": CONFIG.mux_enable,
+                "mux_protocol": CONFIG.mux_protocol,
+                "mux_max_connections": CONFIG.mux_max_connections,
+                "mux_min_streams": CONFIG.mux_min_streams,
+                "mux_max_streams": CONFIG.mux_max_streams,
+                "mux_padding": CONFIG.mux_padding,
+                "mux_brutal": CONFIG.mux_brutal
             }
         }
         
@@ -1637,9 +1668,23 @@ class UltimateVPNMerger:
                 "type": r.protocol.lower(),
                 "tag": f"{r.protocol} {idx}",
                 "server": r.host or "",
-                "server_port": r.port,
+                "server_port": r.port or 0,
                 "raw": r.config
             }
+            if CONFIG.tls_fragment_size:
+                ob["tls_fragment"] = {
+                    "size": CONFIG.tls_fragment_size,
+                    "sleep": CONFIG.tls_fragment_sleep
+                }
+            if CONFIG.mux_enable:
+                ob["multiplex"] = {
+                    "protocol": CONFIG.mux_protocol,
+                    "max_connections": CONFIG.mux_max_connections,
+                    "min_streams": CONFIG.mux_min_streams,
+                    "max_streams": CONFIG.mux_max_streams,
+                    "padding": CONFIG.mux_padding,
+                    "brutal": CONFIG.mux_brutal
+                }
             outbounds.append(ob)
 
         singbox_file = output_dir / f"{prefix}vpn_singbox.json"
@@ -1795,6 +1840,25 @@ def main():
                         help="Comma-separated protocol priority list")
     parser.add_argument("--app-tests", type=str, default=None,
                         help="Comma-separated list of services to test via configs")
+    parser.add_argument("--tls-fragment-size", type=int, default=CONFIG.tls_fragment_size,
+                        help="Size of TLS fragment to send (0 disables)")
+    parser.add_argument("--tls-fragment-sleep", type=int, default=CONFIG.tls_fragment_sleep,
+                        help="Delay between TLS fragments in ms")
+    parser.add_argument("--enable-mux", action="store_true",
+                        help="Enable connection multiplexing")
+    parser.add_argument("--mux-protocol", type=str, default=CONFIG.mux_protocol,
+                        choices=["smux", "yamux", "h2mux"],
+                        help="Multiplexing protocol to use")
+    parser.add_argument("--mux-max-connections", type=int, default=CONFIG.mux_max_connections,
+                        help="Maximum simultaneous MUX connections")
+    parser.add_argument("--mux-min-streams", type=int, default=CONFIG.mux_min_streams,
+                        help="Minimum number of streams per connection")
+    parser.add_argument("--mux-max-streams", type=int, default=CONFIG.mux_max_streams,
+                        help="Maximum number of streams per connection")
+    parser.add_argument("--mux-padding", action="store_true",
+                        help="Reject connections without padding")
+    parser.add_argument("--mux-brutal", action="store_true",
+                        help="Enable TCP congestion control for noisy links")
     args, unknown = parser.parse_known_args()
     if unknown:
         logging.warning("Ignoring unknown arguments: %s", unknown)
@@ -1831,6 +1895,15 @@ def main():
         CONFIG.prefer_protocols = [p.strip().upper() for p in args.prefer_protocols.split(',') if p.strip()]
     if args.app_tests:
         CONFIG.app_tests = [p.strip().lower() for p in args.app_tests.split(',') if p.strip()]
+    CONFIG.tls_fragment_size = args.tls_fragment_size if args.tls_fragment_size > 0 else None
+    CONFIG.tls_fragment_sleep = args.tls_fragment_sleep if args.tls_fragment_sleep > 0 else None
+    CONFIG.mux_enable = args.enable_mux
+    CONFIG.mux_protocol = args.mux_protocol
+    CONFIG.mux_max_connections = max(1, args.mux_max_connections)
+    CONFIG.mux_min_streams = max(1, args.mux_min_streams)
+    CONFIG.mux_max_streams = max(CONFIG.mux_min_streams, args.mux_max_streams)
+    CONFIG.mux_padding = args.mux_padding
+    CONFIG.mux_brutal = args.mux_brutal
     if args.no_url_test:
         CONFIG.enable_url_testing = False
     if args.no_sort:
