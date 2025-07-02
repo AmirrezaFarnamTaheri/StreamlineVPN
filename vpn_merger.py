@@ -35,7 +35,7 @@ import ssl
 import sys
 import time
 import socket
-from dataclasses import dataclass, asdict
+from dataclasses import dataclass, asdict, field
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Dict, List, Optional, Set, Tuple, Union
@@ -167,6 +167,15 @@ CONFIG = Config(
     prefer_protocols=None,
     app_tests=None
 )
+
+# Mapping of app test keywords to URLs
+APP_TEST_URLS = {
+    "telegram": "https://api.telegram.org",
+    "youtube": "https://www.youtube.com",
+}
+
+# Number of fastest configs to run app tests against
+APP_TEST_TOP_N = 3
 
 # ============================================================================
 # COMPREHENSIVE SOURCE COLLECTION (ALL UNIFIED SOURCES)
@@ -844,6 +853,7 @@ class ConfigResult:
     is_reachable: bool = False
     handshake_ok: Optional[bool] = None
     source_url: str = ""
+    app_test_results: Dict[str, Optional[bool]] = field(default_factory=dict)
 
 class EnhancedConfigProcessor:
     """Advanced configuration processor with comprehensive testing capabilities."""
@@ -1181,6 +1191,9 @@ class UltimateVPNMerger:
             removed = before - len(unique_results)
             print(f"   ⏱️  Removed {removed} configs over {CONFIG.max_ping_ms} ms")
 
+        if CONFIG.app_tests:
+            await self._run_app_tests(unique_results)
+
         # Step 5: Analyze protocols and performance
         print(f"\n📋 [5/6] Analyzing {len(unique_results):,} unique configs...")
         stats = self._analyze_results(unique_results, self.available_sources)
@@ -1329,6 +1342,8 @@ class UltimateVPNMerger:
                     batch_results = self._sort_by_performance(batch_results)
                 if CONFIG.top_n > 0:
                     batch_results = batch_results[:CONFIG.top_n]
+                if CONFIG.app_tests:
+                    await self._run_app_tests(batch_results)
 
                 stats = self._analyze_results(batch_results, self.available_sources)
                 await self._generate_comprehensive_outputs(batch_results, stats, self.start_time, prefix=f"batch_{self.batch_counter}_")
@@ -1353,6 +1368,8 @@ class UltimateVPNMerger:
                     batch_results = self._sort_by_performance(batch_results)
                 if CONFIG.top_n > 0:
                     batch_results = batch_results[:CONFIG.top_n]
+                if CONFIG.app_tests:
+                    await self._run_app_tests(batch_results)
 
                 stats = self._analyze_results(batch_results, self.available_sources)
                 await self._generate_comprehensive_outputs(batch_results, stats, self.start_time, prefix=f"batch_{self.batch_counter}_")
@@ -1419,8 +1436,34 @@ class UltimateVPNMerger:
             fastest = min((r for r in results if r.ping_time), key=lambda x: x.ping_time, default=None)
             if fastest:
                 print(f"   ⚡ Fastest server: {fastest.ping_time*1000:.1f}ms ({fastest.protocol})")
-        
+
         return sorted_results
+
+    async def _run_app_tests(self, results: List[ConfigResult]) -> None:
+        """Run service connectivity tests on the fastest configs."""
+        if not CONFIG.app_tests:
+            return
+
+        test_urls = {name: APP_TEST_URLS.get(name) for name in CONFIG.app_tests}
+        test_urls = {k: v for k, v in test_urls.items() if v}
+        if not test_urls:
+            return
+
+        top = [r for r in results if r.is_reachable][:APP_TEST_TOP_N]
+        if not top:
+            return
+
+        timeout = aiohttp.ClientTimeout(total=10)
+        async with aiohttp.ClientSession(timeout=timeout, proxy=CONFIG.proxy) as session:
+            for res in top:
+                for name, url in test_urls.items():
+                    ok = False
+                    try:
+                        async with session.get(url) as resp:
+                            ok = resp.status == 200
+                    except Exception:
+                        ok = False
+                    res.app_test_results[name] = ok
     
     def _analyze_results(self, results: List[ConfigResult], available_sources: List[str]) -> Dict:
         """Analyze results and generate comprehensive statistics."""
@@ -1505,6 +1548,9 @@ class UltimateVPNMerger:
             headers = ['Config', 'Protocol', 'Host', 'Port', 'Ping_MS', 'Reachable', 'Source']
             if CONFIG.full_test:
                 headers.append('Handshake')
+            if CONFIG.app_tests:
+                for name in CONFIG.app_tests:
+                    headers.append(f"{name.capitalize()}_OK")
             writer.writerow(headers)
             for result in results:
                 ping_ms = round(result.ping_time * 1000, 2) if result.ping_time else None
@@ -1517,6 +1563,13 @@ class UltimateVPNMerger:
                         row.append('')
                     else:
                         row.append('OK' if result.handshake_ok else 'FAIL')
+                if CONFIG.app_tests:
+                    for name in CONFIG.app_tests:
+                        val = result.app_test_results.get(name)
+                        if val is None:
+                            row.append('')
+                        else:
+                            row.append('OK' if val else 'FAIL')
                 writer.writerow(row)
         tmp_csv.replace(csv_file)
         
