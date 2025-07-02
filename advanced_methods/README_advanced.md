@@ -13,7 +13,8 @@ the `--sources` option, the default URLs are read from the project-wide
    pip install -r requirements.txt
    ```
 3. All scripts accept the common options `--proxy` to route requests through a
-   proxy and `--output-dir` to choose where files are written.
+   proxy, `--test-timeout` to adjust connection checks, and `--output-dir` to
+   choose where files are written.
 
 ## Output Overview
 
@@ -28,7 +29,8 @@ the `--sources` option, the default URLs are read from the project-wide
 2. Run the merger:
    ```bash
    python -m advanced_methods.http_injector_merger --sources URL1 URL2 \
-       --output-dir output_http_injector --proxy socks5://127.0.0.1:9050
+       --output-dir output_http_injector --proxy socks5://127.0.0.1:9050 \
+       --test-timeout 5
    ```
 3. After it finishes, open `output_http_injector/http_injector_raw.txt`.
 4. Import examples:
@@ -42,7 +44,8 @@ the `--sources` option, the default URLs are read from the project-wide
 2. Execute the script:
    ```bash
    python -m advanced_methods.argo_merger --sources URL1 URL2 \
-       --output-dir output_argo --proxy http://127.0.0.1:8080
+       --output-dir output_argo --proxy http://127.0.0.1:8080 \
+       --test-timeout 5
    ```
 3. Working domains are written to `output_argo/argo_domains.txt`.
 4. Import examples:
@@ -55,7 +58,8 @@ the `--sources` option, the default URLs are read from the project-wide
 2. Run the merger:
    ```bash
    python -m advanced_methods.tunnel_bridge_merger --sources bridges1.txt bridges2.txt \
-       --output-dir output_tunnel --proxy socks5://127.0.0.1:9050
+       --output-dir output_tunnel --proxy socks5://127.0.0.1:9050 \
+       --test-timeout 5
    ```
 3. Results are stored in `output_tunnel/tunnel_endpoints.txt`.
 4. Import examples:
