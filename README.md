@@ -18,6 +18,19 @@ This guide is designed for **everyone**, from absolute beginners with no coding 
 6. For non-standard protocols like HTTP Injector or ArgoVPN see [`advanced_methods/README_advanced.md`](advanced_methods/README_advanced.md).
 7. Edit `sources.json` to point the advanced merger tools to your own lists of links.
 
+### Default Protocol List (Hiddify Optimized)
+
+By default the merger only imports configurations that begin with the following
+protocols, which are tuned for the **Hiddify-Next** client:
+
+`proxy`, `shadowsocks`, `clash`, `v2ray`, `reality`, `vmess`, `xray`,
+`wireguard`, `ech`, `vless`, `hysteria`, `tuic`, `sing-box`, `singbox`,
+`shadowtls`, `clashmeta`, `hysteria2`.
+
+Other clients might not recognize some of these protocols, and some clients
+support additional technologies that are not included here. Use the
+`--include-protocols` or `--exclude-protocols` flags if you need a different set.
+
 ## ✨ Key Features & Use Cases
 
 | Feature | Description | Typical Use Case |
