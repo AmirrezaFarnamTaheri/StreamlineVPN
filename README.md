@@ -328,7 +328,7 @@ Run `python vpn_merger.py --help` to see all options. Important flags include:
   * `--cumulative-batches` - make each batch cumulative instead of standalone.
   * `--no-strict-batch` - don't split strictly by `--batch-size`, just trigger when exceeded.
   * `--shuffle-sources` - randomize source processing order.
-  * `--full-test` - perform a full TLS handshake when applicable.
+  * `--full-test` - performs a full TLS handshake when applicable.
   * `--output-clash` - also generate a `clash.yaml` configuration.
   * `--prefer-protocols "Reality,VMess"` - override protocol sorting priority.
   * `--app-tests telegram,youtube` - run simple connectivity checks against services like Telegram or YouTube. Results are recorded in the CSV as `Telegram_OK`, `YouTube_OK` for the fastest tested configs.
@@ -378,6 +378,7 @@ If you already generated a subscription file, run `python vpn_retester.py <path>
 
 * `--concurrent-limit` limit how many tests run in parallel
 * `--test-timeout` set the connection timeout in seconds
+* `--full-test` performs a full TLS handshake when applicable
 * `--max-ping` drop configs slower than this ping (ms)
 * `--include-protocols` or `--exclude-protocols` filter by protocol
 * `--output-dir` choose where results are written
@@ -388,7 +389,8 @@ Example:
 ```bash
 python vpn_retester.py output/vpn_subscription_raw.txt \
   --include-protocols VLESS,REALITY --max-ping 250 \
-  --concurrent-limit 20 --test-timeout 3 --output-dir retested --no-base64
+  --concurrent-limit 20 --test-timeout 3 --full-test \
+  --output-dir retested --no-base64
 ```
 
 New files will appear in the chosen output directory:
