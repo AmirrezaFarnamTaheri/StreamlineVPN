@@ -346,3 +346,7 @@ New files will appear in the chosen output directory:
 - `vpn_retested_raw.txt`
 - *(optional)* `vpn_retested_base64.txt`
 - *(optional)* `vpn_retested_detailed.csv`
+
+## License
+
+This project is licensed under the [MIT License](LICENSE). See the LICENSE file for the full text.
