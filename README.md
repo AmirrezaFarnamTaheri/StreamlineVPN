@@ -12,7 +12,7 @@ This guide is designed for **everyone**, from absolute beginners with no coding 
 1. Install **Python 3.8+** and clone this repository.
 2. Run `pip install -r requirements.txt` in the project folder.
 3. Execute `python vpn_merger.py` and wait for the `output` directory.
-4. *(Optional)* pass extra flags like `--max-ping 200` or `--concurrent-limit 10` to suit your connection.
+4. *(Optional)* pass extra flags like `--max-ping 200`, `--concurrent-limit 10`, or `--proxy socks5://127.0.0.1:9050` to suit your connection.
 5. Import the `output/vpn_subscription_base64.txt` link into your VPN app or load `vpn_singbox.json` in clients like sing-box.
 
 ## ✨ Key Features & Use Cases
@@ -33,6 +33,7 @@ This guide is designed for **everyone**, from absolute beginners with no coding 
 | **Max Ping Filter** | Remove configs with latency above `--max-ping` ms. | Keep only fast servers for gaming or streaming. |
 | **Concurrent Limit / Retries** | Tweak network load with `--concurrent-limit` and `--max-retries`. | Prevent crashes on slow networks or strict hosts. |
 | **Logging to File** | Save all output to a file with `--log-file`. | Useful for headless servers or debugging. |
+| **Proxy Support** | Use `--proxy` to route downloads through an HTTP or SOCKS proxy. | Helpful with Tor or corporate proxies. |
 | **Standalone or Cumulative Batches** | Use `--cumulative-batches` to keep growing files, otherwise each batch only contains new configs. | Flexible automation for heavy runs. |
 | **Strict Split** | Batches are strictly capped at `--batch-size` by default. Add `--no-strict-batch` to simply trigger on size. | Control how incremental files are produced. |
 | **Shuffle Sources** | `--shuffle-sources` randomizes the source order. | Helpful when using `--threshold` to avoid bias. |
@@ -305,6 +306,7 @@ Run `python vpn_merger.py --help` to see all options. Important flags include:
   * `--resume FILE` - load a previous output file before fetching new sources.
   * `--output-dir DIR` - specify where output files are stored.
   * `--test-timeout SEC` - adjust connection test timeout.
+  * `--proxy URL` - route all HTTP downloads through this proxy (e.g. `socks5://127.0.0.1:9050`).
   * `--cumulative-batches` - make each batch cumulative instead of standalone.
   * `--no-strict-batch` - don't split strictly by `--batch-size`, just trigger when exceeded.
   * `--shuffle-sources` - randomize source processing order.
