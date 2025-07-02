@@ -89,6 +89,7 @@ class Config:
     enable_url_testing: bool
     enable_sorting: bool
     test_timeout: float
+    full_test: bool
 
     # Output settings
     output_dir: str
@@ -133,6 +134,7 @@ CONFIG = Config(
     enable_url_testing=True,
     enable_sorting=True,
     test_timeout=5.0,
+    full_test=False,
     output_dir="output",
     batch_size=1000,
     threshold=0,
@@ -824,6 +826,7 @@ class ConfigResult:
     port: Optional[int] = None
     ping_time: Optional[float] = None
     is_reachable: bool = False
+    handshake_ok: Optional[bool] = None
     source_url: str = ""
 
 class EnhancedConfigProcessor:
@@ -893,23 +896,39 @@ class EnhancedConfigProcessor:
             key = normalized
         return hashlib.sha256(key.encode()).hexdigest()[:16]
     
-    async def test_connection(self, host: str, port: int) -> Optional[float]:
-        """Test connection and measure response time."""
+    async def test_connection(self, host: str, port: int, protocol: str) -> Tuple[Optional[float], Optional[bool]]:
+        """Test connection and optionally perform a TLS handshake."""
         if not CONFIG.enable_url_testing:
-            return None
+            return None, None
             
         start = time.time()
+        ssl_ctx = None
+        handshake = None
+        if CONFIG.full_test and protocol in {
+            "VMess", "VLESS", "Trojan", "Hysteria2", "Hysteria",
+            "TUIC", "Reality", "Naive", "Juicity", "ShadowTLS",
+            "WireGuard"
+        }:
+            ssl_ctx = ssl.create_default_context()
+            handshake = False
         try:
-            # TCP connection test with timeout
-            _, writer = await asyncio.wait_for(
-                asyncio.open_connection(host, port),
-                timeout=CONFIG.test_timeout
+            conn = await asyncio.wait_for(
+                asyncio.open_connection(
+                    host,
+                    port,
+                    ssl=ssl_ctx,
+                    server_hostname=host if ssl_ctx else None,
+                ),
+                timeout=CONFIG.test_timeout,
             )
+            reader, writer = conn
+            if ssl_ctx:
+                handshake = True
             writer.close()
             await writer.wait_closed()
-            return time.time() - start
+            return time.time() - start, handshake
         except Exception:
-            return None
+            return None, handshake
     
     def categorize_protocol(self, config: str) -> str:
         """Categorize configuration by protocol."""
@@ -1013,9 +1032,10 @@ class AsyncSourceFetcher:
                             
                             # Test connection if enabled
                             if CONFIG.enable_url_testing and host and port:
-                                ping_time = await self.processor.test_connection(host, port)
+                                ping_time, hs = await self.processor.test_connection(host, port, protocol)
                                 result.ping_time = ping_time
-                                result.is_reachable = ping_time is not None
+                                result.handshake_ok = hs
+                                result.is_reachable = ping_time is not None and (hs is not False)
                             
                             config_results.append(result)
                     
@@ -1449,13 +1469,22 @@ class UltimateVPNMerger:
         tmp_csv = csv_file.with_suffix('.tmp')
         with open(tmp_csv, 'w', newline='', encoding='utf-8') as f:
             writer = csv.writer(f)
-            writer.writerow(['Config', 'Protocol', 'Host', 'Port', 'Ping_MS', 'Reachable', 'Source'])
+            headers = ['Config', 'Protocol', 'Host', 'Port', 'Ping_MS', 'Reachable', 'Source']
+            if CONFIG.full_test:
+                headers.append('Handshake')
+            writer.writerow(headers)
             for result in results:
                 ping_ms = round(result.ping_time * 1000, 2) if result.ping_time else None
-                writer.writerow([
+                row = [
                     result.config, result.protocol, result.host, result.port,
                     ping_ms, result.is_reachable, result.source_url
-                ])
+                ]
+                if CONFIG.full_test:
+                    if result.handshake_ok is None:
+                        row.append('')
+                    else:
+                        row.append('OK' if result.handshake_ok else 'FAIL')
+                writer.writerow(row)
         tmp_csv.replace(csv_file)
         
         # Comprehensive JSON report
@@ -1641,6 +1670,8 @@ def main():
                         help="Use batch size only as update threshold")
     parser.add_argument("--shuffle-sources", action="store_true",
                         help="Process sources in random order")
+    parser.add_argument("--full-test", action="store_true",
+                        help="Perform full TLS handshake when applicable")
     args, unknown = parser.parse_known_args()
     if unknown:
         logging.warning("Ignoring unknown arguments: %s", unknown)
@@ -1670,6 +1701,7 @@ def main():
     CONFIG.cumulative_batches = args.cumulative_batches
     CONFIG.strict_batch = not args.no_strict_batch
     CONFIG.shuffle_sources = args.shuffle_sources
+    CONFIG.full_test = args.full_test
     if args.no_url_test:
         CONFIG.enable_url_testing = False
     if args.no_sort:

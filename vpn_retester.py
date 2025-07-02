@@ -11,20 +11,21 @@ from typing import List, Tuple, Optional
 from vpn_merger import EnhancedConfigProcessor, CONFIG
 
 
-async def _test_config(proc: EnhancedConfigProcessor, cfg: str) -> Tuple[str, Optional[float]]:
+async def _test_config(proc: EnhancedConfigProcessor, cfg: str) -> Tuple[str, Optional[float], Optional[bool]]:
     host, port = proc.extract_host_port(cfg)
+    proto = proc.categorize_protocol(cfg)
     if host and port:
-        ping = await proc.test_connection(host, port)
+        ping, hs = await proc.test_connection(host, port, proto)
     else:
-        ping = None
-    return cfg, ping
+        ping, hs = None, None
+    return cfg, ping, hs
 
 
-async def retest_configs(configs: List[str]) -> List[Tuple[str, Optional[float]]]:
+async def retest_configs(configs: List[str]) -> List[Tuple[str, Optional[float], Optional[bool]]]:
     proc = EnhancedConfigProcessor()
     semaphore = asyncio.Semaphore(CONFIG.concurrent_limit)
 
-    async def worker(cfg: str) -> Tuple[str, Optional[float]]:
+    async def worker(cfg: str) -> Tuple[str, Optional[float], Optional[bool]]:
         async with semaphore:
             return await _test_config(proc, cfg)
 
@@ -59,7 +60,7 @@ def filter_configs(configs: List[str]) -> List[str]:
     return filtered
 
 
-def save_results(results: List[Tuple[str, Optional[float]]], sort: bool, top_n: int) -> None:
+def save_results(results: List[Tuple[str, Optional[float], Optional[bool]]], sort: bool, top_n: int) -> None:
     output_dir = Path(CONFIG.output_dir)
     output_dir.mkdir(exist_ok=True)
 
@@ -69,7 +70,7 @@ def save_results(results: List[Tuple[str, Optional[float]]], sort: bool, top_n: 
     if top_n > 0:
         results = results[:top_n]
 
-    configs = [c for c, _ in results]
+    configs = [c for c, _, _ in results]
     raw_path = output_dir / "vpn_retested_raw.txt"
     raw_path.write_text("\n".join(configs), encoding="utf-8")
 
@@ -81,9 +82,18 @@ def save_results(results: List[Tuple[str, Optional[float]]], sort: bool, top_n: 
         csv_path = output_dir / "vpn_retested_detailed.csv"
         with open(csv_path, 'w', newline='', encoding='utf-8') as f:
             writer = csv.writer(f)
-            writer.writerow(["Config", "Ping_MS"])
-            for cfg, ping in results:
-                writer.writerow([cfg, round(ping * 1000, 2) if ping is not None else ""])
+            headers = ["Config", "Ping_MS"]
+            if CONFIG.full_test:
+                headers.append("Handshake")
+            writer.writerow(headers)
+            for cfg, ping, hs in results:
+                row = [cfg, round(ping * 1000, 2) if ping is not None else ""]
+                if CONFIG.full_test:
+                    if hs is None:
+                        row.append("")
+                    else:
+                        row.append("OK" if hs else "FAIL")
+                writer.writerow(row)
 
     print(f"\n✔ Retested files saved in {output_dir}/")
 
@@ -107,6 +117,7 @@ def main() -> None:
                         help="Directory to save output files")
     parser.add_argument("--no-base64", action="store_true", help="Do not save base64 file")
     parser.add_argument("--no-csv", action="store_true", help="Do not save CSV report")
+    parser.add_argument("--full-test", action="store_true", help="Perform full TLS handshake when applicable")
     args = parser.parse_args()
 
     CONFIG.concurrent_limit = max(1, args.concurrent_limit)
@@ -119,12 +130,13 @@ def main() -> None:
     CONFIG.output_dir = str(Path(args.output_dir).expanduser())
     CONFIG.write_base64 = not args.no_base64
     CONFIG.write_csv = not args.no_csv
+    CONFIG.full_test = args.full_test
 
     configs = load_configs(Path(args.input))
     configs = filter_configs(configs)
     results = asyncio.run(retest_configs(configs))
     if CONFIG.max_ping_ms is not None:
-        results = [(c, p) for c, p in results if p is not None and p * 1000 <= CONFIG.max_ping_ms]
+        results = [(c, p, hs) for c, p, hs in results if p is not None and p * 1000 <= CONFIG.max_ping_ms]
     save_results(results, not args.no_sort, args.top_n)
 
 
