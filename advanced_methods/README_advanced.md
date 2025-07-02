@@ -32,6 +32,8 @@ the `--sources` option, the default URLs are read from the project-wide
 | `tunnel_bridge_merger.py` | `tunnel_endpoints.txt` | Add endpoints from this file in NekoRay or SocksDroid. |
 
 ## `http_injector_merger.py`
+This script extracts host or payload lines from HTTP Injector `.ehi` files or plain text lists. It verifies each payload by sending an HTTP request with the value as the `Host` header. Only hosts that respond successfully are written to `http_injector_raw.txt`.
+
 1. **Gather sources** – collect one or more `.ehi` links or text files and pass them with `--sources`.
 2. **Run the merger**
    ```bash
@@ -49,6 +51,8 @@ the `--sources` option, the default URLs are read from the project-wide
    - **Android** – HTTP Injector app: open the menu, tap **`Import Config`** and pick `http_injector_raw.txt`.
 
 ## `argo_merger.py`
+This merger collects Falcon or CDN domain lists used by ArgoVPN and Hiddify Next. Each domain is tested for a TLS handshake on port 443. Working entries are saved to `argo_domains.txt`.
+
 1. **Prepare lists** – supply Falcon/CDN domain lists with `--sources`.
 2. **Run the merger**
    ```bash
@@ -66,6 +70,8 @@ the `--sources` option, the default URLs are read from the project-wide
    - **Android** – ArgoVPN: go to **`Falcon`**, tap **`Import from file`** and select `argo_domains.txt`.
 
 ## `tunnel_bridge_merger.py`
+This merger accepts files containing `ssh://` or `socks5://` style endpoints. Each entry is checked by opening a TCP connection to the specified host and port. Working endpoints are saved in `tunnel_endpoints.txt`.
+
 1. **Prepare endpoints** – create text files with `ssh://`, `socks5://` or similar URLs and pass them via `--sources`.
 2. **Run the merger**
    ```bash
@@ -83,6 +89,9 @@ the `--sources` option, the default URLs are read from the project-wide
    - **Android** – SocksDroid or similar tools can open the file and connect to a selected endpoint.
 
 ## Troubleshooting
+- **Missing lines in the output** – Some entries may have failed validation. Increase `--test-timeout` or examine console messages for errors.
+- **Unsupported format errors** – Ensure you are importing the generated `.txt` files, not the original sources or scripts.
+
 - **Empty output file** – The sources may be offline or blocked. Retry with a
   different proxy using `--proxy` or verify the URLs.
 - **Permission denied** – Run the command from a writable location or specify a
