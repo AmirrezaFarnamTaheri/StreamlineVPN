@@ -1,7 +1,7 @@
 # VPN Subscription Merger 🚀
 
-[](https://www.google.com/search?q=https://github.com/AmirrezaFarnamTaheri/CleanConfigs-SubMerger/actions)
-[](https://opensource.org/licenses/MIT)
+[GitHub Actions](https://github.com/AmirrezaFarnamTaheri/CleanConfigs-SubMerger/actions)
+[MIT License](https://opensource.org/licenses/MIT)
 
 Welcome to the VPN Subscription Merger! This project provides a powerful Python script that automatically fetches VPN configurations from over 470 public sources, tests their connectivity, and merges them into a single, performance-sorted subscription link for use in your favorite VPN client. It can even save incremental batches while running so you always have up-to-date results.
 
@@ -242,7 +242,7 @@ Here’s how to add your new subscription link to the best **free** applications
 #### **App 1: v2rayNG (Recommended for Beginners)**
 
   * **About**: The most widely used and stable V2Ray client for Android.
-  * **Download**: Get it from the [Google Play Store](https://www.google.com/search?q=https://play.google.com/store/apps/details%3Fid%3Dcom.v2ray.ang) or [GitHub Releases](https://github.com/2dust/v2rayNG/releases).
+  * **Download**: Get it from the [Google Play Store](https://play.google.com/store/apps/details?id=com.v2ray.ang) or [GitHub Releases](https://github.com/2dust/v2rayNG/releases).
 
 **Instructions:**
 
@@ -277,7 +277,7 @@ Here’s how to add your new subscription link to the best **free** applications
 #### **App: Hiddify-Next (Recommended Cross-Platform Client)**
 
   * **About**: A fantastic, modern, and open-source client that works on nearly every platform.
-  * **Download**: Find it on the [App Store](https://www.google.com/search?q=https://apps.apple.com/us/app/hiddify-next/id6444434822) for iOS/macOS or from [GitHub](https://github.com/hiddify/hiddify-next/releases).
+  * **Download**: Find it on the [App Store](https://apps.apple.com/us/app/hiddify-next/id6444434822) for iOS/macOS or from [GitHub](https://github.com/hiddify/hiddify-next/releases).
 
 **Instructions (same for macOS and iOS):**
 
