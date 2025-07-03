@@ -23,6 +23,20 @@ the `--sources` option, the default URLs are read from the project-wide
    proxy, `--test-timeout` to adjust connection checks, and `--output-dir` to
    choose where files are written.
 
+### Zero to Hero Quick Guide
+
+1. Pick the script matching your protocol (`http_injector_merger.py`,
+   `argo_merger.py` or `tunnel_bridge_merger.py`).
+2. Supply one or more source URLs with `--sources` or edit `sources.json`.
+3. Run the script. Add `--proxy` if your network blocks access to the sources.
+4. Import the generated files in your client:
+   - **HTTP Injector** – use **Import Config** on Android or the PC edition.
+   - **ArgoVPN/Hiddify Next** – load the `argo_domains.txt` file via the Argo
+     domain list option.
+   - **Tunnel bridges** – import `tunnel_endpoints.txt` into NekoRay or open it
+     with SocksDroid.
+
+
 ## Output Overview
 
 | Script | Output File | How to Import |
@@ -62,7 +76,7 @@ the `--sources` option, the default URLs are read from the project-wide
    another.workers.dev
    ```
 4. **Import into clients**
-   - **Windows** – Hiddify Next: click the **`+`** button, choose **`Add Argo domain list`** and load the file.
+   - **Hiddify Next (Windows/macOS/iOS)** – click the **`+`** button, choose **`Add Argo domain list`** and load the file.
    - **Android** – ArgoVPN: go to **`Falcon`**, tap **`Import from file`** and select `argo_domains.txt`.
 
 ## `tunnel_bridge_merger.py`
@@ -79,7 +93,7 @@ the `--sources` option, the default URLs are read from the project-wide
    socks5://5.6.7.8:1080
    ```
 4. **Import into clients**
-   - **Windows** – NekoRay: use **`Program`** → **`Add profile from file`** to import the endpoint list.
+   - **Windows/Linux/macOS** – NekoRay (or Qv2ray) via **`Program`** → **`Add profile from file`**.
    - **Android** – SocksDroid or similar tools can open the file and connect to a selected endpoint.
 
 ## Troubleshooting
