@@ -93,6 +93,10 @@ support additional technologies that are not included here. Use the
 
 > With `--max-ping` you can drop any server that responds slower than a certain number of milliseconds. Perfect for gaming or streaming when only low latency will do.
 
+**Reachability Filter**
+
+> After deduplication, any configuration that is unreachable or lacks ping data is discarded so the final lists only contain tested, working servers.
+
 **Concurrent Limit / Retries**
 
 > The `--concurrent-limit` and `--max-retries` options control how many requests run in parallel and how many times each download is retried. Lower the numbers on unstable networks to avoid crashes.

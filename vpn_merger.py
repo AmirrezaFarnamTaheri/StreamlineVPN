@@ -1229,6 +1229,11 @@ class UltimateVPNMerger:
             removed = before - len(unique_results)
             print(f"   ⏱️  Removed {removed} configs over {CONFIG.max_ping_ms} ms")
 
+        before_filter = len(unique_results)
+        unique_results = self._filter_reachable_results(unique_results)
+        if before_filter != len(unique_results):
+            print(f"   🚫 Filtered out {before_filter - len(unique_results)} unreachable/untested configs")
+
         if CONFIG.app_tests:
             await self._run_app_tests(unique_results)
 
@@ -1380,6 +1385,7 @@ class UltimateVPNMerger:
                     batch_results = self._sort_by_performance(batch_results)
                 if CONFIG.top_n > 0:
                     batch_results = batch_results[:CONFIG.top_n]
+                batch_results = self._filter_reachable_results(batch_results)
                 if CONFIG.app_tests:
                     await self._run_app_tests(batch_results)
 
@@ -1406,6 +1412,7 @@ class UltimateVPNMerger:
                     batch_results = self._sort_by_performance(batch_results)
                 if CONFIG.top_n > 0:
                     batch_results = batch_results[:CONFIG.top_n]
+                batch_results = self._filter_reachable_results(batch_results)
                 if CONFIG.app_tests:
                     await self._run_app_tests(batch_results)
 
@@ -1476,6 +1483,10 @@ class UltimateVPNMerger:
                 print(f"   ⚡ Fastest server: {fastest.ping_time*1000:.1f}ms ({fastest.protocol})")
 
         return sorted_results
+
+    def _filter_reachable_results(self, results: List[ConfigResult]) -> List[ConfigResult]:
+        """Remove configs that failed reachability tests or lack ping data."""
+        return [r for r in results if r.is_reachable and r.ping_time is not None]
 
     async def _run_app_tests(self, results: List[ConfigResult]) -> None:
         """Run service connectivity tests on the fastest configs."""
