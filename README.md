@@ -429,6 +429,15 @@ New files will appear in the chosen output directory:
 
 For merging HTTP Injector, ArgoVPN or generic tunnel configurations see the detailed guide in [`advanced_methods/README_advanced.md`](advanced_methods/README_advanced.md).
 
+## Running Tests
+
+The tests expect the same third‑party packages used by the main scripts. Install them before running `pytest`:
+
+```bash
+pip install -r requirements.txt -r tests/requirements.txt
+pytest -q
+```
+
 ## License
 
 This project is licensed under the [MIT License](LICENSE). See the LICENSE file for the full text.
