@@ -121,3 +121,25 @@ def test_parse_ehi_zip_invalid_json():
 def test_parse_ehi_none():
     with pytest.raises(AttributeError):
         parse_ehi(None)
+
+
+def test_parse_ehi_base64_payloads():
+    """Base64-encoded text should yield payload lines."""
+    text = "alpha\nbeta\n"
+    b64 = base64.b64encode(text.encode("utf-8"))
+    result = parse_ehi(b64)
+    assert result == ["alpha", "beta"]
+
+
+def test_parse_ehi_zip_json_payload(tmp_path):
+    """A small .ehi ZIP archive containing config.json with a payload."""
+    import json
+    import zipfile
+
+    path = tmp_path / "small.ehi"
+    with zipfile.ZipFile(path, "w") as zf:
+        zf.writestr("config.json", json.dumps({"payload": "tiny"}))
+
+    data = path.read_bytes()
+    result = parse_ehi(data)
+    assert result == ["tiny"]
