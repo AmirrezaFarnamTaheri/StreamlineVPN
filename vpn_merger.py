@@ -1140,6 +1140,7 @@ class UltimateVPNMerger:
         self.next_batch_threshold = CONFIG.batch_size if CONFIG.batch_size else float('inf')
         self.start_time = 0.0
         self.available_sources: List[str] = []
+        self.sources_with_configs: List[str] = []
         self.all_results: List[ConfigResult] = []
         self.stop_fetching = False
         self.saved_hashes: Set[str] = set()
@@ -1234,7 +1235,7 @@ class UltimateVPNMerger:
 
         # Step 5: Analyze protocols and performance
         print(f"\n📋 [5/6] Analyzing {len(unique_results):,} unique configs...")
-        stats = self._analyze_results(unique_results, self.available_sources)
+        stats = self._analyze_results(unique_results, self.sources_with_configs)
         
         # Step 6: Generate comprehensive outputs
         print("\n💾 [6/6] Generating comprehensive outputs...")
@@ -1298,6 +1299,7 @@ class UltimateVPNMerger:
         # Append results directly to self.all_results so that _maybe_save_batch
         # sees the running total and can save incremental batches.
         successful_sources = 0
+        self.sources_with_configs = []
         
         try:
             # Process sources with semaphore
@@ -1320,6 +1322,7 @@ class UltimateVPNMerger:
                     self.all_results.extend(results)
                     if results:
                         successful_sources += 1
+                        self.sources_with_configs.append(url)
                         reachable = sum(1 for r in results if r.is_reachable)
                         status = f"✓ {len(results):,} configs ({reachable} reachable)"
                     else:
@@ -1337,7 +1340,7 @@ class UltimateVPNMerger:
                 for t in tasks:
                     t.cancel()
 
-            print(f"\n   📈 Sources with configs: {successful_sources}/{len(available_sources)}")
+            print(f"\n   📈 Sources with configs: {len(self.sources_with_configs)}/{len(available_sources)}")
             
         finally:
             await self.fetcher.session.close()
@@ -1383,10 +1386,10 @@ class UltimateVPNMerger:
                 if CONFIG.app_tests:
                     await self._run_app_tests(batch_results)
 
-                stats = self._analyze_results(batch_results, self.available_sources)
+                stats = self._analyze_results(batch_results, self.sources_with_configs)
                 await self._generate_comprehensive_outputs(batch_results, stats, self.start_time, prefix=f"batch_{self.batch_counter}_")
 
-                cumulative_stats = self._analyze_results(self.cumulative_unique, self.available_sources)
+                cumulative_stats = self._analyze_results(self.cumulative_unique, self.sources_with_configs)
                 await self._generate_comprehensive_outputs(self.cumulative_unique, cumulative_stats, self.start_time, prefix="cumulative_")
 
                 if CONFIG.threshold > 0 and len(self.cumulative_unique) >= CONFIG.threshold:
@@ -1409,10 +1412,10 @@ class UltimateVPNMerger:
                 if CONFIG.app_tests:
                     await self._run_app_tests(batch_results)
 
-                stats = self._analyze_results(batch_results, self.available_sources)
+                stats = self._analyze_results(batch_results, self.sources_with_configs)
                 await self._generate_comprehensive_outputs(batch_results, stats, self.start_time, prefix=f"batch_{self.batch_counter}_")
 
-                cumulative_stats = self._analyze_results(self.cumulative_unique, self.available_sources)
+                cumulative_stats = self._analyze_results(self.cumulative_unique, self.sources_with_configs)
                 await self._generate_comprehensive_outputs(self.cumulative_unique, cumulative_stats, self.start_time, prefix="cumulative_")
 
                 self.next_batch_threshold += CONFIG.batch_size
@@ -1503,7 +1506,7 @@ class UltimateVPNMerger:
                         ok = False
                     res.app_test_results[name] = ok
     
-    def _analyze_results(self, results: List[ConfigResult], available_sources: List[str]) -> Dict:
+    def _analyze_results(self, results: List[ConfigResult], sources_with_configs: List[str]) -> Dict:
         """Analyze results and generate comprehensive statistics."""
         protocol_stats = {}
         performance_stats = {}
@@ -1536,7 +1539,7 @@ class UltimateVPNMerger:
         print(f"   📊 Total configs: {total:,}")
         reach_pct = (reachable / total * 100) if total else 0
         print(f"   🌐 Reachable configs: {reachable:,} ({reach_pct:.1f}%)")
-        print(f"   🔗 Available sources: {len(available_sources)}")
+        print(f"   🔗 Sources with configs: {len(sources_with_configs)}")
         print(f"   📋 Protocol breakdown:")
         
         for protocol, count in sorted(protocol_stats.items(), key=lambda x: x[1], reverse=True):
@@ -1552,7 +1555,7 @@ class UltimateVPNMerger:
             "performance_stats": perf_summary,
             "total_configs": total,
             "reachable_configs": reachable,
-            "available_sources": len(available_sources),
+            "sources_with_configs": len(sources_with_configs),
             "total_sources": len(self.sources)
         }
     
@@ -1711,7 +1714,7 @@ class UltimateVPNMerger:
         print(f"📊 Final unique configs: {config_count:,}")
         print(f"🌐 Reachable configs: {stats['reachable_configs']:,}")
         print(f"📈 Success rate: {stats['reachable_configs']/config_count*100:.1f}%")
-        print(f"🔗 Available sources: {stats['available_sources']}/{stats['total_sources']}")
+        print(f"🔗 Sources with configs: {stats['sources_with_configs']}/{stats['total_sources']}")
         print(f"⚡ Processing speed: {config_count/elapsed_time:.0f} configs/second")
         
         if CONFIG.enable_sorting and stats['reachable_configs'] > 0:
