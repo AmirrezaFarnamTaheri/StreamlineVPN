@@ -18,6 +18,19 @@ This guide is designed for **everyone**, from absolute beginners with no coding 
 6. For non-standard protocols like HTTP Injector or ArgoVPN see [`advanced_methods/README_advanced.md`](advanced_methods/README_advanced.md).
 7. Edit `sources.json` to point the advanced merger tools to your own lists of links.
 
+### 🎓 From Zero to Hero
+
+1. Run `python vpn_merger.py` to generate `vpn_subscription_base64.txt` from the
+   built-in public lists.
+2. Add `--full-test` and `--app-tests telegram,youtube` for deeper checks once
+   you are comfortable with the basics.
+3. Prioritise specific technologies with `--prefer-protocols "Reality,VLESS,VMess"`
+   or create a Clash file using `--output-clash`.
+4. Re-test old results with `python vpn_retester.py output/vpn_subscription_raw.txt`
+   to keep only working servers.
+5. Preferred clients include **Hiddify‑Next**, **v2rayNG**/**v2rayN**, **NekoRay**
+   and **Stash**. Keep them updated and only use trusted sources.
+
 ### Default Protocol List (Hiddify Optimized)
 
 By default the merger only imports configurations that begin with the following
@@ -30,6 +43,28 @@ protocols, which are tuned for the **Hiddify-Next** client:
 Other clients might not recognize some of these protocols, and some clients
 support additional technologies that are not included here. Use the
 `--include-protocols` or `--exclude-protocols` flags if you need a different set.
+
+### Understanding V2Ray-based Protocols
+
+The merger focuses heavily on modern V2Ray implementations. Below is a short
+overview of the most common variants and where they shine:
+
+**VMess** – the original V2Ray protocol. It is supported by nearly every client
+(v2rayN, v2rayNG, NekoRay, Clash and many others) but its handshake is static
+and easy for censors to fingerprint.
+
+**VLESS** – a cleaner successor to VMess with a flexible handshake and no user
+ID obfuscation. VLESS is recommended for new deployments and is widely
+supported by Xray-based clients such as Hiddify‑Next, v2rayN and sing-box.
+
+**Reality** – a powerful extension of VLESS that camouflages the handshake as a
+real TLS session. It excels at bypassing censorship but only works in newer
+clients like Hiddify‑Next, NekoRay and sing-box. Correct certificate
+impersonation is essential for reliable results.
+
+These protocols can be combined with additional transports such as gRPC,
+WebSocket or QUIC. When in doubt, start with VLESS or Reality nodes and fall
+back to VMess only if your client lacks support.
 
 ## ✨ Key Features & Use Cases
 
@@ -344,6 +379,38 @@ Run `python vpn_merger.py --help` to see all options. Important flags include:
   * `--mux-min-streams N` / `--mux-max-streams N` - stream limits per connection.
   * `--mux-padding` / `--mux-brutal` - padding and congestion options for noisy links.
 
+#### Examples for Key Options
+
+* **Using a Proxy**
+  ```bash
+  python vpn_merger.py --proxy socks5://127.0.0.1:9050
+  ```
+  Routes all downloads through a SOCKS5 proxy, handy when GitHub or Telegram are blocked.
+
+* **Full TLS Tests**
+  ```bash
+  python vpn_merger.py --full-test
+  ```
+  Performs a real handshake with each server for better accuracy.
+
+* **App-Level Tests**
+  ```bash
+  python vpn_merger.py --app-tests telegram,youtube
+  ```
+  Adds simple connectivity checks for these services. Results appear in the CSV output.
+
+* **Generate a Clash Config**
+  ```bash
+  python vpn_merger.py --output-clash
+  ```
+  Produces `clash.yaml` alongside the regular files.
+
+* **Custom Protocol Order**
+  ```bash
+  python vpn_merger.py --prefer-protocols "Reality,VLESS,VMess"
+  ```
+  Places Reality and VLESS nodes first in the list.
+
 Example:
 
 ```bash
@@ -430,6 +497,18 @@ New files will appear in the chosen output directory:
 - `vpn_retested_raw.txt`
 - *(optional)* `vpn_retested_base64.txt`
 - *(optional)* `vpn_retested_detailed.csv`
+
+### Alternative Tools & Best Practices
+
+- **Try multiple clients** – if one app fails to connect, import the same link
+  into another client like Clash, Stash or NekoRay. Engines differ between apps
+  so one may work better on your network.
+- **Rotate your sources** – public lists change frequently. Rerun the merger
+  every week or whenever speeds drop.
+- **Inspect unknown links** – avoid blindly using configs from strangers. Check
+  host names and only keep entries that look legitimate.
+- **Keep backups** – save a copy of your last working `vpn_subscription_raw.txt`
+  or `clash.yaml` so you can roll back if a merge yields fewer servers.
 
 For merging HTTP Injector, ArgoVPN or generic tunnel configurations see the detailed guide in [`advanced_methods/README_advanced.md`](advanced_methods/README_advanced.md).
 
