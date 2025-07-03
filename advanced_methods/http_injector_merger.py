@@ -57,26 +57,32 @@ def parse_ehi(data: bytes) -> List[str]:
     return configs
 
 
-async def test_http_injector(payload: str, proxy: Optional[str], timeout: float) -> bool:
-    """Simple connectivity test using aiohttp."""
+async def test_http_injector(
+    session: ClientSession,
+    payload: str,
+    proxy: Optional[str],
+    timeout: float,
+) -> bool:
+    """Simple connectivity test using an existing ``session``."""
     try:
-        url = 'http://example.com/'
+        url = "http://example.com/"
         headers = {"Host": payload}
-        async with aiohttp.ClientSession() as s:
-            async with s.get(url, headers=headers, proxy=proxy, timeout=timeout) as r:
-                return r.status == 200
+        async with session.get(url, headers=headers, proxy=proxy, timeout=timeout) as r:
+            return r.status == 200
     except Exception:
         return False
 
 
-async def process_source(url: str, proxy: Optional[str], timeout: float) -> List[Tuple[str, bool]]:
+async def process_source(
+    url: str, proxy: Optional[str], timeout: float
+) -> List[Tuple[str, bool]]:
     async with aiohttp.ClientSession() as session:
         text = await fetch_text(session, url, proxy)
         data = text.encode()
         configs = parse_ehi(data)
         results = []
         for cfg in configs:
-            ok = await test_http_injector(cfg, proxy, timeout)
+            ok = await test_http_injector(session, cfg, proxy, timeout)
             results.append((cfg, ok))
         return results
 
