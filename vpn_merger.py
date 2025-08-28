@@ -5,7 +5,7 @@
 VPN Subscription Merger
 ===================================================================
 
-The definitive VPN subscription merger combining 450+ sources with comprehensive
+The comprehensive VPN subscription merger combining 450+ sources with
 testing, smart sorting, and automatic dead link removal. Optimized for the
 Hiddify-Next client.
 
@@ -46,6 +46,36 @@ from pathlib import Path
 from typing import Dict, List, Optional, Set, Tuple, Union, TYPE_CHECKING
 from tqdm import tqdm
 from urllib.parse import urlparse
+
+
+def validate_proxy_url(url: Optional[str]) -> Optional[str]:
+    """Validate and sanitize proxy URL.
+
+    Accepts http/https/socks4/socks5 schemes with valid host and optional port.
+    Returns the original URL if valid, else raises ValueError.
+    """
+    if not url:
+        return None
+    try:
+        parsed = urlparse(url)
+        if parsed.scheme not in ("http", "https", "socks4", "socks5"):
+            raise ValueError(f"Invalid proxy scheme: {parsed.scheme}")
+        if not parsed.hostname:
+            raise ValueError("Invalid proxy host")
+        if parsed.port is not None and not (1 <= int(parsed.port) <= 65535):
+            raise ValueError("Invalid proxy port")
+    except Exception as e:
+        raise ValueError(f"Invalid proxy URL: {e}")
+    return url
+
+
+def validate_output_path(path: str) -> Path:
+    """Resolve and validate output path to avoid traversal issues."""
+    resolved = Path(path).expanduser().resolve()
+    # Basic defense-in-depth; Path.resolve() already normalizes '..'
+    if ".." in resolved.parts:
+        raise ValueError("Path traversal detected in output path")
+    return resolved
 
 # Global shutdown event used across components
 class GlobalState:
@@ -962,6 +992,35 @@ class EnhancedConfigProcessor:
 
     def __init__(self):
         self.dns_cache = {}
+        # Optional runtime-injected config (may be a Pydantic model). Falls back to CONFIG.
+        self.config: Optional[object] = None
+
+    def _get(self, key: str, default=None):
+        """Safely resolve a config value from injected config or global CONFIG.
+
+        Tries nested Pydantic model paths when present (e.g., testing.test_timeout).
+        """
+        # Nested paths map for pydantic-style config
+        nested = {
+            'enable_url_testing': ('testing', 'enable_url_testing'),
+            'enable_sorting': ('testing', 'enable_sorting'),
+            'test_timeout': ('testing', 'test_timeout'),
+            'max_ping_ms': ('testing', 'max_ping_ms'),
+            'proxy': ('network', 'proxy'),
+        }
+        cfg = self.config
+        if cfg is not None:
+            path = nested.get(key)
+            try:
+                if path and hasattr(cfg, path[0]):
+                    inner = getattr(cfg, path[0])
+                    if hasattr(inner, path[1]):
+                        return getattr(inner, path[1])
+                if hasattr(cfg, key):
+                    return getattr(cfg, key)
+            except Exception:
+                pass
+        return getattr(CONFIG, key, default)
 
     @staticmethod
     def safe_b64_decode(data: str, max_size: int = 1024 * 1024) -> Optional[str]:
@@ -1040,10 +1099,8 @@ class EnhancedConfigProcessor:
     
     async def test_connection(self, host: str, port: int, protocol: str) -> Tuple[Optional[float], Optional[bool]]:
         """Test connection and optionally perform a TLS handshake."""
-        try:
-            url_testing_enabled = bool(self.config.testing.enable_url_testing) if (self.config and getattr(self.config, 'testing', None)) else bool(CONFIG.enable_url_testing)
-        except Exception:
-            url_testing_enabled = bool(CONFIG.enable_url_testing)
+        # Use injected config if available, otherwise global CONFIG
+        url_testing_enabled = bool(self._get('enable_url_testing', True))
         if not url_testing_enabled:
             return None, None
             
@@ -1065,7 +1122,7 @@ class EnhancedConfigProcessor:
                     ssl=ssl_ctx,
                     server_hostname=host if ssl_ctx else None,
                 ),
-                timeout=(self.config.testing.test_timeout if (self.config and getattr(self.config, 'testing', None)) else CONFIG.test_timeout),
+                timeout=float(self._get('test_timeout', CONFIG.test_timeout)),
             )
             reader, writer = conn
             if ssl_ctx:
@@ -1118,6 +1175,13 @@ class AsyncSourceFetcher:
     def __init__(self, processor: EnhancedConfigProcessor):
         self.processor = processor
         self.session: Optional[aiohttp.ClientSession] = None
+
+    def _effective_proxy(self) -> Optional[str]:
+        """Return proxy URL from injected config or global CONFIG."""
+        try:
+            return self.processor._get('proxy', CONFIG.proxy)
+        except Exception:
+            return CONFIG.proxy
         
     async def test_source_availability(self, url: str) -> bool:
         """Test if a source URL is available (HTTP 200/206) with HEAD+GET fallback."""
@@ -1128,7 +1192,7 @@ class AsyncSourceFetcher:
                 url,
                 timeout=timeout,
                 allow_redirects=True,
-                proxy=(self.config.network.proxy if (self.config and getattr(self.config, 'network', None)) else CONFIG.proxy),
+                proxy=self._effective_proxy(),
             ) as response:
                 status = response.status
                 if status == 200:
@@ -1139,7 +1203,7 @@ class AsyncSourceFetcher:
                         headers={**CONFIG.headers, 'Range': 'bytes=0-0'},
                         timeout=timeout,
                         allow_redirects=True,
-                        proxy=(self.config.network.proxy if (self.config and getattr(self.config, 'network', None)) else CONFIG.proxy),
+                        proxy=self._effective_proxy(),
                     ) as get_resp:
                         return get_resp.status in (200, 206)
                 return False
@@ -1166,7 +1230,7 @@ class AsyncSourceFetcher:
                     url,
                     headers=CONFIG.headers,
                     timeout=timeout,
-                    proxy=(self.config.network.proxy if (self.config and getattr(self.config, 'network', None)) else CONFIG.proxy),
+                    proxy=self._effective_proxy(),
                 ) as response:
                     if response.status != 200:
                         continue
@@ -1175,10 +1239,7 @@ class AsyncSourceFetcher:
                     content_type = (response.headers.get('Content-Type') or '').lower()
                     content_length = int(response.headers.get('Content-Length') or 0)
                     config_results: List[ConfigResult] = []
-                    try:
-                        url_testing_enabled = bool(self.processor.config.testing.enable_url_testing) if (hasattr(self.processor, 'config') and self.processor.config and getattr(self.processor.config, 'testing', None)) else bool(CONFIG.enable_url_testing)
-                    except Exception:
-                        url_testing_enabled = bool(CONFIG.enable_url_testing)
+                    url_testing_enabled = bool(getattr(self.processor._cfg(), 'enable_url_testing', True))
 
                     async def handle_line(line: str) -> None:
                         nonlocal config_results
@@ -1528,8 +1589,8 @@ class UltimateVPNMerger:
                 async with semaphore:
                     return await self.fetcher.fetch_source(url)
             
-            # Create tasks
-            tasks = [process_single_source(url) for url in available_sources]
+            # Create tasks (explicit tasks to support cancellation)
+            tasks = [asyncio.create_task(process_single_source(url)) for url in available_sources]
             
             completed = 0
             with tqdm(total=len(available_sources), desc="Fetching configs", unit="src") as pbar:
@@ -1539,8 +1600,9 @@ class UltimateVPNMerger:
                     url, results = await coro
                     completed += 1
                     pbar.update(1)
-
-                    self.all_results.extend(results)
+                    # Ensure consistent view for batch saver
+                    async with self._batch_lock:
+                        self.all_results.extend(results)
                     # Persist, record metrics, and broadcast incrementally
                     if results:
                         if self.db is not None:
@@ -1565,7 +1627,7 @@ class UltimateVPNMerger:
                             for result in results:
                                 try:
                                     ping_ms = result.ping_time * 1000 if getattr(result, 'ping_time', None) else None
-                                    asyncio.create_task(self.dashboard_manager.broadcast_status({
+                                    await self.dashboard_manager.broadcast_status({
                                         'total_configs': len(self.all_results),
                                         'active_sources': successful_sources,
                                         'success_rate': 0,
@@ -1575,7 +1637,7 @@ class UltimateVPNMerger:
                                             'port': getattr(result, 'port', None),
                                             'ping_ms': ping_ms
                                         }
-                                    }))
+                                    })
                                 except Exception:
                                     pass
                     if results:
@@ -1596,7 +1658,14 @@ class UltimateVPNMerger:
 
             if self.stop_fetching:
                 for t in tasks:
-                    t.cancel()
+                    if not t.done():
+                        t.cancel()
+                # Drain cancellations to avoid warnings
+                for t in tasks:
+                    try:
+                        await t
+                    except Exception:
+                        pass
 
             print(f"\n   📈 Sources with configs: {len(self.sources_with_configs)}/{len(available_sources)}")
             
@@ -1814,7 +1883,7 @@ class UltimateVPNMerger:
         import aiohttp  # type: ignore
         timeout = aiohttp.ClientTimeout(total=10)
         try:
-            proxy_value = self.config.network.proxy if (self.config and getattr(self.config, 'network', None)) else CONFIG.proxy
+            proxy_value = self.processor._get('proxy', CONFIG.proxy)
         except Exception:
             proxy_value = CONFIG.proxy
         async with aiohttp.ClientSession(timeout=timeout, proxy=proxy_value) as session:
@@ -2277,14 +2346,22 @@ def main():
     if args.exclude_protocols:
         CONFIG.exclude_protocols = {p.strip().upper() for p in args.exclude_protocols.split(',') if p.strip()}
     CONFIG.resume_file = args.resume
-    # Resolve output directory (allow absolute or relative paths)
-    resolved_output = Path(args.output_dir).expanduser().resolve()
+    # Resolve output directory (allow absolute or relative paths) with validation
+    try:
+        resolved_output = validate_output_path(args.output_dir)
+    except Exception as e:
+        print(f"❌ Invalid output directory: {e}")
+        sys.exit(2)
     # Update legacy CONFIG output_dir (new config injection handled elsewhere)
     CONFIG.output_dir = str(resolved_output)
     CONFIG.test_timeout = max(0.1, args.test_timeout)
     CONFIG.concurrent_limit = max(1, args.concurrent_limit)
     CONFIG.max_retries = max(1, args.max_retries)
-    CONFIG.proxy = args.proxy
+    try:
+        CONFIG.proxy = validate_proxy_url(args.proxy)
+    except Exception as e:
+        print(f"❌ Invalid proxy: {e}")
+        sys.exit(2)
     CONFIG.max_ping_ms = args.max_ping if args.max_ping > 0 else None
     CONFIG.log_file = args.log_file
     CONFIG.cumulative_batches = args.cumulative_batches

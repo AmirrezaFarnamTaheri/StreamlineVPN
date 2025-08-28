@@ -22,6 +22,9 @@ async def fetch_text(session: ClientSession, url: str, proxy: Optional[str]) -> 
         return await resp.text()
 
 
+MAX_BASE64_SIZE = 10 * 1024 * 1024  # 10 MB safety cap
+
+
 def parse_ehi(data: bytes) -> List[str]:
     """Extract raw configs from a .ehi file or text."""
     configs: List[str] = []
@@ -43,6 +46,8 @@ def parse_ehi(data: bytes) -> List[str]:
     # Maybe base64
     b64chars = b"ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/="
     bdata = data.strip()
+    if len(bdata) > MAX_BASE64_SIZE:
+        raise ValueError("Base64 payload too large")
     if len(bdata) % 4 == 0 and all(chr(c) in b64chars.decode('ascii') for c in bdata):
         try:
             decoded_bytes = base64.b64decode(bdata)

@@ -8,3 +8,7 @@ fastapi
 uvicorn
 prometheus_client
 psutil
+# New: config validation, async file IO, compression
+pydantic
+aiofiles
+brotli

@@ -4,6 +4,9 @@
 [GitHub Actions](https://github.com/AmirrezaFarnamTaheri/CleanConfigs-SubMerger/actions)
 [MIT License](https://opensource.org/licenses/MIT)
 
+> Just the Links (copy one)
+> - Base64 (mixed): https://example.com/sub/mixed.base64 \\n> - Clash/Mihomo YAML:  https://example.com/sub/clash.yaml \\n> - sing-box JSON:  https://example.com/sub/singbox.json \\n\\nThis tool collects public subscription feeds, merges, de-duplicates, tests, and outputs configs for Hiddify-Next, sing-box, and Clash/Mihomo. 
+
 Welcome to the VPN Subscription Merger! This project provides a powerful Python script that automatically fetches VPN configurations from over 470 public sources, tests their connectivity, and merges them into a single, performance-sorted subscription link for use in your favorite VPN client. It can even save incremental batches while running so you always have up-to-date results.
 
 This guide is designed for **everyone**, from absolute beginners with no coding experience to advanced users who want full automation.
@@ -26,14 +29,14 @@ See `docs/` for detailed installation and usage guides.
    built-in public lists.
 2. Add `--full-test` and `--app-tests telegram,youtube` for deeper checks once
    you are comfortable with the basics.
-3. Prioritise specific technologies with `--prefer-protocols "Reality,VLESS,VMess"`
+3. Prioritize specific technologies with `--prefer-protocols "Reality,VLESS,VMess"`
    or create a Clash file using `--output-clash`.
 4. Re-test old results with `python vpn_retester.py output/vpn_subscription_raw.txt`
    to keep only working servers.
 5. Preferred clients include **Hiddify‑Next**, **v2rayNG**/**v2rayN**, **NekoRay**
    and **Stash**. Keep them updated and only use trusted sources.
 
-### Default Protocol List (Hiddify Optimized)
+### Default Protocol List (Hiddify-Next Optimized)
 
 By default the merger only imports configurations that begin with the following
 protocols, which are tuned for the **Hiddify-Next** client:
@@ -90,7 +93,7 @@ back to VMess only if your client lacks support.
 | **Standalone or Cumulative Batches** | Use `--cumulative-batches` to keep growing files, otherwise each batch only contains new configs. | Flexible automation for heavy runs. |
 | **Strict Split** | Batches are strictly capped at `--batch-size` by default. Add `--no-strict-batch` to simply trigger on size. | Control how incremental files are produced. |
 | **Shuffle Sources** | `--shuffle-sources` randomizes the source order. | Helpful when using `--threshold` to avoid bias. |
-| **Sing-box JSON Output** | Every batch also produces `vpn_singbox.json`. | Import directly into modern clients like sing-box/Stash. |
+| **sing-box JSON Output** | Every batch also produces `vpn_singbox.json`. | Import directly into modern clients like sing-box/Stash. |
 
 ### 🔍 Feature Breakdown
 
@@ -243,7 +246,7 @@ If you don't have it, download from [python.org](https://www.python.org/download
 In the same terminal, run:
 
 ```sh
-python vpn_merger.pya
+python vpn_merger.py
 ```
 
 After 5-15 minutes, the `output` folder will appear with your files. To use the output, you'll need to upload the content of `vpn_subscription_base64.txt` somewhere (like a private [GitHub Gist](https://gist.github.com/)) and use that file's "Raw" URL.
@@ -318,7 +321,7 @@ Here’s how to add your new subscription link to the best **free** applications
 #### **App: Hiddify-Next (Recommended Cross-Platform Client)**
 
   * **About**: A fantastic, modern, and open-source client that works on nearly every platform.
-  * **Download**: Find it on the [App Store](https://apps.apple.com/us/app/hiddify-next/id6444434822) for iOS/macOS or from [GitHub](https://github.com/hiddify/hiddify-next/releases).
+  * **Download**: Find it on the [App Store](https://apps.apple.com/us/app/Hiddify-Next/id6444434822) for iOS/macOS or from [GitHub](https://github.com/hiddify/Hiddify-Next/releases).
 
 **Instructions (same for macOS and iOS):**
 
@@ -451,7 +454,7 @@ python vpn_merger.py --enable-mux --tls-fragment-size 150 --tls-fragment-sleep 1
 ```
 
 The generated `vpn_singbox.json` will contain `tls_fragment` and `multiplex`
-objects for each outbound so you can import directly in Hiddify Next or Sing-box.
+objects for each outbound so you can import directly in Hiddify-Next or sing-box.
 
 #### **Adding Your Own Sources**
 
@@ -531,4 +534,35 @@ pytest -q
 ## License
 
 This project is licensed under the [MIT License](LICENSE). See the LICENSE file for the full text.
+
+
+
+
+
+
+
+## Security & Privacy
+Public subscription lists are unvetted. Endpoints may log traffic or be malicious. Use for lawful purposes. The tool quarantines unreliable sources automatically and removes dead or suspicious items. Prefer providers you trust.
+
+### Supported Types
+| Protocol | Examples in feeds | Emitted to |
+|---|---|---|
+| VLESS | less:// | Base64/Clash/sing-box |
+| VMess | mess:// (base64 JSON) | Base64/Clash/sing-box |
+| Trojan | 	rojan:// | Base64/Clash/sing-box |
+| Shadowsocks | ss:// / ssr:// | Base64/Clash/sing-box |
+
+### Outputs
+| File | Client | Format |
+|---|---|---|
+| out/mixed.base64 | Generic import | Base64 (mixed protocols) |
+| out/clash.yaml | Clash/Mihomo | YAML |
+| out/singbox.json | sing-box | JSON |
+| out/summary.csv | Any | Health & scoring summary |
+
+### Advanced Features (quick glossary)
+- TLS Fragment: Splits TLS records to evade naive DPI. Helps in some networks; can reduce throughput.
+- MUX/SMUX: Multiplex multiple streams over one TCP. Improves handshake overhead; can add latency under loss.
+- Route presets: GeoIP/GeoSite splits for common services (YouTube/Netflix/Telegram).
+- Health scoring: Combines success rate + recent RTT with exponential decay for stability between runs.
 

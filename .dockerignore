@@ -1,0 +1,26 @@
+# Exclude VCS and local artifacts
+.git
+.gitignore
+.qodo
+__pycache__
+*.pyc
+.pytest_cache
+output*
+output_test_*
+*.db
+*.sqlite
+*.log
+*.tmp
+venv
+.venv
+dist
+build
+node_modules
+tests
+docs/_build
+
+# Local configs and secrets
+config/*.yaml
+config/*.yml
+*.env
+

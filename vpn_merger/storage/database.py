@@ -67,6 +67,14 @@ class VPNDatabase:
                 enabled BOOLEAN DEFAULT TRUE
             )
         ''')
+        # Helpful indexes for common queries
+        try:
+            conn.execute('CREATE INDEX IF NOT EXISTS idx_configs_protocol ON configs(protocol);')
+            conn.execute('CREATE INDEX IF NOT EXISTS idx_configs_quality ON configs(quality_score DESC);')
+            conn.execute('CREATE INDEX IF NOT EXISTS idx_configs_host ON configs(host);')
+            conn.execute('CREATE INDEX IF NOT EXISTS idx_configs_source ON configs(source_url);')
+        except Exception:
+            pass
         conn.commit()
         conn.close()
 

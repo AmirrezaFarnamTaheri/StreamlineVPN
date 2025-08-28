@@ -106,7 +106,11 @@ async def process_source(path: str, timeout: float) -> List[str]:
 def save_output(endpoints: List[str], output_dir: Path) -> None:
     output_dir.mkdir(parents=True, exist_ok=True)
     path = output_dir / 'tunnel_endpoints.txt'
-    path.write_text('\n'.join(endpoints), encoding='utf-8')
+    # Avoid huge in-memory strings for very large files
+    with path.open('w', encoding='utf-8') as f:
+        for line in endpoints:
+            f.write(line)
+            f.write('\n')
 
 
 from typing import Optional

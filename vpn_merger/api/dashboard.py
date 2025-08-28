@@ -1,6 +1,7 @@
-from fastapi import FastAPI, WebSocket, WebSocketDisconnect
+from fastapi import FastAPI, WebSocket, WebSocketDisconnect, Query
 from fastapi.responses import HTMLResponse
 import json
+import os
 
 
 app = FastAPI()
@@ -34,7 +35,12 @@ dashboard_manager = DashboardManager()
 
 
 @app.websocket("/ws")
-async def websocket_endpoint(websocket: WebSocket):
+async def websocket_endpoint(websocket: WebSocket, token: str = Query(default=None)):
+    expected = os.environ.get("DASHBOARD_TOKEN")
+    if expected and token != expected:
+        # Close with policy violation (1008)
+        await websocket.close(code=1008)
+        return
     await dashboard_manager.connect(websocket)
     try:
         while True:
