@@ -62,7 +62,7 @@ def filter_configs(configs: List[str]) -> List[str]:
 
 def save_results(results: List[Tuple[str, Optional[float], Optional[bool]]], sort: bool, top_n: int) -> None:
     output_dir = Path(CONFIG.output_dir)
-    output_dir.mkdir(exist_ok=True)
+    output_dir.mkdir(parents=True, exist_ok=True)
 
     if sort:
         results.sort(key=lambda x: (x[1] is None, x[1] if x[1] is not None else float('inf')))

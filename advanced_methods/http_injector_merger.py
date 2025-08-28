@@ -45,8 +45,14 @@ def parse_ehi(data: bytes) -> List[str]:
     bdata = data.strip()
     if len(bdata) % 4 == 0 and all(chr(c) in b64chars.decode('ascii') for c in bdata):
         try:
-            decoded = base64.b64decode(bdata).decode('utf-8', 'ignore')
-            configs.extend([l.strip() for l in decoded.splitlines() if l.strip()])
+            decoded_bytes = base64.b64decode(bdata)
+            # If this looks like a ZIP archive, return as a single string blob
+            # to avoid misinterpreting binary as text lines.
+            if decoded_bytes.startswith(b"PK\x03\x04"):
+                return [decoded_bytes.decode('latin1', 'ignore')]
+            # Otherwise, treat as UTF-8 text payload with line-delimited configs
+            decoded_text = decoded_bytes.decode('utf-8', 'ignore')
+            configs.extend([l.strip() for l in decoded_text.splitlines() if l.strip()])
             if configs:
                 return configs
         except Exception:
@@ -88,7 +94,7 @@ async def process_source(
 
 
 def save_output(results: List[Tuple[str, bool]], output_dir: Path) -> None:
-    output_dir.mkdir(exist_ok=True)
+    output_dir.mkdir(parents=True, exist_ok=True)
     raw_path = output_dir / 'http_injector_raw.txt'
     with open(raw_path, 'w', encoding='utf-8') as f:
         for cfg, ok in results:

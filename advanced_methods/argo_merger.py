@@ -44,7 +44,7 @@ async def process_source(url: str, proxy: Optional[str], timeout: float) -> List
 
 
 def save_output(domains: List[str], output_dir: Path) -> None:
-    output_dir.mkdir(exist_ok=True)
+    output_dir.mkdir(parents=True, exist_ok=True)
     path = output_dir / 'argo_domains.txt'
     path.write_text('\n'.join(domains), encoding='utf-8')
 

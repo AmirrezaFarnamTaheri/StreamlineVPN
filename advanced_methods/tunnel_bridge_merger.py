@@ -104,7 +104,7 @@ async def process_source(path: str, timeout: float) -> List[str]:
 
 
 def save_output(endpoints: List[str], output_dir: Path) -> None:
-    output_dir.mkdir(exist_ok=True)
+    output_dir.mkdir(parents=True, exist_ok=True)
     path = output_dir / 'tunnel_endpoints.txt'
     path.write_text('\n'.join(endpoints), encoding='utf-8')
 

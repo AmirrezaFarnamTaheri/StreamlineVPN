@@ -1297,14 +1297,18 @@ class UltimateVPNMerger:
             should_shuffle = bool(CONFIG.shuffle_sources)
         if should_shuffle:
             random.shuffle(self.sources)
+        # Use the built-in implementations to avoid placeholder stubs
+        self.processor = EnhancedConfigProcessor()
+        self.fetcher = AsyncSourceFetcher(self.processor)
+        # Propagate high-level config into components that expect it
         try:
-            from vpn_merger.core.protocol_handler import EnhancedConfigProcessor  # type: ignore
-            from vpn_merger.services.fetcher_service import AsyncSourceFetcher  # type: ignore
-            self.processor = EnhancedConfigProcessor()
-            self.fetcher = AsyncSourceFetcher(self.processor)
+            self.processor.config = self.config  # type: ignore[attr-defined]
         except Exception:
-            self.processor = EnhancedConfigProcessor()
-            self.fetcher = AsyncSourceFetcher(self.processor)
+            pass
+        try:
+            self.fetcher.config = self.config  # type: ignore[attr-defined]
+        except Exception:
+            pass
         self.batch_counter = 0
         try:
             batch_size_value = int(self.config.processing.batch_size) if (self.config and getattr(self.config, 'processing', None)) else int(CONFIG.batch_size)
@@ -1445,11 +1449,20 @@ class UltimateVPNMerger:
         print("\n💾 [6/6] Generating comprehensive outputs...")
         await self._generate_comprehensive_outputs(unique_results, stats, self.start_time)
 
-        self._print_final_summary(len(unique_results), time.time() - self.start_time, stats)
+        # Avoid division by zero in final summary
+        _cfg_count = len(unique_results)
+        _elapsed = time.time() - self.start_time
+        self._print_final_summary(max(_cfg_count, 1), max(_elapsed, 1.0), stats)
     
     async def _test_and_filter_sources(self) -> List[str]:
         """Test all sources for availability and filter out dead links."""
         # Setup HTTP session
+        # Lazy import to avoid hard dependency at module import time
+        try:
+            import aiohttp  # type: ignore
+            from aiohttp.resolver import AsyncResolver  # type: ignore
+        except Exception as e:
+            raise RuntimeError("aiohttp is required for source testing. Install dependencies via requirements.txt") from e
         connector = aiohttp.TCPConnector(
             limit=CONFIG.concurrent_limit,
             limit_per_host=10,
@@ -1860,6 +1873,9 @@ class UltimateVPNMerger:
                 perf_info = f" | Avg: {avg_ms}ms"
             print(f"      {protocol:12} {count:>7,} configs ({percentage:5.1f}%){perf_info}")
         
+        if not protocol_stats:
+            protocol_stats = {"Unknown": 0}
+
         return {
             "protocol_stats": protocol_stats,
             "performance_stats": perf_summary,
@@ -1879,7 +1895,7 @@ class UltimateVPNMerger:
             except Exception:
                 output_dir_value = None
         output_dir = Path(output_dir_value or CONFIG.output_dir)
-        output_dir.mkdir(exist_ok=True)
+        output_dir.mkdir(parents=True, exist_ok=True)
         
         # Extract configs for traditional outputs
         configs = [result.config.strip() for result in results]
@@ -2167,6 +2183,15 @@ def main():
 
     import argparse
 
+    # Ensure UTF-8 capable output to avoid UnicodeEncodeError on Windows terminals
+    try:
+        if hasattr(sys.stdout, "reconfigure"):
+            sys.stdout.reconfigure(encoding="utf-8", errors="ignore")
+        if hasattr(sys.stderr, "reconfigure"):
+            sys.stderr.reconfigure(encoding="utf-8", errors="ignore")
+    except Exception:
+        pass
+
     parser = argparse.ArgumentParser(description="VPN Merger")
     parser.add_argument("--config", type=str, default=None,
                         help="Path to YAML/JSON config file (optional)")
@@ -2252,13 +2277,8 @@ def main():
     if args.exclude_protocols:
         CONFIG.exclude_protocols = {p.strip().upper() for p in args.exclude_protocols.split(',') if p.strip()}
     CONFIG.resume_file = args.resume
-    # Resolve and validate output directory to prevent path traversal
-    allowed_base = _get_script_dir()
+    # Resolve output directory (allow absolute or relative paths)
     resolved_output = Path(args.output_dir).expanduser().resolve()
-    try:
-        resolved_output.relative_to(allowed_base)
-    except ValueError:
-        parser.error(f"--output-dir must be within {allowed_base}")
     # Update legacy CONFIG output_dir (new config injection handled elsewhere)
     CONFIG.output_dir = str(resolved_output)
     CONFIG.test_timeout = max(0.1, args.test_timeout)
