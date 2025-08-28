@@ -15,6 +15,8 @@ class VPNMergerMetrics:
         self.memory_usage = Gauge('vpn_merger_memory_usage_bytes', 'Current memory usage', registry=self.registry)
         self.cpu_usage = Gauge('vpn_merger_cpu_usage_percent', 'Current CPU usage percent', registry=self.registry)
         self.active_configs = Gauge('vpn_active_configs_count', 'Number of active/working configs', registry=self.registry)
+        self.invalid_hosts_skipped = Counter('vpn_invalid_hosts_skipped_total', 'Configs skipped due to invalid hostnames', registry=self.registry)
+        self.invalid_hosts_rate_1m = Gauge('vpn_invalid_hosts_rate_1m', 'Invalid host skips per last minute', registry=self.registry)
         start_http_server(port, registry=self.registry)
         self._start_system_metrics_collection()
 
@@ -46,5 +48,14 @@ class VPNMergerMetrics:
 
     def set_active_configs(self, count: int):
         self.active_configs.set(count)
+
+    def record_invalid_host_skipped(self):
+        self.invalid_hosts_skipped.inc()
+
+    def set_invalid_hosts_rate(self, value: int):
+        try:
+            self.invalid_hosts_rate_1m.set(int(value))
+        except Exception:
+            pass
 
 

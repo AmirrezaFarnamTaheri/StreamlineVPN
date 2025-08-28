@@ -64,7 +64,9 @@ class VPNDatabase:
                 last_fetched TIMESTAMP,
                 configs_found INTEGER,
                 success_rate REAL,
-                enabled BOOLEAN DEFAULT TRUE
+                enabled BOOLEAN DEFAULT TRUE,
+                fail_streak INTEGER DEFAULT 0,
+                quarantined BOOLEAN DEFAULT 0
             )
         ''')
         # Helpful indexes for common queries
@@ -73,6 +75,23 @@ class VPNDatabase:
             conn.execute('CREATE INDEX IF NOT EXISTS idx_configs_quality ON configs(quality_score DESC);')
             conn.execute('CREATE INDEX IF NOT EXISTS idx_configs_host ON configs(host);')
             conn.execute('CREATE INDEX IF NOT EXISTS idx_configs_source ON configs(source_url);')
+            conn.execute('CREATE INDEX IF NOT EXISTS idx_sources_quarantined ON sources(quarantined);')
+        except Exception:
+            pass
+        # Migrate missing columns if table pre-existed
+        try:
+            cursor = conn.execute('PRAGMA table_info(sources);')
+            cols = {row[1] for row in cursor.fetchall()}
+            if 'fail_streak' not in cols:
+                try:
+                    conn.execute('ALTER TABLE sources ADD COLUMN fail_streak INTEGER DEFAULT 0;')
+                except Exception:
+                    pass
+            if 'quarantined' not in cols:
+                try:
+                    conn.execute('ALTER TABLE sources ADD COLUMN quarantined BOOLEAN DEFAULT 0;')
+                except Exception:
+                    pass
         except Exception:
             pass
         conn.commit()
@@ -121,6 +140,48 @@ class VPNDatabase:
                 }
                 for r in rows
             ]
+        finally:
+            conn.close()
+
+    # --- Quarantine helpers ---
+    def _ensure_source(self, conn: sqlite3.Connection, url: str) -> None:
+        conn.execute('INSERT OR IGNORE INTO sources (url, enabled, fail_streak, quarantined) VALUES (?, 1, 0, 0);', (url,))
+
+    def get_quarantined_sources(self) -> List[str]:
+        conn = self._connect()
+        try:
+            cur = conn.execute('SELECT url FROM sources WHERE quarantined = 1;')
+            return [r[0] for r in cur.fetchall()]
+        finally:
+            conn.close()
+
+    def increment_fail_streak(self, url: str) -> int:
+        conn = self._connect()
+        try:
+            self._ensure_source(conn, url)
+            conn.execute('UPDATE sources SET fail_streak = fail_streak + 1 WHERE url = ?;', (url,))
+            cur = conn.execute('SELECT fail_streak FROM sources WHERE url = ?;', (url,))
+            val = cur.fetchone()
+            conn.commit()
+            return int(val[0]) if val else 1
+        finally:
+            conn.close()
+
+    def reset_fail_streak(self, url: str) -> None:
+        conn = self._connect()
+        try:
+            self._ensure_source(conn, url)
+            conn.execute('UPDATE sources SET fail_streak = 0 WHERE url = ?;', (url,))
+            conn.commit()
+        finally:
+            conn.close()
+
+    def set_quarantined(self, url: str, value: bool) -> None:
+        conn = self._connect()
+        try:
+            self._ensure_source(conn, url)
+            conn.execute('UPDATE sources SET quarantined = ? WHERE url = ?;', (1 if value else 0, url))
+            conn.commit()
         finally:
             conn.close()
 

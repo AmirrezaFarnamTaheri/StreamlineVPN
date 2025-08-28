@@ -1,10 +1,31 @@
 sources:
-  iranian_priority:
-    - "https://raw.githubusercontent.com/barry-far/V2ray-config/main/Sub1.txt"
-    # - Add more Iranian-focused sources here
-  international_major:
-    - "https://raw.githubusercontent.com/yebekhe/TelegramV2rayCollector/main/sub/mix"
-    # - Add more international sources here
-  comprehensive_batch:
-    # - Put very large lists and bulk feeds here
-    - "https://raw.githubusercontent.com/sevcator/5ubscrpt10n/main/full/5ubscrpt10n.txt"
+  curated_major:
+    - "https://raw.githubusercontent.com/mahdibland/V2RayAggregator/master/Mixed-Base64.txt"
+    - "https://raw.githubusercontent.com/mahdibland/V2RayAggregator/master/Clash.yaml"
+    - "https://raw.githubusercontent.com/ermaozi/get_subscribe/main/subscribe/clash.yml"
+    - "https://raw.githubusercontent.com/roosterkid/openproxylist/main/V2RAY.txt"
+    - "https://raw.githubusercontent.com/AzadNetCH/Clash/main/AzadNet.txt"
+    - "https://raw.githubusercontent.com/barry-far/V2ray-Config/main/configs.txt"
+  protocol_specific:
+    vmess:
+      - "https://raw.githubusercontent.com/ebrasha/free-v2ray-public-list/refs/heads/main/vmess_configs.txt"
+    vless:
+      - "https://raw.githubusercontent.com/ebrasha/free-v2ray-public-list/refs/heads/main/vless_configs.txt"
+    trojan:
+      - "https://raw.githubusercontent.com/ebrasha/free-v2ray-public-list/refs/heads/main/trojan_configs.txt"
+    shadowsocks:
+      - "https://raw.githubusercontent.com/ebrasha/free-v2ray-public-list/refs/heads/main/ss_configs.txt"
+      - "https://raw.githubusercontent.com/ebrasha/free-v2ray-public-list/refs/heads/main/ssr_configs.txt"
+  collectors_mixed:
+    - "https://raw.githubusercontent.com/M-Mashreghi/Free-V2ray-Collector/main/sub/mix.txt"
+    - "https://raw.githubusercontent.com/MatinGhanbari/v2ray-configs/main/configs.txt"
+    - "https://raw.githubusercontent.com/Epodonios/v2ray-configs/main/sub_mixed.txt"
+    - "https://raw.githubusercontent.com/Kwinshadow/TelegramV2rayCollector/main/sub/base64/mix"
+    - "https://raw.githubusercontent.com/icho53/TelegramV2rayCollector/main/sub/base64/mix"
+  clash_yaml_feeds:
+    - "https://raw.githubusercontent.com/SnapdragonLee/SystemProxy/master/dist/clash_config.yaml"
+    - "https://raw.githubusercontent.com/SnapdragonLee/SystemProxy/master/dist/clash_config_extra.yaml"
+    - "https://raw.githubusercontent.com/SnapdragonLee/SystemProxy/master/dist/clash_config_extra_US.yaml"
+  notes: |
+    These are high-signal seeds. The auto-discovery step will mine additional raw
+    GitHub links and deduplicate.

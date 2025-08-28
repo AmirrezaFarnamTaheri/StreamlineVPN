@@ -34,8 +34,11 @@ class NetworkConfig(BaseModel):
     @validator('proxy')
     def validate_proxy(cls, v):
         if v is not None:
-            if not (v.startswith('http://') or v.startswith('socks5://') or v.startswith('socks4://')):
-                raise ValueError('Proxy must start with http://, socks4://, or socks5://')
+            forbidden = [';', '&', '|', '`', '$', '(', ')', '<', '>', '\n', '\r']
+            if any(ch in v for ch in forbidden):
+                raise ValueError('Proxy contains forbidden characters')
+            if not (v.startswith('http://') or v.startswith('https://') or v.startswith('socks5://') or v.startswith('socks4://')):
+                raise ValueError('Proxy must start with http://, https://, socks4://, or socks5://')
         return v
 
 

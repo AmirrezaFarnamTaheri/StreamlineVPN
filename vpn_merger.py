@@ -40,6 +40,7 @@ import sys
 import time
 import socket
 import signal
+import ipaddress
 from dataclasses import dataclass, asdict, field
 from datetime import datetime, timezone
 from pathlib import Path
@@ -48,34 +49,95 @@ from tqdm import tqdm
 from urllib.parse import urlparse
 
 
-def validate_proxy_url(url: Optional[str]) -> Optional[str]:
-    """Validate and sanitize proxy URL.
+class ProxyValidator:
+    """Hardened proxy URL validation to prevent injection and invalid targets."""
 
-    Accepts http/https/socks4/socks5 schemes with valid host and optional port.
-    Returns the original URL if valid, else raises ValueError.
-    """
-    if not url:
-        return None
-    try:
-        parsed = urlparse(url)
-        if parsed.scheme not in ("http", "https", "socks4", "socks5"):
+    ALLOWED_SCHEMES = {"http", "https", "socks4", "socks5"}
+    FORBIDDEN_CHARS = [';', '&', '|', '`', '$', '(', ')', '<', '>', '\n', '\r']
+
+    @classmethod
+    def validate(cls, proxy_url: Optional[str]) -> Optional[str]:
+        if not proxy_url:
+            return None
+        for ch in cls.FORBIDDEN_CHARS:
+            if ch in proxy_url:
+                raise ValueError(f"Invalid character in proxy URL: {ch}")
+        try:
+            parsed = urlparse(proxy_url)
+        except Exception as e:
+            raise ValueError(f"Invalid proxy URL format: {e}")
+        if parsed.scheme not in cls.ALLOWED_SCHEMES:
             raise ValueError(f"Invalid proxy scheme: {parsed.scheme}")
         if not parsed.hostname:
-            raise ValueError("Invalid proxy host")
+            raise ValueError("Proxy URL missing hostname")
+        # Validate hostname or IP
+        try:
+            ipaddress.ip_address(parsed.hostname)
+        except ValueError:
+            # Domain validation: alnum, dot, dash; conservative check
+            host = parsed.hostname
+            if len(host) > 253 or not all(c.isalnum() or c in '.-' for c in host):
+                raise ValueError("Invalid characters in proxy hostname")
         if parsed.port is not None and not (1 <= int(parsed.port) <= 65535):
-            raise ValueError("Invalid proxy port")
-    except Exception as e:
-        raise ValueError(f"Invalid proxy URL: {e}")
-    return url
+            raise ValueError(f"Invalid proxy port: {parsed.port}")
+        return proxy_url
 
 
-def validate_output_path(path: str) -> Path:
-    """Resolve and validate output path to avoid traversal issues."""
-    resolved = Path(path).expanduser().resolve()
-    # Basic defense-in-depth; Path.resolve() already normalizes '..'
-    if ".." in resolved.parts:
-        raise ValueError("Path traversal detected in output path")
-    return resolved
+def secure_path_join(base: Path, *parts: str) -> Path:
+    """Join and resolve path segments ensuring the final path stays under base."""
+    base = base.resolve()
+    target = base.joinpath(*parts).resolve()
+    try:
+        target.relative_to(base)
+    except ValueError:
+        raise ValueError(f"Path traversal attempt detected: {target}")
+    return target
+
+
+def validate_output_directory(path_str: str) -> Path:
+    """Validate and create output directory safely."""
+    path = Path(path_str).expanduser().resolve()
+    suspicious = ['..', '~', '/etc', '/usr', '/bin', '/sys', '/proc']
+    low = str(path).lower()
+    for pat in suspicious:
+        if pat in low:
+            # don't block normal Windows drive letters like C:\
+            if pat not in ('..', '~'):
+                raise ValueError(f"Suspicious path pattern detected: {pat}")
+    path.mkdir(parents=True, exist_ok=True)
+    return path
+
+
+class ResourceLimits:
+    MAX_BASE64_SIZE = 10 * 1024 * 1024      # 10MB
+    MAX_FILE_SIZE = 100 * 1024 * 1024       # 100MB
+    MAX_CONFIGS_IN_MEMORY = 1_000_000       # 1M configs
+    MAX_LINE_LENGTH = 10_000                # 10KB per line
+    MAX_RESPONSE_SIZE = 50 * 1024 * 1024    # 50MB
+
+    @classmethod
+    def check_file_size(cls, path: Path) -> None:
+        try:
+            size = path.stat().st_size
+            if size > cls.MAX_FILE_SIZE:
+                raise ValueError(f"File too large: {size} bytes")
+        except Exception:
+            pass
+
+    @classmethod
+    def check_base64(cls, data: str) -> None:
+        if len(data or "") > cls.MAX_BASE64_SIZE:
+            raise ValueError(f"Base64 payload too large: {len(data)} bytes")
+
+    @classmethod
+    def check_memory_usage(cls) -> None:
+        try:
+            import psutil  # type: ignore
+            rss = psutil.Process().memory_info().rss
+            if rss > 2 * 1024 * 1024 * 1024:
+                raise MemoryError("Memory usage exceeded 2GB")
+        except Exception:
+            pass
 
 # Global shutdown event used across components
 class GlobalState:
@@ -168,6 +230,12 @@ class Config:
     mux_max_streams: int
     mux_padding: bool
     mux_brutal: bool
+    enable_metrics: bool = True
+
+    # Discovery and quarantine (optional)
+    enable_discovery: bool = False
+    quarantine_failures: bool = False
+    quarantine_threshold: int = 3
 
     def validate(self) -> None:
         if self.concurrent_limit < 1:
@@ -246,7 +314,10 @@ CONFIG = Config(
     mux_min_streams=4,
     mux_max_streams=16,
     mux_padding=False,
-    mux_brutal=False
+    mux_brutal=False,
+    enable_discovery=False,
+    quarantine_failures=False,
+    quarantine_threshold=3
 )
 
 # Mapping of app test keywords to URLs
@@ -965,6 +1036,21 @@ class UnifiedSources:
         the embedded lists as fallback.
         """
         cls._try_load_external()
+        # Try loading extended file as well, if present
+        try:
+            ext_path = Path("config") / "sources.extended.yaml"
+            if ext_path.exists():
+                import yaml  # type: ignore
+                data = yaml.safe_load(ext_path.read_text(encoding='utf-8')) or {}
+                extra = []
+                if isinstance(data, dict):
+                    extra = list(data.get('additional', []))
+                elif isinstance(data, list):
+                    extra = data
+                if extra:
+                    cls.COMPREHENSIVE_BATCH = cls._filter_valid_urls(list(extra)) + cls.COMPREHENSIVE_BATCH
+        except Exception:
+            pass
         all_sources = cls.IRANIAN_PRIORITY + cls.INTERNATIONAL_MAJOR + cls.COMPREHENSIVE_BATCH
         return list(dict.fromkeys(all_sources))  # Remove duplicates while preserving order
 
@@ -994,6 +1080,7 @@ class EnhancedConfigProcessor:
         self.dns_cache = {}
         # Optional runtime-injected config (may be a Pydantic model). Falls back to CONFIG.
         self.config: Optional[object] = None
+        self.event_bus = None
 
     def _get(self, key: str, default=None):
         """Safely resolve a config value from injected config or global CONFIG.
@@ -1023,6 +1110,46 @@ class EnhancedConfigProcessor:
         return getattr(CONFIG, key, default)
 
     @staticmethod
+    def _sanitize_host(host: Optional[str]) -> Optional[str]:
+        if not host or not isinstance(host, str):
+            return None
+        h = host.strip().strip('[]')
+        # collapse whitespace
+        h = re.sub(r"\s+", "", h)
+        return h or None
+
+    @staticmethod
+    def _valid_port(port: Optional[int]) -> Optional[int]:
+        try:
+            p = int(port) if port is not None else None
+            if p is None or p < 1 or p > 65535:
+                return None
+            return p
+        except Exception:
+            return None
+
+    @staticmethod
+    def _is_valid_hostname(host: str) -> bool:
+        try:
+            import ipaddress as _ip
+            try:
+                _ip.ip_address(host)
+                return True
+            except ValueError:
+                pass
+            if len(host) > 253:
+                return False
+            labels = host.split('.')
+            for lbl in labels:
+                if not lbl or len(lbl) > 63:
+                    return False
+                if not re.match(r"^[A-Za-z0-9](?:[A-Za-z0-9-]{0,61}[A-Za-z0-9])?$", lbl):
+                    return False
+            return True
+        except Exception:
+            return False
+
+    @staticmethod
     def safe_b64_decode(data: str, max_size: int = 1024 * 1024) -> Optional[str]:
         """Safely decode base64 text with validation and size limits."""
         if not isinstance(data, str) or not data.strip():
@@ -1030,11 +1157,13 @@ class EnhancedConfigProcessor:
         clean = re.sub(r"\s+", "", data)
         if not re.match(r'^[A-Za-z0-9+/]*={0,2}$', clean):
             return None
-        if len(clean) > (max_size * 4) // 3:
+        # Enforce a hard upper bound to avoid memory exhaustion
+        hard_cap = min(max_size, ResourceLimits.MAX_BASE64_SIZE)
+        if len(clean) > (hard_cap * 4) // 3:
             return None
         try:
             decoded_bytes = base64.b64decode(clean, validate=True)
-            if len(decoded_bytes) > max_size:
+            if len(decoded_bytes) > hard_cap:
                 return None
             return decoded_bytes.decode("utf-8", errors="strict")
         except Exception:
@@ -1059,12 +1188,16 @@ class EnhancedConfigProcessor:
             # Parse URI-style configs
             parsed = urlparse(config)
             if parsed.hostname and parsed.port:
-                return parsed.hostname, parsed.port
+                h = self._sanitize_host(parsed.hostname)
+                p = self._valid_port(parsed.port)
+                return (h if (h and self._is_valid_hostname(h)) else None), p
                 
             # Extract from @ notation
             match = re.search(r"@([^:/?#]+):(\d+)", config)
             if match:
-                return match.group(1), int(match.group(2))
+                h = self._sanitize_host(match.group(1))
+                p = self._valid_port(int(match.group(2)))
+                return (h if (h and self._is_valid_hostname(h)) else None), p
                 
         except Exception:
             pass
@@ -1107,6 +1240,29 @@ class EnhancedConfigProcessor:
         start = time.time()
         ssl_ctx = None
         handshake = None
+        # Sanitize / validate host and port before attempting connection
+        host = self._sanitize_host(host)
+        port = self._valid_port(port)
+        if not host or not port or not self._is_valid_hostname(host):
+            # Count invalid host skips if requested
+            try:
+                if bool(self._get('skip_tests_on_invalid_host', False)):
+                    # local counter
+                    if not hasattr(self, 'invalid_host_skips'):
+                        self.invalid_host_skips = 0  # type: ignore[attr-defined]
+                    self.invalid_host_skips += 1  # type: ignore[attr-defined]
+                    # event for dashboard/metrics
+                    if self.event_bus is not None:
+                        from vpn_merger.core.events import Event, EventType  # type: ignore
+                        await self.event_bus.publish(Event(
+                            type=EventType.INVALID_HOST_SKIPPED,
+                            data={"host": host, "port": port, "protocol": protocol},
+                            timestamp=time.time(),
+                            source=str(host or ''),
+                        ))
+            except Exception:
+                pass
+            return None, None
         if CONFIG.full_test and protocol in {
             "VMess", "VLESS", "Trojan", "Hysteria2", "Hysteria",
             "TUIC", "Reality", "Naive", "Juicity", "ShadowTLS",
@@ -1129,9 +1285,33 @@ class EnhancedConfigProcessor:
                 handshake = True
             writer.close()
             await writer.wait_closed()
-            return time.time() - start, handshake
+            elapsed = time.time() - start
+            # emit event for completed test
+            try:
+                if self.event_bus is not None:
+                    from vpn_merger.core.events import Event, EventType  # type: ignore
+                    await self.event_bus.publish(Event(
+                        type=EventType.TEST_COMPLETED,
+                        data={"host": host, "port": port, "protocol": protocol, "latency": elapsed, "success": True},
+                        timestamp=time.time(),
+                        source=host,
+                    ))
+            except Exception:
+                pass
+            return elapsed, handshake
         except (asyncio.TimeoutError, OSError) as e:
             logging.getLogger(__name__).debug(f"Connection test failed for {host}:{port} - {e}")
+            try:
+                if self.event_bus is not None:
+                    from vpn_merger.core.events import Event, EventType  # type: ignore
+                    await self.event_bus.publish(Event(
+                        type=EventType.TEST_COMPLETED,
+                        data={"host": host, "port": port, "protocol": protocol, "latency": None, "success": False},
+                        timestamp=time.time(),
+                        source=host,
+                    ))
+            except Exception:
+                pass
             return None, handshake
         except Exception as e:
             logging.getLogger(__name__).error(f"Unexpected error during test_connection: {e}")
@@ -1175,6 +1355,7 @@ class AsyncSourceFetcher:
     def __init__(self, processor: EnhancedConfigProcessor):
         self.processor = processor
         self.session: Optional[aiohttp.ClientSession] = None
+        self.event_bus = None
 
     def _effective_proxy(self) -> Optional[str]:
         """Return proxy URL from injected config or global CONFIG."""
@@ -1239,7 +1420,8 @@ class AsyncSourceFetcher:
                     content_type = (response.headers.get('Content-Type') or '').lower()
                     content_length = int(response.headers.get('Content-Length') or 0)
                     config_results: List[ConfigResult] = []
-                    url_testing_enabled = bool(getattr(self.processor._cfg(), 'enable_url_testing', True))
+                    # Use processor's safe config accessor instead of a non-existent _cfg()
+                    url_testing_enabled = bool(self.processor._get('enable_url_testing', True))
 
                     async def handle_line(line: str) -> None:
                         nonlocal config_results
@@ -1255,8 +1437,21 @@ class AsyncSourceFetcher:
                                 res.handshake_ok = hs
                                 res.is_reachable = ping_time is not None and (hs is not False)
                             config_results.append(res)
+                            # Emit CONFIG_PARSED event
+                            try:
+                                if self.event_bus is not None:
+                                    from vpn_merger.core.events import Event, EventType  # type: ignore
+                                    await self.event_bus.publish(Event(
+                                        type=EventType.CONFIG_PARSED,
+                                        data={"protocol": protocol, "host": host, "port": port},
+                                        timestamp=time.time(),
+                                        source=url,
+                                    ))
+                            except Exception:
+                                pass
 
-                    if ("text" in content_type and content_length > 1024 * 1024):
+                    # Stream large/unknown-sized text to avoid memory spikes
+                    if ("text" in content_type and (content_length == 0 or content_length > 1024 * 1024 or content_length > ResourceLimits.MAX_RESPONSE_SIZE)):
                         async for chunk in response.content:
                             try:
                                 text = chunk.decode('utf-8', 'ignore')
@@ -1273,9 +1468,41 @@ class AsyncSourceFetcher:
                                     break
                             if len(config_results) >= CONFIG.max_configs_per_source:
                                 break
+                        # Prepare event payload
+                        try:
+                            if self.event_bus is not None:
+                                from vpn_merger.core.events import Event, EventType  # type: ignore
+                                samples = []
+                                for r in config_results[-3:]:
+                                    samples.append({
+                                        'protocol': getattr(r, 'protocol', ''),
+                                        'host': getattr(r, 'host', ''),
+                                        'port': getattr(r, 'port', None),
+                                        'ping_ms': (getattr(r, 'ping_time', None) or 0) * 1000 if getattr(r, 'ping_time', None) else None,
+                                    })
+                                reachable = sum(1 for r in config_results if getattr(r, 'is_reachable', False))
+                                protocol_counts: Dict[str, int] = {}
+                                for r in config_results:
+                                    p = getattr(r, 'protocol', 'Unknown')
+                                    protocol_counts[p] = protocol_counts.get(p, 0) + 1
+                                await self.event_bus.publish(Event(
+                                    type=EventType.SOURCE_FETCHED,
+                                    data={"url": url, "count": len(config_results), "reachable": reachable, "samples": samples, "protocol_counts": protocol_counts},
+                                    timestamp=time.time(),
+                                    source=url,
+                                ))
+                        except Exception:
+                            pass
                         return url, config_results
                     else:
-                        content = await response.text()
+                        # Read with a hard cap to avoid memory exhaustion on malformed servers
+                        raw = await response.content.read(ResourceLimits.MAX_RESPONSE_SIZE + 1)
+                        if len(raw) > ResourceLimits.MAX_RESPONSE_SIZE:
+                            return url, []
+                        try:
+                            content = raw.decode(response.charset or 'utf-8', 'ignore')
+                        except Exception:
+                            content = raw.decode('utf-8', 'ignore')
                         if not content.strip():
                             return url, []
                         # Enhanced Base64 detection and decoding
@@ -1289,10 +1516,45 @@ class AsyncSourceFetcher:
                         lines = [line.strip() for line in content.splitlines() if line.strip()]
                         for line in lines:
                             await handle_line(line)
+                        try:
+                            if self.event_bus is not None:
+                                from vpn_merger.core.events import Event, EventType  # type: ignore
+                                samples = []
+                                for r in config_results[-3:]:
+                                    samples.append({
+                                        'protocol': getattr(r, 'protocol', ''),
+                                        'host': getattr(r, 'host', ''),
+                                        'port': getattr(r, 'port', None),
+                                        'ping_ms': (getattr(r, 'ping_time', None) or 0) * 1000 if getattr(r, 'ping_time', None) else None,
+                                    })
+                                reachable = sum(1 for r in config_results if getattr(r, 'is_reachable', False))
+                                protocol_counts: Dict[str, int] = {}
+                                for r in config_results:
+                                    p = getattr(r, 'protocol', 'Unknown')
+                                    protocol_counts[p] = protocol_counts.get(p, 0) + 1
+                                await self.event_bus.publish(Event(
+                                    type=EventType.SOURCE_FETCHED,
+                                    data={"url": url, "count": len(config_results), "reachable": reachable, "samples": samples, "protocol_counts": protocol_counts},
+                                    timestamp=time.time(),
+                                    source=url,
+                                ))
+                        except Exception:
+                            pass
                         return url, config_results
                     
             except (asyncio.TimeoutError, Exception) as e:
                 logging.getLogger(__name__).debug(f"Fetch error for {url} (attempt {attempt+1}): {e}")
+                try:
+                    if self.event_bus is not None:
+                        from vpn_merger.core.events import Event, EventType  # type: ignore
+                        await self.event_bus.publish(Event(
+                            type=EventType.ERROR_OCCURRED,
+                            data={"url": url, "error": str(e)},
+                            timestamp=time.time(),
+                            source=url,
+                        ))
+                except Exception:
+                    pass
                 if attempt < CONFIG.max_retries - 1:
                     # Use a capped and jittered delay to reduce tail latency
                     await asyncio.sleep(min(3, 1.5 + random.random()))
@@ -1308,6 +1570,21 @@ class UltimateVPNMerger:
     
     def __init__(self, config=None):
         self.config = config
+        # Small helper to safely read nested attributes from an injected
+        # pydantic config (or any object), with a fallback default.
+        def _get_cfg(*path, default=None):
+            obj = self.config
+            try:
+                for key in path:
+                    if obj is None or not hasattr(obj, str(key)):
+                        return default
+                    obj = getattr(obj, str(key))
+                return obj if obj is not None else default
+            except Exception:
+                return default
+
+        # Bind as instance method
+        self._get_cfg = _get_cfg  # type: ignore[attr-defined]
         # Lazy imports for new modular components to avoid breaking runtime
         try:
             from vpn_merger.storage.database import VPNDatabase  # type: ignore
@@ -1321,46 +1598,103 @@ class UltimateVPNMerger:
             self.dashboard_manager = DashboardManager()
         except Exception:
             self.dashboard_manager = None
+        self._dashboard_via_events = False
 
         # Optional Prometheus metrics
         try:
             from vpn_merger.monitoring.metrics import VPNMergerMetrics  # type: ignore
-            enable_metrics = True
-            if self.config and getattr(self.config, 'monitoring', None):
-                enable_metrics = bool(self.config.monitoring.enable_metrics)
-            self.metrics = VPNMergerMetrics(port=(self.config.monitoring.metrics_port if (self.config and getattr(self.config, 'monitoring', None)) else 8001)) if enable_metrics else None
+            enable_metrics = bool(self._get_cfg('monitoring', 'enable_metrics', default=CONFIG.enable_metrics))
+            port = int(self._get_cfg('monitoring', 'metrics_port', default=8001))
+            self.metrics = VPNMergerMetrics(port=port) if enable_metrics else None
         except Exception:
             self.metrics = None
 
-    def _maybe_start_dashboard(self) -> None:
+        # Event bus for lifecycle events
         try:
-            enable_dash = bool(self.config.monitoring.enable_dashboard) if (self.config and getattr(self.config, 'monitoring', None)) else False
-            port = int(self.config.monitoring.dashboard_port) if (self.config and getattr(self.config, 'monitoring', None)) else 8000
+            from vpn_merger.core.events import EventBus  # type: ignore
+            self.event_bus = EventBus()
         except Exception:
-            enable_dash = False
-            port = 8000
+            self.event_bus = None
+
+    def _maybe_start_dashboard(self) -> None:
+        enable_dash_cli = bool(getattr(CONFIG, 'enable_dashboard_cli', False))
+        port_cli = int(getattr(CONFIG, 'dashboard_port_cli', 8000))
+        host_cli = str(getattr(CONFIG, 'dashboard_host_cli', '0.0.0.0'))
+        app_cli = str(getattr(CONFIG, 'dashboard_app_cli', 'api'))
+        cert_cli = getattr(CONFIG, 'dashboard_cert_cli', None)
+        key_cli = getattr(CONFIG, 'dashboard_key_cli', None)
+
+        enable_dash_cfg = bool(self._get_cfg('monitoring', 'enable_dashboard', default=False))
+        port_cfg = int(self._get_cfg('monitoring', 'dashboard_port', default=port_cli))
+        enable_dash = enable_dash_cfg or enable_dash_cli
+        port = port_cfg
         if enable_dash:
             try:
                 import uvicorn  # type: ignore
-                from vpn_merger.api.dashboard import app as dashboard_app  # type: ignore
                 import threading
+                if app_cli == 'realtime':
+                    from vpn_merger.dashboard.realtime_dashboard import app as dashboard_app  # type: ignore
+                else:
+                    from vpn_merger.api.dashboard import app as dashboard_app  # type: ignore
                 def run_server():
-                    uvicorn.run(dashboard_app, host="0.0.0.0", port=port, log_level="error")
+                    # Auto-increment port if in use, try up to +10
+                    chosen_port = port
+                    for candidate in range(port, port + 11):
+                        s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+                        s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+                        try:
+                            s.bind((host_cli, candidate))
+                            chosen_port = candidate
+                            s.close()
+                            break
+                        except OSError:
+                            try:
+                                s.close()
+                            except Exception:
+                                pass
+                            continue
+                    if chosen_port != port:
+                        print(f"ℹ️  Dashboard port {port} busy; using {chosen_port} instead")
+                    kwargs = {"host": host_cli, "port": chosen_port, "log_level": "error"}
+                    if cert_cli and key_cli:
+                        kwargs["ssl_certfile"] = cert_cli
+                        kwargs["ssl_keyfile"] = key_cli
+                    try:
+                        uvicorn.run(dashboard_app, **kwargs)
+                    except BaseException as e:
+                        print(f"⚠️  Dashboard failed to start: {e}")
                 t = threading.Thread(target=run_server, daemon=True)
                 t.start()
+                # Optionally print HMAC token for API dashboard
+                try:
+                    client_id = getattr(CONFIG, 'dashboard_client_id_cli', None)
+                    if client_id and app_cli == 'api':
+                        from vpn_merger.api.dashboard import WebSocketAuth  # type: ignore
+                        import os as _os
+                        key = _os.environ.get('DASHBOARD_HMAC_KEY')
+                        if key:
+                            token = WebSocketAuth(key).generate_token(str(client_id))
+                            print(f"🔑 Dashboard token for client '{client_id}': {token}")
+                except Exception:
+                    pass
             except Exception:
                 pass
 
         self.sources = UnifiedSources.get_all_sources()
-        try:
-            should_shuffle = bool(self.config.processing.shuffle_sources) if (self.config and getattr(self.config, 'processing', None)) else bool(CONFIG.shuffle_sources)
-        except Exception:
-            should_shuffle = bool(CONFIG.shuffle_sources)
+        should_shuffle = bool(self._get_cfg('processing', 'shuffle_sources', default=CONFIG.shuffle_sources))
         if should_shuffle:
             random.shuffle(self.sources)
         # Use the built-in implementations to avoid placeholder stubs
         self.processor = EnhancedConfigProcessor()
         self.fetcher = AsyncSourceFetcher(self.processor)
+        try:
+            self.fetcher.event_bus = self.event_bus  # type: ignore[attr-defined]
+        except Exception:
+            pass
+        try:
+            self.processor.event_bus = self.event_bus  # type: ignore[attr-defined]
+        except Exception:
+            pass
         # Propagate high-level config into components that expect it
         try:
             self.processor.config = self.config  # type: ignore[attr-defined]
@@ -1387,11 +1721,31 @@ class UltimateVPNMerger:
         self.last_saved_count = 0
         self._batch_lock = asyncio.Lock()
         self._shutdown_event = GlobalState.get_shutdown_event()
+        # Quarantine tracking
+        self._fail_streak: Dict[str, int] = {}
+        self._quarantined: Set[str] = set()
+        try:
+            self._quarantine_enabled: bool = bool(self._get_cfg('processing', 'quarantine_failures', default=CONFIG.quarantine_failures) or CONFIG.quarantine_failures)
+        except Exception:
+            self._quarantine_enabled = bool(CONFIG.quarantine_failures)
+        try:
+            self._quarantine_threshold: int = int(self._get_cfg('processing', 'quarantine_threshold', default=CONFIG.quarantine_threshold))
+        except Exception:
+            self._quarantine_threshold = int(CONFIG.quarantine_threshold)
+        # Preload quarantined sources from DB
+        try:
+            if self.db is not None:
+                for u in self.db.get_quarantined_sources():
+                    self._quarantined.add(u)
+        except Exception:
+            pass
 
     def _load_existing_results(self, path: str) -> List[ConfigResult]:
         """Load previously saved configs from a raw or base64 file."""
         try:
-            text = Path(path).read_text(encoding="utf-8").strip()
+            p = Path(path)
+            ResourceLimits.check_file_size(p)
+            text = p.read_text(encoding="utf-8").strip()
         except Exception as e:
             print(f"⚠️  Failed to read resume file: {e}")
             return []
@@ -1428,18 +1782,43 @@ class UltimateVPNMerger:
             pass
         print("🚀 VPN Subscription Merger - Final Unified & Polished Edition")
         print("=" * 85)
+        # Start event bus processor
+        if self.event_bus is not None:
+            try:
+                asyncio.create_task(self.event_bus.start())
+            except Exception:
+                pass
+        # Attach metrics subscriber to event bus
+        if getattr(self, 'metrics', None) is not None and self.event_bus is not None:
+            try:
+                from vpn_merger.monitoring.metrics_subscribers import attach as attach_metrics  # type: ignore
+                attach_metrics(self.event_bus, self.metrics)
+            except Exception:
+                pass
+        # Optional discovery
+        try:
+            discover_enabled = bool(self._get_cfg('processing', 'enable_discovery', default=CONFIG.enable_discovery) or CONFIG.enable_discovery)
+        except Exception:
+            discover_enabled = bool(CONFIG.enable_discovery)
+        if discover_enabled:
+            try:
+                from vpn_merger.core.source_discovery import discover_sources  # type: ignore
+                print("🔎 Discovering additional sources...")
+                discovered = await discover_sources()
+                if discovered:
+                    before = len(self.sources)
+                    # merge and dedup, discovered last to keep curated priority
+                    self.sources = list(dict.fromkeys(self.sources + discovered))
+                    print(f"   ✔ Added {len(self.sources) - before} new candidates (total {len(self.sources)})")
+            except Exception as e:
+                print(f"⚠️  Discovery failed: {e}")
+
         print(f"📊 Total unified sources: {len(self.sources)}")
         print(f"🇮🇷 Iranian priority: {len(UnifiedSources.IRANIAN_PRIORITY)}")
         print(f"🌍 International major: {len(UnifiedSources.INTERNATIONAL_MAJOR)}")
         print(f"📦 Comprehensive batch: {len(UnifiedSources.COMPREHENSIVE_BATCH)}")
-        try:
-            url_testing_enabled = bool(self.config.testing.enable_url_testing) if (self.config and getattr(self.config, 'testing', None)) else bool(CONFIG.enable_url_testing)
-        except Exception:
-            url_testing_enabled = bool(CONFIG.enable_url_testing)
-        try:
-            sorting_enabled = bool(self.config.testing.enable_sorting) if (self.config and getattr(self.config, 'testing', None)) else bool(CONFIG.enable_sorting)
-        except Exception:
-            sorting_enabled = bool(CONFIG.enable_sorting)
+        url_testing_enabled = bool(self._get_cfg('testing', 'enable_url_testing', default=CONFIG.enable_url_testing))
+        sorting_enabled = bool(self._get_cfg('testing', 'enable_sorting', default=CONFIG.enable_sorting))
         print(f"🔧 URL Testing: {'Enabled' if url_testing_enabled else 'Disabled'}")
         print(f"📈 Smart Sorting: {'Enabled' if sorting_enabled else 'Disabled'}")
         print()
@@ -1453,6 +1832,15 @@ class UltimateVPNMerger:
             print(f"   ✔ Loaded {len(self.all_results)} configs from resume file")
 
         # Step 1: Test source availability and remove dead links
+        # Attach dashboard event subscribers if available
+        if self.event_bus is not None and self.dashboard_manager is not None:
+            try:
+                from vpn_merger.monitoring.dashboard_subscribers import attach  # type: ignore
+                self._dash_agg = attach(self.event_bus, self.dashboard_manager, total_sources=len(self.sources))
+                self._dashboard_via_events = True
+            except Exception:
+                self._dashboard_via_events = False
+
         print("🔄 [1/6] Testing source availability and removing dead links...")
         self.available_sources = await self._test_and_filter_sources()
         
@@ -1475,14 +1863,8 @@ class UltimateVPNMerger:
             unique_results = unique_results[:CONFIG.top_n]
             print(f"   🔝 Keeping top {CONFIG.top_n} configs")
 
-        try:
-            max_ping_ms_value = int(self.config.testing.max_ping_ms) if (self.config and getattr(self.config, 'testing', None) and self.config.testing.max_ping_ms is not None) else None
-        except Exception:
-            max_ping_ms_value = None
-        try:
-            url_testing_enabled = bool(self.config.testing.enable_url_testing) if (self.config and getattr(self.config, 'testing', None)) else bool(CONFIG.enable_url_testing)
-        except Exception:
-            url_testing_enabled = bool(CONFIG.enable_url_testing)
+        max_ping_ms_value = self._get_cfg('testing', 'max_ping_ms', default=None)
+        url_testing_enabled = bool(self._get_cfg('testing', 'enable_url_testing', default=CONFIG.enable_url_testing))
         if max_ping_ms_value is not None and url_testing_enabled:
             before = len(unique_results)
             unique_results = [r for r in unique_results
@@ -1495,10 +1877,7 @@ class UltimateVPNMerger:
         if before_filter != len(unique_results):
             print(f"   🚫 Filtered out {before_filter - len(unique_results)} unreachable/untested configs")
 
-        try:
-            app_tests_value = list(self.config.testing.app_tests) if (self.config and getattr(self.config, 'testing', None) and self.config.testing.app_tests) else (CONFIG.app_tests if CONFIG.app_tests else None)
-        except Exception:
-            app_tests_value = CONFIG.app_tests if CONFIG.app_tests else None
+        app_tests_value = list(self._get_cfg('testing', 'app_tests', default=CONFIG.app_tests) or []) or (CONFIG.app_tests if CONFIG.app_tests else None)
         if app_tests_value:
             await self._run_app_tests(unique_results)
 
@@ -1517,22 +1896,18 @@ class UltimateVPNMerger:
     
     async def _test_and_filter_sources(self) -> List[str]:
         """Test all sources for availability and filter out dead links."""
-        # Setup HTTP session
-        # Lazy import to avoid hard dependency at module import time
+        # Setup HTTP session via connection pool manager with graceful fallback
         try:
-            import aiohttp  # type: ignore
-            from aiohttp.resolver import AsyncResolver  # type: ignore
+            from vpn_merger.core.pipeline import ConnectionPoolManager  # type: ignore
+            pool = ConnectionPoolManager()
+            self.fetcher.session = await pool.get_pool(name='default', limit=CONFIG.concurrent_limit, limit_per_host=10)
         except Exception as e:
-            raise RuntimeError("aiohttp is required for source testing. Install dependencies via requirements.txt") from e
-        connector = aiohttp.TCPConnector(
-            limit=CONFIG.concurrent_limit,
-            limit_per_host=10,
-            ttl_dns_cache=300,
-            ssl=ssl.create_default_context(),
-            resolver=AsyncResolver()
-        )
-        
-        self.fetcher.session = aiohttp.ClientSession(connector=connector)
+            try:
+                import aiohttp  # type: ignore
+                self.fetcher.session = aiohttp.ClientSession()
+                print(f"⚠️  Falling back to direct ClientSession due to pool error: {e}")
+            except Exception as e2:
+                raise RuntimeError("Failed to initialize HTTP connection pool or fallback session. Ensure aiohttp is installed.") from e2
         
         try:
             # Test all sources concurrently
@@ -1540,8 +1915,37 @@ class UltimateVPNMerger:
             
             async def test_single_source(url: str) -> Optional[str]:
                 async with semaphore:
+                    if self._quarantine_enabled and url in self._quarantined:
+                        return None
                     is_available = await self.fetcher.test_source_availability(url)
-                    return url if is_available else None
+                    if not is_available:
+                        if self._quarantine_enabled:
+                            n = self._fail_streak.get(url, 0) + 1
+                            self._fail_streak[url] = n
+                            try:
+                                if self.db is not None:
+                                    n = self.db.increment_fail_streak(url)
+                            except Exception:
+                                pass
+                            if n >= self._quarantine_threshold:
+                                self._quarantined.add(url)
+                                try:
+                                    if self.db is not None:
+                                        self.db.set_quarantined(url, True)
+                                except Exception:
+                                    pass
+                        return None
+                    # Reset fail streak on success
+                    if url in self._fail_streak:
+                        self._fail_streak[url] = 0
+                    try:
+                        if self.db is not None:
+                            self.db.reset_fail_streak(url)
+                            # optional: unquarantine on success
+                            self.db.set_quarantined(url, False)
+                    except Exception:
+                        pass
+                    return url
             
             tasks = [test_single_source(url) for url in self.sources]
             
@@ -1582,22 +1986,19 @@ class UltimateVPNMerger:
         self.sources_with_configs = []
         
         try:
-            # Process sources with semaphore
-            semaphore = asyncio.Semaphore(CONFIG.concurrent_limit)
-            
+            # Process sources via ParallelPipeline
             async def process_single_source(url: str) -> Tuple[str, List[ConfigResult]]:
-                async with semaphore:
-                    return await self.fetcher.fetch_source(url)
-            
-            # Create tasks (explicit tasks to support cancellation)
-            tasks = [asyncio.create_task(process_single_source(url)) for url in available_sources]
-            
+                return await self.fetcher.fetch_source(url)
+
+            from vpn_merger.core.pipeline import ParallelPipeline  # type: ignore
+            pipeline = ParallelPipeline([process_single_source], concurrency=CONFIG.concurrent_limit)
+            fetched = await pipeline.process(available_sources)
+
             completed = 0
-            with tqdm(total=len(available_sources), desc="Fetching configs", unit="src") as pbar:
-                for coro in asyncio.as_completed(tasks):
+            with tqdm(total=len(fetched), desc="Fetching configs", unit="src") as pbar:
+                for (url, results) in fetched:
                     if self._shutdown_event.is_set():
                         break
-                    url, results = await coro
                     completed += 1
                     pbar.update(1)
                     # Ensure consistent view for batch saver
@@ -1611,35 +2012,8 @@ class UltimateVPNMerger:
                                     self.db.store_config(result)
                                 except Exception:
                                     pass
-                        if self.metrics is not None:
-                            try:
-                                self.metrics.record_source_processed(True)
-                                for result in results:
-                                    try:
-                                        self.metrics.record_config_found(getattr(result, 'protocol', 'Unknown'), 'unknown')
-                                        if getattr(result, 'ping_time', None) is not None:
-                                            self.metrics.record_connection_test(float(result.ping_time), bool(getattr(result, 'is_reachable', False)))
-                                    except Exception:
-                                        pass
-                            except Exception:
-                                pass
-                        if self.dashboard_manager is not None:
-                            for result in results:
-                                try:
-                                    ping_ms = result.ping_time * 1000 if getattr(result, 'ping_time', None) else None
-                                    await self.dashboard_manager.broadcast_status({
-                                        'total_configs': len(self.all_results),
-                                        'active_sources': successful_sources,
-                                        'success_rate': 0,
-                                        'new_config': {
-                                            'protocol': getattr(result, 'protocol', ''),
-                                            'host': getattr(result, 'host', ''),
-                                            'port': getattr(result, 'port', None),
-                                            'ping_ms': ping_ms
-                                        }
-                                    })
-                                except Exception:
-                                    pass
+                        # Metrics are handled via event subscribers
+                        # If dashboard is event-driven, skip direct broadcasts
                     if results:
                         successful_sources += 1
                         self.sources_with_configs.append(url)
@@ -1668,6 +2042,8 @@ class UltimateVPNMerger:
                         pass
 
             print(f"\n   📈 Sources with configs: {len(self.sources_with_configs)}/{len(available_sources)}")
+            if self._quarantine_enabled and self._quarantined:
+                print(f"   🚧 Quarantined sources: {len(self._quarantined)}")
             
         finally:
             await self.fetcher.session.close()
@@ -1696,10 +2072,7 @@ class UltimateVPNMerger:
                 self.saved_hashes.add(h)
                 self.cumulative_unique.append(r)
 
-        try:
-            strict_batch_enabled = bool(self.config.processing.strict_batch) if (self.config and getattr(self.config, 'processing', None)) else bool(CONFIG.strict_batch)
-        except Exception:
-            strict_batch_enabled = bool(CONFIG.strict_batch)
+        strict_batch_enabled = bool(self._get_cfg('processing', 'strict_batch', default=CONFIG.strict_batch))
         if strict_batch_enabled:
             while len(self.cumulative_unique) - self.last_saved_count >= CONFIG.batch_size:
                 self.batch_counter += 1
@@ -1711,32 +2084,34 @@ class UltimateVPNMerger:
                     batch_results = self.cumulative_unique[start:end]
                     self.last_saved_count = end
 
-                try:
-                    sorting_enabled = bool(self.config.testing.enable_sorting) if (self.config and getattr(self.config, 'testing', None)) else bool(CONFIG.enable_sorting)
-                except Exception:
-                    sorting_enabled = bool(CONFIG.enable_sorting)
+                sorting_enabled = bool(self._get_cfg('testing', 'enable_sorting', default=CONFIG.enable_sorting))
                 if sorting_enabled:
                     batch_results = self._sort_by_performance(batch_results)
                 if CONFIG.top_n > 0:
                     batch_results = batch_results[:CONFIG.top_n]
                 batch_results = self._filter_reachable_results(batch_results)
-                try:
-                    app_tests_value = list(self.config.testing.app_tests) if (self.config and getattr(self.config, 'testing', None) and self.config.testing.app_tests) else (CONFIG.app_tests if CONFIG.app_tests else None)
-                except Exception:
-                    app_tests_value = CONFIG.app_tests if CONFIG.app_tests else None
+                app_tests_value = list(self._get_cfg('testing', 'app_tests', default=CONFIG.app_tests) or []) or (CONFIG.app_tests if CONFIG.app_tests else None)
                 if app_tests_value:
                     await self._run_app_tests(batch_results)
 
                 stats = self._analyze_results(batch_results, self.sources_with_configs)
                 await self._generate_comprehensive_outputs(batch_results, stats, self.start_time, prefix=f"batch_{self.batch_counter}_")
+                # Event: batch ready
+                try:
+                    if self.event_bus is not None:
+                        from vpn_merger.core.events import Event, EventType  # type: ignore
+                        await self.event_bus.publish(Event(
+                            type=EventType.BATCH_READY,
+                            data={"batch": self.batch_counter, "count": len(batch_results)},
+                            timestamp=time.time(),
+                        ))
+                except Exception:
+                    pass
 
                 cumulative_stats = self._analyze_results(self.cumulative_unique, self.sources_with_configs)
                 await self._generate_comprehensive_outputs(self.cumulative_unique, cumulative_stats, self.start_time, prefix="cumulative_")
 
-                try:
-                    threshold_value = int(self.config.processing.threshold) if (self.config and getattr(self.config, 'processing', None)) else int(CONFIG.threshold)
-                except Exception:
-                    threshold_value = int(CONFIG.threshold)
+                threshold_value = int(self._get_cfg('processing', 'threshold', default=CONFIG.threshold))
                 if threshold_value > 0 and len(self.cumulative_unique) >= threshold_value:
                     print(f"\n⏹️  Threshold of {CONFIG.threshold} configs reached. Stopping early.")
                     self.stop_fetching = True
@@ -1755,10 +2130,7 @@ class UltimateVPNMerger:
                 if CONFIG.top_n > 0:
                     batch_results = batch_results[:CONFIG.top_n]
                 batch_results = self._filter_reachable_results(batch_results)
-                try:
-                    app_tests_value = list(self.config.testing.app_tests) if (self.config and getattr(self.config, 'testing', None) and self.config.testing.app_tests) else (CONFIG.app_tests if CONFIG.app_tests else None)
-                except Exception:
-                    app_tests_value = CONFIG.app_tests if CONFIG.app_tests else None
+                app_tests_value = list(self._get_cfg('testing', 'app_tests', default=CONFIG.app_tests) or []) or (CONFIG.app_tests if CONFIG.app_tests else None)
                 if app_tests_value:
                     await self._run_app_tests(batch_results)
 
@@ -1768,12 +2140,10 @@ class UltimateVPNMerger:
                 cumulative_stats = self._analyze_results(self.cumulative_unique, self.sources_with_configs)
                 await self._generate_comprehensive_outputs(self.cumulative_unique, cumulative_stats, self.start_time, prefix="cumulative_")
 
-                try:
-                    local_batch_size_value = int(self.config.processing.batch_size) if (self.config and getattr(self.config, 'processing', None)) else int(CONFIG.batch_size)
-                except Exception:
-                    local_batch_size_value = int(CONFIG.batch_size)
+                local_batch_size_value = int(self._get_cfg('processing', 'batch_size', default=CONFIG.batch_size))
                 self.next_batch_threshold += local_batch_size_value
 
+                threshold_value = int(self._get_cfg('processing', 'threshold', default=CONFIG.threshold))
                 if threshold_value > 0 and len(self.cumulative_unique) >= threshold_value:
                     print(f"\n⏹️  Threshold of {CONFIG.threshold} configs reached. Stopping early.")
                     self.stop_fetching = True
@@ -1963,8 +2333,7 @@ class UltimateVPNMerger:
                 output_dir_value = str(self.config.output.output_dir)
             except Exception:
                 output_dir_value = None
-        output_dir = Path(output_dir_value or CONFIG.output_dir)
-        output_dir.mkdir(parents=True, exist_ok=True)
+        output_dir = validate_output_directory(str(output_dir_value or CONFIG.output_dir))
         
         # Extract configs for traditional outputs
         configs = [result.config.strip() for result in results]
@@ -2170,6 +2539,17 @@ class UltimateVPNMerger:
         print(f"📈 Success rate: {stats['reachable_configs']/config_count*100:.1f}%")
         print(f"🔗 Sources with configs: {stats['sources_with_configs']}/{stats['total_sources']}")
         print(f"⚡ Processing speed: {config_count/elapsed_time:.0f} configs/second")
+        # Optional: invalid host skips report
+        try:
+            if bool(getattr(CONFIG, 'skip_tests_on_invalid_host', False)):
+                skipped = 0
+                try:
+                    skipped = int(getattr(self.processor, 'invalid_host_skips', 0))
+                except Exception:
+                    skipped = 0
+                print(f"🚫 Invalid hosts skipped: {skipped}")
+        except Exception:
+            pass
         
         if CONFIG.enable_sorting and stats['reachable_configs'] > 0:
             print(f"🚀 Configs sorted by performance (fastest first)")
@@ -2290,6 +2670,14 @@ def main():
                         help="Disable server reachability testing")
     parser.add_argument("--no-sort", action="store_true",
                         help="Disable performance-based sorting")
+    parser.add_argument("--discover", action="store_true",
+                        help="Discover additional sources from GitHub before merging")
+    parser.add_argument("--quarantine-failures", action="store_true",
+                        help="Quarantine sources after repeated availability failures")
+    parser.add_argument("--quarantine-threshold", type=int, default=CONFIG.quarantine_threshold,
+                        help="Consecutive failures required to quarantine a source")
+    parser.add_argument("--no-metrics", action="store_true",
+                        help="Disable Prometheus metrics server")
     parser.add_argument("--concurrent-limit", type=int, default=CONFIG.concurrent_limit,
                         help="Number of concurrent requests")
     parser.add_argument("--max-retries", type=int, default=CONFIG.max_retries,
@@ -2310,6 +2698,21 @@ def main():
                         help="Perform full TLS handshake when applicable")
     parser.add_argument("--output-clash", action="store_true",
                         help="Generate a clash.yaml file from results")
+    # Dashboard flags
+    parser.add_argument("--enable-dashboard", action="store_true",
+                        help="Start the dashboard web UI")
+    parser.add_argument("--dashboard-port", type=int, default=8000,
+                        help="Dashboard port (default 8000)")
+    parser.add_argument("--dashboard-host", type=str, default="0.0.0.0",
+                        help="Dashboard host (default 0.0.0.0)")
+    parser.add_argument("--dashboard-app", type=str, default="api", choices=["api", "realtime"],
+                        help="Dashboard app to use: api or realtime")
+    parser.add_argument("--print-dashboard-token", type=str, default=None,
+                        help="Client ID to print an HMAC WS token for (requires DASHBOARD_HMAC_KEY)")
+    parser.add_argument("--dashboard-cert-file", type=str, default=None,
+                        help="TLS certificate file for HTTPS dashboard")
+    parser.add_argument("--dashboard-key-file", type=str, default=None,
+                        help="TLS key file for HTTPS dashboard")
     parser.add_argument("--prefer-protocols", type=str, default=None,
                         help="Comma-separated protocol priority list")
     parser.add_argument("--app-tests", type=str, default=None,
@@ -2333,6 +2736,8 @@ def main():
                         help="Reject connections without padding")
     parser.add_argument("--mux-brutal", action="store_true",
                         help="Enable TCP congestion control for noisy links")
+    parser.add_argument("--skip-tests-on-invalid-host", action="store_true",
+                        help="Count and report skipped connection tests for invalid hostnames")
     args, unknown = parser.parse_known_args()
     if unknown:
         logging.warning("Ignoring unknown arguments: %s", unknown)
@@ -2348,7 +2753,7 @@ def main():
     CONFIG.resume_file = args.resume
     # Resolve output directory (allow absolute or relative paths) with validation
     try:
-        resolved_output = validate_output_path(args.output_dir)
+        resolved_output = validate_output_directory(args.output_dir)
     except Exception as e:
         print(f"❌ Invalid output directory: {e}")
         sys.exit(2)
@@ -2358,7 +2763,7 @@ def main():
     CONFIG.concurrent_limit = max(1, args.concurrent_limit)
     CONFIG.max_retries = max(1, args.max_retries)
     try:
-        CONFIG.proxy = validate_proxy_url(args.proxy)
+        CONFIG.proxy = ProxyValidator.validate(args.proxy)
     except Exception as e:
         print(f"❌ Invalid proxy: {e}")
         sys.exit(2)
@@ -2382,6 +2787,23 @@ def main():
     CONFIG.mux_max_streams = max(CONFIG.mux_min_streams, args.mux_max_streams)
     CONFIG.mux_padding = args.mux_padding
     CONFIG.mux_brutal = args.mux_brutal
+    CONFIG.skip_tests_on_invalid_host = bool(args.skip_tests_on_invalid_host)
+    if args.discover:
+        CONFIG.enable_discovery = True
+    if args.quarantine_failures:
+        CONFIG.quarantine_failures = True
+    if args.quarantine_threshold and args.quarantine_threshold > 0:
+        CONFIG.quarantine_threshold = args.quarantine_threshold
+    if args.no_metrics:
+        CONFIG.enable_metrics = False
+    # Expose dashboard CLI settings for _maybe_start_dashboard()
+    CONFIG.enable_dashboard_cli = bool(args.enable_dashboard)
+    CONFIG.dashboard_port_cli = int(args.dashboard_port)
+    CONFIG.dashboard_host_cli = str(args.dashboard_host)
+    CONFIG.dashboard_app_cli = str(args.dashboard_app)
+    CONFIG.dashboard_client_id_cli = args.print_dashboard_token
+    CONFIG.dashboard_cert_cli = args.dashboard_cert_file
+    CONFIG.dashboard_key_cli = args.dashboard_key_file
     if args.no_url_test:
         CONFIG.enable_url_testing = False
     if args.no_sort:

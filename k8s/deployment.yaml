@@ -1,0 +1,88 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: vpn-merger
+  labels:
+    app: vpn-merger
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: vpn-merger
+  template:
+    metadata:
+      labels:
+        app: vpn-merger
+    spec:
+      containers:
+      - name: vpn-merger
+        image: vpn-merger:latest
+        ports:
+        - containerPort: 8000
+          name: dashboard
+        - containerPort: 8001
+          name: metrics
+        resources:
+          requests:
+            memory: "512Mi"
+            cpu: "500m"
+          limits:
+            memory: "2Gi"
+            cpu: "2000m"
+        env:
+        - name: VPN_MERGER_BATCH_SIZE
+          value: "1000"
+        - name: VPN_MERGER_CONCURRENT_LIMIT
+          value: "100"
+        volumeMounts:
+        - name: output
+          mountPath: /app/output
+        - name: config
+          mountPath: /app/config
+        livenessProbe:
+          httpGet:
+            path: /api/v1/health
+            port: 8000
+          initialDelaySeconds: 30
+          periodSeconds: 10
+        readinessProbe:
+          httpGet:
+            path: /api/v1/health
+            port: 8000
+          initialDelaySeconds: 5
+          periodSeconds: 5
+      volumes:
+      - name: output
+        persistentVolumeClaim:
+          claimName: vpn-merger-output
+      - name: config
+        configMap:
+          name: vpn-merger-config
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: vpn-merger
+spec:
+  selector:
+    app: vpn-merger
+  ports:
+  - name: dashboard
+    port: 8000
+    targetPort: 8000
+  - name: metrics
+    port: 8001
+    targetPort: 8001
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: vpn-merger-config
+data:
+  sources.yaml: |
+    sources:
+      iranian_priority:
+        - https://example.com/iran.txt
+      international_major:
+        - https://example.com/intl.txt
+

@@ -4,6 +4,11 @@
 [GitHub Actions](https://github.com/AmirrezaFarnamTaheri/CleanConfigs-SubMerger/actions)
 [MIT License](https://opensource.org/licenses/MIT)
 
+> Just the Links (real URLs)
+> - Base64 (mixed): https://raw.githubusercontent.com/AmirrezaFarnamTaheri/CleanConfigs-SubMerger/main/output/vpn_subscription_base64.txt
+> - Raw (mixed): https://raw.githubusercontent.com/AmirrezaFarnamTaheri/CleanConfigs-SubMerger/main/output/vpn_subscription_raw.txt
+> - sing-box JSON: https://raw.githubusercontent.com/AmirrezaFarnamTaheri/CleanConfigs-SubMerger/main/output/vpn_singbox.json
+
 > Just the Links (copy one)
 > - Base64 (mixed): https://example.com/sub/mixed.base64 \\n> - Clash/Mihomo YAML:  https://example.com/sub/clash.yaml \\n> - sing-box JSON:  https://example.com/sub/singbox.json \\n\\nThis tool collects public subscription feeds, merges, de-duplicates, tests, and outputs configs for Hiddify-Next, sing-box, and Clash/Mihomo. 
 
@@ -23,6 +28,35 @@ This guide is designed for **everyone**, from absolute beginners with no coding 
 
 See `docs/` for detailed installation and usage guides.
 
+### Supported Types
+
+| Protocol | Examples in feeds | Emitted to |
+|---|---|---|
+| VLESS | `vless://` | Base64/Clash/sing-box |
+| VMess | `vmess://` (base64 JSON) | Base64/Clash/sing-box |
+| Trojan | `trojan://` | Base64/Clash/sing-box |
+| Shadowsocks | `ss://` / `ssr://` | Base64/Clash/sing-box |
+
+## Security & Privacy
+
+Public subscription lists are unvetted. Endpoints may log traffic or be malicious. Use for lawful purposes. The tool quarantines unreliable sources automatically and removes dead or suspicious items. Prefer providers you trust.
+
+### Outputs
+
+| File | Client | Format |
+|---|---|---|
+| `output/vpn_subscription_base64.txt` | Generic import | Base64 (mixed protocols) |
+| `output/vpn_subscription_raw.txt` | Generic import | Plain text (one URL/line) |
+| `output/vpn_singbox.json` | sing-box | JSON |
+| `output/vpn_detailed.csv` | Any | Health & scoring summary |
+
+### Advanced Features (quick glossary)
+
+- TLS Fragment: Splits TLS records to evade naive DPI. Helps in some networks; can reduce throughput.
+- MUX/SMUX: Multiplex multiple streams over one TCP. Improves handshake overhead; can add latency under loss.
+- Route presets: GeoIP/GeoSite splits for common services (YouTube/Netflix/Telegram).
+- Health scoring: Combines success rate + recent RTT with exponential decay for stability between runs.
+
 ### 🎓 From Zero to Hero
 
 1. Run `python vpn_merger.py` to generate `vpn_subscription_base64.txt` from the
@@ -33,7 +67,7 @@ See `docs/` for detailed installation and usage guides.
    or create a Clash file using `--output-clash`.
 4. Re-test old results with `python vpn_retester.py output/vpn_subscription_raw.txt`
    to keep only working servers.
-5. Preferred clients include **Hiddify‑Next**, **v2rayNG**/**v2rayN**, **NekoRay**
+5. Preferred clients include **Hiddify-Next**, **v2rayNG**/**v2rayN**, **NekoRay**
    and **Stash**. Keep them updated and only use trusted sources.
 
 ### Default Protocol List (Hiddify-Next Optimized)
