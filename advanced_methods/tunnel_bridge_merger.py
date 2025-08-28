@@ -2,6 +2,7 @@ import argparse
 import asyncio
 import json
 import re
+from typing import List, Optional
 from pathlib import Path
 from typing import List, Optional
 
@@ -34,11 +35,12 @@ def parse_line(line: str) -> str:
 
     text = line.strip()
 
+    # Simplified pattern to avoid catastrophic backtracking from nested quantifiers
     pattern = re.compile(
-        r"^(?P<scheme>[A-Za-z][A-Za-z0-9+.-]*)://"
-        r"(?:(?P<user>[^:@\s]+)(?::(?P<pass>[^@\s]*))?@)?"
-        r"(?P<host>[^:@\s]+)"
-        r":(?P<port>\d+)$"
+        r"^(?P<scheme>[A-Za-z][A-Za-z0-9+.-]*)://"  # scheme
+        r"(?:(?P<user>[^:@\s]+)(?::(?P<pass>[^@\s]*))?@)?"  # optional user:pass@
+        r"(?P<host>[^\s:/@]+)"  # host (no spaces or separators)
+        r":(?P<port>\d+)$"  # :port
     )
 
     m = pattern.match(text)

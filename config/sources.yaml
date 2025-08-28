@@ -1,0 +1,10 @@
+sources:
+  iranian_priority:
+    - "https://raw.githubusercontent.com/barry-far/V2ray-config/main/Sub1.txt"
+    # - Add more Iranian-focused sources here
+  international_major:
+    - "https://raw.githubusercontent.com/yebekhe/TelegramV2rayCollector/main/sub/mix"
+    # - Add more international sources here
+  comprehensive_batch:
+    # - Put very large lists and bulk feeds here
+    - "https://raw.githubusercontent.com/sevcator/5ubscrpt10n/main/full/5ubscrpt10n.txt"

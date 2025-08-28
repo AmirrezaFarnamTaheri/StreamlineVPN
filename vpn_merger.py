@@ -29,6 +29,7 @@ import asyncio
 import base64
 import csv
 import hashlib
+import os
 import json
 import logging
 import random
@@ -37,6 +38,7 @@ import ssl
 import sys
 import time
 import socket
+import signal
 from dataclasses import dataclass, asdict, field
 from datetime import datetime, timezone
 from pathlib import Path
@@ -44,35 +46,33 @@ from typing import Dict, List, Optional, Set, Tuple, Union
 from tqdm import tqdm
 from urllib.parse import urlparse
 
+# Global shutdown event used across components
+GLOBAL_SHUTDOWN_EVENT: asyncio.Event = asyncio.Event()
+
 try:
     import aiohttp
     from aiohttp.resolver import AsyncResolver
-except ImportError:
-    print("📦 Installing aiohttp...")
-    import subprocess
-    subprocess.check_call([sys.executable, "-m", "pip", "install", "aiohttp"])
-    import aiohttp
-    from aiohttp.resolver import AsyncResolver
+except ImportError as exc:
+    raise ImportError(
+        "Required dependency 'aiohttp' is missing. Please install requirements with: pip install -r requirements.txt"
+    ) from exc
 
 # Event loop compatibility fix
 try:
     import nest_asyncio
     nest_asyncio.apply()
     print("✅ Applied nest_asyncio patch for event loop compatibility")
-except ImportError:
-    print("📦 Installing nest_asyncio...")
-    import subprocess
-    subprocess.check_call([sys.executable, "-m", "pip", "install", "nest-asyncio"])
-    import nest_asyncio
-    nest_asyncio.apply()
+except ImportError as exc:
+    raise ImportError(
+        "Required dependency 'nest-asyncio' is missing. Please install requirements with: pip install -r requirements.txt"
+    ) from exc
 
 try:
     import aiodns
-except ImportError:
-    print("📦 Installing aiodns...")
-    import subprocess
-    subprocess.check_call([sys.executable, "-m", "pip", "install", "aiodns"])
-    import aiodns
+except ImportError as exc:
+    raise ImportError(
+        "Required dependency 'aiodns' is missing. Please install requirements with: pip install -r requirements.txt"
+    ) from exc
 
 # ============================================================================
 # CONFIGURATION & SETTINGS
@@ -217,7 +217,7 @@ APP_TEST_TOP_N = 3
 # ============================================================================
 
 class UnifiedSources:
-    """Complete unified collection of all VPN subscription sources."""
+    """Source collection loader with external configuration support and fallback."""
     
     # Iranian Priority Sources (High Quality, Frequently Updated)
     # Iranian Priority Sources (High Quality, Frequently Updated)
@@ -868,8 +868,55 @@ class UnifiedSources:
     ]
     
     @classmethod
+    def _try_load_external(cls) -> bool:
+        """Attempt to load sources from config/sources.yaml or sources.json."""
+        base_dir = _get_script_dir()
+        yaml_path = base_dir / "config" / "sources.yaml"
+        json_path = base_dir / "sources.json"
+        # Prefer YAML
+        try:
+            import yaml  # type: ignore
+            if yaml_path.exists():
+                data = yaml.safe_load(yaml_path.read_text(encoding='utf-8')) or {}
+                sources = data.get('sources') or {}
+                cls.IRANIAN_PRIORITY = UnifiedSources._filter_valid_urls(list(sources.get('iranian_priority', []))) or cls.IRANIAN_PRIORITY
+                cls.INTERNATIONAL_MAJOR = UnifiedSources._filter_valid_urls(list(sources.get('international_major', []))) or cls.INTERNATIONAL_MAJOR
+                cls.COMPREHENSIVE_BATCH = UnifiedSources._filter_valid_urls(list(sources.get('comprehensive_batch', []))) or cls.COMPREHENSIVE_BATCH
+                return True
+        except Exception:
+            pass
+        # Fallback to JSON if present
+        try:
+            if json_path.exists():
+                data = json.loads(json_path.read_text(encoding='utf-8'))
+                cls.IRANIAN_PRIORITY = UnifiedSources._filter_valid_urls(list(data.get('iranian_priority', []))) or cls.IRANIAN_PRIORITY
+                cls.INTERNATIONAL_MAJOR = UnifiedSources._filter_valid_urls(list(data.get('international_major', []))) or cls.INTERNATIONAL_MAJOR
+                cls.COMPREHENSIVE_BATCH = UnifiedSources._filter_valid_urls(list(data.get('comprehensive_batch', []))) or cls.COMPREHENSIVE_BATCH
+                return True
+        except Exception:
+            pass
+        return False
+
+    @staticmethod
+    def _is_valid_url(url: str) -> bool:
+        try:
+            parsed = urlparse(url)
+            return parsed.scheme in {"http", "https"} and bool(parsed.netloc)
+        except Exception:
+            return False
+
+    @classmethod
+    def _filter_valid_urls(cls, urls: List[str]) -> List[str]:
+        return [u.strip() for u in urls if isinstance(u, str) and cls._is_valid_url(u.strip())]
+
+    @classmethod
     def get_all_sources(cls) -> List[str]:
-        """Get all unique sources in priority order with deduplication."""
+        """Get all unique sources in priority order with deduplication.
+
+        Attempts to load external config first; if not available, uses
+        the embedded lists as fallback.
+        """
+        cls._try_load_external()
         all_sources = cls.IRANIAN_PRIORITY + cls.INTERNATIONAL_MAJOR + cls.COMPREHENSIVE_BATCH
         return list(dict.fromkeys(all_sources))  # Remove duplicates while preserving order
 
@@ -897,6 +944,27 @@ class EnhancedConfigProcessor:
 
     def __init__(self):
         self.dns_cache = {}
+
+    @staticmethod
+    def safe_b64_decode(data: str, max_size: int = 1024 * 1024) -> Optional[str]:
+        """Safely decode base64 text with size limits.
+
+        Returns a decoded UTF-8 string on success, otherwise None.
+        """
+        if not isinstance(data, str):
+            return None
+        # Rough guard: base64 text is ~4/3 of decoded size
+        if len(data) > (max_size * 4) // 3:
+            return None
+        try:
+            # Add padding if missing
+            padded = data + "=" * (-len(data) % 4)
+            decoded_bytes = base64.b64decode(padded, validate=False)
+            if len(decoded_bytes) > max_size:
+                return None
+            return decoded_bytes.decode("utf-8", "replace")
+        except Exception:
+            return None
         
     def extract_host_port(self, config: str) -> Tuple[Optional[str], Optional[int]]:
         """Extract host and port from configuration for testing."""
@@ -904,10 +972,9 @@ class EnhancedConfigProcessor:
             if config.startswith(("vmess://", "vless://")):
                 try:
                     json_part = config.split("://", 1)[1]
-                    decoded_bytes = base64.b64decode(json_part)
-                    if len(decoded_bytes) > self.MAX_DECODE_SIZE:
+                    decoded = self.safe_b64_decode(json_part, self.MAX_DECODE_SIZE)
+                    if decoded is None:
                         return None, None
-                    decoded = decoded_bytes.decode("utf-8", "ignore")
                     data = json.loads(decoded)
                     host = data.get("add") or data.get("host")
                     port = data.get("port")
@@ -941,8 +1008,9 @@ class EnhancedConfigProcessor:
                 if parsed.username:
                     user_id = parsed.username
                 else:
-                    padded = after_scheme + "=" * (-len(after_scheme) % 4)
-                    decoded = base64.b64decode(padded).decode("utf-8", "ignore")
+                    decoded = self.safe_b64_decode(after_scheme, self.MAX_DECODE_SIZE)
+                    if decoded is None:
+                        raise ValueError("invalid base64")
                     data = json.loads(decoded)
                     user_id = data.get("id") or data.get("uuid") or data.get("user")
             except Exception:
@@ -1031,7 +1099,7 @@ class AsyncSourceFetcher:
         self.session: Optional[aiohttp.ClientSession] = None
         
     async def test_source_availability(self, url: str) -> bool:
-        """Test if a source URL is available (returns 200 status)."""
+        """Test if a source URL is available (HTTP 200/206) with HEAD+GET fallback."""
         try:
             timeout = aiohttp.ClientTimeout(total=10)
             async with self.session.head(
@@ -1057,7 +1125,16 @@ class AsyncSourceFetcher:
             return False
         
     async def fetch_source(self, url: str) -> Tuple[str, List[ConfigResult]]:
-        """Fetch single source with comprehensive testing."""
+        """Fetch VPN configurations from a source URL.
+
+        Args:
+            url: Source URL to fetch from.
+
+        Returns:
+            Tuple of (source_url, list_of_config_results)
+        """
+        if not UnifiedSources._is_valid_url(url):
+            return url, []
         for attempt in range(CONFIG.max_retries):
             try:
                 timeout = aiohttp.ClientTimeout(total=CONFIG.request_timeout)
@@ -1070,51 +1147,60 @@ class AsyncSourceFetcher:
                     if response.status != 200:
                         continue
                         
-                    content = await response.text()
-                    if not content.strip():
-                        return url, []
-                    
-                    # Enhanced Base64 detection and decoding
-                    try:
-                        # Check if content looks like base64
-                        if not any(char in content for char in '\n\r') and len(content) > 100:
-                            decoded = base64.b64decode(content).decode("utf-8", "ignore")
-                            if decoded.count("://") > content.count("://"):
-                                content = decoded
-                    except:
-                        pass
-                    
-                    # Extract and process configs
-                    lines = [line.strip() for line in content.splitlines() if line.strip()]
-                    config_results = []
-                    
-                    for line in lines:
+                    # Try streaming if content is large and textual
+                    content_type = (response.headers.get('Content-Type') or '').lower()
+                    content_length = int(response.headers.get('Content-Length') or 0)
+                    config_results: List[ConfigResult] = []
+
+                    async def handle_line(line: str) -> None:
+                        nonlocal config_results
                         if (line.startswith(CONFIG.valid_prefixes) and 
                             len(line) > 20 and len(line) < 2000 and
                             len(config_results) < CONFIG.max_configs_per_source):
-                            
-                            # Create config result
                             host, port = self.processor.extract_host_port(line)
                             protocol = self.processor.categorize_protocol(line)
-                            
-                            result = ConfigResult(
-                                config=line,
-                                protocol=protocol,
-                                host=host,
-                                port=port,
-                                source_url=url
-                            )
-                            
-                            # Test connection if enabled
+                            res = ConfigResult(config=line, protocol=protocol, host=host, port=port, source_url=url)
                             if CONFIG.enable_url_testing and host and port:
                                 ping_time, hs = await self.processor.test_connection(host, port, protocol)
-                                result.ping_time = ping_time
-                                result.handshake_ok = hs
-                                result.is_reachable = ping_time is not None and (hs is not False)
-                            
-                            config_results.append(result)
-                    
-                    return url, config_results
+                                res.ping_time = ping_time
+                                res.handshake_ok = hs
+                                res.is_reachable = ping_time is not None and (hs is not False)
+                            config_results.append(res)
+
+                    if ("text" in content_type and content_length > 1024 * 1024):
+                        async for chunk in response.content:
+                            try:
+                                text = chunk.decode('utf-8', 'ignore')
+                            except Exception:
+                                continue
+                            for raw_line in text.splitlines():
+                                if not raw_line:
+                                    continue
+                                line = raw_line.strip()
+                                if not line:
+                                    continue
+                                await handle_line(line)
+                                if len(config_results) >= CONFIG.max_configs_per_source:
+                                    break
+                            if len(config_results) >= CONFIG.max_configs_per_source:
+                                break
+                        return url, config_results
+                    else:
+                        content = await response.text()
+                        if not content.strip():
+                            return url, []
+                        # Enhanced Base64 detection and decoding
+                        try:
+                            if not any(char in content for char in '\n\r') and len(content) > 100:
+                                decoded = self.processor.safe_b64_decode(content, self.processor.MAX_DECODE_SIZE)
+                                if decoded and decoded.count("://") > content.count("://"):
+                                    content = decoded
+                        except Exception:
+                            pass
+                        lines = [line.strip() for line in content.splitlines() if line.strip()]
+                        for line in lines:
+                            await handle_line(line)
+                        return url, config_results
                     
             except Exception:
                 if attempt < CONFIG.max_retries - 1:
@@ -1147,6 +1233,8 @@ class UltimateVPNMerger:
         self.cumulative_unique: List[ConfigResult] = []
         self.last_processed_index = 0
         self.last_saved_count = 0
+        self._batch_lock = asyncio.Lock()
+        self._shutdown_event = GLOBAL_SHUTDOWN_EVENT
 
     def _load_existing_results(self, path: str) -> List[ConfigResult]:
         """Load previously saved configs from a raw or base64 file."""
@@ -1157,10 +1245,9 @@ class UltimateVPNMerger:
             return []
 
         if text and '://' not in text.splitlines()[0]:
-            try:
-                text = base64.b64decode(text).decode("utf-8")
-            except Exception:
-                pass
+            decoded = self.processor.safe_b64_decode(text, self.processor.MAX_DECODE_SIZE)
+            if decoded:
+                text = decoded
 
         results = []
         for line in text.splitlines():
@@ -1277,6 +1364,8 @@ class UltimateVPNMerger:
 
             with tqdm(total=len(self.sources), desc="Testing sources", unit="src") as pbar:
                 for coro in asyncio.as_completed(tasks):
+                    if self._shutdown_event.is_set():
+                        break
                     result = await coro
                     completed += 1
                     pbar.update(1)
@@ -1320,6 +1409,8 @@ class UltimateVPNMerger:
             completed = 0
             with tqdm(total=len(available_sources), desc="Fetching configs", unit="src") as pbar:
                 for coro in asyncio.as_completed(tasks):
+                    if self._shutdown_event.is_set():
+                        break
                     url, results = await coro
                     completed += 1
                     pbar.update(1)
@@ -1359,8 +1450,9 @@ class UltimateVPNMerger:
             return
 
         # Process new results since last call
-        new_slice = self.all_results[self.last_processed_index:]
-        self.last_processed_index = len(self.all_results)
+        async with self._batch_lock:
+            new_slice = self.all_results[self.last_processed_index:]
+            self.last_processed_index = len(self.all_results)
         for r in new_slice:
             if CONFIG.tls_fragment and CONFIG.tls_fragment.lower() not in r.config.lower():
                 continue
@@ -1432,28 +1524,24 @@ class UltimateVPNMerger:
                     self.stop_fetching = True
     
     def _deduplicate_config_results(self, results: List[ConfigResult]) -> List[ConfigResult]:
-        """Efficient deduplication of config results using semantic hashing."""
-        seen_hashes: Set[str] = set()
-        unique_results: List[ConfigResult] = []
-
-        for result in results:
+        """Efficient deduplication using batch hashing preserving first occurrence order."""
+        index_by_hash: Dict[str, int] = {}
+        filtered: List[Tuple[int, str]] = []
+        for i, result in enumerate(results):
             if CONFIG.tls_fragment and CONFIG.tls_fragment.lower() not in result.config.lower():
                 continue
             if CONFIG.include_protocols and result.protocol.upper() not in CONFIG.include_protocols:
                 continue
             if CONFIG.exclude_protocols and result.protocol.upper() in CONFIG.exclude_protocols:
                 continue
-            config_hash = self.processor.create_semantic_hash(result.config)
-            if config_hash not in seen_hashes:
-                seen_hashes.add(config_hash)
-                unique_results.append(result)
-        
+            h = self.processor.create_semantic_hash(result.config)
+            if h not in index_by_hash:
+                index_by_hash[h] = i
+        unique_indices = sorted(index_by_hash.values())
+        unique_results = [results[i] for i in unique_indices]
         duplicates = len(results) - len(unique_results)
         print(f"   🗑️ Duplicates removed: {duplicates:,}")
-        if len(results) > 0:
-            efficiency = duplicates / len(results) * 100
-        else:
-            efficiency = 0
+        efficiency = (duplicates / len(results) * 100) if results else 0
         print(f"   📊 Deduplication efficiency: {efficiency:.1f}%")
         return unique_results
     
@@ -1928,6 +2016,25 @@ def main():
                             format='%(asctime)s %(levelname)s:%(message)s')
 
     print("🔧 VPN Merger - Checking environment...")
+
+    # Graceful shutdown handling
+    shutdown_flag = {"set": False}
+
+    def _handle_signal(signum, frame):
+        if not shutdown_flag["set"]:
+            shutdown_flag["set"] = True
+            print(f"\n🛑 Received signal {signum}, finishing current tasks and shutting down...")
+            try:
+                GLOBAL_SHUTDOWN_EVENT.set()
+            except Exception:
+                pass
+
+    for sig in (getattr(signal, "SIGTERM", None), getattr(signal, "SIGINT", None)):
+        if sig is not None:
+            try:
+                signal.signal(sig, _handle_signal)
+            except Exception:
+                pass
 
     try:
         return detect_and_run()
