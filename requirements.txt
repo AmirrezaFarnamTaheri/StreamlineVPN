@@ -4,3 +4,7 @@ nest-asyncio
 PyYAML
 tqdm
 regex
+fastapi
+uvicorn
+prometheus_client
+psutil

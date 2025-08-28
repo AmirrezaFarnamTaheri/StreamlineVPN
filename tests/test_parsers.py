@@ -12,11 +12,6 @@ if "vpn_merger" not in sys.modules:
     stub.CONFIG = types.SimpleNamespace(proxy=None, test_timeout=1)
     sys.modules["vpn_merger"] = stub
 
-if "aiohttp" not in sys.modules:
-    aiohttp_stub = types.ModuleType("aiohttp")
-    aiohttp_stub.ClientSession = object
-    sys.modules["aiohttp"] = aiohttp_stub
-
 from advanced_methods.http_injector_merger import parse_ehi
 from advanced_methods.tunnel_bridge_merger import parse_line
 
@@ -27,7 +22,7 @@ def test_parse_ehi_plain():
     assert result == ["payload1", "payload2"]
 
 
-def test_parse_ehi_base64():
+def test_parse_ehi_base64_simple():
     raw = "line1\nline2"
     b64 = base64.b64encode(raw.encode())
     result = parse_ehi(b64)
@@ -51,7 +46,7 @@ def test_parse_line_valid():
     assert parse_line("socks5://host:1080") == "socks5://host:1080"
 
 
-def test_parse_ehi_base64():
+def test_parse_ehi_base64_advanced():
     text = "payload1\npayload2\n"
     b64 = base64.b64encode(text.encode("utf-8"))
     result = parse_ehi(b64)

@@ -30,6 +30,7 @@ import base64
 import csv
 import hashlib
 import os
+import functools
 import json
 import logging
 import random
@@ -42,37 +43,40 @@ import signal
 from dataclasses import dataclass, asdict, field
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import Dict, List, Optional, Set, Tuple, Union
+from typing import Dict, List, Optional, Set, Tuple, Union, TYPE_CHECKING
 from tqdm import tqdm
 from urllib.parse import urlparse
 
 # Global shutdown event used across components
-GLOBAL_SHUTDOWN_EVENT: asyncio.Event = asyncio.Event()
+class GlobalState:
+    _shutdown_event: Optional[asyncio.Event] = None
 
-try:
-    import aiohttp
-    from aiohttp.resolver import AsyncResolver
-except ImportError as exc:
-    raise ImportError(
-        "Required dependency 'aiohttp' is missing. Please install requirements with: pip install -r requirements.txt"
-    ) from exc
+    @classmethod
+    def get_shutdown_event(cls) -> asyncio.Event:
+        if cls._shutdown_event is None:
+            cls._shutdown_event = asyncio.Event()
+        return cls._shutdown_event
 
-# Event loop compatibility fix
-try:
-    import nest_asyncio
-    nest_asyncio.apply()
-    print("✅ Applied nest_asyncio patch for event loop compatibility")
-except ImportError as exc:
-    raise ImportError(
-        "Required dependency 'nest-asyncio' is missing. Please install requirements with: pip install -r requirements.txt"
-    ) from exc
+if TYPE_CHECKING:
+    import aiohttp  # type: ignore
+    from aiohttp.resolver import AsyncResolver  # type: ignore
 
-try:
-    import aiodns
-except ImportError as exc:
-    raise ImportError(
-        "Required dependency 'aiodns' is missing. Please install requirements with: pip install -r requirements.txt"
-    ) from exc
+def check_dependencies() -> None:
+    missing: List[str] = []
+    try:
+        import aiohttp  # noqa: F401
+    except ImportError:
+        missing.append('aiohttp')
+    try:
+        import nest_asyncio  # noqa: F401
+    except ImportError:
+        missing.append('nest-asyncio')
+    try:
+        import aiodns  # noqa: F401
+    except ImportError:
+        missing.append('aiodns')
+    if missing:
+        raise ImportError(f"Missing dependencies: {', '.join(missing)}. Run: pip install -r requirements.txt")
 
 # ============================================================================
 # CONFIGURATION & SETTINGS
@@ -134,6 +138,18 @@ class Config:
     mux_max_streams: int
     mux_padding: bool
     mux_brutal: bool
+
+    def validate(self) -> None:
+        if self.concurrent_limit < 1:
+            raise ValueError("concurrent_limit must be >= 1")
+        if self.test_timeout < 0.1:
+            raise ValueError("test_timeout must be >= 0.1")
+        if self.batch_size < 0:
+            raise ValueError("batch_size must be >= 0")
+        if self.max_retries < 1:
+            raise ValueError("max_retries must be >= 1")
+        if self.max_configs_per_source < 1:
+            raise ValueError("max_configs_per_source must be >= 1")
 
 CONFIG = Config(
     headers={
@@ -898,10 +914,12 @@ class UnifiedSources:
         return False
 
     @staticmethod
+    @functools.lru_cache(maxsize=10000)
     def _is_valid_url(url: str) -> bool:
         try:
-            parsed = urlparse(url)
-            return parsed.scheme in {"http", "https"} and bool(parsed.netloc)
+            s = url.strip()
+            parsed = urlparse(s)
+            return parsed.scheme in {"http", "https"} and bool(parsed.netloc) and len(s) < 2048
         except Exception:
             return False
 
@@ -947,22 +965,19 @@ class EnhancedConfigProcessor:
 
     @staticmethod
     def safe_b64_decode(data: str, max_size: int = 1024 * 1024) -> Optional[str]:
-        """Safely decode base64 text with size limits.
-
-        Returns a decoded UTF-8 string on success, otherwise None.
-        """
-        if not isinstance(data, str):
+        """Safely decode base64 text with validation and size limits."""
+        if not isinstance(data, str) or not data.strip():
             return None
-        # Rough guard: base64 text is ~4/3 of decoded size
-        if len(data) > (max_size * 4) // 3:
+        clean = re.sub(r"\s+", "", data)
+        if not re.match(r'^[A-Za-z0-9+/]*={0,2}$', clean):
+            return None
+        if len(clean) > (max_size * 4) // 3:
             return None
         try:
-            # Add padding if missing
-            padded = data + "=" * (-len(data) % 4)
-            decoded_bytes = base64.b64decode(padded, validate=False)
+            decoded_bytes = base64.b64decode(clean, validate=True)
             if len(decoded_bytes) > max_size:
                 return None
-            return decoded_bytes.decode("utf-8", "replace")
+            return decoded_bytes.decode("utf-8", errors="strict")
         except Exception:
             return None
         
@@ -996,38 +1011,40 @@ class EnhancedConfigProcessor:
             pass
         return None, None
     
+    def _extract_user_id(self, config: str) -> Optional[str]:
+        try:
+            parsed = urlparse(config)
+            if parsed.username:
+                return parsed.username
+            after_scheme = config.split("://", 1)[1]
+            decoded = self.safe_b64_decode(after_scheme, self.MAX_DECODE_SIZE)
+            if decoded:
+                data = json.loads(decoded)
+                return data.get("id") or data.get("uuid") or data.get("user")
+        except Exception:
+            return None
+        return None
+
     def create_semantic_hash(self, config: str) -> str:
-        """Create semantic hash for intelligent deduplication."""
+        """Create semantic hash with collision resistance."""
         host, port = self.extract_host_port(config)
-        user_id = None
-
-        if config.startswith(("vmess://", "vless://")):
-            try:
-                after_scheme = config.split("://", 1)[1]
-                parsed = urlparse(config)
-                if parsed.username:
-                    user_id = parsed.username
-                else:
-                    decoded = self.safe_b64_decode(after_scheme, self.MAX_DECODE_SIZE)
-                    if decoded is None:
-                        raise ValueError("invalid base64")
-                    data = json.loads(decoded)
-                    user_id = data.get("id") or data.get("uuid") or data.get("user")
-            except Exception:
-                pass
-
+        protocol = self.categorize_protocol(config)
+        parts: List[str] = [protocol]
         if host and port:
-            key = f"{host}:{port}"
-            if user_id:
-                key = f"{user_id}@{key}"
-        else:
-            normalized = re.sub(r'#.*$', '', config).strip()
-            key = normalized
-        return hashlib.sha256(key.encode()).hexdigest()[:16]
+            parts.extend([host, str(port)])
+        user_id = self._extract_user_id(config)
+        if user_id:
+            parts.append(user_id)
+        key = "|".join(parts)
+        return hashlib.sha256(key.encode('utf-8')).hexdigest()
     
     async def test_connection(self, host: str, port: int, protocol: str) -> Tuple[Optional[float], Optional[bool]]:
         """Test connection and optionally perform a TLS handshake."""
-        if not CONFIG.enable_url_testing:
+        try:
+            url_testing_enabled = bool(self.config.testing.enable_url_testing) if (self.config and getattr(self.config, 'testing', None)) else bool(CONFIG.enable_url_testing)
+        except Exception:
+            url_testing_enabled = bool(CONFIG.enable_url_testing)
+        if not url_testing_enabled:
             return None, None
             
         start = time.time()
@@ -1048,7 +1065,7 @@ class EnhancedConfigProcessor:
                     ssl=ssl_ctx,
                     server_hostname=host if ssl_ctx else None,
                 ),
-                timeout=CONFIG.test_timeout,
+                timeout=(self.config.testing.test_timeout if (self.config and getattr(self.config, 'testing', None)) else CONFIG.test_timeout),
             )
             reader, writer = conn
             if ssl_ctx:
@@ -1056,7 +1073,11 @@ class EnhancedConfigProcessor:
             writer.close()
             await writer.wait_closed()
             return time.time() - start, handshake
-        except Exception:
+        except (asyncio.TimeoutError, OSError) as e:
+            logging.getLogger(__name__).debug(f"Connection test failed for {host}:{port} - {e}")
+            return None, handshake
+        except Exception as e:
+            logging.getLogger(__name__).error(f"Unexpected error during test_connection: {e}")
             return None, handshake
     
     def categorize_protocol(self, config: str) -> str:
@@ -1101,12 +1122,13 @@ class AsyncSourceFetcher:
     async def test_source_availability(self, url: str) -> bool:
         """Test if a source URL is available (HTTP 200/206) with HEAD+GET fallback."""
         try:
+            import aiohttp  # type: ignore
             timeout = aiohttp.ClientTimeout(total=10)
             async with self.session.head(
                 url,
                 timeout=timeout,
                 allow_redirects=True,
-                proxy=CONFIG.proxy,
+                proxy=(self.config.network.proxy if (self.config and getattr(self.config, 'network', None)) else CONFIG.proxy),
             ) as response:
                 status = response.status
                 if status == 200:
@@ -1117,11 +1139,12 @@ class AsyncSourceFetcher:
                         headers={**CONFIG.headers, 'Range': 'bytes=0-0'},
                         timeout=timeout,
                         allow_redirects=True,
-                        proxy=CONFIG.proxy,
+                        proxy=(self.config.network.proxy if (self.config and getattr(self.config, 'network', None)) else CONFIG.proxy),
                     ) as get_resp:
                         return get_resp.status in (200, 206)
                 return False
-        except Exception:
+        except (asyncio.TimeoutError, Exception) as e:
+            logging.getLogger(__name__).debug(f"Availability check error for {url}: {e}")
             return False
         
     async def fetch_source(self, url: str) -> Tuple[str, List[ConfigResult]]:
@@ -1137,12 +1160,13 @@ class AsyncSourceFetcher:
             return url, []
         for attempt in range(CONFIG.max_retries):
             try:
+                import aiohttp  # type: ignore
                 timeout = aiohttp.ClientTimeout(total=CONFIG.request_timeout)
                 async with self.session.get(
                     url,
                     headers=CONFIG.headers,
                     timeout=timeout,
-                    proxy=CONFIG.proxy,
+                    proxy=(self.config.network.proxy if (self.config and getattr(self.config, 'network', None)) else CONFIG.proxy),
                 ) as response:
                     if response.status != 200:
                         continue
@@ -1151,6 +1175,10 @@ class AsyncSourceFetcher:
                     content_type = (response.headers.get('Content-Type') or '').lower()
                     content_length = int(response.headers.get('Content-Length') or 0)
                     config_results: List[ConfigResult] = []
+                    try:
+                        url_testing_enabled = bool(self.processor.config.testing.enable_url_testing) if (hasattr(self.processor, 'config') and self.processor.config and getattr(self.processor.config, 'testing', None)) else bool(CONFIG.enable_url_testing)
+                    except Exception:
+                        url_testing_enabled = bool(CONFIG.enable_url_testing)
 
                     async def handle_line(line: str) -> None:
                         nonlocal config_results
@@ -1160,7 +1188,7 @@ class AsyncSourceFetcher:
                             host, port = self.processor.extract_host_port(line)
                             protocol = self.processor.categorize_protocol(line)
                             res = ConfigResult(config=line, protocol=protocol, host=host, port=port, source_url=url)
-                            if CONFIG.enable_url_testing and host and port:
+                            if url_testing_enabled and host and port:
                                 ping_time, hs = await self.processor.test_connection(host, port, protocol)
                                 res.ping_time = ping_time
                                 res.handshake_ok = hs
@@ -1202,7 +1230,8 @@ class AsyncSourceFetcher:
                             await handle_line(line)
                         return url, config_results
                     
-            except Exception:
+            except (asyncio.TimeoutError, Exception) as e:
+                logging.getLogger(__name__).debug(f"Fetch error for {url} (attempt {attempt+1}): {e}")
                 if attempt < CONFIG.max_retries - 1:
                     # Use a capped and jittered delay to reduce tail latency
                     await asyncio.sleep(min(3, 1.5 + random.random()))
@@ -1216,14 +1245,72 @@ class AsyncSourceFetcher:
 class UltimateVPNMerger:
     """VPN merger with unified functionality and comprehensive testing."""
     
-    def __init__(self):
+    def __init__(self, config=None):
+        self.config = config
+        # Lazy imports for new modular components to avoid breaking runtime
+        try:
+            from vpn_merger.storage.database import VPNDatabase  # type: ignore
+            self.db = VPNDatabase()
+        except Exception:
+            self.db = None
+
+        # Optional dashboard manager for real-time status updates
+        try:
+            from vpn_merger.api.dashboard import DashboardManager  # type: ignore
+            self.dashboard_manager = DashboardManager()
+        except Exception:
+            self.dashboard_manager = None
+
+        # Optional Prometheus metrics
+        try:
+            from vpn_merger.monitoring.metrics import VPNMergerMetrics  # type: ignore
+            enable_metrics = True
+            if self.config and getattr(self.config, 'monitoring', None):
+                enable_metrics = bool(self.config.monitoring.enable_metrics)
+            self.metrics = VPNMergerMetrics(port=(self.config.monitoring.metrics_port if (self.config and getattr(self.config, 'monitoring', None)) else 8001)) if enable_metrics else None
+        except Exception:
+            self.metrics = None
+
+    def _maybe_start_dashboard(self) -> None:
+        try:
+            enable_dash = bool(self.config.monitoring.enable_dashboard) if (self.config and getattr(self.config, 'monitoring', None)) else False
+            port = int(self.config.monitoring.dashboard_port) if (self.config and getattr(self.config, 'monitoring', None)) else 8000
+        except Exception:
+            enable_dash = False
+            port = 8000
+        if enable_dash:
+            try:
+                import uvicorn  # type: ignore
+                from vpn_merger.api.dashboard import app as dashboard_app  # type: ignore
+                import threading
+                def run_server():
+                    uvicorn.run(dashboard_app, host="0.0.0.0", port=port, log_level="error")
+                t = threading.Thread(target=run_server, daemon=True)
+                t.start()
+            except Exception:
+                pass
+
         self.sources = UnifiedSources.get_all_sources()
-        if CONFIG.shuffle_sources:
+        try:
+            should_shuffle = bool(self.config.processing.shuffle_sources) if (self.config and getattr(self.config, 'processing', None)) else bool(CONFIG.shuffle_sources)
+        except Exception:
+            should_shuffle = bool(CONFIG.shuffle_sources)
+        if should_shuffle:
             random.shuffle(self.sources)
-        self.processor = EnhancedConfigProcessor()
-        self.fetcher = AsyncSourceFetcher(self.processor)
+        try:
+            from vpn_merger.core.protocol_handler import EnhancedConfigProcessor  # type: ignore
+            from vpn_merger.services.fetcher_service import AsyncSourceFetcher  # type: ignore
+            self.processor = EnhancedConfigProcessor()
+            self.fetcher = AsyncSourceFetcher(self.processor)
+        except Exception:
+            self.processor = EnhancedConfigProcessor()
+            self.fetcher = AsyncSourceFetcher(self.processor)
         self.batch_counter = 0
-        self.next_batch_threshold = CONFIG.batch_size if CONFIG.batch_size else float('inf')
+        try:
+            batch_size_value = int(self.config.processing.batch_size) if (self.config and getattr(self.config, 'processing', None)) else int(CONFIG.batch_size)
+        except Exception:
+            batch_size_value = int(CONFIG.batch_size)
+        self.next_batch_threshold = batch_size_value if batch_size_value else float('inf')
         self.start_time = 0.0
         self.available_sources: List[str] = []
         self.sources_with_configs: List[str] = []
@@ -1234,7 +1321,7 @@ class UltimateVPNMerger:
         self.last_processed_index = 0
         self.last_saved_count = 0
         self._batch_lock = asyncio.Lock()
-        self._shutdown_event = GLOBAL_SHUTDOWN_EVENT
+        self._shutdown_event = GlobalState.get_shutdown_event()
 
     def _load_existing_results(self, path: str) -> List[ConfigResult]:
         """Load previously saved configs from a raw or base64 file."""
@@ -1269,14 +1356,27 @@ class UltimateVPNMerger:
         
     async def run(self) -> None:
         """Execute the complete unified merging process."""
+        # Optionally start dashboard server in the background
+        try:
+            self._maybe_start_dashboard()
+        except Exception:
+            pass
         print("🚀 VPN Subscription Merger - Final Unified & Polished Edition")
         print("=" * 85)
         print(f"📊 Total unified sources: {len(self.sources)}")
         print(f"🇮🇷 Iranian priority: {len(UnifiedSources.IRANIAN_PRIORITY)}")
         print(f"🌍 International major: {len(UnifiedSources.INTERNATIONAL_MAJOR)}")
         print(f"📦 Comprehensive batch: {len(UnifiedSources.COMPREHENSIVE_BATCH)}")
-        print(f"🔧 URL Testing: {'Enabled' if CONFIG.enable_url_testing else 'Disabled'}")
-        print(f"📈 Smart Sorting: {'Enabled' if CONFIG.enable_sorting else 'Disabled'}")
+        try:
+            url_testing_enabled = bool(self.config.testing.enable_url_testing) if (self.config and getattr(self.config, 'testing', None)) else bool(CONFIG.enable_url_testing)
+        except Exception:
+            url_testing_enabled = bool(CONFIG.enable_url_testing)
+        try:
+            sorting_enabled = bool(self.config.testing.enable_sorting) if (self.config and getattr(self.config, 'testing', None)) else bool(CONFIG.enable_sorting)
+        except Exception:
+            sorting_enabled = bool(CONFIG.enable_sorting)
+        print(f"🔧 URL Testing: {'Enabled' if url_testing_enabled else 'Disabled'}")
+        print(f"📈 Smart Sorting: {'Enabled' if sorting_enabled else 'Disabled'}")
         print()
         
         start_time = time.time()
@@ -1300,7 +1400,7 @@ class UltimateVPNMerger:
         unique_results = self._deduplicate_config_results(self.all_results)
         
         # Step 4: Sort by performance if enabled
-        if CONFIG.enable_sorting:
+        if sorting_enabled:
             print(f"\n📊 [4/6] Sorting {len(unique_results):,} configs by performance...")
             unique_results = self._sort_by_performance(unique_results)
         else:
@@ -1310,19 +1410,31 @@ class UltimateVPNMerger:
             unique_results = unique_results[:CONFIG.top_n]
             print(f"   🔝 Keeping top {CONFIG.top_n} configs")
 
-        if CONFIG.max_ping_ms is not None and CONFIG.enable_url_testing:
+        try:
+            max_ping_ms_value = int(self.config.testing.max_ping_ms) if (self.config and getattr(self.config, 'testing', None) and self.config.testing.max_ping_ms is not None) else None
+        except Exception:
+            max_ping_ms_value = None
+        try:
+            url_testing_enabled = bool(self.config.testing.enable_url_testing) if (self.config and getattr(self.config, 'testing', None)) else bool(CONFIG.enable_url_testing)
+        except Exception:
+            url_testing_enabled = bool(CONFIG.enable_url_testing)
+        if max_ping_ms_value is not None and url_testing_enabled:
             before = len(unique_results)
             unique_results = [r for r in unique_results
-                              if r.ping_time is not None and r.ping_time * 1000 <= CONFIG.max_ping_ms]
+                              if r.ping_time is not None and r.ping_time * 1000 <= max_ping_ms_value]
             removed = before - len(unique_results)
-            print(f"   ⏱️  Removed {removed} configs over {CONFIG.max_ping_ms} ms")
+            print(f"   ⏱️  Removed {removed} configs over {max_ping_ms_value} ms")
 
         before_filter = len(unique_results)
         unique_results = self._filter_reachable_results(unique_results)
         if before_filter != len(unique_results):
             print(f"   🚫 Filtered out {before_filter - len(unique_results)} unreachable/untested configs")
 
-        if CONFIG.app_tests:
+        try:
+            app_tests_value = list(self.config.testing.app_tests) if (self.config and getattr(self.config, 'testing', None) and self.config.testing.app_tests) else (CONFIG.app_tests if CONFIG.app_tests else None)
+        except Exception:
+            app_tests_value = CONFIG.app_tests if CONFIG.app_tests else None
+        if app_tests_value:
             await self._run_app_tests(unique_results)
 
         # Step 5: Analyze protocols and performance
@@ -1416,6 +1528,43 @@ class UltimateVPNMerger:
                     pbar.update(1)
 
                     self.all_results.extend(results)
+                    # Persist, record metrics, and broadcast incrementally
+                    if results:
+                        if self.db is not None:
+                            for result in results:
+                                try:
+                                    self.db.store_config(result)
+                                except Exception:
+                                    pass
+                        if self.metrics is not None:
+                            try:
+                                self.metrics.record_source_processed(True)
+                                for result in results:
+                                    try:
+                                        self.metrics.record_config_found(getattr(result, 'protocol', 'Unknown'), 'unknown')
+                                        if getattr(result, 'ping_time', None) is not None:
+                                            self.metrics.record_connection_test(float(result.ping_time), bool(getattr(result, 'is_reachable', False)))
+                                    except Exception:
+                                        pass
+                            except Exception:
+                                pass
+                        if self.dashboard_manager is not None:
+                            for result in results:
+                                try:
+                                    ping_ms = result.ping_time * 1000 if getattr(result, 'ping_time', None) else None
+                                    asyncio.create_task(self.dashboard_manager.broadcast_status({
+                                        'total_configs': len(self.all_results),
+                                        'active_sources': successful_sources,
+                                        'success_rate': 0,
+                                        'new_config': {
+                                            'protocol': getattr(result, 'protocol', ''),
+                                            'host': getattr(result, 'host', ''),
+                                            'port': getattr(result, 'port', None),
+                                            'ping_ms': ping_ms
+                                        }
+                                    }))
+                                except Exception:
+                                    pass
                     if results:
                         successful_sources += 1
                         self.sources_with_configs.append(url)
@@ -1465,7 +1614,11 @@ class UltimateVPNMerger:
                 self.saved_hashes.add(h)
                 self.cumulative_unique.append(r)
 
-        if CONFIG.strict_batch:
+        try:
+            strict_batch_enabled = bool(self.config.processing.strict_batch) if (self.config and getattr(self.config, 'processing', None)) else bool(CONFIG.strict_batch)
+        except Exception:
+            strict_batch_enabled = bool(CONFIG.strict_batch)
+        if strict_batch_enabled:
             while len(self.cumulative_unique) - self.last_saved_count >= CONFIG.batch_size:
                 self.batch_counter += 1
                 if CONFIG.cumulative_batches:
@@ -1476,12 +1629,20 @@ class UltimateVPNMerger:
                     batch_results = self.cumulative_unique[start:end]
                     self.last_saved_count = end
 
-                if CONFIG.enable_sorting:
+                try:
+                    sorting_enabled = bool(self.config.testing.enable_sorting) if (self.config and getattr(self.config, 'testing', None)) else bool(CONFIG.enable_sorting)
+                except Exception:
+                    sorting_enabled = bool(CONFIG.enable_sorting)
+                if sorting_enabled:
                     batch_results = self._sort_by_performance(batch_results)
                 if CONFIG.top_n > 0:
                     batch_results = batch_results[:CONFIG.top_n]
                 batch_results = self._filter_reachable_results(batch_results)
-                if CONFIG.app_tests:
+                try:
+                    app_tests_value = list(self.config.testing.app_tests) if (self.config and getattr(self.config, 'testing', None) and self.config.testing.app_tests) else (CONFIG.app_tests if CONFIG.app_tests else None)
+                except Exception:
+                    app_tests_value = CONFIG.app_tests if CONFIG.app_tests else None
+                if app_tests_value:
                     await self._run_app_tests(batch_results)
 
                 stats = self._analyze_results(batch_results, self.sources_with_configs)
@@ -1490,7 +1651,11 @@ class UltimateVPNMerger:
                 cumulative_stats = self._analyze_results(self.cumulative_unique, self.sources_with_configs)
                 await self._generate_comprehensive_outputs(self.cumulative_unique, cumulative_stats, self.start_time, prefix="cumulative_")
 
-                if CONFIG.threshold > 0 and len(self.cumulative_unique) >= CONFIG.threshold:
+                try:
+                    threshold_value = int(self.config.processing.threshold) if (self.config and getattr(self.config, 'processing', None)) else int(CONFIG.threshold)
+                except Exception:
+                    threshold_value = int(CONFIG.threshold)
+                if threshold_value > 0 and len(self.cumulative_unique) >= threshold_value:
                     print(f"\n⏹️  Threshold of {CONFIG.threshold} configs reached. Stopping early.")
                     self.stop_fetching = True
                     break
@@ -1503,12 +1668,16 @@ class UltimateVPNMerger:
                     batch_results = self.cumulative_unique[self.last_saved_count:]
                     self.last_saved_count = len(self.cumulative_unique)
 
-                if CONFIG.enable_sorting:
+                if sorting_enabled:
                     batch_results = self._sort_by_performance(batch_results)
                 if CONFIG.top_n > 0:
                     batch_results = batch_results[:CONFIG.top_n]
                 batch_results = self._filter_reachable_results(batch_results)
-                if CONFIG.app_tests:
+                try:
+                    app_tests_value = list(self.config.testing.app_tests) if (self.config and getattr(self.config, 'testing', None) and self.config.testing.app_tests) else (CONFIG.app_tests if CONFIG.app_tests else None)
+                except Exception:
+                    app_tests_value = CONFIG.app_tests if CONFIG.app_tests else None
+                if app_tests_value:
                     await self._run_app_tests(batch_results)
 
                 stats = self._analyze_results(batch_results, self.sources_with_configs)
@@ -1517,9 +1686,13 @@ class UltimateVPNMerger:
                 cumulative_stats = self._analyze_results(self.cumulative_unique, self.sources_with_configs)
                 await self._generate_comprehensive_outputs(self.cumulative_unique, cumulative_stats, self.start_time, prefix="cumulative_")
 
-                self.next_batch_threshold += CONFIG.batch_size
+                try:
+                    local_batch_size_value = int(self.config.processing.batch_size) if (self.config and getattr(self.config, 'processing', None)) else int(CONFIG.batch_size)
+                except Exception:
+                    local_batch_size_value = int(CONFIG.batch_size)
+                self.next_batch_threshold += local_batch_size_value
 
-                if CONFIG.threshold > 0 and len(self.cumulative_unique) >= CONFIG.threshold:
+                if threshold_value > 0 and len(self.cumulative_unique) >= threshold_value:
                     print(f"\n⏹️  Threshold of {CONFIG.threshold} configs reached. Stopping early.")
                     self.stop_fetching = True
     
@@ -1546,8 +1719,36 @@ class UltimateVPNMerger:
         return unique_results
     
     def _sort_by_performance(self, results: List[ConfigResult]) -> List[ConfigResult]:
-        """Sort results by connection performance and protocol preference."""
-        # Protocol priority ranking
+        """Sort results by connection performance and protocol preference.
+
+        If available, compute advanced quality metrics and sort by quality_score.
+        """
+        # Attempt advanced quality scoring
+        used_quality = False
+        try:
+            from vpn_merger.core.quality_scorer import AdvancedQualityScorer  # type: ignore
+            scorer = AdvancedQualityScorer()
+            for r in results:
+                history_data = None
+                try:
+                    # Optional hook for future: fetch history from DB
+                    history_data = None
+                except Exception:
+                    history_data = None
+                qm = scorer.calculate_quality_metrics(r, history_data)
+                setattr(r, 'quality_score', qm.composite_score)
+                setattr(r, 'quality_metrics', qm)
+            results = sorted(results, key=lambda x: getattr(x, 'quality_score', 0.0), reverse=True)
+            used_quality = True
+        except Exception:
+            used_quality = False
+
+        if used_quality:
+            reachable_count = sum(1 for r in results if getattr(r, 'is_reachable', False))
+            print(f"   🚀 Sorted by quality score; reachable: {reachable_count:,}")
+            return results
+
+        # Fallback: Protocol priority ranking
         protocol_priority = {
             "VLESS": 1, "VMess": 2, "Reality": 3, "Hysteria2": 4,
             "Trojan": 5, "Shadowsocks": 6, "TUIC": 7, "Hysteria": 8,
@@ -1581,10 +1782,14 @@ class UltimateVPNMerger:
 
     async def _run_app_tests(self, results: List[ConfigResult]) -> None:
         """Run service connectivity tests on the fastest configs."""
-        if not CONFIG.app_tests:
+        try:
+            app_tests_value = list(self.config.testing.app_tests) if (self.config and getattr(self.config, 'testing', None) and self.config.testing.app_tests) else None
+        except Exception:
+            app_tests_value = CONFIG.app_tests
+        if not app_tests_value:
             return
 
-        test_urls = {name: APP_TEST_URLS.get(name) for name in CONFIG.app_tests}
+        test_urls = {name: APP_TEST_URLS.get(name) for name in app_tests_value}
         test_urls = {k: v for k, v in test_urls.items() if v}
         if not test_urls:
             return
@@ -1593,15 +1798,21 @@ class UltimateVPNMerger:
         if not top:
             return
 
+        import aiohttp  # type: ignore
         timeout = aiohttp.ClientTimeout(total=10)
-        async with aiohttp.ClientSession(timeout=timeout, proxy=CONFIG.proxy) as session:
+        try:
+            proxy_value = self.config.network.proxy if (self.config and getattr(self.config, 'network', None)) else CONFIG.proxy
+        except Exception:
+            proxy_value = CONFIG.proxy
+        async with aiohttp.ClientSession(timeout=timeout, proxy=proxy_value) as session:
             for res in top:
                 for name, url in test_urls.items():
                     ok = False
                     try:
                         async with session.get(url) as resp:
                             ok = resp.status == 200
-                    except Exception:
+                    except (asyncio.TimeoutError, aiohttp.ClientError) as e:
+                        logging.getLogger(__name__).debug(f"App test {name} failed via {url}: {e}")
                         ok = False
                     res.app_test_results[name] = ok
     
@@ -1661,57 +1872,83 @@ class UltimateVPNMerger:
     async def _generate_comprehensive_outputs(self, results: List[ConfigResult], stats: Dict, start_time: float, prefix: str = "") -> None:
         """Generate comprehensive output files with all formats."""
         # Create output directory
-        output_dir = Path(CONFIG.output_dir)
+        output_dir_value = None
+        if getattr(self, 'config', None) and getattr(self.config, 'output', None):
+            try:
+                output_dir_value = str(self.config.output.output_dir)
+            except Exception:
+                output_dir_value = None
+        output_dir = Path(output_dir_value or CONFIG.output_dir)
         output_dir.mkdir(exist_ok=True)
         
         # Extract configs for traditional outputs
         configs = [result.config.strip() for result in results]
+
+        # Determine enabled output formats from new config if present
+        try:
+            enabled_formats = set([str(x).lower() for x in (self.config.output.output_formats or [])]) if (self.config and getattr(self.config, 'output', None)) else set()
+            write_csv_enabled = bool(self.config.output.write_csv) if (self.config and getattr(self.config, 'output', None)) else True
+        except Exception:
+            enabled_formats = set()
+            write_csv_enabled = True
+
+        # Optional: use lightweight converter for simple formats
+        converter_outputs = {}
+        try:
+            from vpn_merger.services.converter_service import MultiFormatConverter  # type: ignore
+            converter = MultiFormatConverter()
+            converter_outputs = converter.convert_to_all_formats(configs)
+        except Exception:
+            converter_outputs = {}
         
         # Raw text output
-        raw_file = output_dir / f"{prefix}vpn_subscription_raw.txt"
-        tmp_raw = raw_file.with_suffix('.tmp')
-        tmp_raw.write_text("\n".join(configs), encoding="utf-8")
-        tmp_raw.replace(raw_file)
+        if not enabled_formats or 'raw' in enabled_formats:
+            raw_file = output_dir / f"{prefix}vpn_subscription_raw.txt"
+            tmp_raw = raw_file.with_suffix('.tmp')
+            tmp_raw.write_text("\n".join(configs), encoding="utf-8")
+            tmp_raw.replace(raw_file)
         
         # Base64 output
-        base64_content = base64.b64encode("\n".join(configs).encode("utf-8")).decode("utf-8")
-        base64_file = output_dir / f"{prefix}vpn_subscription_base64.txt"
-        tmp_base64 = base64_file.with_suffix('.tmp')
-        tmp_base64.write_text(base64_content, encoding="utf-8")
-        tmp_base64.replace(base64_file)
+        if not enabled_formats or 'base64' in enabled_formats:
+            base64_content = converter_outputs.get('base64') or base64.b64encode("\n".join(configs).encode("utf-8")).decode("utf-8")
+            base64_file = output_dir / f"{prefix}vpn_subscription_base64.txt"
+            tmp_base64 = base64_file.with_suffix('.tmp')
+            tmp_base64.write_text(base64_content, encoding="utf-8")
+            tmp_base64.replace(base64_file)
         
         # Enhanced CSV with comprehensive performance data
-        csv_file = output_dir / f"{prefix}vpn_detailed.csv"
-        tmp_csv = csv_file.with_suffix('.tmp')
-        with open(tmp_csv, 'w', newline='', encoding='utf-8') as f:
-            writer = csv.writer(f)
-            headers = ['Config', 'Protocol', 'Host', 'Port', 'Ping_MS', 'Reachable', 'Source']
-            if CONFIG.full_test:
-                headers.append('Handshake')
-            if CONFIG.app_tests:
-                for name in CONFIG.app_tests:
-                    headers.append(f"{name.capitalize()}_OK")
-            writer.writerow(headers)
-            for result in results:
-                ping_ms = round(result.ping_time * 1000, 2) if result.ping_time else None
-                row = [
-                    result.config, result.protocol, result.host, result.port,
-                    ping_ms, result.is_reachable, result.source_url
-                ]
+        if write_csv_enabled:
+            csv_file = output_dir / f"{prefix}vpn_detailed.csv"
+            tmp_csv = csv_file.with_suffix('.tmp')
+            with open(tmp_csv, 'w', newline='', encoding='utf-8') as f:
+                writer = csv.writer(f)
+                headers = ['Config', 'Protocol', 'Host', 'Port', 'Ping_MS', 'Reachable', 'Source']
                 if CONFIG.full_test:
-                    if result.handshake_ok is None:
-                        row.append('')
-                    else:
-                        row.append('OK' if result.handshake_ok else 'FAIL')
+                    headers.append('Handshake')
                 if CONFIG.app_tests:
                     for name in CONFIG.app_tests:
-                        val = result.app_test_results.get(name)
-                        if val is None:
+                        headers.append(f"{name.capitalize()}_OK")
+                writer.writerow(headers)
+                for result in results:
+                    ping_ms = round(result.ping_time * 1000, 2) if result.ping_time else None
+                    row = [
+                        result.config, result.protocol, result.host, result.port,
+                        ping_ms, result.is_reachable, result.source_url
+                    ]
+                    if CONFIG.full_test:
+                        if result.handshake_ok is None:
                             row.append('')
                         else:
-                            row.append('OK' if val else 'FAIL')
-                writer.writerow(row)
-        tmp_csv.replace(csv_file)
+                            row.append('OK' if result.handshake_ok else 'FAIL')
+                    if CONFIG.app_tests:
+                        for name in CONFIG.app_tests:
+                            val = result.app_test_results.get(name)
+                            if val is None:
+                                row.append('')
+                            else:
+                                row.append('OK' if val else 'FAIL')
+                    writer.writerow(row)
+            tmp_csv.replace(csv_file)
         
         # Comprehensive JSON report
         report = {
@@ -1763,6 +2000,13 @@ class UltimateVPNMerger:
         tmp_report.write_text(json.dumps(report, indent=2, ensure_ascii=False), encoding="utf-8")
         tmp_report.replace(report_file)
 
+        # Optional simple configs JSON via converter
+        if 'json' in enabled_formats and converter_outputs.get('json'):
+            simple_json_file = output_dir / f"{prefix}configs.json"
+            tmp_simple = simple_json_file.with_suffix('.tmp')
+            tmp_simple.write_text(converter_outputs['json'], encoding='utf-8')
+            tmp_simple.replace(simple_json_file)
+
         # Simple outbounds JSON
         outbounds = []
         for idx, r in enumerate(results):
@@ -1773,19 +2017,41 @@ class UltimateVPNMerger:
                 "server_port": r.port or 0,
                 "raw": r.config
             }
-            if CONFIG.tls_fragment_size:
+            try:
+                tls_size = int(self.config.advanced.tls_fragment_size) if (self.config and getattr(self.config, 'advanced', None) and self.config.advanced.tls_fragment_size) else None
+                tls_sleep = int(self.config.advanced.tls_fragment_sleep) if (self.config and getattr(self.config, 'advanced', None) and self.config.advanced.tls_fragment_sleep) else None
+            except Exception:
+                tls_size = CONFIG.tls_fragment_size
+                tls_sleep = CONFIG.tls_fragment_sleep
+            if tls_size:
                 ob["tls_fragment"] = {
-                    "size": CONFIG.tls_fragment_size,
-                    "sleep": CONFIG.tls_fragment_sleep
+                    "size": tls_size,
+                    "sleep": tls_sleep
                 }
-            if CONFIG.mux_enable:
+            try:
+                mux_enabled = bool(self.config.advanced.mux_enable) if (self.config and getattr(self.config, 'advanced', None)) else bool(CONFIG.mux_enable)
+                mux_protocol = (self.config.advanced.mux_protocol if (self.config and getattr(self.config, 'advanced', None)) else CONFIG.mux_protocol)
+                mux_max_connections = int(self.config.advanced.mux_max_connections) if (self.config and getattr(self.config, 'advanced', None)) else int(CONFIG.mux_max_connections)
+                mux_min_streams = int(self.config.advanced.mux_min_streams) if (self.config and getattr(self.config, 'advanced', None)) else int(CONFIG.mux_min_streams)
+                mux_max_streams = int(self.config.advanced.mux_max_streams) if (self.config and getattr(self.config, 'advanced', None)) else int(CONFIG.mux_max_streams)
+                mux_padding = bool(self.config.advanced.mux_padding) if (self.config and getattr(self.config, 'advanced', None)) else bool(CONFIG.mux_padding)
+                mux_brutal = bool(self.config.advanced.mux_brutal) if (self.config and getattr(self.config, 'advanced', None)) else bool(CONFIG.mux_brutal)
+            except Exception:
+                mux_enabled = bool(CONFIG.mux_enable)
+                mux_protocol = CONFIG.mux_protocol
+                mux_max_connections = int(CONFIG.mux_max_connections)
+                mux_min_streams = int(CONFIG.mux_min_streams)
+                mux_max_streams = int(CONFIG.mux_max_streams)
+                mux_padding = bool(CONFIG.mux_padding)
+                mux_brutal = bool(CONFIG.mux_brutal)
+            if mux_enabled:
                 ob["multiplex"] = {
-                    "protocol": CONFIG.mux_protocol,
-                    "max_connections": CONFIG.mux_max_connections,
-                    "min_streams": CONFIG.mux_min_streams,
-                    "max_streams": CONFIG.mux_max_streams,
-                    "padding": CONFIG.mux_padding,
-                    "brutal": CONFIG.mux_brutal
+                    "protocol": mux_protocol,
+                    "max_connections": mux_max_connections,
+                    "min_streams": mux_min_streams,
+                    "max_streams": mux_max_streams,
+                    "padding": mux_padding,
+                    "brutal": mux_brutal
                 }
             outbounds.append(ob)
 
@@ -1794,7 +2060,11 @@ class UltimateVPNMerger:
         tmp_singbox.write_text(json.dumps({"outbounds": outbounds}, indent=2, ensure_ascii=False), encoding="utf-8")
         tmp_singbox.replace(singbox_file)
 
-        if CONFIG.output_clash:
+        try:
+            output_clash_enabled = bool(self.config.output.output_clash) if (self.config and getattr(self.config, 'output', None)) else bool(CONFIG.output_clash)
+        except Exception:
+            output_clash_enabled = bool(CONFIG.output_clash)
+        if output_clash_enabled:
             try:
                 import yaml
             except ImportError:
@@ -1821,7 +2091,13 @@ class UltimateVPNMerger:
         
         top_protocol = max(stats['protocol_stats'].items(), key=lambda x: x[1])[0]
         print(f"🏆 Top protocol: {top_protocol}")
-        print(f"📁 Output directory: ./{CONFIG.output_dir}/")
+        try:
+            if getattr(self, 'config', None) and getattr(self.config, 'output', None):
+                print(f"📁 Output directory: ./{self.config.output.output_dir}/")
+            else:
+                print(f"📁 Output directory: ./{CONFIG.output_dir}/")
+        except Exception:
+            print(f"📁 Output directory: ./{CONFIG.output_dir}/")
         print("\n🔗 Usage Instructions:")
         print("   • Copy Base64 file content as subscription URL")
         print("   • Use CSV file for detailed analysis and filtering")
@@ -1833,10 +2109,10 @@ class UltimateVPNMerger:
 # EVENT LOOP DETECTION AND MAIN EXECUTION
 # ============================================================================
 
-async def main_async():
+async def main_async(config=None):
     """Main async function."""
     try:
-        merger = UltimateVPNMerger()
+        merger = UltimateVPNMerger(config=config)
         await merger.run()
     except KeyboardInterrupt:
         print("\n⚠️  Process interrupted by user")
@@ -1845,7 +2121,7 @@ async def main_async():
         import traceback
         traceback.print_exc()
 
-def detect_and_run():
+def detect_and_run(config=None):
     """Detect event loop and run appropriately."""
     try:
         # Try to get the running loop
@@ -1854,7 +2130,7 @@ def detect_and_run():
         print("📝 Creating task in existing loop...")
         
         # We're in an async environment (like Jupyter)
-        task = asyncio.create_task(main_async())
+        task = asyncio.create_task(main_async(config=config))
         print("✅ Task created successfully!")
         print("📋 Use 'await task' to wait for completion in Jupyter")
         return task
@@ -1863,7 +2139,7 @@ def detect_and_run():
         # No running loop - we can use asyncio.run()
         print("🔄 No existing event loop detected")
         print("📝 Using asyncio.run()...")
-        return asyncio.run(main_async())
+        return asyncio.run(main_async(config=config))
 
 # Alternative for Jupyter/async environments
 async def run_in_jupyter():
@@ -1892,6 +2168,8 @@ def main():
     import argparse
 
     parser = argparse.ArgumentParser(description="VPN Merger")
+    parser.add_argument("--config", type=str, default=None,
+                        help="Path to YAML/JSON config file (optional)")
     parser.add_argument(
         "--batch-size",
         type=int,
@@ -1981,6 +2259,7 @@ def main():
         resolved_output.relative_to(allowed_base)
     except ValueError:
         parser.error(f"--output-dir must be within {allowed_base}")
+    # Update legacy CONFIG output_dir (new config injection handled elsewhere)
     CONFIG.output_dir = str(resolved_output)
     CONFIG.test_timeout = max(0.1, args.test_timeout)
     CONFIG.concurrent_limit = max(1, args.concurrent_limit)
@@ -2016,6 +2295,24 @@ def main():
                             format='%(asctime)s %(levelname)s:%(message)s')
 
     print("🔧 VPN Merger - Checking environment...")
+    # Check dependencies at runtime
+    check_dependencies()
+    # Apply nest_asyncio only after deps check
+    try:
+        import nest_asyncio
+        nest_asyncio.apply()
+    except Exception:
+        pass
+
+    # Optional new config loading
+    config_obj = None
+    if args.config:
+        try:
+            from vpn_merger.core.config_manager import ConfigManager  # type: ignore
+            cm = ConfigManager()
+            config_obj = cm.load_config(Path(args.config))
+        except Exception as e:
+            print(f"⚠️  Failed to load config from {args.config}: {e}")
 
     # Graceful shutdown handling
     shutdown_flag = {"set": False}
@@ -2025,7 +2322,7 @@ def main():
             shutdown_flag["set"] = True
             print(f"\n🛑 Received signal {signum}, finishing current tasks and shutting down...")
             try:
-                GLOBAL_SHUTDOWN_EVENT.set()
+                GlobalState.get_shutdown_event().set()
             except Exception:
                 pass
 
@@ -2037,7 +2334,7 @@ def main():
                 pass
 
     try:
-        return detect_and_run()
+        return detect_and_run(config=config_obj)
     except Exception as e:
         print(f"❌ Error: {e}")
         print("\n📋 Alternative execution methods:")

@@ -1,3 +1,4 @@
+
 # VPN Subscription Merger 🚀
 
 [GitHub Actions](https://github.com/AmirrezaFarnamTaheri/CleanConfigs-SubMerger/actions)
@@ -10,12 +11,14 @@ This guide is designed for **everyone**, from absolute beginners with no coding 
 ### ⚡ Quick Start
 
 1. Install **Python 3.8+** and clone this repository.
-2. Run `pip install -r requirements.txt` in the project folder. This installs required dependencies.
+2. Run `pip install -r requirements.txt` in the project folder (install required dependencies).
 3. Execute `python vpn_merger.py` and wait for the `output` directory.
 4. *(Optional)* pass extra flags like `--max-ping 200`, `--concurrent-limit 10`, or `--proxy socks5://127.0.0.1:9050` to suit your connection.
 5. Import the `output/vpn_subscription_base64.txt` link into your VPN app or load `vpn_singbox.json` in clients like sing-box.
 6. For non-standard protocols like HTTP Injector or ArgoVPN see [`advanced_methods/README_advanced.md`](advanced_methods/README_advanced.md).
 7. To customize main sources, create `config/sources.yaml` with your own lists. For advanced merger tools, edit `sources.json`.
+
+See `docs/` for detailed installation and usage guides.
 
 ### 🎓 From Zero to Hero
 
@@ -239,8 +242,8 @@ If you don't have it, download from [python.org](https://www.python.org/download
 **Step 4: Run the Script**
 In the same terminal, run:
 
-```bash
-python vpn_merger.py
+```sh
+python vpn_merger.pya
 ```
 
 After 5-15 minutes, the `output` folder will appear with your files. To use the output, you'll need to upload the content of `vpn_subscription_base64.txt` somewhere (like a private [GitHub Gist](https://gist.github.com/)) and use that file's "Raw" URL.
@@ -381,38 +384,43 @@ Run `python vpn_merger.py --help` to see all options. Important flags include:
 #### Examples for Key Options
 
 * **Using a Proxy**
-  ```bash
+```sh
   python vpn_merger.py --proxy socks5://127.0.0.1:9050
-  ```
+```
+
   Routes all downloads through a SOCKS5 proxy, handy when GitHub or Telegram are blocked.
 
 * **Full TLS Tests**
-  ```bash
+```sh
   python vpn_merger.py --full-test
-  ```
+```
+
   Performs a real handshake with each server for better accuracy.
 
 * **App-Level Tests**
-  ```bash
+```sh
   python vpn_merger.py --app-tests telegram,youtube
-  ```
+```
+
   Adds simple connectivity checks for these services. Results appear in the CSV output.
 
 * **Generate a Clash Config**
-  ```bash
+```sh
   python vpn_merger.py --output-clash
-  ```
+```
+
   Produces `clash.yaml` alongside the regular files.
 
 * **Custom Protocol Order**
-  ```bash
+```sh
   python vpn_merger.py --prefer-protocols "Reality,VLESS,VMess"
-  ```
+```
+
   Places Reality and VLESS nodes first in the list.
 
 Example:
 
-```bash
+```sh
 python vpn_merger.py --top-n 50 --full-test --proxy socks5://127.0.0.1:9050
 ```
 
@@ -438,7 +446,7 @@ latency.
 
 Example enabling all features:
 
-```bash
+```sh
 python vpn_merger.py --enable-mux --tls-fragment-size 150 --tls-fragment-sleep 15
 ```
 
@@ -486,7 +494,7 @@ If you already generated a subscription file, run `python vpn_retester.py <path>
 
 Example:
 
-```bash
+```sh
 python vpn_retester.py output/vpn_subscription_raw.txt \
   --include-protocols VLESS,REALITY --max-ping 250 \
   --concurrent-limit 20 --test-timeout 3 --output-dir retested --no-base64
@@ -515,7 +523,7 @@ For merging HTTP Injector, ArgoVPN or generic tunnel configurations see the deta
 
 The tests expect the same third‑party packages used by the main scripts. Install them before running `pytest`:
 
-```bash
+```sh
 pip install -r requirements.txt -r tests/requirements.txt
 pytest -q
 ```
@@ -523,3 +531,4 @@ pytest -q
 ## License
 
 This project is licensed under the [MIT License](LICENSE). See the LICENSE file for the full text.
+

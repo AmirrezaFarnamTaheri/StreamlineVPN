@@ -1,0 +1,16 @@
+version: '3.8'
+services:
+  vpn-merger:
+    build: .
+    ports:
+      - "8000:8000"
+      - "8001:8001"
+    volumes:
+      - ./output:/app/output
+      - ./config:/app/config
+    environment:
+      - VPN_MERGER_MONITORING__ENABLE_DASHBOARD=true
+      - VPN_MERGER_MONITORING__ENABLE_METRICS=true
+    restart: unless-stopped
+
+
