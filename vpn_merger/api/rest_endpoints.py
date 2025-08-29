@@ -1,4 +1,4 @@
-from fastapi import FastAPI, Request, HTTPException
+from fastapi import FastAPI, Request, HTTPException, Depends
 from fastapi.routing import APIRouter
 from fastapi.responses import PlainTextResponse, JSONResponse
 import time
@@ -27,6 +27,15 @@ def _allow(req: Request) -> bool:
     hist.append(now)
     return True
 
+def _check_token(req: Request):
+    import os
+    token = os.environ.get("API_TOKEN")
+    if not token:
+        return
+    supplied = req.headers.get("x-api-token") or req.query_params.get("token")
+    if supplied != token:
+        raise HTTPException(status_code=401, detail="Unauthorized")
+
 
 @api.get("/health")
 def health() -> dict:
@@ -52,17 +61,17 @@ def _read_output(filename: str) -> str:
 
 
 @api.get("/sub/base64")
-def sub_base64() -> PlainTextResponse:
+def sub_base64(_: None = Depends(_check_token)) -> PlainTextResponse:
     return PlainTextResponse(_read_output("vpn_subscription_base64.txt"))
 
 
 @api.get("/sub/raw")
-def sub_raw() -> PlainTextResponse:
+def sub_raw(_: None = Depends(_check_token)) -> PlainTextResponse:
     return PlainTextResponse(_read_output("vpn_subscription_raw.txt"))
 
 
 @api.get("/sub/singbox")
-def sub_singbox() -> JSONResponse:
+def sub_singbox(_: None = Depends(_check_token)) -> JSONResponse:
     text = _read_output("vpn_singbox.json")
     try:
         obj = json.loads(text)
@@ -72,7 +81,7 @@ def sub_singbox() -> JSONResponse:
 
 
 @api.get("/sub/report")
-def sub_report() -> JSONResponse:
+def sub_report(_: None = Depends(_check_token)) -> JSONResponse:
     text = _read_output("vpn_report.json")
     try:
         obj = json.loads(text)

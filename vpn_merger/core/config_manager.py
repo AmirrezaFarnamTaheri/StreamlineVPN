@@ -30,6 +30,10 @@ class NetworkConfig(BaseModel):
     connect_timeout: float = Field(default=3.0, ge=0.1, le=30.0, description="TCP connection timeout")
     max_retries: int = Field(default=3, ge=1, le=10, description="Maximum retry attempts")
     proxy: Optional[str] = Field(default=None, description="HTTP/SOCKS proxy URL")
+    per_host_rate_per_sec: float = Field(default=5.0, ge=0.1, le=100.0, description="Tokens per second per host")
+    per_host_capacity: int = Field(default=10, ge=1, le=1000, description="Burst capacity per host")
+    backoff_base: float = Field(default=0.3, ge=0.05, le=5.0, description="Base for exponential backoff")
+    backoff_max_delay: float = Field(default=4.0, ge=0.1, le=60.0, description="Max backoff delay")
 
     @validator('proxy')
     def validate_proxy(cls, v):
@@ -69,6 +73,10 @@ class ProcessingConfig(BaseModel):
     cumulative_batches: bool = Field(default=False, description="Make batches cumulative")
     strict_batch: bool = Field(default=True, description="Strict batch size enforcement")
     shuffle_sources: bool = Field(default=False, description="Randomize source processing order")
+    use_bloom_dedupe: bool = Field(default=False, description="Enable Bloom filter based deduplication")
+    use_db_dedupe: bool = Field(default=False, description="Use database to dedupe configs across runs")
+    bloom_capacity: int = Field(default=1000000, ge=1000, le=10000000, description="Expected number of unique configs")
+    bloom_error_rate: float = Field(default=0.01, ge=1e-6, le=0.2, description="Desired false positive rate")
 
 
 class FilteringConfig(BaseModel):

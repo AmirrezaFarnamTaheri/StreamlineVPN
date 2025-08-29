@@ -14,6 +14,11 @@ try:
     app.include_router(rest_api)
 except Exception:
     pass
+try:
+    from .graphql import get_router  # type: ignore
+    app.include_router(get_router())
+except Exception:
+    pass
 
 
 class DashboardManager:

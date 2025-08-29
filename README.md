@@ -28,6 +28,51 @@ This guide is designed for **everyone**, from absolute beginners with no coding 
 
 See `docs/` for detailed installation and usage guides.
 
+## New (Security & Reliability)
+
+- Strict host/port validation to prevent injection
+- Safe YAML loading, secure output path validation, atomic writes
+- Exponential backoff + circuit breaker + per-host rate limiting
+
+## Distributed Fetching
+
+Enable distributed fetching with Celery (or local partition fallback):
+
+```
+python vpn_merger.py --distributed --workers 8
+# With Celery/Redis
+CELERY_BROKER_URL=redis://host:6379/0 python vpn_merger.py --distributed --redis-url redis://host:6379/0
+```
+
+## API Endpoints
+
+- REST under `/api/v1` (token-gated with `API_TOKEN` env var)
+  - `GET /api/v1/sub/raw` → raw list
+  - `GET /api/v1/sub/base64` → base64 subscription
+  - `GET /api/v1/sub/singbox` → JSON outbounds
+  - `GET /api/v1/sub/report` → summary report
+- GraphQL (optional, install `strawberry-graphql`) mounted at `/graphql`
+
+## Observability
+
+- Prometheus metrics (port configurable; default 8001)
+- Optional OpenTelemetry spans for availability/fetch/test
+
+## Dedupe Options
+
+Enable Bloom filter to reduce memory for very large runs:
+
+```
+VPN_MERGER_PROCESSING__USE_BLOOM_DEDUPE=true \
+VPN_MERGER_PROCESSING__BLOOM_CAPACITY=1000000 \
+VPN_MERGER_PROCESSING__BLOOM_ERROR_RATE=0.01
+```
+
+## Security Notes
+
+- Always set an `API_TOKEN` when exposing the REST API.
+- Respect upstream ToS. Per-host rate limiting is enabled by default.
+
 ### Supported Types
 
 | Protocol | Examples in feeds | Emitted to |

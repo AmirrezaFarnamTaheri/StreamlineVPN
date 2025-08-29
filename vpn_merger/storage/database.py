@@ -143,6 +143,14 @@ class VPNDatabase:
         finally:
             conn.close()
 
+    def has_config(self, config_url: str) -> bool:
+        conn = self._connect()
+        try:
+            cur = conn.execute('SELECT 1 FROM configs WHERE config_url = ? LIMIT 1;', (config_url,))
+            return cur.fetchone() is not None
+        finally:
+            conn.close()
+
     # --- Quarantine helpers ---
     def _ensure_source(self, conn: sqlite3.Connection, url: str) -> None:
         conn.execute('INSERT OR IGNORE INTO sources (url, enabled, fail_streak, quarantined) VALUES (?, 1, 0, 0);', (url,))
