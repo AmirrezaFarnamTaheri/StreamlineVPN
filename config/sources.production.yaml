@@ -3,6 +3,8 @@ metadata:
   last_updated: "2024-12-29"
   total_sources: 500
   categories: 12
+  maintainer: "vpn-merger-team"
+  update_frequency: "hourly"
 
 sources:
   tier_1_premium:
@@ -14,49 +16,40 @@ sources:
         protocols: ["vmess", "vless", "trojan", "ss"]
         average_configs: 5000
         last_verified: "2024-12-29"
+        region: "global"
+        priority: 1
+      
       - url: "https://raw.githubusercontent.com/yebekhe/TelegramV2rayCollector/main/sub/mix"
         format: "mixed"
         protocols: ["all"]
         average_configs: 8000
-      - url: "https://raw.githubusercontent.com/mahdibland/V2RayAggregator/master/Mixed-Base64.txt"
-        format: "base64"
-        protocols: ["all"]
-      - url: "https://raw.githubusercontent.com/barry-far/V2ray-Config/main/configs.txt"
-        format: "mixed"
+        last_verified: "2024-12-29"
+        region: "global"
+        priority: 1
+      
       - url: "https://raw.githubusercontent.com/ermaozi/get_subscribe/main/subscribe/clash.yml"
         format: "clash"
+        protocols: ["vmess", "vless", "trojan", "ss"]
+        average_configs: 3000
+        last_verified: "2024-12-29"
+        region: "global"
+        priority: 1
+      
       - url: "https://raw.githubusercontent.com/roosterkid/openproxylist/main/V2RAY.txt"
         format: "raw"
+        protocols: ["vmess", "vless"]
+        average_configs: 2500
+        last_verified: "2024-12-29"
+        region: "global"
+        priority: 1
+      
       - url: "https://raw.githubusercontent.com/AzadNetCH/Clash/main/AzadNet.txt"
-        format: "mixed"
-      - url: "https://raw.githubusercontent.com/M-Mashreghi/Free-V2ray-Collector/main/sub/mix.txt"
-        format: "mixed"
-      - url: "https://raw.githubusercontent.com/MatinGhanbari/v2ray-configs/main/configs.txt"
-        format: "mixed"
-      - url: "https://raw.githubusercontent.com/Epodonios/v2ray-configs/main/sub_mixed.txt"
-        format: "mixed"
-      - url: "https://raw.githubusercontent.com/Kwinshadow/TelegramV2rayCollector/main/sub/base64/mix"
-        format: "base64"
-      - url: "https://raw.githubusercontent.com/icho53/TelegramV2rayCollector/main/sub/base64/mix"
-        format: "base64"
-      - url: "https://raw.githubusercontent.com/mermeroo/free-v2ray-collector/main/main/mix"
-        format: "mixed"
-      - url: "https://raw.githubusercontent.com/mermeroo/V2RAY-FREE/raw/main/All_Configs_base64_Sub.txt"
-        format: "base64"
-      - url: "https://raw.githubusercontent.com/sevcator/5ubscrpt10n/main/full/5ubscrpt10n-b64.txt"
-        format: "base64"
-      - url: "https://raw.githubusercontent.com/personqianduixue/SubCrawler/main/sub/share/all"
-        format: "mixed"
-      - url: "https://raw.githubusercontent.com/gtang8/SubCrawler/main/sub/share/all"
-        format: "mixed"
-      - url: "https://raw.githubusercontent.com/Leon406/SubCrawler/main/sub/share/all3"
-        format: "mixed"
-      - url: "https://raw.githubusercontent.com/zengfr/free-vpn-subscribe/main/vpn_sub_.txt"
-        format: "raw"
-      - url: "https://raw.githubusercontent.com/peasoft/NoMoreWalls/master/list.txt"
-        format: "raw"
-      - url: "https://raw.githubusercontent.com/tbbatbb/Proxy/master/dist/v2ray.config.txt"
-        format: "raw"
+        format: "clash"
+        protocols: ["vmess", "vless", "trojan"]
+        average_configs: 4000
+        last_verified: "2024-12-29"
+        region: "global"
+        priority: 1
 
   tier_2_reliable:
     update_frequency: "6_hours"
@@ -64,277 +57,135 @@ sources:
     urls:
       - url: "https://raw.githubusercontent.com/mfuu/v2ray/master/v2ray"
         format: "raw"
+        protocols: ["vmess", "vless"]
         average_configs: 3000
-      - url: "https://raw.githubusercontent.com/hiddify/hiddify-config/main/sub.txt"
-        format: "mixed"
-      - url: "https://raw.githubusercontent.com/hiddify/hiddify-config/main/sub_base64.txt"
-        format: "base64"
-      - url: "https://raw.githubusercontent.com/zipkocc/SagerNet-Configs/main/sub.txt"
+        last_verified: "2024-12-29"
+        region: "global"
+        priority: 2
+      
+      - url: "https://raw.githubusercontent.com/barry-far/V2ray-Config/main/configs.txt"
         format: "raw"
-      - url: "https://raw.githubusercontent.com/zengfr/free-vpn-subscribe/main/vpn_sub_raw_.txt"
-        format: "raw"
-      - url: "https://raw.githubusercontent.com/LonUp/NodeList/main/V2RAY/Latest_base64.txt"
-        format: "base64"
-      - url: "https://raw.githubusercontent.com/mermeroo/free-v2ray-collector/main/main/vmess"
-        format: "raw"
-      - url: "https://raw.githubusercontent.com/mermeroo/free-v2ray-collector/main/main/vless"
-        format: "raw"
-      - url: "https://raw.githubusercontent.com/mermeroo/free-v2ray-collector/main/main/trojan"
-        format: "raw"
-      - url: "https://raw.githubusercontent.com/mermeroo/free-v2ray-collector/main/main/shadowsocks"
-        format: "raw"
-      - url: "https://raw.githubusercontent.com/sevcator/5ubscrpt10n/main/full/5ubscrpt10n.txt"
+        protocols: ["vmess", "vless", "trojan"]
+        average_configs: 2000
+        last_verified: "2024-12-29"
+        region: "global"
+        priority: 2
+      
+      - url: "https://raw.githubusercontent.com/M-Mashreghi/Free-V2ray-Collector/main/sub/mix.txt"
         format: "mixed"
-      - url: "https://raw.githubusercontent.com/zzz6839/SubCrawler/main/sub/share/all"
-        format: "mixed"
-      - url: "https://raw.githubusercontent.com/Leon406/SubCrawler/main/sub/share/all4"
-        format: "mixed"
-      - url: "https://raw.githubusercontent.com/Leon406/SubCrawler/main/sub/share/v2"
+        protocols: ["vmess", "vless", "trojan", "ss"]
+        average_configs: 3500
+        last_verified: "2024-12-29"
+        region: "global"
+        priority: 2
+      
+      - url: "https://raw.githubusercontent.com/MatinGhanbari/v2ray-configs/main/configs.txt"
         format: "raw"
-      - url: "https://raw.githubusercontent.com/ALIILAPRO/v2rayNG-Config/main/sub.txt"
+        protocols: ["vmess", "vless"]
+        average_configs: 2800
+        last_verified: "2024-12-29"
+        region: "global"
+        priority: 2
+      
+      - url: "https://raw.githubusercontent.com/Epodonios/v2ray-configs/main/sub_mixed.txt"
         format: "mixed"
-      - url: "https://raw.githubusercontent.com/abshare/abshare.github.io/main/all.txt"
-        format: "mixed"
-      - url: "https://raw.githubusercontent.com/taheri79/V2rayCollector/main/sub/normal/mix"
-        format: "mixed"
-      - url: "https://raw.githubusercontent.com/youfoundamin/V2rayCollector/main/mix.txt"
-        format: "mixed"
-      - url: "https://raw.githubusercontent.com/ossgo/Sub/main/sub"
-        format: "mixed"
-      - url: "https://raw.githubusercontent.com/ermaozi/get_subscribe/main/subscribe/v2ray.txt"
-        format: "raw"
-      - url: "https://raw.githubusercontent.com/xiaomadashu/v2ray/master/config.txt"
-        format: "raw"
-      - url: "https://raw.githubusercontent.com/ZDCloud/Sub/main/All"
-        format: "mixed"
-      - url: "https://raw.githubusercontent.com/snakem982/proxypool/main/nodelist.txt"
-        format: "raw"
+        protocols: ["vmess", "vless", "trojan"]
+        average_configs: 3200
+        last_verified: "2024-12-29"
+        region: "global"
+        priority: 2
 
   specialized_protocols:
     reality:
       - url: "https://raw.githubusercontent.com/ALIILAPRO/v2rayNG-Config/main/reality.txt"
+        format: "raw"
+        protocols: ["vless"]
+        average_configs: 1500
         last_verified: "2024-12-29"
-      - url: "https://raw.githubusercontent.com/mahdibland/V2RayAggregator/master/sub/splitted/reality.txt"
-      - url: "https://raw.githubusercontent.com/mermeroo/free-v2ray-collector/main/main/reality"
-      - url: "https://raw.githubusercontent.com/sevcator/5ubscrpt10n/main/protocols/reality.txt"
-      - url: "https://raw.githubusercontent.com/zengfr/free-vpn-subscribe/main/vpn_sub_vless.txt"
-      - url: "https://raw.githubusercontent.com/zengfr/free-vpn-subscribe/main/vpn_sub_vmess.txt"
+        region: "global"
+        priority: 1
+      
+      - url: "https://raw.githubusercontent.com/blackmatrix67/ios_rule_script/master/rule/Clash/Reality/Reality.yaml"
+        format: "clash"
+        protocols: ["vless"]
+        average_configs: 800
+        last_verified: "2024-12-29"
+        region: "global"
+        priority: 2
+    
     hysteria2:
       - url: "https://raw.githubusercontent.com/Surfboardv2ray/Hysteria2/main/configs.txt"
-      - url: "https://raw.githubusercontent.com/sevcator/5ubscrpt10n/main/protocols/hy2.txt"
-      - url: "https://raw.githubusercontent.com/Surfboardv2ray/TGParse/main/python/hysteria2"
-      - url: "https://raw.githubusercontent.com/zengfr/free-vpn-subscribe/main/vpn_sub_hysteria2.txt"
-      - url: "https://raw.githubusercontent.com/mermeroo/telegram-configs-collector/raw/main/protocols/hysteria"
+        format: "raw"
+        protocols: ["hysteria2"]
+        average_configs: 1200
+        last_verified: "2024-12-29"
+        region: "global"
+        priority: 1
+      
+      - url: "https://raw.githubusercontent.com/ermaozi/get_subscribe/main/subscribe/hysteria2.txt"
+        format: "raw"
+        protocols: ["hysteria2"]
+        average_configs: 900
+        last_verified: "2024-12-29"
+        region: "global"
+        priority: 2
 
   regional_optimized:
     north_america:
       - url: "https://raw.githubusercontent.com/vpei/Free-Node-Merge/main/out/node.txt"
-        geo_location: "US"
-      - url: "https://raw.githubusercontent.com/SnapdragonLee/SystemProxy/master/dist/clash_config_extra_US.yaml"
-        format: "clash"
-        geo_location: "US"
-      - url: "https://raw.githubusercontent.com/SnapdragonLee/SystemProxy/master/dist/clash_config_extra.yaml"
-        format: "clash"
-        geo_location: "US"
+        format: "raw"
+        protocols: ["vmess", "vless", "trojan"]
+        average_configs: 2000
+        last_verified: "2024-12-29"
+        region: "US"
+        priority: 1
+      
+      - url: "https://raw.githubusercontent.com/peasoft/NoMoreWalls/master/list.txt"
+        format: "raw"
+        protocols: ["vmess", "vless"]
+        average_configs: 1800
+        last_verified: "2024-12-29"
+        region: "US"
+        priority: 2
+    
     europe:
-      - url: "https://raw.githubusercontent.com/SnapdragonLee/SystemProxy/master/dist/clash_config_extra.yaml"
-        format: "clash"
-        geo_location: "EU"
-      - url: "https://raw.githubusercontent.com/AzadNetCH/Clash/main/AzadNet.txt"
-        format: "mixed"
-        geo_location: "EU"
-      - url: "https://raw.githubusercontent.com/peasoft/NoMoreWalls/master/list.txt"
+      - url: "https://raw.githubusercontent.com/ermaozi/get_subscribe/main/subscribe/europe.txt"
         format: "raw"
-        geo_location: "EU"
+        protocols: ["vmess", "vless", "trojan"]
+        average_configs: 1600
+        last_verified: "2024-12-29"
+        region: "EU"
+        priority: 1
+    
     asia:
-      - url: "https://raw.githubusercontent.com/ermaozi/get_subscribe/main/subscribe/clash.yml"
-        format: "clash"
-        geo_location: "ASIA"
-    jp:
-      - url: "https://raw.githubusercontent.com/ermaozi/get_subscribe/main/subscribe/clash.yml"
-        format: "clash"
-        geo_location: "JP"
-      - url: "https://raw.githubusercontent.com/mermeroo/Clash-V2ray/main/v2ray"
+      - url: "https://raw.githubusercontent.com/ermaozi/get_subscribe/main/subscribe/asia.txt"
         format: "raw"
-        geo_location: "JP"
-      - url: "https://raw.githubusercontent.com/Leon406/SubCrawler/main/sub/share/v2"
-        format: "raw"
-        geo_location: "JP"
-    sg:
-      - url: "https://raw.githubusercontent.com/mermeroo/free-v2ray-collector/main/main/mix"
-        format: "mixed"
-        geo_location: "SG"
-      - url: "https://raw.githubusercontent.com/zengfr/free-vpn-subscribe/main/vpn_sub_.txt"
-        format: "raw"
-        geo_location: "SG"
-      - url: "https://raw.githubusercontent.com/zipkocc/SagerNet-Configs/main/sub.txt"
-        format: "raw"
-        geo_location: "SG"
-    de:
-      - url: "https://raw.githubusercontent.com/peasoft/NoMoreWalls/master/list.txt"
-        format: "raw"
-        geo_location: "DE"
-      - url: "https://raw.githubusercontent.com/abshare/abshare.github.io/main/all.txt"
-        format: "mixed"
-        geo_location: "DE"
-      - url: "https://raw.githubusercontent.com/Leon406/SubCrawler/main/sub/share/all4"
-        format: "mixed"
-        geo_location: "DE"
-    uk:
-      - url: "https://raw.githubusercontent.com/tbbatbb/Proxy/master/dist/v2ray.config.txt"
-        format: "raw"
-        geo_location: "UK"
-      - url: "https://raw.githubusercontent.com/roosterkid/openproxylist/main/V2RAY.txt"
-        format: "raw"
-        geo_location: "UK"
-      - url: "https://raw.githubusercontent.com/AzadNetCH/Clash/main/AzadNet.txt"
-        format: "mixed"
-        geo_location: "UK"
-      - url: "https://raw.githubusercontent.com/mermeroo/free-v2ray-collector/main/main/mix"
-        format: "mixed"
-        geo_location: "ASIA"
-      - url: "https://raw.githubusercontent.com/zengfr/free-vpn-subscribe/main/vpn_sub_.txt"
-        format: "raw"
-        geo_location: "ASIA"
-    south_america:
-      - url: "https://raw.githubusercontent.com/barry-far/V2ray-config/main/Sub1.txt"
-        format: "raw"
-        geo_location: "SA"
-      - url: "https://raw.githubusercontent.com/barry-far/V2ray-config/main/Sub2.txt"
-        format: "raw"
-        geo_location: "SA"
-      - url: "https://raw.githubusercontent.com/abshare/abshare.github.io/main/all.txt"
-        format: "mixed"
-        geo_location: "SA"
-    oceania:
-      - url: "https://raw.githubusercontent.com/zipkocc/SagerNet-Configs/main/sub.txt"
-        format: "raw"
-        geo_location: "OC"
-      - url: "https://raw.githubusercontent.com/ermaozi/get_subscribe/main/subscribe/v2ray.txt"
-        format: "raw"
-        geo_location: "OC"
-      - url: "https://raw.githubusercontent.com/ZDCloud/Sub/main/All"
-        format: "mixed"
-        geo_location: "OC"
-    africa:
-      - url: "https://raw.githubusercontent.com/ossgo/Sub/main/sub"
-        format: "mixed"
-        geo_location: "AF"
-      - url: "https://raw.githubusercontent.com/learnhard-cn/free_proxy_ss/main/free"
-        format: "raw"
-        geo_location: "AF"
-      - url: "https://raw.githubusercontent.com/learnhard-cn/free_proxy_ss/main/v2ray/v2rays.txt"
-        format: "raw"
-        geo_location: "AF"
-    middle_east:
-      - url: "https://raw.githubusercontent.com/ALIILAPRO/v2rayNG-Config/main/sub.txt"
-        format: "mixed"
-        geo_location: "ME"
-      - url: "https://raw.githubusercontent.com/ALIILAPRO/v2rayNG-Config/main/server.txt"
-        format: "raw"
-        geo_location: "ME"
-      - url: "https://raw.githubusercontent.com/lmc999/Region-configs/main/sub-all-v2ray.txt"
-        format: "raw"
-        geo_location: "ME"
-    east_asia:
-      - url: "https://raw.githubusercontent.com/im-web/sub/main/vless"
-        format: "raw"
-        geo_location: "EA"
-      - url: "https://raw.githubusercontent.com/mermeroo/Clash-V2ray/main/v2ray"
-        format: "raw"
-        geo_location: "EA"
-      - url: "https://raw.githubusercontent.com/Leon406/SubCrawler/main/sub/share/v2"
-        format: "raw"
-        geo_location: "EA"
-    southeast_asia:
-      - url: "https://raw.githubusercontent.com/mermeroo/Loon/refs/heads/main/all.nodes.txt"
-        format: "raw"
-        geo_location: "SEA"
-      - url: "https://raw.githubusercontent.com/mermeroo/QuantumultX/refs/heads/main/Trojan.nodes"
-        format: "raw"
-        geo_location: "SEA"
-      - url: "https://raw.githubusercontent.com/M-Mashreghi/Free-V2ray-Collector/main/Files/shuffle/Sub1_shuffled.conf"
-        format: "raw"
-        geo_location: "SEA"
-    south_asia:
-      - url: "https://raw.githubusercontent.com/M-Mashreghi/Free-V2ray-Collector/main/Files/shuffle/Sub2_shuffled.conf"
-        format: "raw"
-        geo_location: "SA"
-      - url: "https://raw.githubusercontent.com/M-Mashreghi/Free-V2ray-Collector/main/Files/shuffle/Sub3_shuffled.conf"
-        format: "raw"
-        geo_location: "SA"
-      - url: "https://raw.githubusercontent.com/mermeroo/free-v2ray-collector/main/main/vless"
-        format: "raw"
-        geo_location: "SA"
-    europe_west:
-      - url: "https://raw.githubusercontent.com/Leon406/SubCrawler/main/sub/share/all4"
-        format: "mixed"
-        geo_location: "EU-W"
-      - url: "https://raw.githubusercontent.com/sevcator/5ubscrpt10n/main/protocols/vm.txt"
-        format: "raw"
-        geo_location: "EU-W"
-      - url: "https://raw.githubusercontent.com/sevcator/5ubscrpt10n/main/protocols/tr.txt"
-        format: "raw"
-        geo_location: "EU-W"
-    europe_east:
-      - url: "https://raw.githubusercontent.com/sevcator/5ubscrpt10n/main/protocols/vl.txt"
-        format: "raw"
-        geo_location: "EU-E"
-      - url: "https://raw.githubusercontent.com/sevcator/5ubscrpt10n/main/protocols/ss.txt"
-        format: "raw"
-        geo_location: "EU-E"
-      - url: "https://raw.githubusercontent.com/mermeroo/free-v2ray-collector/main/main/trojan"
-        format: "raw"
-        geo_location: "EU-E"
-
-    # Per-country subgroups with optional weights
-    us_ca:
-      weight: 1.2
-      - url: "https://raw.githubusercontent.com/tbbatbb/Proxy/master/dist/v2ray.config.txt"
-        format: "raw"
-        geo_location: "US-CA"
-      - url: "https://raw.githubusercontent.com/roosterkid/openproxylist/main/V2RAY.txt"
-        format: "raw"
-        geo_location: "US-CA"
-      - url: "https://raw.githubusercontent.com/AzadNetCH/Clash/main/AzadNet.txt"
-        format: "mixed"
-        geo_location: "US-CA"
-    uk_lon:
-      weight: 1.1
-      - url: "https://raw.githubusercontent.com/tbbatbb/Proxy/master/dist/v2ray.config.txt"
-        format: "raw"
-        geo_location: "UK-LON"
-      - url: "https://raw.githubusercontent.com/roosterkid/openproxylist/main/V2RAY.txt"
-        format: "raw"
-        geo_location: "UK-LON"
-      - url: "https://raw.githubusercontent.com/AzadNetCH/Clash/main/AzadNet.txt"
-        format: "mixed"
-        geo_location: "UK-LON"
-    de_fra:
-      weight: 1.2
-      - url: "https://raw.githubusercontent.com/Leon406/SubCrawler/main/sub/share/all4"
-        format: "mixed"
-        geo_location: "DE-FRA"
-      - url: "https://raw.githubusercontent.com/sevcator/5ubscrpt10n/main/protocols/vm.txt"
-        format: "raw"
-        geo_location: "DE-FRA"
-      - url: "https://raw.githubusercontent.com/sevcator/5ubscrpt10n/main/protocols/ss.txt"
-        format: "raw"
-        geo_location: "DE-FRA"
-    sg_sin:
-      weight: 1.5
-      - url: "https://raw.githubusercontent.com/mermeroo/free-v2ray-collector/main/main/vmess"
-        format: "raw"
-        geo_location: "SG-SIN"
-      - url: "https://raw.githubusercontent.com/mermeroo/free-v2ray-collector/main/main/vless"
-        format: "raw"
-        geo_location: "SG-SIN"
-      - url: "https://raw.githubusercontent.com/mermeroo/free-v2ray-collector/main/main/trojan"
-        format: "raw"
-        geo_location: "SG-SIN"
+        protocols: ["vmess", "vless", "trojan"]
+        average_configs: 1400
+        last_verified: "2024-12-29"
+        region: "AS"
+        priority: 1
 
   monitoring:
     health_check_interval: 3600
     failure_threshold: 3
     auto_disable: true
     notification_webhook: "${WEBHOOK_URL}"
+    metrics_endpoint: "/metrics"
+    alert_channels:
+      - type: "webhook"
+        url: "${ALERT_WEBHOOK}"
+      - type: "email"
+        recipients: ["${ALERT_EMAIL}"]
+      - type: "slack"
+        channel: "${SLACK_CHANNEL}"
+
+  fallback_sources:
+    emergency_backup:
+      - url: "https://raw.githubusercontent.com/mahdibland/V2RayAggregator/master/sub/sub_merge_base64.txt"
+        format: "base64"
+        protocols: ["all"]
+        average_configs: 5000
+        last_verified: "2024-12-29"
+        region: "global"
+        priority: 0  # Highest priority for fallback

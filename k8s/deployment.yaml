@@ -3,8 +3,17 @@ kind: Deployment
 metadata:
   name: vpn-merger
   namespace: vpn-system
+  labels:
+    app: vpn-merger
+    version: "2.0.0"
+    environment: production
 spec:
   replicas: 3
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 0
   selector:
     matchLabels:
       app: vpn-merger
@@ -12,10 +21,65 @@ spec:
     metadata:
       labels:
         app: vpn-merger
+        version: "2.0.0"
+        environment: production
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "8001"
+        prometheus.io/path: "/metrics"
     spec:
+      serviceAccountName: vpn-merger-sa
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1000
+        runAsGroup: 1000
+        fsGroup: 1000
       containers:
       - name: merger
-        image: vpn-merger:latest
+        image: vpn-merger:2.0.0
+        imagePullPolicy: Always
+        ports:
+        - containerPort: 8000
+          name: api
+          protocol: TCP
+        - containerPort: 8001
+          name: metrics
+          protocol: TCP
+        - containerPort: 8002
+          name: health
+          protocol: TCP
+        env:
+        - name: ENVIRONMENT
+          value: "production"
+        - name: LOG_LEVEL
+          value: "INFO"
+        - name: REDIS_URL
+          valueFrom:
+            secretKeyRef:
+              name: vpn-merger-secrets
+              key: redis-url
+        - name: DATABASE_URL
+          valueFrom:
+            secretKeyRef:
+              name: vpn-merger-secrets
+              key: database-url
+        - name: API_TOKEN
+          valueFrom:
+            secretKeyRef:
+              name: vpn-merger-secrets
+              key: api-token
+        - name: GITHUB_TOKEN
+          valueFrom:
+            secretKeyRef:
+              name: vpn-merger-secrets
+              key: github-token
+        - name: OTLP_ENDPOINT
+          value: "otel-collector:4317"
+        - name: WEBHOOK_URL
+          valueFrom:
+            secretKeyRef:
+              name: vpn-merger-secrets
+              key: webhook-url
         resources:
           requests:
             memory: "512Mi"
@@ -23,64 +87,136 @@ spec:
           limits:
             memory: "2Gi"
             cpu: "2000m"
-        env:
-        - name: REDIS_URL
-          valueFrom:
-            secretKeyRef:
-              name: vpn-merger-secrets
-              key: redis-url
-        - name: API_TOKEN
-          valueFrom:
-            secretKeyRef:
-              name: vpn-merger-secrets
-              key: api-token
-        - name: OUTPUT_DIR
-          value: "/data"
-        ports:
-        - containerPort: 8000
-          name: api
-        - containerPort: 8001
-          name: metrics
         livenessProbe:
+          httpGet:
+            path: /api/v1/health
+            port: 8000
+            httpHeaders:
+            - name: X-Health-Check
+              value: "true"
+          initialDelaySeconds: 60
+          periodSeconds: 30
+          timeoutSeconds: 10
+          failureThreshold: 3
+          successThreshold: 1
+        readinessProbe:
+          httpGet:
+            path: /api/v1/ready
+            port: 8000
+            httpHeaders:
+            - name: X-Health-Check
+              value: "true"
+          initialDelaySeconds: 30
+          periodSeconds: 10
+          timeoutSeconds: 5
+          failureThreshold: 3
+          successThreshold: 1
+        startupProbe:
           httpGet:
             path: /api/v1/health
             port: 8000
           initialDelaySeconds: 30
           periodSeconds: 10
-        readinessProbe:
-          httpGet:
-            path: /api/v1/ready
-            port: 8000
-          initialDelaySeconds: 10
-          periodSeconds: 5
+          failureThreshold: 30
         volumeMounts:
-        - name: data
-          mountPath: /data
+        - name: config-volume
+          mountPath: /app/config
+          readOnly: true
+        - name: output-volume
+          mountPath: /app/output
+        - name: logs-volume
+          mountPath: /app/logs
+        - name: cache-volume
+          mountPath: /app/cache
+        securityContext:
+          allowPrivilegeEscalation: false
+          readOnlyRootFilesystem: false
+          capabilities:
+            drop:
+            - ALL
       volumes:
-      - name: data
-        emptyDir: {}
+      - name: config-volume
+        configMap:
+          name: vpn-merger-config
+      - name: output-volume
+        persistentVolumeClaim:
+          claimName: vpn-merger-output-pvc
+      - name: logs-volume
+        persistentVolumeClaim:
+          claimName: vpn-merger-logs-pvc
+      - name: cache-volume
+        emptyDir:
+          sizeLimit: "1Gi"
+      nodeSelector:
+        node-role.kubernetes.io/worker: "true"
+      tolerations:
+      - key: "dedicated"
+        operator: "Equal"
+        value: "vpn-merger"
+        effect: "NoSchedule"
+      affinity:
+        podAntiAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+          - weight: 100
+            podAffinityTerm:
+              labelSelector:
+                matchExpressions:
+                - key: app
+                  operator: In
+                  values:
+                  - vpn-merger
+              topologyKey: kubernetes.io/hostname
 ---
 apiVersion: v1
 kind: Service
 metadata:
   name: vpn-merger-service
   namespace: vpn-system
+  labels:
+    app: vpn-merger
+    version: "2.0.0"
 spec:
+  type: ClusterIP
   selector:
     app: vpn-merger
   ports:
   - port: 80
     targetPort: 8000
     name: api
+    protocol: TCP
   - port: 8001
     targetPort: 8001
     name: metrics
+    protocol: TCP
+  - port: 8002
+    targetPort: 8002
+    name: health
+    protocol: TCP
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: vpn-merger-headless
+  namespace: vpn-system
+  labels:
+    app: vpn-merger
+spec:
+  type: ClusterIP
+  clusterIP: None
+  selector:
+    app: vpn-merger
+  ports:
+  - port: 8000
+    targetPort: 8000
+    name: api
 ---
 apiVersion: autoscaling/v2
 kind: HorizontalPodAutoscaler
 metadata:
   name: vpn-merger-hpa
   namespace: vpn-system
+  labels:
+    app: vpn-merger
 spec:
   scaleTargetRef:
     apiVersion: apps/v1
@@ -101,3 +237,218 @@ spec:
       target:
         type: Utilization
         averageUtilization: 80
+  - type: Object
+    object:
+      metric:
+        name: requests-per-second
+      describedObject:
+        apiVersion: v1
+        kind: Service
+        name: vpn-merger-service
+      target:
+        type: AverageValue
+        averageValue: 100
+  behavior:
+    scaleUp:
+      stabilizationWindowSeconds: 60
+      policies:
+      - type: Percent
+        value: 100
+        periodSeconds: 15
+    scaleDown:
+      stabilizationWindowSeconds: 300
+      policies:
+      - type: Percent
+        value: 10
+        periodSeconds: 60
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: vpn-merger-config
+  namespace: vpn-system
+  labels:
+    app: vpn-merger
+data:
+  sources.production.yaml: |
+    version: "2.0"
+    metadata:
+      last_updated: "2024-12-29"
+      total_sources: 500
+      categories: 12
+      maintainer: "vpn-merger-team"
+      update_frequency: "hourly"
+    
+    sources:
+      tier_1_premium:
+        update_frequency: "hourly"
+        reliability_score: 0.95
+        urls:
+          - url: "https://raw.githubusercontent.com/mahdibland/V2RayAggregator/master/sub/sub_merge_base64.txt"
+            format: "base64"
+            protocols: ["vmess", "vless", "trojan", "ss"]
+            average_configs: 5000
+            last_verified: "2024-12-29"
+            region: "global"
+            priority: 1
+  app.config.yaml: |
+    app:
+      name: "VPN Merger v2.0"
+      version: "2.0.0"
+      environment: "production"
+    
+    api:
+      host: "0.0.0.0"
+      port: 8000
+      workers: 4
+    
+    monitoring:
+      metrics_port: 8001
+      health_port: 8002
+      tracing_enabled: true
+    
+    cache:
+      l1_max_size: 2000
+      l1_max_memory_mb: 200
+      default_ttl: 3600
+    
+    sources:
+      validation_interval: 3600
+      max_concurrent_fetches: 50
+      timeout_seconds: 30
+    
+    output:
+      formats: ["raw", "base64", "clash", "singbox", "csv", "json"]
+      compression: true
+      max_configs_per_file: 100000
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: vpn-merger-output-pvc
+  namespace: vpn-system
+  labels:
+    app: vpn-merger
+spec:
+  accessModes:
+    - ReadWriteMany
+  resources:
+    requests:
+      storage: 10Gi
+  storageClassName: fast-ssd
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: vpn-merger-logs-pvc
+  namespace: vpn-system
+  labels:
+    app: vpn-merger
+spec:
+  accessModes:
+    - ReadWriteMany
+  resources:
+    requests:
+      storage: 5Gi
+  storageClassName: fast-ssd
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: vpn-merger-sa
+  namespace: vpn-system
+  labels:
+    app: vpn-merger
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: vpn-merger-role
+  labels:
+    app: vpn-merger
+rules:
+- apiGroups: [""]
+  resources: ["pods", "services", "endpoints", "persistentvolumeclaims", "events", "configmaps", "secrets"]
+  verbs: ["get", "list", "watch", "create", "update", "patch", "delete"]
+- apiGroups: ["apps"]
+  resources: ["deployments", "replicasets", "statefulsets"]
+  verbs: ["get", "list", "watch", "create", "update", "patch", "delete"]
+- apiGroups: ["autoscaling"]
+  resources: ["horizontalpodautoscalers"]
+  verbs: ["get", "list", "watch", "create", "update", "patch", "delete"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: vpn-merger-rolebinding
+  labels:
+    app: vpn-merger
+subjects:
+- kind: ServiceAccount
+  name: vpn-merger-sa
+  namespace: vpn-system
+roleRef:
+  kind: ClusterRole
+  name: vpn-merger-role
+  apiGroup: rbac.authorization.k8s.io
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: vpn-merger-secrets
+  namespace: vpn-system
+  labels:
+    app: vpn-merger
+type: Opaque
+data:
+  # Base64 encoded values - replace with actual values
+  redis-url: cmVkaXM6Ly9yZWRpcy1tYXN0ZXI6NjM3OQ==
+  database-url: cG9zdGdyZXNxbDovL3Zwbi1tZXJnZXI6cGFzc3dvcmRAZGItcG9zdGdyZXM6NTQzMi92cG5fbWVyZ2Vy
+  api-token: c2VjcmV0LXRva2VuLWZvci1hcGk=
+  github-token: Z2l0aHViLXRva2VuLWZvci1kaXNjb3Zlcnk=
+  webhook-url: aHR0cHM6Ly9kaXNjb3JkLmNvbS9hcGkvd2ViaG9va3MvZXhhbXBsZQ==
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: vpn-merger-ingress
+  namespace: vpn-system
+  labels:
+    app: vpn-merger
+  annotations:
+    kubernetes.io/ingress.class: "nginx"
+    nginx.ingress.kubernetes.io/ssl-redirect: "true"
+    nginx.ingress.kubernetes.io/force-ssl-redirect: "true"
+    cert-manager.io/cluster-issuer: "letsencrypt-prod"
+    nginx.ingress.kubernetes.io/rate-limit: "100"
+    nginx.ingress.kubernetes.io/rate-limit-window: "1m"
+spec:
+  tls:
+  - hosts:
+    - vpn-merger.example.com
+    secretName: vpn-merger-tls
+  rules:
+  - host: vpn-merger.example.com
+    http:
+      paths:
+      - path: /api
+        pathType: Prefix
+        backend:
+          service:
+            name: vpn-merger-service
+            port:
+              number: 80
+      - path: /metrics
+        pathType: Exact
+        backend:
+          service:
+            name: vpn-merger-service
+            port:
+              number: 8001
+      - path: /health
+        pathType: Exact
+        backend:
+          service:
+            name: vpn-merger-service
+            port:
+              number: 8002
