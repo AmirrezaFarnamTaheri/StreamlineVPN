@@ -1,0 +1,56 @@
+# Build stage
+FROM python:3.11-slim AS builder
+
+WORKDIR /build
+
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    gcc \
+    g++ \
+    make \
+    cmake \
+    libssl-dev \
+    libffi-dev \
+    python3-dev \
+    && rm -rf /var/lib/apt/lists/*
+
+COPY requirements.txt .
+COPY tests/requirements.txt ./tests-requirements.txt
+
+RUN pip wheel --no-cache-dir --wheel-dir=/wheels \
+    -r requirements.txt -r tests-requirements.txt
+
+# Runtime stage
+FROM python:3.11-slim
+
+RUN useradd -m -u 1000 merger && \
+    mkdir -p /app /data && \
+    chown -R merger:merger /app /data
+
+WORKDIR /app
+
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    ca-certificates \
+    curl \
+    && rm -rf /var/lib/apt/lists/*
+
+COPY --from=builder /wheels /wheels
+RUN pip install --no-cache-dir /wheels/* && rm -rf /wheels
+
+COPY --chown=merger:merger . .
+
+RUN chmod -R 755 /app && \
+    find /app -type f -name "*.py" -exec chmod 644 {} \;
+
+USER merger
+
+HEALTHCHECK --interval=30s --timeout=5s --start-period=30s --retries=3 \
+    CMD curl -f http://localhost:8000/api/v1/health || exit 1
+
+STOPSIGNAL SIGTERM
+
+VOLUME ["/data"]
+
+EXPOSE 8000 8001
+
+ENTRYPOINT ["python", "-m", "vpn_merger"]
+CMD ["merge", "--output-dir", "/data"]

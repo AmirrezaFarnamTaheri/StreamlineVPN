@@ -4,6 +4,7 @@ import pytest
 
 
 @pytest.mark.asyncio
+@pytest.mark.network
 async def test_discovery_returns_candidates():
     try:
         from vpn_merger.core.source_discovery import discover_sources  # type: ignore

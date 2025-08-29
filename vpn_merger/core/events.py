@@ -13,6 +13,17 @@ class EventType(Enum):
     BATCH_READY = "batch_ready"
     ERROR_OCCURRED = "error_occurred"
     INVALID_HOST_SKIPPED = "invalid_host_skipped"
+    DISCOVER_START = "discover_start"
+    DISCOVER_DONE = "discover_done"
+    VALIDATE_START = "validate_start"
+    VALIDATE_DONE = "validate_done"
+    FETCH_START = "fetch_start"
+    FETCH_PROGRESS = "fetch_progress"
+    FETCH_DONE = "fetch_done"
+    DEDUP_DONE = "dedup_done"
+    OUTPUT_WRITTEN = "output_written"
+    RUN_START = "run_start"
+    RUN_DONE = "run_done"
 
 
 @dataclass

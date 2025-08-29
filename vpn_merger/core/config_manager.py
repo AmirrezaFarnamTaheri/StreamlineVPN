@@ -54,6 +54,11 @@ class TestingConfig(BaseModel):
     max_ping_ms: Optional[int] = Field(default=1000, ge=10, le=10000, description="Maximum acceptable ping")
     enable_distributed_testing: bool = Field(default=False, description="Enable multi-node testing")
     app_tests: Optional[List[str]] = Field(default=None, description="Services to test connectivity")
+    disable_all_tests: bool = Field(default=False, description="Force-disable all connection tests regardless of environment")
+    enable_tunnel_tests: bool = Field(default=False, description="Route app tests via temporary local tunnel (requires sing-box/xray)")
+    tunnel_runner: str = Field(default="auto", description="Tunnel runner preference: auto|sing-box|xray")
+    protocol_timeouts: Dict[str, float] = Field(default_factory=dict, description="Per-protocol test timeout overrides (seconds)")
+    protocol_concurrency: Dict[str, int] = Field(default_factory=dict, description="Per-protocol concurrent probes limit")
 
     @validator('app_tests')
     def validate_app_tests(cls, v):
@@ -131,6 +136,16 @@ class MonitoringConfig(BaseModel):
     dashboard_port: int = Field(default=8000, ge=1024, le=65535, description="Dashboard port")
     log_level: LogLevel = Field(default=LogLevel.INFO, description="Logging level")
     log_file: Optional[Path] = Field(default=None, description="Log file path")
+    # New: wire monitoring knobs to fetcher service circuit breaker
+    failure_threshold: int = Field(default=3, ge=1, le=20, description="Consecutive failures before opening circuit")
+    cooldown_seconds: float = Field(default=30.0, ge=1.0, le=600.0, description="Cooldown before half-open trial")
+
+
+class DiscoveryConfig(BaseModel):
+    enable: bool = Field(default=True, description="Enable discovery phase")
+    min_score: float = Field(default=0.5, ge=0.0, le=1.0, description="Minimum reliability score to accept")
+    timeout: int = Field(default=12, ge=1, le=60, description="Validator timeout in seconds")
+    use_intelligent: bool = Field(default=True, description="Use GitHub API-backed discovery")
 
 
 class VPNMergerConfig(BaseModel):
@@ -141,6 +156,7 @@ class VPNMergerConfig(BaseModel):
     output: OutputConfig = Field(default_factory=OutputConfig)
     advanced: AdvancedConfig = Field(default_factory=AdvancedConfig)
     monitoring: MonitoringConfig = Field(default_factory=MonitoringConfig)
+    discovery: DiscoveryConfig = Field(default_factory=DiscoveryConfig)
 
     resume_file: Optional[Path] = Field(default=None, description="Resume from existing file")
 

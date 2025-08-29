@@ -23,13 +23,13 @@ RAW_RE = re.compile(
 
 
 async def _fetch(session: aiohttp.ClientSession, url: str) -> str:
-    for attempt in range(3):
-        try:
-            async with session.get(url, timeout=aiohttp.ClientTimeout(total=12)) as r:
-                if r.status == 200:
-                    return await r.text()
-        except Exception:
-            await asyncio.sleep(0.5 * (attempt + 1))
+    # Keep this lean for CI to avoid long waits under network restrictions
+    try:
+        async with session.get(url, timeout=aiohttp.ClientTimeout(total=6)) as r:
+            if r.status == 200:
+                return await r.text()
+    except Exception:
+        pass
     return ""
 
 

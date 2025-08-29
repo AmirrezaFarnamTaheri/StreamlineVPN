@@ -2,8 +2,7 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: vpn-merger
-  labels:
-    app: vpn-merger
+  namespace: vpn-system
 spec:
   replicas: 3
   selector:
@@ -15,13 +14,8 @@ spec:
         app: vpn-merger
     spec:
       containers:
-      - name: vpn-merger
+      - name: merger
         image: vpn-merger:latest
-        ports:
-        - containerPort: 8000
-          name: dashboard
-        - containerPort: 8001
-          name: metrics
         resources:
           requests:
             memory: "512Mi"
@@ -30,15 +24,23 @@ spec:
             memory: "2Gi"
             cpu: "2000m"
         env:
-        - name: VPN_MERGER_BATCH_SIZE
-          value: "1000"
-        - name: VPN_MERGER_CONCURRENT_LIMIT
-          value: "100"
-        volumeMounts:
-        - name: output
-          mountPath: /app/output
-        - name: config
-          mountPath: /app/config
+        - name: REDIS_URL
+          valueFrom:
+            secretKeyRef:
+              name: vpn-merger-secrets
+              key: redis-url
+        - name: API_TOKEN
+          valueFrom:
+            secretKeyRef:
+              name: vpn-merger-secrets
+              key: api-token
+        - name: OUTPUT_DIR
+          value: "/data"
+        ports:
+        - containerPort: 8000
+          name: api
+        - containerPort: 8001
+          name: metrics
         livenessProbe:
           httpGet:
             path: /api/v1/health
@@ -47,42 +49,55 @@ spec:
           periodSeconds: 10
         readinessProbe:
           httpGet:
-            path: /api/v1/health
+            path: /api/v1/ready
             port: 8000
-          initialDelaySeconds: 5
+          initialDelaySeconds: 10
           periodSeconds: 5
+        volumeMounts:
+        - name: data
+          mountPath: /data
       volumes:
-      - name: output
-        persistentVolumeClaim:
-          claimName: vpn-merger-output
-      - name: config
-        configMap:
-          name: vpn-merger-config
+      - name: data
+        emptyDir: {}
 ---
 apiVersion: v1
 kind: Service
 metadata:
-  name: vpn-merger
+  name: vpn-merger-service
+  namespace: vpn-system
 spec:
   selector:
     app: vpn-merger
   ports:
-  - name: dashboard
-    port: 8000
+  - port: 80
     targetPort: 8000
-  - name: metrics
-    port: 8001
+    name: api
+  - port: 8001
     targetPort: 8001
+    name: metrics
 ---
-apiVersion: v1
-kind: ConfigMap
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
 metadata:
-  name: vpn-merger-config
-data:
-  sources.yaml: |
-    sources:
-      iranian_priority:
-        - https://example.com/iran.txt
-      international_major:
-        - https://example.com/intl.txt
-
+  name: vpn-merger-hpa
+  namespace: vpn-system
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: vpn-merger
+  minReplicas: 2
+  maxReplicas: 10
+  metrics:
+  - type: Resource
+    resource:
+      name: cpu
+      target:
+        type: Utilization
+        averageUtilization: 70
+  - type: Resource
+    resource:
+      name: memory
+      target:
+        type: Utilization
+        averageUtilization: 80

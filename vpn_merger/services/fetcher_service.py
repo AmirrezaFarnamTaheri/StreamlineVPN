@@ -31,9 +31,26 @@ class AsyncSourceFetcher:
         self.session: Optional[aiohttp.ClientSession] = None
         self.use_pool = use_pool
         self.pool_name = pool_name
-        self._cb = CircuitBreaker(failure_threshold=3, cooldown_seconds=30)
-        # Pull backoff/ratelimit config if available on processor.config
-        base = getattr(getattr(self, 'processor', None), 'config', None)
+        # Configure circuit breaker from runtime config if available
+        try:
+            mon = getattr(getattr(base, 'monitoring', None), '__dict__', None) or getattr(base, 'monitoring', None)
+            ft = int(getattr(mon, 'failure_threshold', 3)) if mon is not None else 3
+            cd = float(getattr(mon, 'cooldown_seconds', 30.0)) if mon is not None else 30.0
+        except Exception:
+            ft, cd = 3, 30.0
+        self._cb = CircuitBreaker(failure_threshold=ft, cooldown_seconds=cd)
+        # Initial placeholders; real values set in _refresh_from_config()
+        self._backoff = ExponentialBackoff(base=0.3, max_delay=4.0)
+        self._rate = PerHostRateLimiter(per_host_rate=5.0, per_host_capacity=10)
+        self._refresh_from_config()
+
+    def _refresh_from_config(self) -> None:
+        """Refresh backoff, rate limiter, and circuit breaker from runtime config.
+
+        Reads from either self.config (if set) or processor.config, so callers
+        may inject configuration after construction but before open().
+        """
+        base = getattr(self, 'config', None) or getattr(getattr(self, 'processor', None), 'config', None)
         try:
             nb = float(getattr(getattr(base, 'network', None), 'backoff_base', 0.3))
             mx = float(getattr(getattr(base, 'network', None), 'backoff_max_delay', 4.0))
@@ -46,6 +63,13 @@ class AsyncSourceFetcher:
             rate, cap = 5.0, 10
         self._backoff = ExponentialBackoff(base=nb, max_delay=mx)
         self._rate = PerHostRateLimiter(per_host_rate=rate, per_host_capacity=cap)
+        try:
+            mon = getattr(getattr(base, 'monitoring', None), '__dict__', None) or getattr(base, 'monitoring', None)
+            ft = int(getattr(mon, 'failure_threshold', 3)) if mon is not None else 3
+            cd = float(getattr(mon, 'cooldown_seconds', 30.0)) if mon is not None else 30.0
+        except Exception:
+            ft, cd = 3, 30.0
+        self._cb = CircuitBreaker(failure_threshold=ft, cooldown_seconds=cd)
 
     async def __aenter__(self):  # pragma: no cover
         return await self.open()
@@ -54,6 +78,11 @@ class AsyncSourceFetcher:
         await self.close()
 
     async def open(self):
+        # Ensure runtime config is applied before starting any requests
+        try:
+            self._refresh_from_config()
+        except Exception:
+            pass
         if not self.session:
             if self.use_pool:
                 try:
@@ -116,16 +145,38 @@ class AsyncSourceFetcher:
                     await asyncio.sleep(self._backoff.get_delay(attempt))
             return url, []
 
-    async def fetch_many(self, urls: List[str]) -> List[Tuple[str, List[str]]]:
+    async def fetch_many(self, urls: List[str], progress_cb: Optional[Callable[[int, int], Awaitable[None] | None]] = None) -> List[Tuple[str, List[str]]]:
         async def stage(u: str) -> Tuple[str, List[str]]:
             return await self._fetch_url(u)
-        try:
-            from vpn_merger.core.pipeline import ParallelPipeline  # type: ignore
-            pipeline = ParallelPipeline([stage], concurrency=self.sem._value)  # type: ignore[attr-defined]
-            return await pipeline.process(urls)
-        except Exception:
-            # Fallback: gather
-            tasks = [asyncio.create_task(self._fetch_url(u)) for u in urls]
-            return await asyncio.gather(*tasks)
+        # If no progress callback requested, try fast path
+        if progress_cb is None:
+            try:
+                from vpn_merger.core.pipeline import ParallelPipeline  # type: ignore
+                pipeline = ParallelPipeline([stage], concurrency=self.sem._value)  # type: ignore[attr-defined]
+                return await pipeline.process(urls)
+            except Exception:
+                tasks = [asyncio.create_task(self._fetch_url(u)) for u in urls]
+                return await asyncio.gather(*tasks)
+        # Progress-aware path: run with bounded concurrency and update after each completion
+        total = len(urls)
+        completed = 0
+        out: List[Tuple[str, List[str]]] = []
+        sem = asyncio.Semaphore(self.sem._value)
+
+        async def _one(u: str) -> None:
+            nonlocal completed
+            async with sem:
+                res = await self._fetch_url(u)
+                out.append(res)
+                completed += 1
+                try:
+                    cb = progress_cb
+                    if cb:
+                        await cb(completed, total)  # type: ignore[misc]
+                except Exception:
+                    pass
+
+        await asyncio.gather(*[asyncio.create_task(_one(u)) for u in urls])
+        return out
 
 

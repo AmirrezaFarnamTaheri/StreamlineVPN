@@ -3,13 +3,7 @@ from __future__ import annotations
 from typing import Optional, Tuple, Dict
 
 from vpn_merger.protocols.base import ProtocolHandler
-from vpn_merger.protocols.vmess import VMessHandler
-from vpn_merger.protocols.vless import VLESSHandler
-from vpn_merger.protocols.trojan import TrojanHandler
-from vpn_merger.protocols.shadowsocks import ShadowsocksHandler
-from vpn_merger.protocols.hysteria2 import Hysteria2Handler
-from vpn_merger.protocols.tuic import TUICHandler
-from vpn_merger.protocols.reality import RealityHandler
+from vpn_merger.protocols.factory import get_handler
 
 
 class ProtocolParser:
@@ -18,15 +12,7 @@ class ProtocolParser:
     Provides static helpers so callers don’t need to instantiate.
     """
 
-    _HANDLERS: Dict[str, ProtocolHandler] = {
-        "vmess://": VMessHandler(),
-        "vless://": VLESSHandler(),
-        "trojan://": TrojanHandler(),
-        "ss://": ShadowsocksHandler(),
-        "hysteria2://": Hysteria2Handler(),
-        "tuic://": TUICHandler(),
-        "reality://": RealityHandler(),
-    }
+    _HANDLERS: Dict[str, ProtocolHandler] = {}
 
     @staticmethod
     def categorize(raw: str) -> str:
@@ -61,13 +47,25 @@ class ProtocolParser:
     def extract_endpoint(raw: str) -> Tuple[Optional[str], Optional[int]]:
         if not isinstance(raw, str) or len(raw) < 6:
             return None, None
-        for prefix, handler in ProtocolParser._HANDLERS.items():
-            if raw.startswith(prefix):
-                parsed = handler.parse(raw)
-                if parsed and handler.validate(parsed):
-                    host, port = handler.extract_endpoint(parsed)
+        # Use factory to resolve handler by scheme
+        try:
+            scheme = raw.split("://", 1)[0].lower() + "://"
+        except Exception:
+            scheme = ""
+        proto = scheme.replace("://", "")
+        handler = get_handler(proto)
+        if handler:
+            parsed = handler.parse(raw)  # type: ignore[attr-defined]
+            try:
+                valid = handler.validate(parsed)  # type: ignore[attr-defined]
+            except Exception:
+                valid = False
+            if parsed and valid:
+                try:
+                    host, port = handler.extract_endpoint(parsed)  # type: ignore[attr-defined]
                     return host or None, int(port) if port else None
-                break
+                except Exception:
+                    pass
         # Fallback: no dedicated handler matched or parse failed
         try:
             from urllib.parse import urlparse

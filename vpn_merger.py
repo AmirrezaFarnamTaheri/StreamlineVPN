@@ -47,6 +47,7 @@ from pathlib import Path
 from typing import Dict, List, Optional, Set, Tuple, Union, TYPE_CHECKING
 from tqdm import tqdm
 import io
+from collections import OrderedDict
 
 try:
     import aiofiles  # type: ignore
@@ -999,13 +1000,59 @@ class UnifiedSources:
     
     @classmethod
     def _try_load_external(cls) -> bool:
-        """Attempt to load sources from config/sources.yaml or sources.json."""
+        """Attempt to load sources from config/sources.production.yaml, sources.yaml or sources.json."""
         base_dir = _get_script_dir()
+        prod_path = base_dir / "config" / "sources.production.yaml"
         yaml_path = base_dir / "config" / "sources.yaml"
         json_path = base_dir / "sources.json"
         # Prefer YAML
         try:
             import yaml  # type: ignore
+            # Production config (flatten all nested url fields) with optional weights
+            if prod_path.exists():
+                data = yaml.safe_load(prod_path.read_text(encoding='utf-8')) or {}
+                # Collect (url, weight) pairs. Default group weight = 1.0.
+                pairs: List[Tuple[str, float]] = []
+
+                def _extract(obj, inherited_weight: float = 1.0):
+                    if isinstance(obj, dict):
+                        # If this dict is a URL entry
+                        if 'url' in obj and isinstance(obj['url'], str):
+                            w = obj.get('weight', inherited_weight)
+                            try:
+                                w = float(w)  # type: ignore[assignment]
+                            except Exception:
+                                w = inherited_weight
+                            pairs.append((obj['url'], float(w)))
+                        # Recurse into children, inheriting group weight if provided
+                        next_weight = obj.get('weight', inherited_weight)
+                        try:
+                            next_weight = float(next_weight)
+                        except Exception:
+                            next_weight = inherited_weight
+                        for v in obj.values():
+                            _extract(v, float(next_weight))
+                    elif isinstance(obj, list):
+                        for it in obj:
+                            _extract(it, inherited_weight)
+
+                _extract(data, 1.0)
+                # Sort by weight (desc), then preserve first occurrence
+                pairs_sorted = sorted(pairs, key=lambda t: t[1], reverse=True)
+                urls_sorted = []
+                seen = set()
+                for u, _w in pairs_sorted:
+                    if not isinstance(u, str):
+                        continue
+                    s = u.strip()
+                    if s in seen:
+                        continue
+                    seen.add(s)
+                    urls_sorted.append(s)
+                urls_sorted = cls._filter_valid_urls(urls_sorted)
+                if urls_sorted:
+                    cls.COMPREHENSIVE_BATCH = urls_sorted
+                    return True
             if yaml_path.exists():
                 data = yaml.safe_load(yaml_path.read_text(encoding='utf-8')) or {}
                 sources = data.get('sources') or {}
@@ -1094,9 +1141,10 @@ class EnhancedConfigProcessor:
         # Optional runtime-injected config (may be a Pydantic model). Falls back to CONFIG.
         self.config: Optional[object] = None
         self.event_bus = None
-        # Cache for connection test results to avoid N+1 duplicate probing
+        # LRU cache for connection test results to avoid N+1 duplicate probing
         # Key: (host, port, protocol, ssl_required)
-        self._conn_test_cache: Dict[Tuple[str, int, str, bool], Tuple[Optional[float], Optional[bool]]] = {}
+        self._conn_test_cache: "OrderedDict[Tuple[str, int, str, bool], Tuple[Optional[float], Optional[bool]]]" = OrderedDict()
+        self._conn_test_cache_max = 10000
 
     def _get(self, key: str, default=None):
         """Safely resolve a config value from injected config or global CONFIG.
@@ -1271,7 +1319,10 @@ class EnhancedConfigProcessor:
         # Use cached result for identical (host,port,protocol,ssl_required)
         cache_key = (host, port, protocol, ssl_required)
         if cache_key in self._conn_test_cache:
-            return self._conn_test_cache[cache_key]
+            # touch to maintain LRU ordering
+            val = self._conn_test_cache.pop(cache_key)
+            self._conn_test_cache[cache_key] = val
+            return val
 
         if ssl_required:
             ssl_ctx = ssl.create_default_context()
@@ -1307,6 +1358,12 @@ class EnhancedConfigProcessor:
                 pass
             result = (elapsed, handshake)
             self._conn_test_cache[cache_key] = result
+            if len(self._conn_test_cache) > self._conn_test_cache_max:
+                # evict least-recently-used
+                try:
+                    self._conn_test_cache.popitem(last=False)
+                except Exception:
+                    pass
             return result
         except (asyncio.TimeoutError, OSError) as e:
             logging.getLogger(__name__).debug(f"Connection test failed for {host}:{port} - {e}")
@@ -1323,11 +1380,21 @@ class EnhancedConfigProcessor:
                 pass
             result = (None, handshake)
             self._conn_test_cache[cache_key] = result
+            if len(self._conn_test_cache) > self._conn_test_cache_max:
+                try:
+                    self._conn_test_cache.popitem(last=False)
+                except Exception:
+                    pass
             return result
         except Exception as e:
             logging.getLogger(__name__).error(f"Unexpected error during test_connection: {e}")
             result = (None, handshake)
             self._conn_test_cache[cache_key] = result
+            if len(self._conn_test_cache) > self._conn_test_cache_max:
+                try:
+                    self._conn_test_cache.popitem(last=False)
+                except Exception:
+                    pass
             return result
     
     def categorize_protocol(self, config: str) -> str:
@@ -1817,62 +1884,39 @@ class UltimateVPNMerger:
         return results
         
     async def run(self) -> None:
-        """Execute the complete unified merging process."""
-        # Optionally start dashboard server in the background
+        """Delegate to new core merger to produce outputs consistently."""
         try:
-            self._maybe_start_dashboard()
+            # Minimal dashboard info retained
+            print("🚀 VPN Subscription Merger - Final Unified & Polished Edition")
+            print("=" * 85)
         except Exception:
             pass
-        print("🚀 VPN Subscription Merger - Final Unified & Polished Edition")
-        print("=" * 85)
-        # Start event bus processor
-        if self.event_bus is not None:
-            try:
-                asyncio.create_task(self.event_bus.start())
-            except Exception:
-                pass
-        # Attach metrics subscriber to event bus
-        if getattr(self, 'metrics', None) is not None and self.event_bus is not None:
-            try:
-                from vpn_merger.monitoring.metrics_subscribers import attach as attach_metrics  # type: ignore
-                attach_metrics(self.event_bus, self.metrics)
-            except Exception:
-                pass
-        # Optional discovery
         try:
-            discover_enabled = bool(self._get_cfg('processing', 'enable_discovery', default=CONFIG.enable_discovery) or CONFIG.enable_discovery)
-        except Exception:
-            discover_enabled = bool(CONFIG.enable_discovery)
-        if discover_enabled:
+            from vpn_merger.core.merger import Merger  # type: ignore
+            m = Merger()
+            # Respect any custom sources set on this instance
             try:
-                from vpn_merger.core.source_discovery import discover_sources  # type: ignore
-                print("🔎 Discovering additional sources...")
-                discovered = await discover_sources()
-                if discovered:
-                    before = len(self.sources)
-                    # merge and dedup, discovered last to keep curated priority
-                    self.sources = list(dict.fromkeys(self.sources + discovered))
-                    print(f"   ✔ Added {len(self.sources) - before} new candidates (total {len(self.sources)})")
-            except Exception as e:
-                print(f"⚠️  Discovery failed: {e}")
-
-        print(f"📊 Total unified sources: {len(self.sources)}")
-        print(f"🇮🇷 Iranian priority: {len(UnifiedSources.IRANIAN_PRIORITY)}")
-        print(f"🌍 International major: {len(UnifiedSources.INTERNATIONAL_MAJOR)}")
-        print(f"📦 Comprehensive batch: {len(UnifiedSources.COMPREHENSIVE_BATCH)}")
-        url_testing_enabled = bool(self._get_cfg('testing', 'enable_url_testing', default=CONFIG.enable_url_testing))
-        sorting_enabled = bool(self._get_cfg('testing', 'enable_sorting', default=CONFIG.enable_sorting))
-        print(f"🔧 URL Testing: {'Enabled' if url_testing_enabled else 'Disabled'}")
-        print(f"📈 Smart Sorting: {'Enabled' if sorting_enabled else 'Disabled'}")
-        print()
-        
-        start_time = time.time()
-        self.start_time = start_time
-
-        if CONFIG.resume_file:
-            print(f"🔄 Loading existing configs from {CONFIG.resume_file} ...")
-            self.all_results.extend(self._load_existing_results(CONFIG.resume_file))
-            print(f"   ✔ Loaded {len(self.all_results)} configs from resume file")
+                m._impl.sources = list(self.sources)
+            except Exception:
+                pass
+            try:
+                outdir = str(getattr(CONFIG, 'output_dir', 'output'))
+            except Exception:
+                outdir = 'output'
+            await m.run(output_dir=outdir)
+            return
+        except Exception as e:
+            try:
+                print(f"⚠️ Core merger run failed: {e}")
+            except Exception:
+                pass
+            try:
+                import traceback as _tb
+                _tb.print_exc()
+            except Exception:
+                pass
+        # Fallback: do nothing if core merger unavailable
+        return
 
         # Step 1: Test source availability and remove dead links
         # Attach dashboard event subscribers if available
@@ -2515,71 +2559,55 @@ class UltimateVPNMerger:
             enabled_formats = set()
             write_csv_enabled = True
 
-        # Optional: use lightweight converter for simple formats
-        converter_outputs = {}
-        try:
-            from vpn_merger.services.converter_service import MultiFormatConverter  # type: ignore
-            converter = MultiFormatConverter()
-            converter_outputs = converter.convert_to_all_formats(configs)
-        except Exception:
-            converter_outputs = {}
-
-        # Track temporary files for potential cleanup (best-effort)
-        tmp_files: List[Path] = []
+        # All formatting handled by new formatters/writer
         
-        # Raw text output
+        # Raw text output via new writer (async to avoid blocking)
         if not enabled_formats or 'raw' in enabled_formats:
+            from vpn_merger.output.writer import atomic_write_async  # type: ignore
             raw_file = output_dir / f"{prefix}vpn_subscription_raw.txt"
-            tmp_raw = raw_file.with_suffix('.tmp')
-            tmp_files.append(tmp_raw)
-            await self._async_write_text(tmp_raw, "\n".join(configs))
-            tmp_raw.replace(raw_file)
+            try:
+                await atomic_write_async(raw_file, "\n".join(configs))
+            except Exception as e:
+                # Fallback to legacy temp write if needed; keep going on error
+                try:
+                    tmp_raw = raw_file.with_suffix('.tmp')
+                    await self._async_write_text(tmp_raw, "\n".join(configs))
+                    tmp_raw.replace(raw_file)
+                except Exception:
+                    try:
+                        log_json(logging.ERROR, "write_raw_failed", path=str(raw_file), error=str(e))
+                    except Exception:
+                        pass
         
-        # Base64 output
+        # Base64 output via new formatter/writer
         if not enabled_formats or 'base64' in enabled_formats:
-            base64_content = converter_outputs.get('base64') or base64.b64encode("\n".join(configs).encode("utf-8")).decode("utf-8")
+            from vpn_merger.output.formatters.base64 import to_base64  # type: ignore
+            from vpn_merger.output.writer import atomic_write_async  # type: ignore
+            try:
+                base64_content = converter_outputs.get('base64') or to_base64(configs)
+            except Exception:
+                base64_content = ""
             base64_file = output_dir / f"{prefix}vpn_subscription_base64.txt"
-            tmp_base64 = base64_file.with_suffix('.tmp')
-            tmp_files.append(tmp_base64)
-            await self._async_write_text(tmp_base64, base64_content)
-            tmp_base64.replace(base64_file)
+            try:
+                await atomic_write_async(base64_file, base64_content)
+            except Exception as e:
+                try:
+                    log_json(logging.ERROR, "write_base64_failed", path=str(base64_file), error=str(e))
+                except Exception:
+                    pass
         
         # Enhanced CSV with comprehensive performance data
         if write_csv_enabled:
+            from vpn_merger.output.formatters.csv import to_csv  # type: ignore
+            from vpn_merger.output.writer import atomic_write_async  # type: ignore
             csv_file = output_dir / f"{prefix}vpn_detailed.csv"
-            tmp_csv = csv_file.with_suffix('.tmp')
-            tmp_files.append(tmp_csv)
-            # Build CSV content in-memory to leverage proper quoting
-            buf = io.StringIO()
-            writer = csv.writer(buf)
-            headers = ['Config', 'Protocol', 'Host', 'Port', 'Ping_MS', 'Reachable', 'Source']
-            if CONFIG.full_test:
-                headers.append('Handshake')
-            if CONFIG.app_tests:
-                for name in CONFIG.app_tests:
-                    headers.append(f"{name.capitalize()}_OK")
-            writer.writerow(headers)
-            for result in results:
-                ping_ms = round(result.ping_time * 1000, 2) if result.ping_time else None
-                row = [
-                    result.config, result.protocol, result.host, result.port,
-                    ping_ms, result.is_reachable, result.source_url
-                ]
-                if CONFIG.full_test:
-                    if result.handshake_ok is None:
-                        row.append('')
-                    else:
-                        row.append('OK' if result.handshake_ok else 'FAIL')
-                if CONFIG.app_tests:
-                    for name in CONFIG.app_tests:
-                        val = result.app_test_results.get(name)
-                        if val is None:
-                            row.append('')
-                        else:
-                            row.append('OK' if val else 'FAIL')
-                writer.writerow(row)
-            await self._async_write_text(tmp_csv, buf.getvalue())
-            tmp_csv.replace(csv_file)
+            try:
+                await atomic_write_async(csv_file, to_csv(configs))
+            except Exception as e:
+                try:
+                    log_json(logging.ERROR, "write_csv_failed", path=str(csv_file), error=str(e))
+                except Exception:
+                    pass
         
         # Comprehensive JSON report
         report = {
@@ -2627,72 +2655,26 @@ class UltimateVPNMerger:
         }
         
         report_file = output_dir / f"{prefix}vpn_report.json"
-        tmp_report = report_file.with_suffix('.tmp')
-        tmp_files.append(tmp_report)
-        await self._async_write_text(tmp_report, json.dumps(report, indent=2, ensure_ascii=False))
-        tmp_report.replace(report_file)
-
-        # Optional simple configs JSON via converter
-        if 'json' in enabled_formats and converter_outputs.get('json'):
-            simple_json_file = output_dir / f"{prefix}configs.json"
-            tmp_simple = simple_json_file.with_suffix('.tmp')
-            tmp_files.append(tmp_simple)
-            await self._async_write_text(tmp_simple, converter_outputs['json'])
-            tmp_simple.replace(simple_json_file)
-
-        # Simple outbounds JSON
-        outbounds = []
-        for idx, r in enumerate(results):
-            ob = {
-                "type": r.protocol.lower(),
-                "tag": f"{r.protocol} {idx}",
-                "server": r.host or "",
-                "server_port": r.port or 0,
-                "raw": r.config
-            }
+        try:
+            from vpn_merger.output.writer import atomic_write_async  # type: ignore
+            await atomic_write_async(report_file, json.dumps(report, indent=2, ensure_ascii=False))
+        except Exception as e:
             try:
-                tls_size = int(self.config.advanced.tls_fragment_size) if (self.config and getattr(self.config, 'advanced', None) and self.config.advanced.tls_fragment_size) else None
-                tls_sleep = int(self.config.advanced.tls_fragment_sleep) if (self.config and getattr(self.config, 'advanced', None) and self.config.advanced.tls_fragment_sleep) else None
+                log_json(logging.ERROR, "write_report_failed", path=str(report_file), error=str(e))
             except Exception:
-                tls_size = CONFIG.tls_fragment_size
-                tls_sleep = CONFIG.tls_fragment_sleep
-            if tls_size:
-                ob["tls_fragment"] = {
-                    "size": tls_size,
-                    "sleep": tls_sleep
-                }
-            try:
-                mux_enabled = bool(self.config.advanced.mux_enable) if (self.config and getattr(self.config, 'advanced', None)) else bool(CONFIG.mux_enable)
-                mux_protocol = (self.config.advanced.mux_protocol if (self.config and getattr(self.config, 'advanced', None)) else CONFIG.mux_protocol)
-                mux_max_connections = int(self.config.advanced.mux_max_connections) if (self.config and getattr(self.config, 'advanced', None)) else int(CONFIG.mux_max_connections)
-                mux_min_streams = int(self.config.advanced.mux_min_streams) if (self.config and getattr(self.config, 'advanced', None)) else int(CONFIG.mux_min_streams)
-                mux_max_streams = int(self.config.advanced.mux_max_streams) if (self.config and getattr(self.config, 'advanced', None)) else int(CONFIG.mux_max_streams)
-                mux_padding = bool(self.config.advanced.mux_padding) if (self.config and getattr(self.config, 'advanced', None)) else bool(CONFIG.mux_padding)
-                mux_brutal = bool(self.config.advanced.mux_brutal) if (self.config and getattr(self.config, 'advanced', None)) else bool(CONFIG.mux_brutal)
-            except Exception:
-                mux_enabled = bool(CONFIG.mux_enable)
-                mux_protocol = CONFIG.mux_protocol
-                mux_max_connections = int(CONFIG.mux_max_connections)
-                mux_min_streams = int(CONFIG.mux_min_streams)
-                mux_max_streams = int(CONFIG.mux_max_streams)
-                mux_padding = bool(CONFIG.mux_padding)
-                mux_brutal = bool(CONFIG.mux_brutal)
-            if mux_enabled:
-                ob["multiplex"] = {
-                    "protocol": mux_protocol,
-                    "max_connections": mux_max_connections,
-                    "min_streams": mux_min_streams,
-                    "max_streams": mux_max_streams,
-                    "padding": mux_padding,
-                    "brutal": mux_brutal
-                }
-            outbounds.append(ob)
+                pass
 
+        from vpn_merger.output.formatters.singbox import to_singbox_json  # type: ignore
+        from vpn_merger.output.writer import atomic_write  # type: ignore
         singbox_file = output_dir / f"{prefix}vpn_singbox.json"
-        tmp_singbox = singbox_file.with_suffix('.tmp')
-        tmp_files.append(tmp_singbox)
-        await self._async_write_text(tmp_singbox, json.dumps({"outbounds": outbounds}, indent=2, ensure_ascii=False))
-        tmp_singbox.replace(singbox_file)
+        try:
+            from vpn_merger.output.writer import atomic_write_async  # type: ignore
+            await atomic_write_async(singbox_file, to_singbox_json(configs))
+        except Exception as e:
+            try:
+                log_json(logging.ERROR, "write_singbox_failed", path=str(singbox_file), error=str(e))
+            except Exception:
+                pass
 
         try:
             output_clash_enabled = bool(self.config.output.output_clash) if (self.config and getattr(self.config, 'output', None)) else bool(CONFIG.output_clash)
@@ -2705,9 +2687,15 @@ class UltimateVPNMerger:
                 print("⚠️  PyYAML not installed, cannot write clash.yaml")
             else:
                 clash_file = output_dir / f"{prefix}clash.yaml"
-                tmp_clash = clash_file.with_suffix('.tmp')
-                yaml.safe_dump({"proxies": configs}, tmp_clash.open('w', encoding='utf-8'))
-                tmp_clash.replace(clash_file)
+                from vpn_merger.output.formatters.clash import to_clash_yaml  # type: ignore
+                from vpn_merger.output.writer import atomic_write_async  # type: ignore
+                try:
+                    await atomic_write_async(clash_file, to_clash_yaml(configs))
+                except Exception as e:
+                    try:
+                        log_json(logging.ERROR, "write_clash_failed", path=str(clash_file), error=str(e))
+                    except Exception:
+                        pass
     
     def _print_final_summary(self, config_count: int, elapsed_time: float, stats: Dict) -> None:
         """Print comprehensive final summary."""
@@ -2883,6 +2871,8 @@ def main():
                         help="Perform full TLS handshake when applicable")
     parser.add_argument("--output-clash", action="store_true",
                         help="Generate a clash.yaml file from results")
+    parser.add_argument("--validate-sources-only", action="store_true",
+                        help="Validate configured sources and exit")
     # Dashboard flags
     parser.add_argument("--enable-dashboard", action="store_true",
                         help="Start the dashboard web UI")
@@ -3028,6 +3018,48 @@ def main():
             config_obj = cm.load_config(Path(args.config))
         except Exception as e:
             print(f"⚠️  Failed to load config from {args.config}: {e}")
+
+    # Optional: validate only mode
+    if bool(getattr(args, 'validate_sources_only', False)):
+        try:
+            from vpn_merger.sources.validator import SourceValidator  # type: ignore
+        except Exception as e:
+            print(f"❌ Missing validator dependency: {e}")
+            sys.exit(2)
+
+        urls = UnifiedSources.get_all_sources()
+        print(f"🔎 Validating {len(urls)} sources...\n")
+
+        async def _validate_all():
+            sem = asyncio.Semaphore(20)
+            sv = SourceValidator()
+            results = []
+
+            async def run_one(u: str):
+                async with sem:
+                    return await sv.validate_source(u)
+
+            tasks = [asyncio.create_task(run_one(u)) for u in urls]
+            for t in asyncio.as_completed(tasks):
+                try:
+                    results.append(await t)
+                except Exception:
+                    pass
+            return results
+
+        try:
+            results = asyncio.run(_validate_all())
+        except RuntimeError:
+            # If already in an event loop, fallback
+            loop = asyncio.get_event_loop()
+            results = loop.run_until_complete(_validate_all())
+
+        ok = [r for r in results if r.get('accessible')]
+        ok.sort(key=lambda r: r.get('reliability_score', 0.0), reverse=True)
+        print(f"✅ Accessible: {len(ok)}/{len(results)}\n")
+        for r in ok[:20]:
+            print(f" • {r['url']} | score={r.get('reliability_score'):.2f} | cfgs={r.get('estimated_configs')} | protos={','.join(r.get('protocols_found', []))}")
+        sys.exit(0)
 
     # Graceful shutdown handling
     shutdown_flag = {"set": False}
