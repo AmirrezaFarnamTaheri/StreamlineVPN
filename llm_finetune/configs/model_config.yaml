@@ -1,0 +1,51 @@
+# Model Configuration for VPN Subscription Merger LLM Fine-tuning
+
+model:
+  name: "vpn-config-analyzer"
+  version: "1.0.0"
+  architecture: "transformer"
+  base_model: "microsoft/DialoGPT-medium"
+  
+training:
+  batch_size: 8
+  learning_rate: 2e-5
+  epochs: 10
+  warmup_steps: 100
+  max_grad_norm: 1.0
+  weight_decay: 0.01
+  
+data:
+  train_file: "data/train.json"
+  validation_file: "data/validation.json"
+  test_file: "data/test.json"
+  max_length: 512
+  text_column: "config"
+  label_column: "quality_score"
+  
+preprocessing:
+  remove_duplicates: true
+  normalize_protocols: true
+  extract_features: true
+  augment_data: false
+  
+evaluation:
+  metrics:
+    - "accuracy"
+    - "precision"
+    - "recall"
+    - "f1"
+    - "mse"
+  validation_split: 0.2
+  test_split: 0.1
+  
+output:
+  model_dir: "models/"
+  checkpoint_dir: "models/checkpoints/"
+  logs_dir: "logs/"
+  save_best_only: true
+  save_frequency: 1000
+  
+hardware:
+  device: "auto"
+  mixed_precision: true
+  gradient_accumulation_steps: 4

@@ -425,10 +425,10 @@ metadata:
 spec:
   tls:
   - hosts:
-    - vpn-merger.example.com
+    - vpn-merger.yourdomain.com
     secretName: vpn-merger-tls
   rules:
-  - host: vpn-merger.example.com
+  - host: vpn-merger.yourdomain.com
     http:
       paths:
       - path: /api

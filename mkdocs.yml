@@ -1,0 +1,23 @@
+site_name: CleanConfigs SubMerger
+site_description: Production-grade VPN subscription aggregator
+theme:
+  name: material
+  features:
+    - navigation.sections
+    - content.code.copy
+repo_url: https://github.com/AmirrezaFarnamTaheri/CleanConfigs-SubMerger-
+nav:
+  - Home: index.md
+  - Quick Start: quick-start.md
+  - API: api.md
+  - Deployment: deployment.md
+  - Architecture: architecture.md
+  - Troubleshooting: troubleshooting.md
+  - Python SDK: sdk-python.md
+markdown_extensions:
+  - admonition
+  - codehilite
+  - footnotes
+  - meta
+  - toc:
+      permalink: true

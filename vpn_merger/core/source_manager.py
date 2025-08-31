@@ -1,123 +1,265 @@
-from __future__ import annotations
+"""
+Source Manager
+=============
 
-import asyncio
-from typing import Dict, List, Optional, Set
+Manages VPN subscription sources with tiered organization and fallback support.
+"""
 
-from .source_discovery import discover_sources
+import logging
+import os
+from pathlib import Path
+from typing import Dict, List, Optional, Union
+
 try:
-    from vpn_merger.sources.validator import SourceValidator as _SourceValidator
-except Exception:  # pragma: no cover - optional import
-    _SourceValidator = None  # type: ignore
-try:
-    # Prefer the intelligent GitHub API-backed discovery when available
-    from vpn_merger.discovery.intelligent_discovery import (
-        IntelligentSourceDiscovery as _IntelligentSourceDiscovery,
-    )
-except Exception:  # pragma: no cover - optional import
-    _IntelligentSourceDiscovery = None  # type: ignore
+    import yaml
+except ImportError:
+    yaml = None
+
+logger = logging.getLogger(__name__)
 
 
-class IntelligentSourceManager:
-    """Dynamic source discovery, quarantine and simple health scoring."""
-
-    def __init__(self, db_connection=None):
-        self.db = db_connection
-        self._manual: Set[str] = set()
-        self._quarantined: Set[str] = set()
-        # success_rate, ema_latency_score (0..1000), last_good_ts
-        self._health: Dict[str, Dict[str, float]] = {}
-
-    async def discover_new_sources(self, use_intelligent: bool = True, validate: bool = True, min_score: float = 0.5, timeout: int = 12) -> List[str]:
-        """Discover sources using both heuristic and intelligent methods.
-
-        - Always uses the HTML/regex-based fallback discovery (fast, offline-friendly)
-        - Optionally augments with GitHub API-based intelligent discovery when available
-        - Deduplicates and filters quarantined URLs
+class SourceManager:
+    """Unified source management with tiered organization and reliability scoring.
+    
+    This class handles loading, organizing, and providing access to VPN subscription
+    sources from configuration files with comprehensive fallback support.
+    
+    Attributes:
+        config_path: Path to the configuration file
+        sources: Dictionary mapping tier names to lists of URLs
+    """
+    
+    def __init__(self, config_path: Union[str, Path] = "config/sources.unified.yaml"):
+        """Initialize the source manager.
+        
+        Args:
+            config_path: Path to the configuration file
         """
-        results: Set[str] = set()
-
-        # Baseline heuristic discovery
+        self.config_path = Path(config_path)
+        self.sources = self._load_sources()
+    
+    def _load_sources(self) -> Dict[str, List[str]]:
+        """Load sources from unified configuration file with fallback support.
+        
+        Returns:
+            Dictionary mapping tier names to lists of source URLs
+        """
         try:
-            baseline = await discover_sources()
-            results.update(baseline)
-        except Exception:
-            pass
-
-        # Optional intelligent discovery
-        if use_intelligent and _IntelligentSourceDiscovery is not None:
-            try:
-                disc = _IntelligentSourceDiscovery()
-                gh_urls = await disc.discover_github_sources()
-                results.update(gh_urls)
-            except Exception:
-                # Ignore API/rate-limit/network errors and proceed with baseline
-                pass
-
-        # Filter quarantined and return a stable order
-        filtered = [u for u in results if u not in self._quarantined]
-        # Optionally validate and gate by reliability score (aggressive pruning)
-        if validate and filtered:
-            try:
-                filtered = await self.validate_sources(filtered, min_score=min_score, timeout=timeout)
-            except Exception:
-                pass
-        filtered.sort()
-        return filtered
-
-    def add_manual_sources(self, urls: List[str]) -> None:
-        self._manual.update(urls)
-
-    def get_known_sources(self) -> Set[str]:
-        return set(self._manual)
-
-    def disable_source(self, url: str) -> None:
-        self._quarantined.add(url)
-
-    def record_health(self, url: str, ok: bool, rtt_ms: Optional[float]) -> None:
-        h = self._health.setdefault(
-            url, {"success_rate": 0.0, "ema": 0.0, "last_good_ts": 0.0}
-        )
-        alpha = 0.3
-        ema_contrib = 0.0 if not ok else max(0.0, 1000.0 - float(rtt_ms or 1000.0))
-        h["ema"] = (1 - alpha) * h["ema"] + alpha * ema_contrib
-        if ok:
-            try:
-                import time
-
-                h["last_good_ts"] = time.time()
-            except Exception:
-                pass
-
-    def score(self, url: str) -> float:
-        return self._health.get(url, {}).get("ema", 0.0)
-
-    async def update_source_priorities(self) -> List[str]:
-        base = list(self._manual)
-        base.sort(key=self.score, reverse=True)
-        return base
-
-    async def validate_sources(self, urls: List[str], min_score: float = 0.0, timeout: int = 15) -> List[str]:
-        """Optionally validate sources using SourceValidator and filter by score.
-
-        Returns URLs with reliability_score >= min_score, preserving input order.
+            if yaml is None:
+                logger.warning("PyYAML not available, using minimal fallback sources")
+                return self._get_minimal_fallback_sources()
+            
+            if not self.config_path.exists():
+                logger.warning(f"Config file {self.config_path} not found, using minimal fallback sources")
+                return self._get_minimal_fallback_sources()
+            
+            with open(self.config_path, 'r', encoding='utf-8') as f:
+                config = yaml.safe_load(f)
+                
+                if not config or not isinstance(config, dict):
+                    logger.warning("Invalid config file format, using minimal fallback sources")
+                    return self._get_minimal_fallback_sources()
+                
+                # Handle the complex configuration structure
+                sources = config.get('sources', {})
+                processed_sources = self._process_config_sources(sources)
+                
+                # If no sources found, use minimal fallback
+                if not processed_sources:
+                    logger.warning("No valid sources found in config, using minimal fallback sources")
+                    return self._get_minimal_fallback_sources()
+                
+                logger.info(f"Loaded {sum(len(urls) for urls in processed_sources.values())} sources from {len(processed_sources)} tiers")
+                return processed_sources
+                
+        except Exception as e:
+            logger.error(f"Error loading sources: {e}")
+            return self._get_minimal_fallback_sources()
+    
+    def _process_config_sources(self, sources: Dict) -> Dict[str, List[str]]:
+        """Process configuration sources and extract URLs.
+        
+        Args:
+            sources: Raw sources configuration dictionary
+            
+        Returns:
+            Processed sources dictionary
         """
-        if _SourceValidator is None:
-            return urls
-        sv = _SourceValidator()
-        ordered: List[str] = []
-
-        async def _run(u: str):
-            try:
-                res = await sv.validate_source(u, timeout=timeout)
-                if float(res.get("reliability_score") or 0.0) >= float(min_score):
-                    ordered.append(u)
-            except Exception:
-                pass
-
-        await asyncio.gather(*[_run(u) for u in urls])
-        # Preserve original order
-        idx = {u: i for i, u in enumerate(urls)}
-        ordered.sort(key=lambda u: idx.get(u, 0))
-        return ordered
-
-
+        processed_sources = {}
+        
+        for category, category_data in sources.items():
+            if not isinstance(category, str):
+                logger.warning(f"Skipping invalid category: {category}")
+                continue
+                
+            urls = self._extract_urls_from_category(category_data)
+            if urls:
+                processed_sources[category] = urls
+        
+        return processed_sources
+    
+    def _extract_urls_from_category(self, category_data) -> List[str]:
+        """Extract URLs from a category's data structure.
+        
+        Args:
+            category_data: Category data to extract URLs from
+            
+        Returns:
+            List of extracted URLs
+        """
+        urls = []
+        
+        if isinstance(category_data, dict) and 'urls' in category_data:
+            # Handle structured format with urls array
+            for url_data in category_data['urls']:
+                if isinstance(url_data, dict) and 'url' in url_data:
+                    url = url_data['url']
+                    if self._is_valid_url(url):
+                        urls.append(url)
+        elif isinstance(category_data, list):
+            # Handle simple list format
+            valid_urls = [url for url in category_data if self._is_valid_url(url)]
+            urls.extend(valid_urls)
+        elif isinstance(category_data, dict):
+            # Handle nested structure
+            for key, value in category_data.items():
+                if isinstance(value, dict) and 'urls' in value:
+                    for url_data in value['urls']:
+                        if isinstance(url_data, dict) and 'url' in url_data:
+                            url = url_data['url']
+                            if self._is_valid_url(url):
+                                urls.append(url)
+        
+        return urls
+    
+    def _get_minimal_fallback_sources(self) -> Dict[str, List[str]]:
+        """Get minimal fallback sources for emergency use only.
+        
+        Returns:
+            Dictionary with emergency fallback sources
+        """
+        logger.warning("Using minimal fallback sources - please configure sources.unified.yaml")
+        return {
+            "emergency_fallback": [
+                "https://raw.githubusercontent.com/mahdibland/V2RayAggregator/master/sub/sub_merge_base64.txt"
+            ]
+        }
+    
+    def get_all_sources(self) -> List[str]:
+        """Get all sources as a flat list.
+        
+        Returns:
+            List of all source URLs
+        """
+        all_sources = []
+        for tier, sources in self.sources.items():
+            all_sources.extend(sources)
+        return all_sources
+    
+    def get_sources_by_tier(self, tier: str) -> List[str]:
+        """Get sources from a specific tier.
+        
+        Args:
+            tier: Tier name to get sources from
+            
+        Returns:
+            List of source URLs for the specified tier
+        """
+        return self.sources.get(tier, [])
+    
+    def get_prioritized_sources(self) -> List[str]:
+        """Get sources in priority order (tier 1 first).
+        
+        Returns:
+            List of source URLs in priority order
+        """
+        prioritized = []
+        tier_order = [
+            "tier_1_premium", 
+            "tier_2_reliable", 
+            "tier_3_bulk", 
+            "specialized", 
+            "regional", 
+            "experimental", 
+            "emergency_fallback"
+        ]
+        
+        for tier in tier_order:
+            if tier in self.sources:
+                prioritized.extend(self.sources[tier])
+        
+        return prioritized
+    
+    def get_source_count(self) -> int:
+        """Get total number of sources.
+        
+        Returns:
+            Total count of all sources
+        """
+        return len(self.get_all_sources())
+    
+    def get_tier_info(self) -> Dict[str, int]:
+        """Get source count by tier.
+        
+        Returns:
+            Dictionary mapping tier names to source counts
+        """
+        return {tier: len(sources) for tier, sources in self.sources.items()}
+    
+    def get_tier_names(self) -> List[str]:
+        """Get list of available tier names.
+        
+        Returns:
+            List of tier names
+        """
+        return list(self.sources.keys())
+    
+    def validate_source_url(self, url: str) -> bool:
+        """Validate if a source URL is properly formatted.
+        
+        Args:
+            url: URL to validate
+            
+        Returns:
+            True if URL is valid, False otherwise
+        """
+        return self._is_valid_url(url)
+    
+    def _is_valid_url(self, url: str) -> bool:
+        """Check if a URL is valid and properly formatted.
+        
+        Args:
+            url: URL to validate
+            
+        Returns:
+            True if URL is valid, False otherwise
+        """
+        if not url or not isinstance(url, str):
+            return False
+        
+        url = url.strip()
+        if not url:
+            return False
+        
+        # Basic URL validation
+        valid_schemes = ['http://', 'https://']
+        return any(url.startswith(scheme) for scheme in valid_schemes)
+    
+    def reload_sources(self) -> None:
+        """Reload sources from the configuration file."""
+        logger.info("Reloading sources from configuration")
+        self.sources = self._load_sources()
+    
+    def get_source_summary(self) -> Dict[str, Union[int, List[str]]]:
+        """Get a comprehensive summary of all sources.
+        
+        Returns:
+            Dictionary containing source summary information
+        """
+        return {
+            'total_sources': self.get_source_count(),
+            'tier_count': len(self.sources),
+            'tier_info': self.get_tier_info(),
+            'tier_names': self.get_tier_names(),
+            'prioritized_count': len(self.get_prioritized_sources())
+        }

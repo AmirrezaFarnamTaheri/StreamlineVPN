@@ -33,9 +33,9 @@ async def test_per_host_rate_limiter_waits_when_exhausted():
     rl = PerHostRateLimiter(per_host_rate=1.0, per_host_capacity=2)
 
     start = time.time()
-    await rl.acquire("example.com")  # consumes 1
-    await rl.acquire("example.com")  # consumes 2 (capacity exhausted)
-    await rl.acquire("example.com")  # needs to wait ~1s for refill
+            await rl.acquire("test.example.com")  # consumes 1
+        await rl.acquire("test.example.com")  # consumes 2 (capacity exhausted)
+            await rl.acquire("test.example.com")  # needs to wait ~1s for refill
     elapsed = time.time() - start
 
     assert elapsed >= 0.8

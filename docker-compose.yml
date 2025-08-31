@@ -1,22 +1,52 @@
+# VPN Merger - Docker Compose Configuration
+# ========================================
+
 version: '3.8'
+
 services:
   vpn-merger:
-    build: .
+    build: 
+      context: .
+      dockerfile: Dockerfile
+    container_name: vpn-merger
     ports:
-      - "8000:8000"
-      - "8001:8001"
+      - "8000:8000"  # Main API endpoint
+      - "8001:8001"  # Metrics and monitoring endpoint
     volumes:
-      - ./output:/app/output
-      - ./config:/app/config
+      - ./output:/app/output:rw      # Output files
+      - ./config:/app/config:ro      # Configuration files (read-only)
+      - ./logs:/app/logs:rw          # Log files
     environment:
+      # Monitoring configuration
       - VPN_MERGER_MONITORING__ENABLE_DASHBOARD=true
       - VPN_MERGER_MONITORING__ENABLE_METRICS=true
-      - DASHBOARD_TOKEN=${DASHBOARD_TOKEN:-}
+      - VPN_MERGER_MONITORING__ENABLE_TRACING=true
+      
+      # Dashboard security
+      - DASHBOARD_TOKEN=${DASHBOARD_TOKEN:-default_token}
+      
+      # Application settings
+      - PYTHONUNBUFFERED=1
+      - VPN_MERGER_ENVIRONMENT=production
+      - VPN_MERGER_LOG_LEVEL=INFO
+      
+      # Network settings
+      - VPN_MERGER_MAX_CONCURRENT=50
+      - VPN_MERGER_TIMEOUT=30
     restart: unless-stopped
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8000/api/v1/health"]
       interval: 30s
       timeout: 5s
       retries: 3
+      start_period: 10s
+    networks:
+      - vpn-merger-network
+    depends_on: []
+
+networks:
+  vpn-merger-network:
+    driver: bridge
+    name: vpn-merger-network
 
 

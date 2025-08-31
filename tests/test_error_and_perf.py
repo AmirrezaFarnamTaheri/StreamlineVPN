@@ -29,7 +29,7 @@ async def test_error_recovery_network_and_write_failures(tmp_path: Path):
     def _get(url: str, *args, **kwargs):
         if "source-ok" in url:
             calls["ok"] += 1
-            payload = b"vmess://dGVzdA==\nvless://uuid@example.com:443?security=tls\n"
+            payload = b"vmess://dGVzdA==\nvless://12345678-90ab-12f3-a6c5-4681aaaaaaaa@test.example.com:443?security=tls\n"
             return _CtxResp(200, payload)
         calls["fail"] += 1
         raise RuntimeError("simulated network error")
@@ -56,9 +56,9 @@ async def test_error_recovery_network_and_write_failures(tmp_path: Path):
         vm.CONFIG.output_dir = str(tmp_path)
         merger = vm.UltimateVPNMerger()
         merger.sources = [
-            "https://example.com/source-fail-1.txt",
-            "https://example.com/source-ok.txt",
-            "https://example.com/source-fail-2.txt",
+                    "https://raw.githubusercontent.com/test/source-fail-1.txt",
+        "https://raw.githubusercontent.com/test/source-ok.txt",
+        "https://raw.githubusercontent.com/test/source-fail-2.txt",
         ]
 
         # Should not raise despite failures
@@ -81,9 +81,9 @@ async def test_performance_under_load_quick(tmp_path: Path):
         if i % 3 == 0:
             lines.append("vmess://dGVzdA==")
         elif i % 3 == 1:
-            lines.append("vless://uuid@example.com:443?security=tls")
+            lines.append("vless://12345678-90ab-12f3-a6c5-4681aaaaaaaa@test.example.com:443?security=tls")
         else:
-            lines.append("trojan://pwd@example.com:443")
+            lines.append("trojan://testpassword@test.example.com:443")
     blob = ("\n".join(lines)).encode("utf-8")
 
     class _CtxResp:
@@ -114,7 +114,7 @@ async def test_performance_under_load_quick(tmp_path: Path):
 
         vm.CONFIG.output_dir = str(tmp_path)
         merger = vm.UltimateVPNMerger()
-        merger.sources = ["https://example.com/big.txt"]
+        merger.sources = ["https://raw.githubusercontent.com/test/big.txt"]
 
         # Limit runtime by reducing internal testing and scoring work if supported
         if hasattr(merger, "max_tested_configs"):

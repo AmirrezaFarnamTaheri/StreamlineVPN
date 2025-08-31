@@ -1,96 +1,87 @@
 # API Overview
 
-All endpoints are exposed under `/api/v1`. If `API_TOKEN` is set in the environment, include `x-api-token: <token>` or `?token=<token>`.
+The VPN Subscription Merger provides a comprehensive REST API for accessing merged VPN configurations and system metrics.
 
-## Endpoints
+## REST API (v1)
 
-- `GET /api/v1/health`
-  - Returns `{"status":"ok"}` for readiness checks.
+### Subscription Endpoints
 
-- `GET /api/v1/limits`
-  - Returns current rate‑limit state for the requesting IP.
+- `GET /api/v1/sub/raw` - Raw subscription data
+- `GET /api/v1/sub/base64` - Base64 encoded subscription
+- `GET /api/v1/sub/singbox` - Sing-box format configuration
+- `GET /api/v1/sub/clash` - Clash format configuration
+- `GET /api/v1/sub/report` - Detailed JSON report with metadata
 
-- `GET /api/v1/sub/raw`
-  - Plain text, one config per line. Token‑gated when `API_TOKEN` is set.
+### Health & Status
 
-- `GET /api/v1/sub/base64`
-  - Base64 subscription of the merged output. Token‑gated when `API_TOKEN` is set.
+- `GET /api/v1/health` - System health check
+- `GET /api/v1/ready` - Readiness probe
+- `GET /api/v1/status` - System status and statistics
 
-- `GET /api/v1/sub/singbox`
-  - JSON outbounds for sing‑box. Token‑gated when `API_TOKEN` is set.
+### Configuration
 
-- `GET /api/v1/sub/report`
-  - JSON report of the latest run, including counts and file paths. Token‑gated when `API_TOKEN` is set.
+- `GET /api/v1/config/sources` - List configured sources
+- `GET /api/v1/config/status` - Configuration validation status
 
-- `GET /api/v1/stats/latest`
-  - Compact stats derived from the last report + quarantine DB count.
+## REST API (v2)
 
-## GraphQL (optional)
+### Enhanced Endpoints
 
-If `strawberry-graphql` is installed, a GraphQL endpoint is mounted at `/graphql` with the following queries:
+- `GET /api/v2/nodes` - Paginated node listing with filtering
+- `GET /api/v2/health` - Enhanced health information
+- `GET /api/v2/metrics` - Detailed performance metrics
 
-- `outputs`: returns paths to output files (raw/base64/CSV/report/singbox)
-- `stats`: returns `total_configs`, `reachable_configs`, `total_sources`
+### Query Parameters
 
-### Schema (summary)
+- `cursor`: Pagination cursor
+- `limit`: Number of results (max 1000)
+- `protocol`: Filter by protocol (vmess, vless, trojan, etc.)
+- `reachable`: Filter by reachability status
+- `host_re`: Host regex filter
+- `risk`: Risk level filter
+- `anonymize`: Anonymize sensitive data
 
-```graphql
-type Outputs {
-  raw: String!
-  base64: String!
-  csv: String!
-  report: String!
-  singbox: String!
-}
+## Metrics & Monitoring
 
-type Stats {
-  total_configs: Int!
-  reachable_configs: Int!
-  total_sources: Int!
-}
+### Prometheus Metrics
 
-type Query {
-  outputs: Outputs!
-  stats: Stats!
-}
+- Available on `--metrics-port` (default 8001)
+- Endpoint: `/metrics`
+- Includes custom metrics for:
+  - Source processing statistics
+  - Configuration quality metrics
+  - Performance timing data
+  - Error rates and success rates
+
+### OpenTelemetry
+
+- Distributed tracing support (optional)
+- Span correlation across components
+- Performance profiling capabilities
+
+## Authentication
+
+### API Token Authentication
+
+```bash
+curl -H "X-API-Token: your-token" https://api.example.com/api/v1/sub/raw
 ```
 
-### Example Query
+### Multi-tenant Support
 
-```graphql
-query {
-  outputs { raw base64 singbox }
-  stats { total_configs reachable_configs total_sources }
-}
+```bash
+curl -H "X-Tenant: tenant-id" https://api.example.com/api/v1/sub/raw
 ```
 
-Include `x-api-token: <token>` header if `API_TOKEN` is set.
+## Rate Limiting
 
-## WebSocket API
+- Default: 100 requests per minute per IP
+- Configurable via environment variables
+- Rate limit headers included in responses
 
-The server exposes a WebSocket at `/ws` for real-time events when enabled. Messages are JSON objects with a `type` field and `data` payload.
+## Error Handling
 
-- `run.start`: a merge run has begun
-- `run.progress`: progress update; includes counts and stage
-- `run.complete`: run finished; includes summary and output paths
-- `health.update`: health/metrics snapshot
-
-### Client example (JavaScript)
-
-```javascript
-const ws = new WebSocket("wss://<host>/ws?token=<API_TOKEN>");
-ws.onmessage = (ev) => {
-  const msg = JSON.parse(ev.data);
-  switch (msg.type) {
-    case "run.start":
-    case "run.progress":
-    case "run.complete":
-    case "health.update":
-      console.log(msg);
-      break;
-  }
-};
-```
-
-If token auth is enabled, provide `?token=<token>` in the URL or send `{"type":"auth","token":"<token>"}` as the first message.
-
+- Standard HTTP status codes
+- JSON error responses with details
+- Correlation IDs for debugging
+- Structured error logging

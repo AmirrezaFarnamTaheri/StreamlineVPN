@@ -1,768 +1,500 @@
-from __future__ import annotations
+"""
+VPN Subscription Merger
+======================
 
-"""Adapter exposing a compact merger API.
-
-This delegates to the existing UltimateVPNMerger in the legacy module to
-avoid large code moves while providing a stable import path.
+Main orchestration class for VPN subscription merging and processing.
 """
 
-from typing import List, Iterable, Tuple, Optional, Set, Dict
-
-from .deduplicator import Deduplicator
-from .scorer import QualityScorer  # type: ignore
-from ..output.writer import atomic_write_async  # type: ignore
-from ..output.formatters.base64 import to_base64  # type: ignore
-from ..output.formatters.csv import to_csv  # type: ignore
-from ..output.formatters.singbox import to_singbox_json  # type: ignore
-from ..output.formatters.clash import to_clash_yaml  # type: ignore
+import asyncio
+import base64
+import csv
+import json
+import logging
+import os
+from datetime import datetime
 from pathlib import Path
-from ..testing.connection import quick_ping  # type: ignore
+from typing import Dict, List, Optional, Union
+
+try:
+    from tqdm import tqdm
+except ImportError:
+    tqdm = None
+
+from ..models.configuration import VPNConfiguration
+from .source_manager import SourceManager
+from .config_processor import ConfigurationProcessor
+from .health_checker import SourceHealthChecker
+
+logger = logging.getLogger(__name__)
+
+# Global configuration constants
+DEFAULT_TIMEOUT = 30  # seconds
+DEFAULT_MAX_RETRIES = 3
+DEFAULT_CONCURRENT_LIMIT = 50
+DEFAULT_CHUNK_SIZE = 1024 * 1024  # 1MB chunks for efficient processing
 
 
-def _safe_list(x: Iterable[str]) -> List[str]:
-    return [s for s in x if isinstance(s, str) and s.strip()]
-
-
-class Merger:
-    def __init__(self):
-        # Try to bind to the legacy implementation for source storage; fall back to a stub
-        try:
-            from .. import vpn_merger as _root  # type: ignore
-            self._root = _root
-            self._impl = _root.UltimateVPNMerger()
-        except Exception:
-            self._root = None
-            class _Stub:
-                def __init__(self):
-                    self.sources: List[str] = []
-                    self.config = None
-            self._impl = _Stub()
-        self._dedupe = Deduplicator()
-
-    # ----------------------- Source Validation -----------------------
-    async def validate_sources(self, urls: List[str], min_score: float = 0.5, timeout: int = 12) -> List[Tuple[str, float]]:
-        try:
-            from vpn_merger.sources.validator import SourceValidator  # type: ignore
-        except Exception:
-            return [(u, 0.0) for u in urls]
-        sv = SourceValidator()
-        out: List[Tuple[str, float]] = []
-
-        import asyncio
-
-        import asyncio as _aio
-        sem = _aio.Semaphore(50)
-
-        async def _run(u: str):
-            try:
-                async with sem:
-                    r = await sv.validate_source(u, timeout=timeout)
-                s = float(r.get("reliability_score") or 0.0)
-                if s >= min_score:
-                    out.append((u, s))
-            except Exception:
-                pass
-
-        await asyncio.gather(*[_run(u) for u in urls])
-        out.sort(key=lambda t: t[1], reverse=True)
-        return out
-
-    # ----------------------- Deduplicate -----------------------------
-    def deduplicate(self, lines: Iterable[str]) -> List[str]:
-        return self._dedupe.unique(_safe_list(lines))
-
-    # ----------------------- Scoring ---------------------------------
-    def score_and_sort(self, lines: Iterable[str]) -> List[str]:
-        items = _safe_list(lines)
-        try:
-            scorer = QualityScorer()  # type: ignore
-        except Exception:
-            return items
-        scored = []
-        for s in items:
-            try:
-                scored.append((scorer.score_line(s), s))  # type: ignore[attr-defined]
-            except Exception:
-                scored.append((0.0, s))
-        scored.sort(key=lambda t: t[0], reverse=True)
-        return [s for _, s in scored]
-
-    @property
-    def sources(self) -> List[str]:  # pragma: no cover - trivial delegate
-        return self._impl.sources
-
-    @sources.setter
-    def sources(self, v: List[str]) -> None:  # pragma: no cover
-        self._impl.sources = v
-
-    async def run(self, formats: Optional[Set[str]] = None, output_dir: Optional[Path | str] = None) -> None:
-        # Run start event
-        import time as _t
-        run_id = f"run-{int(_t.time())}"
-        # Initialize tracing and metrics (best-effort)
-        self.tracing = None
-        self.mc = None
-        try:
-            from ..monitoring.tracing_enhanced import TracingService  # type: ignore
-            self.tracing = TracingService()
-        except Exception:
-            self.tracing = None
-        try:
-            from ..monitoring.metrics_collector import MetricsCollector  # type: ignore
-            self.mc = MetricsCollector()
-        except Exception:
-            self.mc = None
-        try:
-            from ..core.events import Event, EventType  # type: ignore
-            if self.event_bus:
-                await self.event_bus.publish(Event(type=EventType.RUN_START, data={"run_id": run_id}, timestamp=_t.time()))
-        except Exception:
-            pass
-        # Optional event bus and metrics integration
-        try:
-            from ..core.events import EventBus  # type: ignore
-            self.event_bus = EventBus()
-            import asyncio as _aio
-            _aio.create_task(self.event_bus.start())
-        except Exception:
-            self.event_bus = None
-        try:
-            from ..monitoring.metrics import VPNMergerMetrics  # type: ignore
-            from ..monitoring.metrics_subscribers import attach as attach_metrics  # type: ignore
-            self.metrics = VPNMergerMetrics(port=8001)
-            if self.event_bus is not None:
-                attach_metrics(self.event_bus, self.metrics)
-        except Exception:
-            self.metrics = None
-        # Attach persistent event logger
-        try:
-            from ..monitoring.event_store import append_event  # type: ignore
-            from ..core.events import EventType, Event  # type: ignore
-            import time as _t
-
-            async def _persist(ev: Event):
-                append_event({"type": ev.type.value, "data": ev.data, "ts": ev.timestamp})
-
-            if self.event_bus is not None:
-                for et in (
-                    EventType.DISCOVER_START,
-                    EventType.DISCOVER_DONE,
-                    EventType.VALIDATE_START,
-                    EventType.VALIDATE_DONE,
-                    EventType.FETCH_START,
-                    EventType.FETCH_DONE,
-                    EventType.DEDUP_DONE,
-                    EventType.OUTPUT_WRITTEN,
-                ):
-                    self.event_bus.subscribe(et, _persist)
-            # Metrics + tracing subscribers
-            async def _observe(ev: Event):
+class VPNSubscriptionMerger:
+    """Main VPN subscription merger class with comprehensive processing capabilities.
+    
+    This class orchestrates the entire VPN subscription merging process,
+    including source management, configuration processing, and output generation.
+    
+    Attributes:
+        source_manager: Manages VPN subscription sources
+        config_processor: Processes and validates configurations
+        results: List of processed VPN configurations
+        stats: Processing statistics and metrics
+        source_processing_times: Timing information for each source
+        error_counts: Error tracking for each source
+    """
+    
+    def __init__(self, config_path: Union[str, Path] = "config/sources.unified.yaml"):
+        """Initialize the VPN subscription merger.
+        
+        Args:
+            config_path: Path to the configuration file
+        """
+        self.source_manager = SourceManager(config_path)
+        self.config_processor = ConfigurationProcessor()
+        self.results: List[VPNConfiguration] = []
+        self.stats = {
+            'total_sources': 0,
+            'processed_sources': 0,
+            'total_configs': 0,
+            'valid_configs': 0,
+            'duplicate_configs': 0,
+            'start_time': None,
+            'end_time': None
+        }
+        self.source_processing_times: Dict[str, float] = {}
+        self.error_counts: Dict[str, int] = {}
+    
+    async def run_comprehensive_merge(self, max_concurrent: int = DEFAULT_CONCURRENT_LIMIT) -> List[VPNConfiguration]:
+        """Run comprehensive merge operation with concurrency control.
+        
+        Args:
+            max_concurrent: Maximum number of concurrent source processing tasks
+            
+        Returns:
+            List of processed VPN configurations
+            
+        Raises:
+            ValueError: If max_concurrent is invalid
+        """
+        if max_concurrent <= 0:
+            raise ValueError("max_concurrent must be positive")
+        
+        self.stats['start_time'] = datetime.now()
+        self.stats['total_sources'] = len(self.source_manager.get_all_sources())
+        
+        logger.info(f"Starting comprehensive merge with {self.stats['total_sources']} sources")
+        
+        # Get prioritized sources
+        sources = self.source_manager.get_prioritized_sources()
+        
+        # Process sources with concurrency control
+        semaphore = asyncio.Semaphore(max_concurrent)
+        
+        async def process_source(source_url: str):
+            async with semaphore:
+                return await self._process_single_source(source_url)
+        
+        # Create tasks for all sources
+        tasks = [process_source(source) for source in sources]
+        
+        # Process with progress bar if available
+        if tqdm:
+            with tqdm(total=len(tasks), desc="Processing sources") as pbar:
+                for coro in asyncio.as_completed(tasks):
+                    try:
+                        await coro
+                        pbar.update(1)
+                    except Exception as e:
+                        logger.error(f"Error processing source: {e}")
+                        pbar.update(1)
+        else:
+            # Fallback without progress bar
+            for coro in asyncio.as_completed(tasks):
                 try:
-                    # Tracing span per event
-                    if getattr(self, 'tracing', None) is not None:
-                        try:
-                            from ..monitoring.tracing_enhanced import TracingService  # type: ignore
-                            tracer = self.tracing.tracer  # type: ignore[attr-defined]
-                            with tracer.start_as_current_span(f"event.{ev.type.value}") as span:  # type: ignore
-                                if isinstance(ev.data, dict):
-                                    for k, v in ev.data.items():
-                                        try:
-                                            span.set_attribute(f"event.{k}", v)
-                                        except Exception:
-                                            pass
-                        except Exception:
-                            pass
-                    # Metrics stage durations
-                    if getattr(self, 'mc', None) is not None and isinstance(ev.data, dict):
-                        dur = ev.data.get('duration_s')
-                        if dur is not None:
-                            try:
-                                stage = ev.type.value
-                                self.mc.processing_duration.labels(stage=stage).observe(float(dur))  # type: ignore[attr-defined]
-                            except Exception:
-                                pass
-                except Exception:
-                    pass
-
-            if self.event_bus is not None:
-                for et in (
-                    EventType.DISCOVER_DONE,
-                    EventType.VALIDATE_DONE,
-                    EventType.FETCH_DONE,
-                    EventType.OUTPUT_WRITTEN,
-                    EventType.RUN_START,
-                    EventType.RUN_DONE,
-                ):
-                    self.event_bus.subscribe(et, _observe)
-        except Exception:
-            pass
-        # Standalone light-weight run that mirrors the legacy outputs
-        import asyncio
-        from ..services.fetcher_service import AsyncSourceFetcher  # type: ignore
-        from ..sources.discovery import discover_all  # type: ignore
-
-        # Read config knobs if available
+                    await coro
+                except Exception as e:
+                    logger.error(f"Error processing source: {e}")
+        
+        # Sort results by quality score
+        self.results.sort(key=lambda x: x.quality_score, reverse=True)
+        
+        self.stats['end_time'] = datetime.now()
+        self.stats['valid_configs'] = len(self.results)
+        
+        logger.info(f"Merge completed: {self.stats['valid_configs']} valid configs from {self.stats['processed_sources']} sources")
+        
+        return self.results
+    
+    async def _process_single_source(self, source_url: str) -> None:
+        """Process a single source URL with error handling.
+        
+        Args:
+            source_url: Source URL to process
+        """
+        start_time = datetime.now()
+        
         try:
-            config = getattr(self._impl, 'config', None)
-        except Exception:
-            config = None
+            self.stats['processed_sources'] += 1
+            
+            # Validate source
+            async with SourceHealthChecker() as validator:
+                validation_result = await validator.validate_source(source_url)
+                
+                if not validation_result.get('accessible', False):
+                    logger.debug(f"Source not accessible: {source_url}")
+                    return
 
-        # Determine sources
-        try:
-            from .. import vpn_merger as _root  # type: ignore
-            base_sources: List[str] = list(_root.UnifiedSources.get_all_sources())
-        except Exception:
-            base_sources = []
-        # Prefer explicitly provided sources when available
-        try:
-            user_sources = list(self.sources)
-            if user_sources:
-                base_sources = user_sources
-        except Exception:
-            pass
-
-        total_start = _t.time()
-        # Optional discovery
-        enable_disc = True
-        try:
-            # Prefer new Pydantic config
-            enable_disc = bool(getattr(getattr(config, 'discovery', None), 'enable', True))
-        except Exception:
-            pass
-        # CI/test override via environment to avoid long external calls
-        try:
-            import os as _os
-            if _os.environ.get('CI') or _os.environ.get('SKIP_DISCOVERY'):
-                enable_disc = False
-        except Exception:
-            pass
-        if enable_disc:
-            disc_t0 = _t.time()
-            # emit discover start
-            try:
-                from ..core.events import Event, EventType  # type: ignore
-                import time as _t
-                if self.event_bus:
-                    await self.event_bus.publish(Event(type=EventType.DISCOVER_START, data={}, timestamp=_t.time()))
-            except Exception:
-                pass
-            try:
-                disc = await discover_all(limit=200)
-                base_sources = list(dict.fromkeys(base_sources + disc))
-            except Exception:
-                pass
-            # discover done
-            try:
-                from ..core.events import Event, EventType  # type: ignore
-                import time as _t
-                if self.event_bus:
-                    await self.event_bus.publish(Event(type=EventType.DISCOVER_DONE, data={"count": len(base_sources), "duration_s": round(_t.time() - disc_t0, 3)}, timestamp=_t.time()))
-            except Exception:
-                pass
-
-        # Optional: load URL weights/thresholds from production YAML
-        def _load_url_meta() -> Dict[str, Tuple[float, Optional[float]]]:
-            meta: Dict[str, Tuple[float, Optional[float]]] = {}
-            try:
-                import yaml  # type: ignore
-                from pathlib import Path as _P
-                prod = _P('config') / 'sources.production.yaml'
-                if not prod.exists():
-                    return meta
-                data = yaml.safe_load(prod.read_text(encoding='utf-8')) or {}
-
-                def _walk(obj, inherited_weight: float = 1.0, min_score_override: Optional[float] = None):
-                    if isinstance(obj, dict):
-                        w = obj.get('weight', inherited_weight)
-                        try:
-                            w = float(w)
-                        except Exception:
-                            w = inherited_weight
-                        mso = obj.get('min_score', min_score_override)
-                        try:
-                            mso = float(mso) if mso is not None else min_score_override
-                        except Exception:
-                            mso = min_score_override
-                        if 'url' in obj and isinstance(obj['url'], str):
-                            meta[obj['url']] = (float(w), mso)
-                        for v in obj.values():
-                            _walk(v, float(w), mso)
-                    elif isinstance(obj, list):
-                        for it in obj:
-                            _walk(it, inherited_weight, min_score_override)
-
-                _walk(data)
-            except Exception:
-                return meta
-            return meta
-
-        url_meta = _load_url_meta()
-
-        # Gate by reliability score
-        min_score = 0.5
-        timeout = 12
-        try:
-            min_score = float(getattr(getattr(config, 'discovery', None), 'min_score', 0.5))
-            timeout = int(getattr(getattr(config, 'discovery', None), 'timeout', 12))
-        except Exception:
-            pass
-        try:
-            from ..core.events import Event, EventType  # type: ignore
-            import time as _t
-            if self.event_bus:
-                val_t0 = _t.time()
-                await self.event_bus.publish(Event(type=EventType.VALIDATE_START, data={"count": len(base_sources)}, timestamp=val_t0))
-        except Exception:
-            val_t0 = _t.time()
-        # Metrics + tracing for validate
-        _val_cm = self.mc.time_stage('validate') if self.mc else None
-        try:
-            if self.tracing:
-                async with self.tracing.trace("validate", {"run_id": run_id, "count": len(base_sources)}):
-                    valid_pairs = await self.validate_sources(base_sources, min_score=0.0, timeout=timeout)
-            else:
-                valid_pairs = await self.validate_sources(base_sources, min_score=0.0, timeout=timeout)
+            # Fetch and process content
+            configs = await self._fetch_source_content(source_url)
+            
+            for config in configs:
+                result = self.config_processor.process_config(config, source_url)
+                if result:
+                    self.results.append(result)
+                    self.stats['total_configs'] += 1
+                else:
+                    self.stats['duplicate_configs'] += 1
+                    
+        except Exception as e:
+            logger.error(f"Error processing source {source_url}: {e}")
+            self.error_counts[source_url] = self.error_counts.get(source_url, 0) + 1
         finally:
-            try:
-                if _val_cm:
-                    _val_cm.__exit__(None, None, None)
-            except Exception:
-                pass
-        # Apply per-URL override thresholds and weight-based prioritization
-        filtered_pairs: List[Tuple[str, float]] = []
-        for u, s in valid_pairs:
-            ow = url_meta.get(u, (1.0, None))
-            mso = ow[1]
-            th = float(mso) if mso is not None else float(min_score)
-            if s >= th:
-                filtered_pairs.append((u, s * float(ow[0])))
-        filtered_pairs.sort(key=lambda t: t[1], reverse=True)
-        sources = [u for (u, _ws) in filtered_pairs] or base_sources
+            # Record processing time
+            end_time = datetime.now()
+            processing_time = (end_time - start_time).total_seconds()
+            self.source_processing_times[source_url] = processing_time
+    
+    async def _fetch_source_content(self, source_url: str) -> List[str]:
+        """Fetch content from source URL with error handling.
+        
+        Args:
+            source_url: Source URL to fetch from
+            
+        Returns:
+            List of configuration strings
+        """
         try:
-            from ..core.events import Event, EventType  # type: ignore
-            import time as _t
-            if self.event_bus:
-                await self.event_bus.publish(Event(type=EventType.VALIDATE_DONE, data={"accepted": len(sources), "duration_s": round(_t.time() - val_t0, 3)}, timestamp=_t.time()))
-        except Exception:
-            pass
-
-        # Helper: filter by protocol prefixes
-        def _filter_lines(lines: Iterable[str]) -> List[str]:
-            prefs: Set[str] = {
-                "vmess://", "vless://", "trojan://", "ss://", "ssr://",
-                "hysteria://", "hysteria2://", "tuic://", "wireguard://",
-            }
-            out: List[str] = []
-            for ln in lines:
-                s = (ln or '').strip()
-                if not s:
-                    continue
-                for p in prefs:
-                    if s.startswith(p):
-                        out.append(s)
-                        break
-            return out
-
-        # Fetch
-        fetcher = AsyncSourceFetcher(lambda text: _filter_lines(text.splitlines()), concurrency=12)
-        await fetcher.open()
+            import aiohttp
+        except ImportError:
+            logger.warning("aiohttp not available, skipping fetch")
+            return []
+        
         try:
-            from ..core.events import Event, EventType  # type: ignore
-            import time as _t
-            if self.event_bus:
-                fetch_t0 = _t.time()
-                await self.event_bus.publish(Event(type=EventType.FETCH_START, data={"sources": len(sources)}, timestamp=fetch_t0))
-        except Exception:
-            fetch_t0 = _t.time()
-        # Throttled progress events during fetch
+            async with aiohttp.ClientSession() as session:
+                async with session.get(source_url, timeout=DEFAULT_TIMEOUT) as response:
+                    if response.status == 200:
+                        content = await response.text()
+                        return [line.strip() for line in content.split('\n') if line.strip()]
+                    else:
+                        logger.warning(f"Failed to fetch {source_url}: HTTP {response.status}")
+                        return []
+        except asyncio.TimeoutError:
+            logger.warning(f"Timeout fetching {source_url}")
+            return []
+        except Exception as e:
+            logger.error(f"Error fetching {source_url}: {e}")
+            return []
+    
+    def get_statistics(self) -> Dict[str, Union[int, float, str, Dict]]:
+        """Get comprehensive processing statistics.
+        
+        Returns:
+            Dictionary containing processing statistics
+        """
+        return {
+            **self.stats,
+            'source_processing_times': self.source_processing_times,
+            'error_counts': self.error_counts,
+            'success_rate': (
+                self.stats['processed_sources'] / self.stats['total_sources']
+            ) if self.stats['total_sources'] > 0 else 0.0,
+            'processing_duration': (
+                (self.stats['end_time'] - self.stats['start_time']).total_seconds()
+            ) if self.stats['start_time'] and self.stats['end_time'] else None
+        }
+    
+    def save_results(self, results: List[VPNConfiguration], output_dir: Union[str, Path] = "output") -> Dict[str, str]:
+        """Save results to various output formats with enhanced error handling.
+        
+        Args:
+            results: List of VPN configurations to save
+            output_dir: Directory to save output files
+            
+        Returns:
+            Dictionary mapping output types to file paths
+            
+        Raises:
+            ValueError: If results list is empty
+        """
+        if not results:
+            raise ValueError("Cannot save empty results list")
+        
         try:
-            from ..core.events import Event, EventType  # type: ignore
-            import time as _t
-            last_emit = 0.0
-
-            async def _progress(done: int, total: int):
-                nonlocal last_emit
-                now = _t.time()
-                if (now - last_emit) >= 1.0 or done == total:
-                    last_emit = now
-                    if self.event_bus:
-                        await self.event_bus.publish(Event(type=EventType.FETCH_PROGRESS, data={"done": done, "total": total}, timestamp=now))
-
-            # Metrics + tracing for fetch
-            _fetch_cm = self.mc.time_stage('fetch') if self.mc else None
-            try:
-                if self.tracing:
-                    async with self.tracing.trace("fetch", {"run_id": run_id, "sources": len(sources)}):
-                        results = await fetcher.fetch_many(sources[:200], progress_cb=_progress)
-                else:
-                    results = await fetcher.fetch_many(sources[:200], progress_cb=_progress)
-            finally:
-                try:
-                    if _fetch_cm:
-                        _fetch_cm.__exit__(None, None, None)
-                except Exception:
-                    pass
-        except Exception:
-            # Fallback without progress
-            try:
-                results = await fetcher.fetch_many(sources[:200])
-            except Exception:
-                results = []
-        finally:
-            try:
-                await fetcher.close()
-            except Exception:
-                pass
-        try:
-            from ..core.events import Event, EventType  # type: ignore
-            import time as _t
-            if self.event_bus:
-                total_lines = sum(len(lines) for _u, lines in results)
-                await self.event_bus.publish(Event(type=EventType.FETCH_DONE, data={"sources": len(results), "lines": total_lines, "duration_s": round(_t.time() - fetch_t0, 3)}, timestamp=_t.time()))
-        except Exception:
-            pass
-
-        # Merge lines, keep source mapping
-        from ..processing.parser import ProtocolParser  # type: ignore
-        from .processor import ConfigResult  # type: ignore
-        all_items: List[ConfigResult] = []
-        for url, lines in results:
-            for line in lines:
-                proto = ProtocolParser.categorize(line)
-                host, port = ProtocolParser.extract_endpoint(line)
-                all_items.append(ConfigResult(config=line, protocol=proto, host=host, port=port, source_url=url))
-        # Deduplicate, then optional score-sort
-        seen: Set[str] = set()
-        dedup_items: List[ConfigResult] = []
-        for it in all_items:
-            if it.config not in seen:
-                seen.add(it.config)
-                dedup_items.append(it)
-        try:
-            from ..core.events import Event, EventType  # type: ignore
-            import time as _t
-            if self.event_bus:
-                dedup_t = _t.time()
-                await self.event_bus.publish(Event(type=EventType.DEDUP_DONE, data={"unique": len(dedup_items)}, timestamp=dedup_t))
-        except Exception:
-            pass
-        try:
-            from .. import vpn_merger as _root  # type: ignore
-            do_sort = bool(getattr(_root.CONFIG, 'enable_sorting', True))
-        except Exception:
-            do_sort = True
-        final_lines = [it.config for it in dedup_items]
-        if do_sort:
-            _score_cm = self.mc.time_stage('score') if self.mc else None
-            try:
-                if self.tracing:
-                    async with self.tracing.trace("score", {"run_id": run_id, "items": len(final_lines)}):
-                        final_lines = self.score_and_sort(final_lines)
-                else:
-                    final_lines = self.score_and_sort(final_lines)
-            finally:
-                try:
-                    if _score_cm:
-                        _score_cm.__exit__(None, None, None)
-                except Exception:
-                    pass
-
-        # Optional connection testing to enrich CSV
-        try:
-            from .. import vpn_merger as _root  # type: ignore
-            disable_all = bool(getattr(getattr(getattr(self._impl, 'config', None), 'testing', None), 'disable_all_tests', False))
-            do_test = bool(getattr(_root.CONFIG, 'enable_url_testing', True)) and not disable_all
-            max_ping_ms = int(getattr(_root.CONFIG, 'max_ping_ms', 1000))
-            test_timeout = float(getattr(_root.CONFIG, 'test_timeout', 5.0))
-        except Exception:
-            do_test, max_ping_ms, test_timeout = True, 1000, 5.0
-        # Honour CI/network-skipping env flags
-        try:
-            import os as _os
-            if _os.environ.get('CI') or _os.environ.get('SKIP_NETWORK'):
-                do_test = False
-        except Exception:
-            pass
-        if do_test:
-            # Unique endpoints to probe
-            endpoints: List[Tuple[str, int, str]] = []
-            for it in dedup_items:
-                if it.host and it.port:
-                    endpoints.append((it.host, int(it.port), it.protocol))
-            # Deduplicate
-            seen_ep: Set[Tuple[str, int, str]] = set()
-            uniq: List[Tuple[str, int, str]] = []
-            for ep in endpoints:
-                if ep not in seen_ep:
-                    seen_ep.add(ep)
-                    uniq.append(ep)
-            # Per-protocol concurrency + timeout
-            try:
-                from .. import vpn_merger as _root  # type: ignore
-                proto_cc = dict(getattr(getattr(_root.CONFIG, 'testing', None), 'protocol_concurrency', {}) or {})
-                proto_to = dict(getattr(getattr(_root.CONFIG, 'testing', None), 'protocol_timeouts', {}) or {})
-            except Exception:
-                proto_cc, proto_to = {}, {}
-            import asyncio
-            semaphores: Dict[str, asyncio.Semaphore] = {}
-            def _sem_for(proto: str) -> asyncio.Semaphore:
-                key = proto.lower()
-                if key not in semaphores:
-                    semaphores[key] = asyncio.Semaphore(int(proto_cc.get(key, 50)))
-                return semaphores[key]
-            results_map: Dict[Tuple[str, int, str], Optional[float]] = {}
-
-            async def probe(ep: Tuple[str, int, str]):
-                h, p, proto = ep
-                sem = _sem_for(proto)
-                async with sem:
-                    tout = float(proto_to.get(proto.lower(), test_timeout))
-                    try:
-                        t = await asyncio.wait_for(quick_ping(h, p, timeout=tout), timeout=tout + 0.5)
-                    except Exception:
-                        t = None
-                    results_map[ep] = t
-
-            await asyncio.gather(*[probe(ep) for ep in uniq])
-            # Assign results back to items
-            for it in dedup_items:
-                if it.host and it.port:
-                    t = results_map.get((it.host, int(it.port), it.protocol))
-                    it.ping_time = t
-                    it.is_reachable = t is not None and (t * 1000.0 <= max_ping_ms)
-                    try:
-                        if self.mc and t is not None:
-                            self.mc.record_latency(it.protocol.lower(), t * 1000.0)
-                        if self.mc:
-                            self.mc.record_config(it.protocol.lower(), 'reachable' if it.is_reachable else 'unreachable')
-                    except Exception:
-                        pass
-
-        # TLS handshake + app tests if requested
-        do_full = False
-        app_tests: Optional[List[str]] = None
-        try:
-            from .. import vpn_merger as _root  # type: ignore
-            disable_all = bool(getattr(getattr(getattr(self._impl, 'config', None), 'testing', None), 'disable_all_tests', False))
-            do_full = bool(getattr(_root.CONFIG, 'full_test', False)) and not disable_all
-            app_tests = getattr(_root.CONFIG, 'app_tests', None)
-            if app_tests:
-                app_tests = [str(x) for x in app_tests]
-                if disable_all:
-                    app_tests = None
-        except Exception:
-            do_full = False
-            app_tests = None
-
-        if do_full or app_tests:
-            from ..services.testing_service import TestingService  # type: ignore
-            ts = TestingService(timeout=test_timeout, concurrency=50)
-            import asyncio as _aio
-            # Handshake tests for TLS-like endpoints
-            if do_full:
-                tls_like = {"vmess", "vless", "trojan", "reality", "xray"}
-                eps = [(it.host, int(it.port), it.protocol) for it in dedup_items if it.host and it.port and it.protocol.lower() in tls_like]
-                # Dedup endpoints
-                eps_d: List[Tuple[str, int, str]] = []
-                seen_ep2: Set[Tuple[str, int, str]] = set()
-                for ep in eps:
-                    if ep not in seen_ep2:
-                        seen_ep2.add(ep)
-                        eps_d.append(ep)
-                hs_map: Dict[Tuple[str, int, str], Optional[bool]] = {}
-                async def _hs(ep: Tuple[str, int, str]):
-                    h, p, _pr = ep
-                    hs_ok = await ts.tls_handshake(h, p)
-                    hs_map[ep] = hs_ok
-                await _aio.gather(*[_hs(ep) for ep in eps_d])
-                for it in dedup_items:
-                    if it.host and it.port and (it.host, int(it.port), it.protocol) in hs_map:
-                        it.handshake_ok = bool(hs_map[(it.host, int(it.port), it.protocol)])
-
-            # App tests
-            if app_tests:
-                # If tunnel tests are enabled, attempt per-config tunnel for a small sample
-                enable_tunnel = False
-                try:
-                    from .. import vpn_merger as _root  # type: ignore
-                    enable_tunnel = bool(getattr(getattr(_root.CONFIG, 'testing', None), 'enable_tunnel_tests', False))
-                except Exception:
-                    enable_tunnel = False
-                if enable_tunnel:
-                    # Test first N configs per protocol to keep runtime bounded
-                    MAX_TUNNELS = 5
-                    tested: int = 0
-                    preferred_runner = "auto"
-                    try:
-                        from .. import vpn_merger as _root  # type: ignore
-                        preferred_runner = str(getattr(getattr(_root.CONFIG, 'testing', None), 'tunnel_runner', 'auto'))
-                    except Exception:
-                        preferred_runner = "auto"
-                    for it in dedup_items:
-                        if tested >= MAX_TUNNELS:
-                            break
-                        try:
-                            # Run tunnel tests using the concrete config line
-                            suite = await ts.test_via_tunnel(it.config, app_tests, timeout=test_timeout, preferred=preferred_runner)
-                            it.app_test_results = suite
-                            tested += 1
-                        except Exception:
-                            continue
-                else:
-                    # Fallback: direct app suite
-                    suite = await ts.app_suite(app_tests)
-                    for it in dedup_items:
-                        it.app_test_results = {k: suite.get(k, False) for k in app_tests}
-
-        # Output directory
-        outdir = Path(str(output_dir)) if output_dir is not None else Path('output')
-        if output_dir is None:
-            try:
-                from .. import vpn_merger as _root  # type: ignore
-                outdir = Path(str(_root.CONFIG.output_dir))
-            except Exception:
-                pass
-        outdir.mkdir(parents=True, exist_ok=True)
-
-        # Write outputs (raw, base64, csv with metrics, singbox, clash)
-        selected = set(formats) if formats else {"raw", "base64", "csv", "singbox", "clash"}
-        _out_cm = self.mc.time_stage('output') if self.mc else None
-        if "raw" in selected:
-            path = outdir / 'vpn_subscription_raw.txt'
-            await atomic_write_async(path, '\n'.join(final_lines))
-            try:
-                from ..core.events import Event, EventType  # type: ignore
-                import time as _t
-                if self.event_bus:
-                    await self.event_bus.publish(Event(type=EventType.OUTPUT_WRITTEN, data={"path": str(path)}, timestamp=_t.time()))
-            except Exception:
-                pass
-        if "base64" in selected:
-            path = outdir / 'vpn_subscription_base64.txt'
-            await atomic_write_async(path, to_base64(final_lines))
-            try:
-                from ..core.events import Event, EventType  # type: ignore
-                import time as _t
-                if self.event_bus:
-                    await self.event_bus.publish(Event(type=EventType.OUTPUT_WRITTEN, data={"path": str(path)}, timestamp=_t.time()))
-            except Exception:
-                pass
-        if "csv" in selected:
-            # Enhanced CSV with metrics-like columns
-            import csv, io
-            buf = io.StringIO()
-            writer = csv.writer(buf)
-            headers = ['Config', 'Protocol', 'Host', 'Port', 'Ping_MS', 'Reachable', 'Source']
-            if do_full:
-                headers.append('Handshake')
-            if app_tests:
-                for name in app_tests:
-                    headers.append(f"{name.capitalize()}_OK")
-            writer.writerow(headers)
-            # Build quick map from config to first item to preserve order
-            first_map: Dict[str, ConfigResult] = {}
-            for it in dedup_items:
-                if it.config not in first_map:
-                    first_map[it.config] = it
-            for cfg in final_lines:
-                it = first_map.get(cfg)
-                if it is None:
-                    continue
-                ping_ms = round(it.ping_time * 1000.0, 2) if it.ping_time else None
-                # Heuristic handshake_ok if full_test requested: reachable and TLS-like proto
-                handshake_ok: Optional[bool] = None
-                if do_full:
-                    tls_like = str(it.protocol).lower() in {"vmess", "vless", "trojan", "reality", "xray"}
-                    handshake_ok = bool(it.is_reachable) if tls_like else None
-                    it.handshake_ok = handshake_ok
-                row = [it.config, it.protocol, it.host, it.port, ping_ms, bool(it.is_reachable), it.source_url]
-                if do_full:
-                    row.append('OK' if handshake_ok else ('' if handshake_ok is None else 'FAIL'))
-                if app_tests:
-                    for name in app_tests:
-                        val = (it.app_test_results or {}).get(name)
-                        row.append('' if val is None else ('OK' if val else 'FAIL'))
+            output_dir = Path(output_dir)
+            output_dir.mkdir(parents=True, exist_ok=True)
+            
+            # Sort results by quality score for better output
+            sorted_results = sorted(results, key=lambda x: x.quality_score, reverse=True)
+            
+            output_files = {}
+            
+            # Save raw configs
+            raw_path = output_dir / "vpn_subscription_raw.txt"
+            self._save_raw_configs(sorted_results, raw_path)
+            output_files['raw'] = str(raw_path)
+            
+            # Save base64 encoded
+            base64_path = output_dir / "vpn_subscription_base64.txt"
+            self._save_base64_configs(sorted_results, base64_path)
+            output_files['base64'] = str(base64_path)
+            
+            # Save CSV with metrics
+            csv_path = output_dir / "vpn_detailed.csv"
+            self._save_csv_report(sorted_results, csv_path)
+            output_files['csv'] = str(csv_path)
+            
+            # Save JSON report with enhanced metadata
+            json_path = output_dir / "vpn_report.json"
+            self._save_json_report(sorted_results, json_path)
+            output_files['json'] = str(json_path)
+            
+            # Save sing-box format
+            singbox_path = output_dir / "vpn_singbox.json"
+            self._save_singbox_format(sorted_results, singbox_path)
+            output_files['singbox'] = str(singbox_path)
+            
+            logger.info(f"Results saved to {output_dir}/")
+            logger.info(f"Total configurations saved: {len(sorted_results)}")
+            
+            return output_files
+            
+        except Exception as e:
+            logger.error(f"Error saving results: {e}")
+            return {}
+    
+    def _save_raw_configs(self, results: List[VPNConfiguration], output_path: Path) -> None:
+        """Save raw configuration strings.
+        
+        Args:
+            results: List of VPN configurations
+            output_path: Path to save the raw configs
+        """
+        with open(output_path, 'w', encoding='utf-8') as f:
+            for result in results:
+                f.write(f"{result.config}\n")
+    
+    def _save_base64_configs(self, results: List[VPNConfiguration], output_path: Path) -> None:
+        """Save base64 encoded configurations.
+        
+        Args:
+            results: List of VPN configurations
+            output_path: Path to save the base64 configs
+        """
+        configs_text = '\n'.join(result.config for result in results)
+        encoded = base64.b64encode(configs_text.encode('utf-8')).decode('utf-8')
+        with open(output_path, 'w', encoding='utf-8') as f:
+            f.write(encoded)
+    
+    def _save_csv_report(self, results: List[VPNConfiguration], output_path: Path) -> None:
+        """Save CSV report with detailed metrics.
+        
+        Args:
+            results: List of VPN configurations
+            output_path: Path to save the CSV report
+        """
+        with open(output_path, 'w', newline='', encoding='utf-8') as f:
+            fieldnames = ['config', 'protocol', 'host', 'port', 'quality_score', 'source_url', 'last_tested']
+            writer = csv.DictWriter(f, fieldnames=fieldnames)
+            writer.writeheader()
+            for result in results:
+                row = result.to_dict()
+                # Convert datetime to string for CSV
+                if row.get('last_tested'):
+                    row['last_tested'] = row['last_tested'].isoformat()
                 writer.writerow(row)
-            path = outdir / 'vpn_detailed.csv'
-            await atomic_write_async(path, buf.getvalue())
-            try:
-                from ..core.events import Event, EventType  # type: ignore
-                import time as _t
-                if self.event_bus:
-                    await self.event_bus.publish(Event(type=EventType.OUTPUT_WRITTEN, data={"path": str(path)}, timestamp=_t.time()))
-            except Exception:
-                pass
-        if "singbox" in selected:
-            path = outdir / 'vpn_singbox.json'
-            await atomic_write_async(path, to_singbox_json(final_lines))
-            try:
-                from ..core.events import Event, EventType  # type: ignore
-                import time as _t
-                if self.event_bus:
-                    await self.event_bus.publish(Event(type=EventType.OUTPUT_WRITTEN, data={"path": str(path)}, timestamp=_t.time()))
-            except Exception:
-                pass
-        output_t0 = _t.time()
-        if "clash" in selected:
-            try:
-                path = outdir / 'clash.yaml'
-                await atomic_write_async(path, to_clash_yaml(final_lines))
-                try:
-                    from ..core.events import Event, EventType  # type: ignore
-                    import time as _t
-                    if self.event_bus:
-                        await self.event_bus.publish(Event(type=EventType.OUTPUT_WRITTEN, data={"path": str(path)}, timestamp=_t.time()))
-                except Exception:
-                    pass
-            except Exception:
-                pass
+    
+    def _save_json_report(self, results: List[VPNConfiguration], output_path: Path) -> None:
+        """Save JSON report with enhanced metadata.
+        
+        Args:
+            results: List of VPN configurations
+            output_path: Path to save the JSON report
+        """
+        report = {
+            'summary': self.get_statistics(),
+            'results': [result.to_dict() for result in results],
+            'generated_at': datetime.now().isoformat(),
+            'version': '2.0',
+            'total_configs': len(results),
+            'protocol_distribution': self._get_protocol_distribution(results),
+            'quality_distribution': self._get_quality_distribution(results)
+        }
+        with open(output_path, 'w', encoding='utf-8') as f:
+            json.dump(report, f, indent=2, ensure_ascii=False)
+    
+    def _get_protocol_distribution(self, results: List[VPNConfiguration]) -> Dict[str, int]:
+        """Get distribution of protocols in results.
+        
+        Args:
+            results: List of VPN configurations
+            
+        Returns:
+            Dictionary mapping protocol names to counts
+        """
+        return self.config_processor.get_protocol_distribution(results)
+    
+    def _get_quality_distribution(self, results: List[VPNConfiguration]) -> Dict[str, int]:
+        """Get distribution of quality scores in results.
+        
+        Args:
+            results: List of VPN configurations
+            
+        Returns:
+            Dictionary mapping quality categories to counts
+        """
+        return self.config_processor.get_quality_distribution(results)
+    
+    def _save_singbox_format(self, results: List[VPNConfiguration], output_path: Path) -> None:
+        """Save results in sing-box format.
+        
+        Args:
+            results: List of VPN configurations
+            output_path: Path to save the sing-box configuration
+        """
         try:
-            if _out_cm:
-                _out_cm.__exit__(None, None, None)
-        except Exception:
-            pass
-
-        # Run done: persist a compact summary
-        try:
-            from ..monitoring.run_store import append_run  # type: ignore
-            reachable = sum(1 for it in dedup_items if it.is_reachable)
-            append_run({
-                "run_id": run_id,
-                "ts": _t.time(),
-                "total_configs": len(final_lines),
-                "reachable": reachable,
-                "sources": len(sources),
-                "durations": {
-                    "total_s": round(_t.time() - total_start, 3),
-                    "discover_s": round((_t.time() - disc_t0), 3) if enable_disc else None,
-                    "validate_s": round((_t.time() - val_t0), 3) if 'val_t0' in locals() else None,
-                    "fetch_s": round((_t.time() - fetch_t0), 3) if 'fetch_t0' in locals() else None,
-                    "output_s": round((_t.time() - output_t0), 3) if 'output_t0' in locals() else None,
+            singbox_config = {
+                "log": {
+                    "level": "info",
+                    "timestamp": True
                 },
-            })
-        except Exception:
-            pass
+                "inbounds": [],
+                "outbounds": []
+            }
+            
+            # Convert configs to sing-box format
+            for i, result in enumerate(results):
+                if result.protocol in ['vmess', 'vless', 'trojan']:
+                    outbound = self._convert_to_singbox_outbound(result, i)
+                    if outbound:
+                        singbox_config["outbounds"].append(outbound)
+            
+            with open(output_path, 'w', encoding='utf-8') as f:
+                json.dump(singbox_config, f, indent=2, ensure_ascii=False)
+                
+        except Exception as e:
+            logger.error(f"Error saving sing-box format: {e}")
+    
+    def _convert_to_singbox_outbound(self, result: VPNConfiguration, index: int) -> Optional[Dict[str, Union[str, int]]]:
+        """Convert a config result to sing-box outbound format.
+        
+        Args:
+            result: VPN configuration to convert
+            index: Index for generating unique tags
+            
+        Returns:
+            Dictionary containing sing-box outbound configuration or None if conversion fails
+        """
         try:
-            from ..core.events import Event, EventType  # type: ignore
-            if self.event_bus:
-                await self.event_bus.publish(Event(type=EventType.RUN_DONE, data={"run_id": run_id, "total": len(final_lines)}, timestamp=_t.time()))
-        except Exception:
-            pass
-        # Throttled progress events during fetch
+            # Extract configuration details from the config string
+            config_parts = self._parse_config_string(result.config)
+            
+            outbound = {
+                "type": result.protocol,
+                "tag": f"outbound-{index}",
+                "server": config_parts.get('host') or result.host or "unknown",
+                "port": config_parts.get('port') or result.port or 443
+            }
+            
+            # Add protocol-specific settings
+            if result.protocol == 'vmess':
+                outbound.update({
+                    "uuid": config_parts.get('uuid') or "00000000-0000-0000-0000-000000000000",
+                    "security": config_parts.get('security', 'auto')
+                })
+            elif result.protocol == 'vless':
+                outbound.update({
+                    "uuid": config_parts.get('uuid') or "00000000-0000-0000-0000-000000000000",
+                    "security": config_parts.get('security', 'tls')
+                })
+            elif result.protocol == 'trojan':
+                outbound.update({
+                    "password": config_parts.get('password') or "default_password"
+                })
+            
+            return outbound
+            
+        except Exception as e:
+            logger.debug(f"Error converting config to sing-box format: {e}")
+            return None
+    
+    def _parse_config_string(self, config: str) -> Dict[str, Union[str, int]]:
+        """Parse configuration string to extract components.
+        
+        Args:
+            config: Configuration string to parse
+            
+        Returns:
+            Dictionary containing parsed configuration components
+        """
         try:
-            from ..core.events import Event, EventType  # type: ignore
-            import time as _t
-            last_emit = 0.0
-
-            async def _progress(done: int, total: int):
-                nonlocal last_emit
-                now = _t.time()
-                if (now - last_emit) >= 1.0 or done == total:
-                    last_emit = now
-                    if self.event_bus:
-                        await self.event_bus.publish(Event(type=EventType.FETCH_PROGRESS, data={"done": done, "total": total}, timestamp=now))
-
-            results = await fetcher.fetch_many(sources[:200], progress_cb=_progress)
-        except Exception:
-            # fallback already executed above if needed
-            pass
+            parts = {}
+            
+            # Basic parsing for common patterns
+            if '://' in config:
+                protocol_part, rest = config.split('://', 1)
+                
+                # Extract host and port
+                if '@' in rest:
+                    auth_part, server_part = rest.split('@', 1)
+                    if ':' in server_part:
+                        host_part, port_part = server_part.split(':', 1)
+                        parts['host'] = host_part
+                        try:
+                            parts['port'] = int(port_part.split('?')[0].split('#')[0])
+                        except ValueError:
+                            parts['port'] = 443
+                    
+                    # Extract UUID/password from auth part
+                    if ':' in auth_part:
+                        parts['uuid'] = auth_part.split(':')[0]
+                    else:
+                        parts['uuid'] = auth_part
+                
+                # Extract additional parameters
+                if '?' in rest:
+                    params_part = rest.split('?')[1].split('#')[0]
+                    for param in params_part.split('&'):
+                        if '=' in param:
+                            key, value = param.split('=', 1)
+                            parts[key] = value
+            
+            return parts
+            
+        except Exception as e:
+            logger.debug(f"Error parsing config string: {e}")
+            return {}
+    
+    def get_processing_summary(self) -> Dict[str, Union[int, float, str]]:
+        """Get a human-readable processing summary.
+        
+        Returns:
+            Dictionary containing processing summary information
+        """
+        stats = self.get_statistics()
+        
+        return {
+            'total_sources': stats['total_sources'],
+            'processed_sources': stats['processed_sources'],
+            'valid_configs': stats['valid_configs'],
+            'duplicate_configs': stats['duplicate_configs'],
+            'success_rate': f"{stats['success_rate']:.1%}",
+            'processing_duration': f"{stats['processing_duration']:.1f}s" if stats['processing_duration'] else 'N/A',
+            'protocol_distribution': self._get_protocol_distribution(self.results),
+            'quality_distribution': self._get_quality_distribution(self.results)
+        }
