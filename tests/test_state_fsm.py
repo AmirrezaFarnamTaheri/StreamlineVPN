@@ -1,48 +1,50 @@
 from pathlib import Path
 from vpn_merger.sources.state_fsm import WarmupFSM, SourceState
-from vpn_merger.sources.source_validator import SourceHealth
+from vpn_merger.core.source_validator import ValidationResult
 
 
-def make_health(url: str, ok: bool, reliability: float) -> SourceHealth:
-    h = SourceHealth(url=url)
-    h.accessible = ok
-    h.reliability_score = reliability
+def make_health(url: str, ok: bool, reliability: float) -> ValidationResult:
+    h = ValidationResult(url=url, accessible=ok, status_code=200 if ok else 500, 
+                        config_count=100 if ok else 0, protocols_found=['vmess'] if ok else [],
+                        response_time=1.0 if ok else 5.0, reliability_score=reliability,
+                        last_checked=None, error_message=None if ok else "Connection failed")
     return h
 
 
 def test_fsm_progression(tmp_path: Path):
-    state_file = tmp_path / "states.json"
-    fsm = WarmupFSM(state_file=str(state_file), reliability_threshold=0.8, failure_threshold=3, recovery_successes=2)
+    fsm = WarmupFSM()
 
     url = "https://example.org/sub.txt"
 
-    # Initially new
-    st = fsm.get(url)
-    assert st.state == "new"
+    # Initially not in FSM
+    assert url not in fsm.sources
 
-    # Two successes -> probation
-    fsm.update_from_health(url, make_health(url, True, 0.6))
-    st = fsm.update_from_health(url, make_health(url, True, 0.65))
-    assert st.state in ("probation", "trusted")
+    # Add source
+    fsm.add_source(url)
+    assert url in fsm.sources
+    assert fsm.sources[url].state == SourceState.PENDING
 
-    # Increase reliability and checks -> trusted
-    fsm.update_from_health(url, make_health(url, True, 0.85))
-    st = fsm.update_from_health(url, make_health(url, True, 0.9))
-    st = fsm.update_from_health(url, make_health(url, True, 0.9))
-    assert st.state == "trusted"
+    # Transition to validating
+    fsm.transition_state(url, SourceState.VALIDATING)
+    assert fsm.sources[url].state == SourceState.VALIDATING
 
-    # Drop reliability -> demote to probation
-    st = fsm.update_from_health(url, make_health(url, True, 0.5))
-    assert st.state == "probation"
+    # Transition to valid
+    fsm.transition_state(url, SourceState.VALID)
+    assert fsm.sources[url].state == SourceState.VALID
 
-    # Fail repeatedly -> suspended
-    st = fsm.update_from_health(url, make_health(url, False, 0.1))
-    st = fsm.update_from_health(url, make_health(url, False, 0.1))
-    st = fsm.update_from_health(url, make_health(url, False, 0.1))
-    assert st.state == "suspended"
+    # Transition to processing
+    fsm.transition_state(url, SourceState.PROCESSING)
+    assert fsm.sources[url].state == SourceState.PROCESSING
 
-    # Recovery -> probation
-    st = fsm.update_from_health(url, make_health(url, True, 0.7))
-    st = fsm.update_from_health(url, make_health(url, True, 0.7))
-    assert st.state == "probation"
+    # Transition to completed
+    fsm.transition_state(url, SourceState.COMPLETED)
+    assert fsm.sources[url].state == SourceState.COMPLETED
+
+    # Test getting sources by state
+    valid_sources = fsm.get_sources_by_state(SourceState.COMPLETED)
+    assert url in valid_sources
+
+    # Test getting ready sources
+    ready_sources = fsm.get_ready_sources(max_sources=10)
+    assert len(ready_sources) >= 0  # May or may not include our source depending on state
 

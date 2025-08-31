@@ -5,16 +5,21 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "vpn-subscription-merger"
 version = "2.0.0"
-description = "High-performance VPN subscription merger with advanced filtering and validation"
+description = "High-performance VPN subscription merger with advanced filtering, validation, and output formatting"
 readme = "README.md"
 license = {text = "MIT"}
 authors = [
     {name = "VPN Merger Team", email = "team@vpnmerger.dev"}
 ]
+maintainers = [
+    {name = "VPN Merger Team", email = "team@vpnmerger.dev"}
+]
+keywords = ["vpn", "proxy", "subscription", "merger", "configuration", "networking"]
 classifiers = [
     "Development Status :: 5 - Production/Stable",
     "Intended Audience :: Developers",
     "Intended Audience :: System Administrators",
+    "Intended Audience :: Information Technology",
     "License :: OSI Approved :: MIT License",
     "Operating System :: OS Independent",
     "Programming Language :: Python :: 3",
@@ -24,6 +29,8 @@ classifiers = [
     "Topic :: Internet :: Proxy Servers",
     "Topic :: System :: Networking",
     "Topic :: Utilities",
+    "Topic :: Software Development :: Libraries :: Python Modules",
+    "Topic :: System :: Systems Administration",
 ]
 requires-python = ">=3.10"
 dependencies = [
@@ -43,10 +50,45 @@ dev = [
     "isort>=5.12.0",
     "ruff>=0.1.0",
     "mypy>=1.7.0",
+    "pre-commit>=3.0.0",
 ]
 prod = [
     "aiofiles>=23.2.0",
     "brotli>=1.1.0",
+]
+ml = [
+    "scikit-learn>=1.1.0",
+    "numpy>=1.21.0",
+    "pandas>=1.4.0",
+    "joblib>=1.1.0",
+]
+geo = [
+    "geoip2>=4.6.0",
+    "maxminddb>=2.2.0",
+]
+cache = [
+    "redis>=4.3.0",
+    "aioredis>=2.0.0",
+]
+discovery = [
+    "PyGithub>=1.58.0",
+    "telethon>=1.25.0",
+    "beautifulsoup4>=4.11.0",
+    "lxml>=4.9.0",
+]
+analytics = [
+    "plotly>=5.10.0",
+    "dash>=2.6.0",
+    "dash-bootstrap-components>=1.3.0",
+    "aiohttp-cors>=0.7.0",
+]
+monitoring = [
+    "prometheus-client>=0.14.0",
+    "structlog>=22.1.0",
+]
+docs = [
+    "mkdocs>=1.4.0",
+    "mkdocs-material>=8.4.0",
 ]
 
 [project.urls]
@@ -54,10 +96,29 @@ Homepage = "https://github.com/vpn-merger-team/vpn-subscription-merger"
 Documentation = "https://vpnmerger.dev/docs"
 Repository = "https://github.com/vpn-merger-team/vpn-subscription-merger"
 Issues = "https://github.com/vpn-merger-team/vpn-subscription-merger/issues"
+Changelog = "https://github.com/vpn-merger-team/vpn-subscription-merger/blob/main/CHANGELOG.md"
+Download = "https://pypi.org/project/vpn-subscription-merger/"
+
+[project.scripts]
+vpn-merger = "vpn_merger.__main__:main"
 
 [tool.black]
 line-length = 100
 target-version = ["py310", "py311", "py312"]
+include = '\.pyi?$'
+extend-exclude = '''
+/(
+  # directories
+  \.eggs
+  | \.git
+  | \.hg
+  | \.mypy_cache
+  | \.tox
+  | \.venv
+  | build
+  | dist
+)/
+'''
 
 [tool.isort]
 profile = "black"
@@ -66,6 +127,8 @@ include_trailing_comma = true
 force_grid_wrap = 0
 use_parentheses = true
 ensure_newline_before_comments = true
+line_length = 100
+known_first_party = ["vpn_merger"]
 
 [tool.ruff]
 line-length = 100
@@ -74,8 +137,17 @@ ignore = [
     "E501",  # Line too long - handled by black
     "B008",  # Do not perform function calls in argument defaults
     "C901",  # Function is too complex
+    "PLR0913",  # Too many arguments to function call
 ]
 target-version = "py310"
+exclude = [
+    ".git",
+    ".mypy_cache",
+    ".pytest_cache",
+    ".venv",
+    "build",
+    "dist",
+]
 
 [tool.mypy]
 python_version = "3.10"
@@ -91,10 +163,11 @@ warn_unused_ignores = true
 warn_no_return = true
 warn_unreachable = true
 strict_equality = true
+ignore_missing_imports = true
 
 [tool.pytest.ini_options]
 minversion = "7.0"
-addopts = "-ra -q --strict-markers --strict-config"
+addopts = "-ra -q --strict-markers --strict-config --cov=vpn_merger --cov-report=html --cov-report=term-missing"
 testpaths = ["tests"]
 python_files = ["test_*.py"]
 python_classes = ["Test*"]
@@ -104,5 +177,30 @@ markers = [
     "network: marks tests that perform network calls",
     "integration: marks tests as integration tests",
     "unit: marks tests as unit tests",
+    "ml: marks tests that require ML libraries",
+    "geo: marks tests that require geographic libraries",
+]
+
+[tool.coverage.run]
+source = ["vpn_merger"]
+omit = [
+    "*/tests/*",
+    "*/test_*",
+    "*/__pycache__/*",
+    "*/migrations/*",
+]
+
+[tool.coverage.report]
+exclude_lines = [
+    "pragma: no cover",
+    "def __repr__",
+    "if self.debug:",
+    "if settings.DEBUG",
+    "raise AssertionError",
+    "raise NotImplementedError",
+    "if 0:",
+    "if __name__ == .__main__.:",
+    "class .*\\bProtocol\\):",
+    "@(abc\\.)?abstractmethod",
 ]
 

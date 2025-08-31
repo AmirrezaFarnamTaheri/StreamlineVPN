@@ -263,3 +263,54 @@ class SourceManager:
             'tier_names': self.get_tier_names(),
             'prioritized_count': len(self.get_prioritized_sources())
         }
+    
+    def add_custom_sources(self, sources: List[str]) -> None:
+        """Add custom sources to the manager.
+        
+        Args:
+            sources: List of custom source URLs to add
+        """
+        if not sources:
+            return
+        
+        # Add to a custom tier
+        if 'custom' not in self.sources:
+            self.sources['custom'] = []
+        
+        for source in sources:
+            if self._is_valid_url(source) and source not in self.sources['custom']:
+                self.sources['custom'].append(source)
+        
+        logger.info(f"Added {len(sources)} custom sources")
+    
+    def remove_sources(self, sources: List[str]) -> None:
+        """Remove sources from the manager.
+        
+        Args:
+            sources: List of source URLs to remove
+        """
+        if not sources:
+            return
+        
+        removed_count = 0
+        for tier in self.sources:
+            original_count = len(self.sources[tier])
+            self.sources[tier] = [s for s in self.sources[tier] if s not in sources]
+            removed_count += original_count - len(self.sources[tier])
+        
+        logger.info(f"Removed {removed_count} sources")
+    
+    def get_statistics(self) -> Dict[str, Union[int, List[str]]]:
+        """Get source management statistics.
+        
+        Returns:
+            Dictionary containing source statistics
+        """
+        return {
+            'total_sources': self.get_source_count(),
+            'tier_count': len(self.sources),
+            'tier_info': self.get_tier_info(),
+            'tier_names': self.get_tier_names(),
+            'prioritized_count': len(self.get_prioritized_sources()),
+            'sources_by_tier': self.sources
+        }

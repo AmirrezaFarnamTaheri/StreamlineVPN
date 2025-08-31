@@ -17,7 +17,7 @@ from typing import Dict, List, Optional
 # Add parent directory to path
 sys.path.append(str(Path(__file__).parent.parent))
 
-from vpn_merger import VPNMerger, UnifiedSources, ConfigResult
+from vpn_merger import VPNSubscriptionMerger, SourceManager, ConfigurationProcessor
 
 # Configure logging
 logging.basicConfig(
@@ -30,8 +30,8 @@ class PerformanceMonitor:
     """Real-time performance monitoring and metrics collection."""
     
     def __init__(self):
-        self.merger = VPNMerger()
-        self.sources = UnifiedSources()
+        self.merger = VPNSubscriptionMerger()
+        self.sources = SourceManager()
         self.metrics_history = []
         self.performance_data = {
             'start_time': datetime.now(),

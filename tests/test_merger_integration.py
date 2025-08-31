@@ -135,7 +135,7 @@ class TestVPNSubscriptionMerger:
         source_url = "https://example.com/config.txt"
         
         # Mock the health checker
-        with patch('vpn_merger.core.merger.SourceHealthChecker') as mock_hc_class:
+        with patch('vpn_merger.core.merger.UnifiedSourceValidator') as mock_hc_class:
             mock_hc = Mock()
             mock_hc.validate_source.return_value = {'accessible': True}
             mock_hc_class.return_value.__aenter__.return_value = mock_hc
@@ -159,7 +159,7 @@ class TestVPNSubscriptionMerger:
         source_url = "https://example.com/config.txt"
         
         # Mock the health checker
-        with patch('vpn_merger.core.merger.SourceHealthChecker') as mock_hc_class:
+        with patch('vpn_merger.core.merger.UnifiedSourceValidator') as mock_hc_class:
             mock_hc = Mock()
             mock_hc.validate_source.return_value = {'accessible': False}
             mock_hc_class.return_value.__aenter__.return_value = mock_hc
@@ -176,7 +176,7 @@ class TestVPNSubscriptionMerger:
         source_url = "https://example.com/config.txt"
         
         # Mock the health checker to raise exception
-        with patch('vpn_merger.core.merger.SourceHealthChecker') as mock_hc_class:
+        with patch('vpn_merger.core.merger.UnifiedSourceValidator') as mock_hc_class:
             mock_hc = Mock()
             mock_hc.validate_source.side_effect = Exception("Health check failed")
             mock_hc_class.return_value.__aenter__.return_value = mock_hc

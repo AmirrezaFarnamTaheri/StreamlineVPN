@@ -2,7 +2,7 @@
 
 import pytest
 from unittest.mock import Mock, patch
-from vpn_merger import SourceManager, SourceHealthChecker
+from vpn_merger import SourceManager, UnifiedSourceValidator
 
 
 class TestSourceManager:
@@ -35,12 +35,12 @@ class TestSourceManager:
         assert len(prioritized) > 0
 
 
-class TestSourceHealthChecker:
+class TestUnifiedSourceValidator:
     """Test SourceHealthChecker class functionality."""
     
     def test_protocol_detection(self):
         """Test protocol detection functionality."""
-        validator = SourceHealthChecker()
+        validator = UnifiedSourceValidator()
         
         # Test protocol detection with simple content
         content = "vmess://test"
@@ -60,7 +60,7 @@ class TestSourceHealthChecker:
     
     def test_reliability_score_calculation(self):
         """Test reliability score calculation."""
-        validator = SourceHealthChecker()
+        validator = UnifiedSourceValidator()
         
         # Test score calculation
         score = validator._calculate_reliability_score(200, 100, ['vmess', 'vless'])

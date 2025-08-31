@@ -1,21 +1,22 @@
 """
-Core components for VPN Subscription Merger.
+Core VPN Merger Components
+=========================
 
-This package contains the main business logic components:
-- VPNSubscriptionMerger: Main orchestration class
-- SourceManager: VPN source management and organization
-- ConfigurationProcessor: VPN config parsing and validation
-- SourceHealthChecker: Source health validation and reliability scoring
+Core functionality for VPN configuration processing, merging, and management.
 """
 
 from .merger import VPNSubscriptionMerger
 from .source_manager import SourceManager
 from .config_processor import ConfigurationProcessor
-from .health_checker import SourceHealthChecker
+from .source_validator import UnifiedSourceValidator
+from .source_processor import SourceProcessor
+from .output import OutputManager
 
 __all__ = [
-    "VPNSubscriptionMerger",
-    "SourceManager",
-    "ConfigurationProcessor", 
-    "SourceHealthChecker",
+    'VPNSubscriptionMerger',
+    'SourceManager',
+    'ConfigurationProcessor', 
+    'UnifiedSourceValidator',
+    'SourceProcessor',
+    'OutputManager'
 ]

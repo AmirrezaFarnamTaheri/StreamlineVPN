@@ -148,7 +148,7 @@ python -c "import yaml; yaml.safe_load(open('config/sources.unified.yaml'))"
 python vpn_merger.py --validate
 
 # Check configuration
-python -c "from vpn_merger import UnifiedSources; sources = UnifiedSources(); print(f'Loaded {len(sources.get_all_sources())} sources')"
+python -c "from vpn_merger import SourceManager; sources = SourceManager(); print(f'Loaded {len(sources.get_all_sources())} sources')"
 ```
 
 ## Source Management
@@ -309,7 +309,7 @@ export VPN_LOG_LEVEL=DEBUG
 python vpn_merger.py --verbose
 
 # Test individual components
-python -c "from vpn_merger import UnifiedSources; sources = UnifiedSources(); print(sources.sources)"
+python -c "from vpn_merger import SourceManager; sources = SourceManager(); print(sources.get_all_sources())"
 ```
 
 ## Best Practices

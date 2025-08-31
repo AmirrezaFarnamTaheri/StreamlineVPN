@@ -22,7 +22,7 @@ def assert_true(cond, msg):
 def main():
     # 1) Test basic imports
     try:
-        from vpn_merger import VPNSubscriptionMerger, SourceManager, ConfigurationProcessor, SourceHealthChecker
+        from vpn_merger import VPNSubscriptionMerger, SourceManager, ConfigurationProcessor, UnifiedSourceValidator
         print("[SMOKE] OK: Basic imports")
     except ImportError as e:
         print(f"[SMOKE] FAIL: Import error - {e}")

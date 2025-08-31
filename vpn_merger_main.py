@@ -27,26 +27,52 @@ Expected Output: 1M+ tested and sorted configs
 """
 
 import sys
+import logging
 from pathlib import Path
+from typing import Optional
 
 # Add the current directory to Python path for imports
 sys.path.insert(0, str(Path(__file__).parent))
 
-def main():
-    """Main entry point that delegates to the vpn_merger module."""
-    print("🚀 VPN Subscription Merger v2.0.0")
-    print("=" * 50)
+# Configure logging
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
+    handlers=[
+        logging.StreamHandler(),
+        logging.FileHandler('vpn_merger.log')
+    ]
+)
+logger = logging.getLogger(__name__)
+
+
+def main() -> int:
+    """
+    Main entry point that delegates to the vpn_merger module.
+    
+    Returns:
+        int: Exit code (0 for success, 1 for failure)
+    """
+    logger.info("🚀 VPN Subscription Merger v2.0.0")
+    logger.info("=" * 50)
     
     try:
         # Import and run the main module
         from vpn_merger.__main__ import main as module_main
         return module_main()
     except ImportError as e:
-        print(f"❌ Import error: {e}")
-        print("Please ensure the vpn_merger package is properly installed.")
+        logger.error(f"Import error: {e}")
+        logger.error(f"❌ Import error: {e}")
+        logger.error("Please ensure the vpn_merger package is properly installed.")
+        logger.error("Run: pip install -r requirements.txt")
+        return 1
+    except KeyboardInterrupt:
+        logger.info("\n🛑 Interrupted by user")
         return 1
     except Exception as e:
-        print(f"❌ Error during execution: {e}")
+        logger.error(f"Unexpected error during execution: {e}")
+        logger.error(f"❌ Error during execution: {e}")
+        logger.error("\n📋 For help, run: python vpn_merger_main.py --help")
         return 1
 
 

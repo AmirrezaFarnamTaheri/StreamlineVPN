@@ -23,7 +23,7 @@ try:
         VPNSubscriptionMerger, 
         SourceManager, 
         ConfigurationProcessor, 
-        SourceHealthChecker,
+        UnifiedSourceValidator,
         VPNConfiguration,
         check_dependencies,
         detect_and_run,
@@ -42,7 +42,7 @@ except ImportError as e:
     VPNSubscriptionMerger = None
     SourceManager = None
     ConfigurationProcessor = None
-    SourceHealthChecker = None
+    UnifiedSourceValidator = None
     VPNConfiguration = None
     check_dependencies = None
     detect_and_run = None
@@ -53,7 +53,7 @@ __all__ = [
     "VPNSubscriptionMerger",
     "SourceManager", 
     "ConfigurationProcessor",
-    "SourceHealthChecker",
+    "UnifiedSourceValidator",
     "VPNConfiguration",
     
     # Utility functions
@@ -79,7 +79,7 @@ def check_package_availability() -> dict:
         'VPNSubscriptionMerger': VPNSubscriptionMerger is not None,
         'SourceManager': SourceManager is not None,
         'ConfigurationProcessor': ConfigurationProcessor is not None,
-        'SourceHealthChecker': SourceHealthChecker is not None,
+        'UnifiedSourceValidator': UnifiedSourceValidator is not None,
         'VPNConfiguration': VPNConfiguration is not None,
         'check_dependencies': check_dependencies is not None,
         'detect_and_run': detect_and_run is not None,

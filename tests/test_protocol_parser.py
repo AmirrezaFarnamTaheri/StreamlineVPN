@@ -1,4 +1,4 @@
-from vpn_merger.processing.parser import ProtocolParser
+from vpn_merger.core.protocol_handler import ProtocolParser
 
 
 def test_extract_endpoint_vless():

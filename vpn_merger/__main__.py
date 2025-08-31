@@ -5,6 +5,7 @@ This module provides the command-line interface for the VPN merger application,
 including source validation mode and graceful shutdown handling.
 """
 
+import argparse
 import asyncio
 import logging
 import signal
@@ -31,73 +32,144 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 
+def parse_arguments() -> argparse.Namespace:
+    """
+    Parse command line arguments.
+    
+    Returns:
+        argparse.Namespace: Parsed arguments
+    """
+    parser = argparse.ArgumentParser(
+        description="VPN Subscription Merger - High-performance VPN configuration aggregator",
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+        epilog="""
+Examples:
+  python -m vpn_merger                    # Run main merger
+  python -m vpn_merger --validate         # Validate sources only
+  python -m vpn_merger --concurrent 20    # Run with custom concurrency
+  python -m vpn_merger --output-dir ./my_output  # Custom output directory
+        """
+    )
+    
+    parser.add_argument(
+        '--validate',
+        action='store_true',
+        help='Run source validation mode only'
+    )
+    
+    parser.add_argument(
+        '--concurrent',
+        type=int,
+        default=50,
+        help='Maximum number of concurrent processing tasks (default: 50)'
+    )
+    
+    parser.add_argument(
+        '--output-dir',
+        type=str,
+        default='output',
+        help='Output directory for results (default: output)'
+    )
+    
+    parser.add_argument(
+        '--config',
+        type=str,
+        help='Path to configuration file (default: config/sources.unified.yaml)'
+    )
+    
+    parser.add_argument(
+        '--verbose', '-v',
+        action='store_true',
+        help='Enable verbose logging'
+    )
+    
+    parser.add_argument(
+        '--quiet', '-q',
+        action='store_true',
+        help='Suppress non-error output'
+    )
+    
+    parser.add_argument(
+        '--version',
+        action='version',
+        version='VPN Subscription Merger v2.0.0'
+    )
+    
+    return parser.parse_args()
+
+
 def main() -> int:
-    """Main entry point with graceful shutdown handling.
+    """
+    Main entry point with graceful shutdown handling.
     
     Returns:
         int: Exit code (0 for success, 1 for failure)
     """
+    args = parse_arguments()
+    
+    # Configure logging level based on arguments
+    if args.verbose:
+        logging.getLogger().setLevel(logging.DEBUG)
+    elif args.quiet:
+        logging.getLogger().setLevel(logging.ERROR)
+    
     if not validate_environment():
         return 1
     
     # Check for validation mode
-    if len(sys.argv) > 1 and sys.argv[1] == '--validate':
-        return _run_validation_mode()
-    
-    # Check for help
-    if len(sys.argv) > 1 and sys.argv[1] in ['--help', '-h']:
-        _print_help()
-        return 0
-    
-    # Check for version
-    if len(sys.argv) > 1 and sys.argv[1] in ['--version', '-v']:
-        _print_version()
-        return 0
+    if args.validate:
+        return _run_validation_mode(args)
     
     # Run main merger
-    return _run_main_merger()
+    return _run_main_merger(args)
 
 
-def _run_validation_mode() -> int:
-    """Run source validation mode.
+def _run_validation_mode(args: argparse.Namespace) -> int:
+    """
+    Run source validation mode.
     
+    Args:
+        args: Parsed command line arguments
+        
     Returns:
         int: Exit code (0 for success, 1 for failure)
     """
-    print("🔍 Source validation mode")
+    logger.info("🔍 Source validation mode")
     try:
         source_manager = SourceManager()
         urls = source_manager.get_all_sources()
-        print(f"🔎 Validating {len(urls)} sources...\n")
+        logger.info(f"🔎 Validating {len(urls)} sources...\n")
         
-        results = _validate_all_sources(urls)
+        results = _validate_all_sources(urls, args.concurrent)
         _display_validation_results(results)
         return 0
         
     except Exception as e:
         logger.error(f"Validation mode failed: {e}")
-        print(f"❌ Validation failed: {e}")
+        logger.error(f"❌ Validation failed: {e}")
         return 1
 
 
-def _validate_all_sources(urls: List[str]) -> List[Dict]:
-    """Validate all source URLs asynchronously.
+def _validate_all_sources(urls: List[str], max_concurrent: int) -> List[Dict]:
+    """
+    Validate all source URLs asynchronously.
     
     Args:
         urls: List of URLs to validate
+        max_concurrent: Maximum concurrent validation tasks
         
     Returns:
         List of validation results
     """
     async def _validate_all():
-        from .core.health_checker import SourceHealthChecker
+        from .core.source_validator import UnifiedSourceValidator
         
-        semaphore = asyncio.Semaphore(20)
+        semaphore = asyncio.Semaphore(max_concurrent)
         results = []
         
         async def run_one(url: str) -> Dict:
             async with semaphore:
-                async with SourceHealthChecker() as validator:
+                async with UnifiedSourceValidator() as validator:
                     return await validator.validate_source(url)
         
         tasks = [asyncio.create_task(run_one(url)) for url in urls]
@@ -130,7 +202,8 @@ def _validate_all_sources(urls: List[str]) -> List[Dict]:
 
 
 def _display_validation_results(results: List[Dict]) -> None:
-    """Display validation results in a formatted way.
+    """
+    Display validation results in a formatted way.
     
     Args:
         results: List of validation results
@@ -138,7 +211,7 @@ def _display_validation_results(results: List[Dict]) -> None:
     accessible = [r for r in results if r.get('accessible')]
     accessible.sort(key=lambda r: r.get('reliability_score', 0.0), reverse=True)
     
-    print(f"✅ Accessible: {len(accessible)}/{len(results)}\n")
+    logger.info(f"✅ Accessible: {len(accessible)}/{len(results)}")
     
     for result in accessible[:20]:  # Show top 20
         url = result.get('url', 'unknown')
@@ -146,37 +219,16 @@ def _display_validation_results(results: List[Dict]) -> None:
         configs = result.get('estimated_configs', 0)
         protocols = ','.join(result.get('protocols_found', []))
         
-        print(f" • {url} | score={score:.2f} | cfgs={configs} | protos={protocols}")
+        logger.info(f" • {url} | score={score:.2f} | cfgs={configs} | protos={protocols}")
 
 
-def _print_help() -> None:
-    """Print help information."""
-    print("VPN Subscription Merger - Command Line Interface")
-    print("=" * 50)
-    print()
-    print("Usage:")
-    print("  python -m vpn_merger              # Run main merger")
-    print("  python -m vpn_merger --validate   # Validate sources only")
-    print("  python -m vpn_merger --help       # Show this help")
-    print("  python -m vpn_merger --version    # Show version")
-    print()
-    print("Options:")
-    print("  --validate    Run source validation mode")
-    print("  --help, -h    Show help information")
-    print("  --version, -v Show version information")
-
-
-def _print_version() -> None:
-    """Print version information."""
-    from . import __version__, __author__, __status__
-    print(f"VPN Subscription Merger v{__version__}")
-    print(f"Status: {__status__}")
-    print(f"Author: {__author__}")
-
-
-def _run_main_merger() -> int:
-    """Run the main merger application.
+def _run_main_merger(args: argparse.Namespace) -> int:
+    """
+    Run the main merger application.
     
+    Args:
+        args: Parsed command line arguments
+        
     Returns:
         int: Exit code (0 for success, 1 for failure)
     """
@@ -186,7 +238,7 @@ def _run_main_merger() -> int:
     def _handle_signal(signum: int, frame) -> None:
         if not shutdown_flag["set"]:
             shutdown_flag["set"] = True
-            print(f"\n🛑 Received signal {signum}, finishing current tasks and shutting down...")
+            logger.info(f"\n🛑 Received signal {signum}, finishing current tasks and shutting down...")
     
     # Register signal handlers
     for sig_name in ("SIGTERM", "SIGINT"):
@@ -198,16 +250,22 @@ def _run_main_merger() -> int:
                 logger.debug(f"Could not register signal handler for {sig_name}: {e}")
     
     try:
-        return detect_and_run(config=None)
+        # Pass configuration to detect_and_run
+        config = {
+            'concurrent': args.concurrent,
+            'output_dir': args.output_dir,
+            'config_file': args.config
+        }
+        return detect_and_run(config=config)
     except KeyboardInterrupt:
-        print("\n🛑 Interrupted by user")
+        logger.info("\n🛑 Interrupted by user")
         return 1
     except Exception as e:
         logger.error(f"Main merger failed: {e}")
-        print(f"❌ Error: {e}")
-        print("\n📋 Alternative execution methods:")
-        print("   • For Jupyter: await run_in_jupyter()")
-        print("   • For scripts: python -m vpn_merger")
+        logger.error(f"❌ Error: {e}")
+        logger.error("\n📋 Alternative execution methods:")
+        logger.error("   • For Jupyter: await run_in_jupyter()")
+        logger.error("   • For scripts: python -m vpn_merger")
         return 1
 
 

@@ -22,7 +22,7 @@ fi
 
 # Verify core functionality
 echo "🔍 Verifying core functionality..."
-python -c "from vpn_merger import VPNMerger, UnifiedSources; print('✅ Core components verified')"
+python -c "from vpn_merger import VPNSubscriptionMerger, SourceManager; print('✅ Core components verified')"
 if [ $? -ne 0 ]; then
     echo "❌ Core components failed to load"
     exit 1
@@ -30,7 +30,7 @@ fi
 
 # Check sources
 echo "📊 Checking sources..."
-python -c "from vpn_merger import UnifiedSources; s = UnifiedSources(); print(f'✅ Sources loaded: {len(s.get_all_sources())}')"
+python -c "from vpn_merger import SourceManager; s = SourceManager(); print(f'✅ Sources loaded: {len(s.get_all_sources())}')"
 
 # Create output directory
 echo "📁 Setting up output directory..."

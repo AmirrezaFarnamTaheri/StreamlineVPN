@@ -1,14 +1,26 @@
 # Core Dependencies (Required)
 # ===========================
+# HTTP client for async requests
 aiohttp>=3.9.0,<4.0.0
+
+# DNS resolution for async operations
 aiodns>=3.1.0,<4.0.0
+
+# Event loop compatibility (Jupyter, IPython)
 nest-asyncio>=1.5.8,<2.0.0
+
+# YAML configuration parsing
 PyYAML>=6.0,<7.0.0
+
+# Progress bars and user feedback
 tqdm>=4.66.0,<5.0.0
 
 # Optional Dependencies (Enhanced Functionality)
 # ============================================
+# Async file operations
 aiofiles>=23.2.0,<24.0.0
+
+# Compression support
 brotli>=1.1.0,<2.0.0
 
 # Development Dependencies (Optional)

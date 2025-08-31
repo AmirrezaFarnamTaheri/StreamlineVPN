@@ -23,7 +23,7 @@
 ### Import and Dependency Issues
 
 #### Module Import Errors
-**Problem**: `ImportError: cannot import name 'UnifiedSources'`
+**Problem**: `ImportError: cannot import name 'SourceManager'`
 **Solutions**:
 - Ensure you're running from the project root directory
 - Check Python version: `python --version` (requires Python 3.8+)
@@ -182,7 +182,7 @@ python -c "import yaml; yaml.safe_load(open('config/sources.unified.yaml'))"
 python -c "from vpn_merger import *; print('✅ All imports successful')"
 
 # Check sources
-python -c "from vpn_merger import UnifiedSources; sources = UnifiedSources(); print(f'Loaded {len(sources.get_all_sources())} sources')"
+python -c "from vpn_merger import SourceManager; sources = SourceManager(); print(f'Loaded {len(sources.get_all_sources())} sources')"
 ```
 
 ### Network Diagnostics

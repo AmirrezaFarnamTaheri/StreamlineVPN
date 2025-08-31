@@ -16,7 +16,7 @@ from typing import Dict, List, Optional
 # Add parent directory to path
 sys.path.append(str(Path(__file__).parent.parent))
 
-from vpn_merger import VPNMerger, UnifiedSources, ConfigResult
+from vpn_merger import VPNSubscriptionMerger, SourceManager, ConfigurationProcessor
 
 # Configure logging
 logging.basicConfig(
@@ -33,8 +33,8 @@ class ProductionDeployment:
     """Production deployment manager with monitoring and health checks."""
     
     def __init__(self):
-        self.merger = VPNMerger()
-        self.sources = UnifiedSources()
+        self.merger = VPNSubscriptionMerger()
+        self.sources = SourceManager()
         self.metrics = {
             'start_time': datetime.now(),
             'total_runs': 0,
@@ -72,19 +72,19 @@ class ProductionDeployment:
             }
             health_status['status'] = 'unhealthy'
         
-        # Check VPNMerger initialization
+        # Check VPNSubscriptionMerger initialization
         try:
             merger_stats = self.merger.get_statistics()
             health_status['checks']['merger'] = {
                 'status': 'healthy',
                 'stats': merger_stats,
-                'message': "VPNMerger initialized successfully"
+                'message': "VPNSubscriptionMerger initialized successfully"
             }
         except Exception as e:
             health_status['checks']['merger'] = {
                 'status': 'unhealthy',
                 'error': str(e),
-                'message': "Failed to initialize VPNMerger"
+                'message': "Failed to initialize VPNSubscriptionMerger"
             }
             health_status['status'] = 'unhealthy'
         

@@ -25,10 +25,10 @@ flowchart TD
 
 ### Core Processing Pipeline
 
-- **UnifiedSources**: Loads curated and weighted sources from `config/sources.unified.yaml` with tiered organization
+- **SourceManager**: Loads curated and weighted sources from `config/sources.unified.yaml` with tiered organization
 - **SourceValidator**: Validates source accessibility and content quality
 - **ConfigProcessor**: Handles protocol parsing, deduplication, and quality scoring
-- **VPNMerger**: Orchestrates the entire processing pipeline
+- **VPNSubscriptionMerger**: Orchestrates the entire processing pipeline
 
 ### Advanced Features
 

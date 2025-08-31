@@ -14,7 +14,7 @@ from unittest.mock import patch, MagicMock, AsyncMock
 import yaml
 
 # Import the classes we're testing
-from vpn_merger import SourceManager, SourceHealthChecker, VPNConfiguration, VPNSubscriptionMerger
+from vpn_merger import SourceManager, UnifiedSourceValidator, VPNConfiguration, VPNSubscriptionMerger
 
 
 class TestSourceManagerComprehensive:
@@ -58,7 +58,7 @@ class TestSourceManagerComprehensive:
             assert max(tier_indices['tier_1_premium']) < min(tier_indices['tier_2_reliable'])
 
 
-class TestSourceHealthCheckerComprehensive:
+class TestUnifiedSourceValidatorComprehensive:
     """Comprehensive tests for SourceHealthChecker class."""
     
     @pytest.mark.asyncio
@@ -77,7 +77,7 @@ class TestSourceHealthCheckerComprehensive:
             mock_response.text = AsyncMock(return_value="vmess://test")
             mock_get.return_value.__aenter__.return_value = mock_response
             
-            async with SourceHealthChecker() as validator:
+            async with UnifiedSourceValidator() as validator:
                 # Validate all sources concurrently
                 tasks = [validator.validate_source(url) for url in urls]
                 results = await asyncio.gather(*tasks)
@@ -93,7 +93,7 @@ class TestSourceHealthCheckerComprehensive:
         with patch('aiohttp.ClientSession.get') as mock_get:
             mock_get.side_effect = asyncio.TimeoutError("Request timeout")
             
-            async with SourceHealthChecker() as validator:
+            async with UnifiedSourceValidator() as validator:
                 result = await validator.validate_source("https://raw.githubusercontent.com/test")
                 
                 assert result['accessible'] is False
@@ -102,7 +102,7 @@ class TestSourceHealthCheckerComprehensive:
     
     def test_protocol_detection_edge_cases(self):
         """Test protocol detection with edge cases."""
-        validator = SourceHealthChecker()
+        validator = UnifiedSourceValidator()
         
         # Empty content
         protocols = validator._detect_protocols("")
@@ -122,7 +122,7 @@ class TestSourceHealthCheckerComprehensive:
     
     def test_reliability_score_calculation(self):
         """Test reliability score calculation edge cases."""
-        validator = SourceHealthChecker()
+        validator = UnifiedSourceValidator()
         
         # Zero configs, one protocol
         score = validator._calculate_reliability_score(200, 0, ['vmess'])

@@ -78,7 +78,7 @@ async def test_fetcher_handles_gzip_decompression():
     f = AsyncSourceFetcher(proc, concurrency=2)
     f.session = DummySessionSingle(status=200, text="", headers={"content-encoding": "gzip"}, raw=gz)
     await f.open()
-            out = await f.fetch_many(["https://raw.githubusercontent.com/test/a.txt"])
+    out = await f.fetch_many(["https://raw.githubusercontent.com/test/a.txt"])
     assert out and out[0][0].endswith("a.txt")
     assert out[0][1] == ["line1", "line2"]
 
@@ -99,7 +99,7 @@ async def test_fetcher_retries_then_succeeds_with_zero_backoff(monkeypatch):
     if not hasattr(fs, 'logging'):
         fs.logging = types.SimpleNamespace(INFO=20, WARNING=30)
     await f.open()
-            url, lines = (await f.fetch_many(["https://raw.githubusercontent.com/test/f.txt"]))[0]
+    url, lines = (await f.fetch_many(["https://raw.githubusercontent.com/test/f.txt"]))[0]
     assert url.endswith("f.txt")
     assert lines == ["ok-line"]
 
@@ -116,6 +116,6 @@ async def test_fetcher_handles_brotli_if_available():
     f = AsyncSourceFetcher(proc)
     f.session = DummySessionSingle(status=200, headers={"content-encoding": "br"}, raw=br)
     await f.open()
-            url, lines = (await f.fetch_many(["https://raw.githubusercontent.com/test/br.txt"]))[0]
+    url, lines = (await f.fetch_many(["https://raw.githubusercontent.com/test/br.txt"]))[0]
     assert url.endswith("br.txt")
     assert lines == ["a", "b"]

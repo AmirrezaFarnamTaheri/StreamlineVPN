@@ -1,10 +1,10 @@
 import pytest
 
-from vpn_merger.sources.validator import SourceValidator
+from vpn_merger.core.source_validator import UnifiedSourceValidator
 
 
 def test_estimate_configs_counts_known_prefixes():
-    sv = SourceValidator()
+    sv = UnifiedSourceValidator()
     content = "\n".join([
         "vmess://abc",
         "vless://def",
@@ -18,7 +18,7 @@ def test_estimate_configs_counts_known_prefixes():
 
 
 def test_detect_protocols_maps_to_names():
-    sv = SourceValidator()
+    sv = UnifiedSourceValidator()
     content = "vmess://x vless://y trojan://z ss://w ssr://v hysteria://h hysteria2://h2 tuic://t"
     protos = set(sv._detect_protocols(content))
     assert {

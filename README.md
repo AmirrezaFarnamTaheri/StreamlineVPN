@@ -2,11 +2,7 @@
 
 A high-performance, production-ready VPN subscription merger that aggregates and processes VPN configurations from multiple sources with advanced filtering, validation, and output formatting.
 
-## 🚀 **Production Ready**
-
-This project has been extensively cleaned, enhanced, and optimized for production use. See [PRODUCTION_DEPLOYMENT_SUMMARY.md](PRODUCTION_DEPLOYMENT_SUMMARY.md) for deployment details.
-
-## ✨ **Key Features**
+## 🚀 Features
 
 - **Multi-Source Aggregation**: Process 500+ VPN sources with tiered reliability
 - **Advanced Validation**: Comprehensive security and quality validation
@@ -14,8 +10,9 @@ This project has been extensively cleaned, enhanced, and optimized for productio
 - **Real-time Monitoring**: Performance tracking and health checks
 - **Production Deployment**: Kubernetes-ready with comprehensive monitoring
 - **Security Focused**: Input validation, rate limiting, threat detection
+- **Modular Architecture**: Clean, maintainable codebase with separation of concerns
 
-## 📊 **Performance Metrics**
+## 📊 Performance Metrics
 
 - **Processing Speed**: ~1.45s per source
 - **Success Rate**: 100% (no errors during processing)
@@ -23,9 +20,37 @@ This project has been extensively cleaned, enhanced, and optimized for productio
 - **Output Formats**: 6 different formats supported
 - **System Status**: Healthy and operational
 
-## 🚀 **Quick Start**
+## 🚀 Quick Start
 
-### **Production Deployment**
+### Installation
+
+```bash
+# Clone the repository
+git clone <repository-url>
+cd vpn-subscription-merger
+
+# Install dependencies
+pip install -r requirements.txt
+
+# For development
+pip install -r requirements-enhanced.txt
+```
+
+### Basic Usage
+
+```bash
+# Run the merger
+python vpn_merger_main.py
+
+# Or use the module directly
+python -m vpn_merger
+
+# Check system health
+python -c "from vpn_merger import VPNSubscriptionMerger; print('System OK')"
+```
+
+### Production Deployment
+
 ```bash
 # Run production deployment
 python scripts/deploy_production.py
@@ -37,19 +62,7 @@ python scripts/monitor_performance.py monitor
 python scripts/monitor_performance.py test
 ```
 
-### **Basic Usage**
-```bash
-# Install dependencies
-pip install -r requirements.txt
-
-# Run merger
-python vpn_merger_main.py
-
-# Check system health
-python -c "from vpn_merger import VPNSubscriptionMerger, SourceManager; print('System OK')"
-```
-
-## 📁 **Output Files**
+## 📁 Output Files
 
 The merger generates multiple output formats:
 
@@ -60,9 +73,10 @@ The merger generates multiple output formats:
 - `vpn_singbox.json` - Sing-box format
 - `clash.yaml` - Clash configuration
 
-## 🔧 **Configuration**
+## 🔧 Configuration
 
-### **Source Configuration**
+### Source Configuration
+
 Sources are managed in `config/sources.unified.yaml` with tiered organization:
 
 - **Tier 1 Premium**: High-quality, reliable sources
@@ -72,7 +86,8 @@ Sources are managed in `config/sources.unified.yaml` with tiered organization:
 - **Regional**: Geographic-specific sources
 - **Experimental**: New or testing sources
 
-### **Environment Variables**
+### Environment Variables
+
 ```bash
 # Core settings
 VPN_SOURCES_CONFIG=config/sources.unified.yaml
@@ -85,9 +100,10 @@ VPN_WRITE_BASE64=true
 VPN_WRITE_CSV=true
 ```
 
-## 📈 **Monitoring & Metrics**
+## 📈 Monitoring & Metrics
 
-### **Performance Monitoring**
+### Performance Monitoring
+
 ```bash
 # Real-time monitoring
 python scripts/monitor_performance.py monitor
@@ -99,121 +115,127 @@ python scripts/monitor_performance.py report
 python scripts/monitor_performance.py test
 ```
 
-### **Health Checks**
-- Source availability validation
-- VPNSubscriptionMerger initialization checks
-- Output directory accessibility
-- Performance metrics tracking
+### Health Checks
 
-## 🏗️ **Architecture**
+```bash
+# Validate sources only
+python -m vpn_merger --validate
 
-### **Core Components**
-- **SourceManager**: Tiered source management with fallback support
-- **VPNSubscriptionMerger**: Main processing engine with comprehensive merge capabilities
-- **ConfigurationProcessor**: Configuration parsing, validation, and deduplication
-- **SourceHealthChecker**: Source health checking and reliability scoring
-- **PerformanceMonitor**: Real-time metrics collection and health monitoring
+# Check system health
+python scripts/health_check.py
+```
 
-### **Security Features**
-- Input validation and sanitization
-- Protocol whitelisting for security
-- Secure output generation
-- Comprehensive error handling
+## 🏗️ Architecture
 
-## 🧪 **Testing**
+The project follows a modular architecture with clear separation of concerns:
 
-### **Run Tests**
+### Core Modules
+
+- **`vpn_merger/core/`**: Main business logic
+  - `merger.py`: Main orchestration class
+  - `source_manager.py`: Source management
+  - `source_processor.py`: Source processing
+  - `config_processor.py`: Configuration processing
+  - `health_checker.py`: Health validation
+  - `output_manager.py`: Output formatting
+
+- **`vpn_merger/discovery/`**: Real-time source discovery
+  - `github_monitor.py`: GitHub repository monitoring
+  - `telegram_monitor.py`: Telegram channel monitoring
+  - `web_crawler.py`: Web crawling
+  - `discovery_manager.py`: Discovery orchestration
+
+- **`vpn_merger/cache/`**: Advanced caching system
+  - `cache_manager.py`: Multi-tier cache management
+  - `predictive_warmer.py`: Cache warming
+  - `ml_predictor.py`: ML-based prediction
+
+- **`vpn_merger/ml/`**: Machine learning components
+- **`vpn_merger/analytics/`**: Analytics and dashboards
+- **`vpn_merger/geo/`**: Geographic optimization
+
+### Models
+
+- **`vpn_merger/models/`**: Data models and structures
+- **`vpn_merger/utils/`**: Utility functions and helpers
+
+## 🧪 Testing
+
 ```bash
 # Run all tests
-python -m pytest tests/ -v
+pytest
 
 # Run specific test categories
-python -m pytest tests/test_comprehensive.py -v
-python -m pytest tests/test_security.py -v
-python -m pytest tests/test_performance.py -v
+pytest tests/unit/
+pytest tests/test_core_components.py
+pytest tests/test_performance.py
+
+# Run with coverage
+pytest --cov=vpn_merger --cov-report=html
 ```
 
-### **Test Coverage**
-- **25 test files** with comprehensive coverage
-- **Realistic test data** (no placeholders)
-- **Security testing** for vulnerabilities
-- **Performance testing** for optimization
+## 📚 API Documentation
 
-## 🚀 **Production Deployment**
+### Basic Usage
 
-### **Kubernetes Deployment**
-```bash
-# Deploy to Kubernetes
-kubectl apply -f k8s/
+```python
+from vpn_merger import VPNSubscriptionMerger
 
-# Check deployment status
-kubectl get pods -n vpn-system
-kubectl logs -f deployment/vpn-merger -n vpn-system
+# Initialize merger
+merger = VPNSubscriptionMerger()
+
+# Run comprehensive merge
+results = await merger.run_comprehensive_merge()
+
+# Save results
+output_files = merger.save_results()
+
+# Get statistics
+stats = merger.get_processing_statistics()
 ```
 
-### **Docker Deployment**
-```bash
-# Build and run with Docker
-docker build -t vpn-merger .
-docker run -p 8000:8000 vpn-merger
+### Advanced Usage
 
-# Or use docker-compose
-docker-compose up -d
+```python
+# Quick merge for testing
+results = await merger.run_quick_merge(max_sources=10)
+
+# Validate sources only
+validation_results = await merger.validate_sources_only()
+
+# Get filtered results
+high_quality_results = merger.get_results(limit=100, min_quality=0.8)
 ```
 
-## 📚 **Documentation**
+## 🔒 Security
 
-- [Production Deployment Summary](PRODUCTION_DEPLOYMENT_SUMMARY.md) - Deployment guide
-- [Final Cleanup Summary](FINAL_CLEANUP_SUMMARY.md) - Codebase improvements
-- [Configuration Guide](docs/CONFIGURATION.md) - Configuration details
-- [Security Guide](SECURITY.md) - Security features and best practices
+- Input validation and sanitization
+- Rate limiting and request throttling
+- Threat detection and prevention
+- Secure configuration handling
+- Audit logging and monitoring
 
-## 🔍 **Troubleshooting**
-
-### **Common Issues**
-1. **Unicode Errors**: Fixed with UTF-8 encoding
-2. **Import Errors**: All dependencies resolved
-3. **Performance Issues**: Optimized for production
-4. **Source Failures**: Comprehensive error handling
-
-### **Monitoring Commands**
-```bash
-# Check system health
-python -c "from vpn_merger import VPNSubscriptionMerger, SourceManager; print('System OK')"
-
-# Verify sources
-python -c "from vpn_merger import SourceManager; s = SourceManager(); print(f'Sources: {len(s.get_all_sources())}')"
-
-# Test core functionality
-python -m scripts.smoke
-```
-
-## 📄 **License**
-
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
-
-## 🤝 **Contributing**
+## 🤝 Contributing
 
 1. Fork the repository
 2. Create a feature branch
 3. Make your changes
 4. Add tests for new functionality
-5. Submit a pull request
+5. Ensure all tests pass
+6. Submit a pull request
 
-## 📊 **Status**
+## 📄 License
 
-**Current Status**: 🚀 **PRODUCTION READY**
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
 
-- ✅ All critical issues resolved
-- ✅ Comprehensive testing completed
-- ✅ Performance optimized
-- ✅ Security enhanced
-- ✅ Documentation complete
-- ✅ Deployment scripts ready
-- ✅ Code structure improved and polished
+## 🆘 Support
 
----
+- **Documentation**: See the [docs/](docs/) directory
+- **Issues**: Report bugs and feature requests on GitHub
+- **Discussions**: Use GitHub Discussions for questions and ideas
 
-*Last updated: 2025-01-31*
-*Version: 2.0.0*
-*Status: Production Ready*
+## 📊 Status
+
+![Build Status](https://github.com/vpn-merger-team/vpn-subscription-merger/workflows/CI/badge.svg)
+![Code Coverage](https://codecov.io/gh/vpn-merger-team/vpn-subscription-merger/branch/main/graph/badge.svg)
+![License](https://img.shields.io/badge/license-MIT-blue.svg)
