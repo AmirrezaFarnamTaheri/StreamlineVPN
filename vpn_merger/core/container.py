@@ -110,6 +110,19 @@ class ServiceContainer:
         self._services.clear()
         self._singletons.clear()
         self._factories.clear()
+    
+    def create_scope(self) -> 'ServiceContainer':
+        """Create a new scope container.
+        
+        Returns:
+            New ServiceContainer instance for scoped services
+        """
+        scope = ServiceContainer()
+        # Copy services from parent to scope
+        scope._services.update(self._services)
+        scope._factories.update(self._factories)
+        scope._singletons.update(self._singletons)
+        return scope
         logger.debug("Service container cleared")
 
 

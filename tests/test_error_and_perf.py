@@ -166,15 +166,16 @@ class TestErrorHandling:
         merger = VPNSubscriptionMerger()
         
         # Test that the system continues to work even if some sources fail
+        # Note: get_processing_statistics() returns a dict, so we'll call it directly
         try:
-            # Run multiple operations to test graceful degradation
-            tasks = [
+            results = await asyncio.gather(
                 merger.run_quick_merge(max_sources=3),
                 merger.validate_sources_only(),
-                merger.get_processing_statistics()
-            ]
+                return_exceptions=True
+            )
             
-            results = await asyncio.gather(*tasks, return_exceptions=True)
+            # Get statistics separately since they return dicts
+            stats = merger.get_processing_statistics()
             
             # Should handle partial failures gracefully
             for result in results:
@@ -259,14 +260,15 @@ class TestPerformanceUnderStress:
         
         # Test mixed workload (validation + processing + statistics)
         try:
-            tasks = [
+            results = await asyncio.gather(
                 merger.run_quick_merge(max_sources=5),
                 merger.validate_sources_only(),
-                merger.get_processing_statistics(),
-                merger.get_source_statistics()
-            ]
+                return_exceptions=True
+            )
             
-            results = await asyncio.gather(*tasks, return_exceptions=True)
+            # Get statistics separately since they return dicts
+            stats = merger.get_processing_statistics()
+            source_stats = merger.get_source_statistics()
             
             # Should handle mixed workload gracefully
             for result in results:

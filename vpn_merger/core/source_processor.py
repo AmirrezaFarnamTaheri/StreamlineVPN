@@ -122,7 +122,7 @@ class SourceProcessor:
             async with UnifiedSourceValidator() as validator:
                 validation_result = await validator.validate_source(source_url)
                 
-                if not validation_result.get('accessible', False):
+                if not validation_result.accessible:
                     logger.debug(f"Source not accessible: {source_url}")
                     return results
 
