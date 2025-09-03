@@ -89,26 +89,26 @@ VPN_TEST_CONCURRENT=10
 
 ```bash
 # Run with default configuration
-python vpn_merger.py
+python vpn_merger_main.py
 
 # Validate sources only
-python vpn_merger.py --validate
+python vpn_merger_main.py --validate
 
 # Custom configuration file
-python vpn_merger.py --config custom_sources.yaml
+python vpn_merger_main.py --config custom_sources.yaml
 ```
 
 ### Advanced Options
 
 ```bash
 # Performance tuning
-python vpn_merger.py --concurrent 100 --timeout 60
+python vpn_merger_main.py --concurrent 100 --timeout 60
 
 # Output control
-python vpn_merger.py --no-base64 --no-csv --output-dir custom_output
+python vpn_merger_main.py --no-base64 --no-csv --output-dir custom_output
 
 # Protocol filtering
-python vpn_merger.py --include-protocols vmess,vless --exclude-protocols shadowsocks
+python vpn_merger_main.py --include-protocols vmess,vless --exclude-protocols shadowsocks
 ```
 
 ## Configuration Validation
@@ -145,7 +145,7 @@ output:
 python -c "import yaml; yaml.safe_load(open('config/sources.unified.yaml'))"
 
 # Validate source accessibility
-python vpn_merger.py --validate
+python vpn_merger_main.py --validate
 
 # Check configuration
 python -c "from vpn_merger import SourceManager; sources = SourceManager(); print(f'Loaded {len(sources.get_all_sources())} sources')"
@@ -306,7 +306,7 @@ metrics:
 export VPN_LOG_LEVEL=DEBUG
 
 # Run with verbose output
-python vpn_merger.py --verbose
+python vpn_merger_main.py --verbose
 
 # Test individual components
 python -c "from vpn_merger import SourceManager; sources = SourceManager(); print(sources.get_all_sources())"

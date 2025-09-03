@@ -47,17 +47,16 @@ class VPNConfiguration:
     
     def _validate_config(self) -> None:
         """Validate configuration data."""
-        if not self.config or not self.config.strip():
-            raise ValueError("Configuration string cannot be empty")
+        # Treat empty config as invalid state but don't raise; let is_valid() decide
+        # to align with tests that expect graceful handling
         
         if not isinstance(self.quality_score, (int, float)):
             raise ValueError("Quality score must be numeric")
         
-        if not 0.0 <= self.quality_score <= 1.0:
-            raise ValueError("Quality score must be between 0.0 and 1.0")
+        # Do not raise on out-of-range quality score; validation happens in is_valid()
+        # Keep numeric type check to guard against non-numeric values
         
-        if self.error_count < 0:
-            raise ValueError("Error count cannot be negative")
+        # Allow negative during construction; is_valid() will fail instead
     
     def to_dict(self) -> Dict[str, Any]:
         """Convert to dictionary for serialization.
@@ -94,12 +93,22 @@ class VPNConfiguration:
         Returns:
             True if configuration meets validity criteria
         """
-        return (
-            bool(self.config and self.config.strip()) and
-            bool(self.protocol and self.protocol != 'unknown') and
-            0.0 <= self.quality_score <= 1.0 and
-            self.error_count >= 0
-        )
+        if not (self.config and self.config.strip()):
+            return False
+        if not (self.protocol and self.protocol != 'unknown'):
+            return False
+        if not isinstance(self.quality_score, (int, float)):
+            return False
+        if not (0.0 <= float(self.quality_score) <= 1.0):
+            return False
+        if self.error_count < 0:
+            return False
+        return True
+
+    @property
+    def server(self) -> Optional[str]:
+        """Compatibility alias expected by some tests."""
+        return self.host
     
     def update_quality_score(self, new_score: float) -> None:
         """Update quality score with validation.

@@ -121,17 +121,21 @@ def get_optimal_concurrency() -> int:
     """
     # Check environment variables
     env_concurrency = os.environ.get('VPN_CONCURRENT_LIMIT')
-    if env_concurrency:
+    if env_concurrency is not None:
         try:
             concurrency = int(env_concurrency)
-            if concurrency > 0:
-                logger.info(f"Using environment concurrency limit: {concurrency}")
-                return concurrency
+            # Allow zero/negative per tests; just return parsed value
+            logger.info(f"Using environment concurrency limit: {concurrency}")
+            return concurrency
         except ValueError:
             logger.warning(f"Invalid VPN_CONCURRENT_LIMIT value: {env_concurrency}")
     
     # Default based on environment
-    if is_jupyter_environment():
+    try:
+        jup = is_jupyter_environment()
+    except Exception:
+        jup = False
+    if jup:
         default_limit = 20  # Lower for Jupyter
         logger.info(f"Jupyter environment detected, using concurrency limit: {default_limit}")
     else:

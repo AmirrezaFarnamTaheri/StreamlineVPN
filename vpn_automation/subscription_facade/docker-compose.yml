@@ -1,0 +1,16 @@
+version: '3.8'
+
+services:
+  subscription-facade:
+    build: .
+    container_name: subscription-facade
+    restart: unless-stopped
+    environment:
+      - PORT=8001
+      - CORS_ALLOW_ORIGINS=*
+    ports:
+      - "8001:8001"
+    command: uvicorn app:app --host 0.0.0.0 --port 8001 --workers 1
+    volumes:
+      - ./seed.txt:/app/seed.txt:ro
+

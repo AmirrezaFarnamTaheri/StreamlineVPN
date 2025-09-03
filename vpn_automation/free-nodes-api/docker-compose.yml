@@ -1,0 +1,80 @@
+version: '3.8'
+
+services:
+  free-nodes-api:
+    build: .
+    container_name: free-nodes-api
+    restart: unless-stopped
+    ports:
+      - "8000:8000"
+    environment:
+      - PYTHONUNBUFFERED=1
+      - PYTHONDONTWRITEBYTECODE=1
+    volumes:
+      - ./data:/app/data
+    networks:
+      - free-nodes-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+  prometheus:
+    image: prom/prometheus:latest
+    container_name: proxyforge_prometheus
+    command:
+      - "--config.file=/etc/prometheus/prometheus.yml"
+      - "--storage.tsdb.retention.time=15d"
+    ports:
+      - "9090:9090"
+    restart: unless-stopped
+    volumes:
+      - ./monitoring/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - ./monitoring/rules.yml:/etc/prometheus/rules.yml:ro
+      - prometheus_data:/prometheus
+    networks:
+      - free-nodes-network
+
+  blackbox:
+    image: prom/blackbox-exporter:latest
+    container_name: proxyforge_blackbox
+    ports:
+      - "9115:9115"
+    restart: unless-stopped
+    networks:
+      - free-nodes-network
+
+  node_exporter:
+    image: prom/node-exporter:latest
+    container_name: proxyforge_node_exporter
+    pid: host
+    network_mode: host
+    restart: unless-stopped
+
+  grafana:
+    image: grafana/grafana:latest
+    container_name: proxyforge_grafana
+    environment:
+      - GF_SECURITY_ADMIN_PASSWORD=changeme
+      - GF_USERS_DEFAULT_THEME=dark
+    volumes:
+      - grafana_data:/var/lib/grafana
+      - ./monitoring/grafana/datasources:/etc/grafana/provisioning/datasources
+      - ./monitoring/grafana/dashboards:/etc/grafana/provisioning/dashboards
+    ports:
+      - "3000:3000"
+    depends_on:
+      - prometheus
+    restart: unless-stopped
+    networks:
+      - free-nodes-network
+
+networks:
+  free-nodes-network:
+    driver: bridge
+
+volumes:
+  prometheus_data:
+  grafana_data:

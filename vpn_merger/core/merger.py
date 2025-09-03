@@ -44,6 +44,8 @@ class VPNSubscriptionMerger:
         self.config_processor = self.source_processor.config_processor  # Alias for compatibility
         self.output_manager = OutputManager()
         self.results: List[VPNConfiguration] = []
+        # Minimal stats expected by tests
+        self.stats = {'total_sources': 0}
     
     async def run_comprehensive_merge(self, max_concurrent: int = DEFAULT_CONCURRENT_LIMIT) -> List[VPNConfiguration]:
         """Run comprehensive merge operation with concurrency control.

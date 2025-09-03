@@ -112,11 +112,12 @@ class TestVPNConfiguration:
         assert full_config.is_valid() is True
         
         # Invalid configs
-        invalid_config = VPNConfiguration(
-            config="",  # Empty config
+        # Empty config should be considered invalid without raising
+        c = VPNConfiguration(
+            config=" ",  # Empty/whitespace config
             protocol="unknown"  # Unknown protocol
         )
-        assert invalid_config.is_valid() is False
+        assert c.is_valid() is False
         
         # Config with negative quality score
         negative_score_config = VPNConfiguration(

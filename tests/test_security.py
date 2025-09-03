@@ -11,6 +11,7 @@ import shutil
 from pathlib import Path
 from typing import List, Dict, Any
 import re
+import time
 
 # Import with fallbacks
 try:
@@ -42,16 +43,9 @@ class TestInputValidation:
             "https://evil.com/../../etc/passwd"
         ]
         
+        from vpn_merger.utils.sanitization import is_safe_url
         for url in malicious_urls:
-            # Basic URL validation
-            assert not url.startswith(('javascript:', 'data:', 'file:', 'ftp:'))
-            assert not 'localhost' in url.lower()
-            assert not '127.0.0.1' in url
-            assert not '192.168.' in url
-            assert not '10.' in url
-            assert not '172.' in url
-            assert not '../' in url
-            assert not '..\\' in url
+            assert not is_safe_url(url)
     
     def test_sql_injection_prevention(self):
         """Test prevention of SQL injection attacks."""
@@ -63,10 +57,9 @@ class TestInputValidation:
             "'; INSERT INTO users VALUES ('hacker', 'password'); --"
         ]
         
+        from vpn_merger.utils.sanitization import is_sql_safe
         for malicious_input in malicious_inputs:
-            # Should not contain SQL injection patterns
-            assert not re.search(r"('|(\\')|(;)|(--)|(union)|(select)|(drop)|(insert)|(delete))", 
-                                malicious_input.lower())
+            assert not is_sql_safe(malicious_input)
     
     def test_xss_prevention(self):
         """Test prevention of XSS attacks."""
@@ -79,10 +72,9 @@ class TestInputValidation:
             "<iframe src=javascript:alert('xss')></iframe>"
         ]
         
+        from vpn_merger.utils.sanitization import is_xss_safe
         for payload in xss_payloads:
-            # Should not contain XSS patterns
-            assert not re.search(r"<script|javascript:|onerror=|onload=|<iframe", 
-                                payload.lower())
+            assert not is_xss_safe(payload)
     
     @pytest.mark.asyncio
     async def test_path_traversal_prevention(self, temp_output_dir):
@@ -101,12 +93,9 @@ class TestInputValidation:
             "../../../home/user/.ssh/id_rsa"
         ]
         
+        from vpn_merger.utils.sanitization import is_path_safe
         for malicious_path in malicious_paths:
-            # Should not allow path traversal
-            assert not '..' in malicious_path
-            assert not malicious_path.startswith('/etc/')
-            assert not malicious_path.startswith('C:\\Windows\\')
-            assert not malicious_path.startswith('/home/')
+            assert not is_path_safe(malicious_path)
 
 
 class TestThreatDetection:
@@ -148,10 +137,9 @@ class TestThreatDetection:
             "ss://YWVzLTI1Ni1nY206bWFsd2FyZUBldmlsLmNvbTo0NDM=#Malicious"
         ]
         
+        from vpn_merger.utils.sanitization import is_config_safe
         for config in malicious_configs:
-            # Should detect malicious domains
-            assert not 'evil.com' in config.lower()
-            assert not 'malicious' in config.lower()
+            assert not is_config_safe(config)
     
     @pytest.mark.asyncio
     async def test_rate_limiting(self, temp_output_dir):
@@ -250,10 +238,9 @@ class TestDataProtection:
             "Secret=mysecretkey accessed"
         ]
         
+        from vpn_merger.utils.sanitization import sanitize_log_line
         for log in log_data:
-            # Should sanitize sensitive data in logs
-            sanitized = re.sub(r"(password|token|api_key|secret)=[^\s]+", 
-                             r"\1=***REDACTED***", log)
+            sanitized = sanitize_log_line(log)
             assert "***REDACTED***" in sanitized
 
 
@@ -318,13 +305,12 @@ class TestNetworkSecurity:
             "file:///path/to/file.txt"
         ]
         
+        from vpn_merger.utils.sanitization import is_https_secure
         for url in secure_urls:
-            # Should prefer HTTPS
-            assert url.startswith('https://')
+            assert is_https_secure(url)
         
         for url in insecure_urls:
-            # Should avoid insecure protocols
-            assert not url.startswith('https://')
+            assert not is_https_secure(url)
     
     def test_dns_security(self):
         """Test DNS security and resolution."""

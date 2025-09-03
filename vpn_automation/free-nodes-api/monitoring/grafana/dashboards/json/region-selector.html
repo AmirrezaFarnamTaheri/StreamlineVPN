@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Region Selector</title>
+  <style>
+    body { font-family: system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif; margin: 24px; }
+    label, select, button { font-size: 16px; }
+    .row { margin-bottom: 12px; }
+    pre { background: #111; color: #0f0; padding: 12px; overflow: auto; }
+  </style>
+  <script>
+    async function selectNode() {
+      const region = document.getElementById('region').value.trim();
+      const proto = document.getElementById('proto').value.trim();
+      const url = new URL('/api/select', window.location.origin);
+      if (region) url.searchParams.set('region', region);
+      if (proto) url.searchParams.set('proto', proto);
+      const res = await fetch(url.toString());
+      const data = await res.json();
+      document.getElementById('out').textContent = JSON.stringify(data, null, 2);
+    }
+  </script>
+  </head>
+<body>
+  <h1>Region-based Node Selector</h1>
+  <div class="row">
+    <label for="region">Region:</label>
+    <input id="region" placeholder="e.g., United States, California" size="40" />
+  </div>
+  <div class="row">
+    <label for="proto">Protocol:</label>
+    <select id="proto">
+      <option value="">Any</option>
+      <option value="vless">VLESS</option>
+      <option value="vmess">VMESS</option>
+      <option value="trojan">Trojan</option>
+      <option value="ss">Shadowsocks</option>
+    </select>
+  </div>
+  <div class="row">
+    <button onclick="selectNode()">Select best node</button>
+  </div>
+  <pre id="out">{}</pre>
+</body>
+</html>
+

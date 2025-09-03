@@ -1,20 +1,18 @@
-CleanConfigs SubMerger
-======================
+# CleanConfigs SubMerger
 
-A trustworthy, fast, maintainable public VPN subscription aggregator. Auto-discovers sources, verifies endpoints by real connectivity and QoS, dedups and ranks nodes with transparent scoring, and exports client-valid artifacts with enterprise-grade security and observability.
+A trustworthy, fast, maintainable VPN subscription aggregator that auto-discovers sources, verifies endpoints by real connectivity and QoS, deduplicates and ranks nodes with transparent scoring, and exports client-valid artifacts with enterprise-grade security and observability.
 
-Highlights
-----------
+## Highlights
 
-- ML-powered quality scoring (41 features) with drift detection
-- Zero-trust validation pipeline + warm-up FSM (new → probation → trusted → suspended)
-- K8s-ready deployment with metrics and tracing
+- ML-powered quality scoring with drift detection
+- Zero-trust validation pipeline with warm-up FSM (new → probation → trusted → suspended)
+- Kubernetes-ready deployment with metrics and tracing
 - Multi-tier caching and adaptive processing
 
-Quick Links
------------
+## Quick Links
 
-- Production sources: `config/sources.production.yaml`
-- Advanced sources (legacy toolchain): `sources.json`
-- FSM state: `config/source_states.json`
-- Main runner: `vpn_merger.py`
+- **Production sources**: `config/sources.unified.yaml`
+- **Main runner**: `vpn_merger_main.py`
+- **Configuration**: See [CONFIGURATION.md](CONFIGURATION.md)
+- **Deployment**: See [DEPLOYMENT.md](DEPLOYMENT.md)
+- **API Reference**: See [API.md](API.md)

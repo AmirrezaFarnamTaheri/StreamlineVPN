@@ -45,6 +45,8 @@ def parse_arguments() -> argparse.Namespace:
         epilog="""
 Examples:
   python -m vpn_merger                    # Run main merger
+  python -m vpn_merger --web              # Start integrated web server
+  python -m vpn_merger --web --web-port 9000  # Web server on custom port
   python -m vpn_merger --validate         # Validate sources only
   python -m vpn_merger --concurrent 20    # Run with custom concurrency
   python -m vpn_merger --output-dir ./my_output  # Custom output directory
@@ -90,6 +92,19 @@ Examples:
     )
     
     parser.add_argument(
+        '--web',
+        action='store_true',
+        help='Start integrated web server with VPN merger, config generator, and analytics'
+    )
+    
+    parser.add_argument(
+        '--web-port',
+        type=int,
+        default=8000,
+        help='Port for the integrated web server (default: 8000)'
+    )
+    
+    parser.add_argument(
         '--version',
         action='version',
         version='VPN Subscription Merger v2.0.0'
@@ -116,12 +131,61 @@ def main() -> int:
     if not validate_environment():
         return 1
     
+    # Check for web mode
+    if args.web:
+        return _run_web_mode(args)
+    
     # Check for validation mode
     if args.validate:
         return _run_validation_mode(args)
     
     # Run main merger
     return _run_main_merger(args)
+
+
+def _run_web_mode(args: argparse.Namespace) -> int:
+    """
+    Run integrated web server mode.
+    
+    Args:
+        args: Parsed command line arguments
+        
+    Returns:
+        int: Exit code (0 for success, 1 for failure)
+    """
+    logger.info("🌐 Starting integrated web server mode")
+    try:
+        from .web.integrated_server import IntegratedWebServer
+        
+        # Create and start the integrated web server
+        server = IntegratedWebServer(port=args.web_port)
+        
+        async def run_server():
+            await server.start()
+            logger.info("✅ Integrated web server started successfully")
+            logger.info("Press Ctrl+C to stop the server")
+            
+            # Keep the server running
+            try:
+                while True:
+                    await asyncio.sleep(1)
+            except KeyboardInterrupt:
+                logger.info("🛑 Shutting down web server...")
+                await server.stop()
+        
+        # Run the server
+        asyncio.run(run_server())
+        return 0
+        
+    except ImportError as e:
+        logger.error(f"Failed to import web components: {e}")
+        logger.error("Please ensure all web dependencies are installed:")
+        logger.error("pip install aiohttp aiofiles")
+        return 1
+    except Exception as e:
+        logger.error(f"Web server failed: {e}")
+        logger.error(f"❌ Web server error: {e}")
+        return 1
 
 
 def _run_validation_mode(args: argparse.Namespace) -> int:

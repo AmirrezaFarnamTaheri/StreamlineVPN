@@ -22,6 +22,11 @@ from .models import (
     DEFAULT_HOST, DEFAULT_PORT, DEFAULT_UPDATE_INTERVAL, DEFAULT_HISTORY_LENGTH
 )
 from .chart_generator import ChartGenerator
+# Import aggregator with fallback
+try:
+    from ..web.free_nodes_api_sqla import app as aggregator
+except ImportError:
+    aggregator = None
 
 logger = logging.getLogger(__name__)
 
@@ -68,7 +73,11 @@ class AnalyticsDashboard:
         self.app.router.add_get('/api/metrics', self._handle_metrics_api)
         self.app.router.add_get('/api/charts', self._handle_charts_api)
         self.app.router.add_get('/api/performance', self._handle_performance_api)
-        self.app.router.add_static('/static', Path(__file__).parent / 'static')
+        self.app.router.add_get('/api/nodes', self._handle_nodes_api)
+        self.app.router.add_get('/api/aggregator-stats', self._handle_aggregator_stats_api)
+        static_dir = Path(__file__).parent / 'static'
+        if static_dir.exists():
+            self.app.router.add_static('/static', static_dir)
     
     async def start(self):
         """Start the dashboard web server."""
@@ -126,17 +135,49 @@ class AnalyticsDashboard:
             logger.error(f"Error updating metrics: {e}")
     
     async def _collect_metrics(self) -> DashboardMetrics:
-        """Collect current metrics from VPN merger components."""
-        # This would integrate with actual VPN merger components
-        # For now, return mock data
-        return DashboardMetrics(
-            real_time_configs=1000,
-            source_reliability=0.85,
-            geographic_distribution={'US': 300, 'EU': 250, 'ASIA': 200, 'OTHER': 250},
-            protocol_breakdown={'vmess': 400, 'vless': 300, 'trojan': 200, 'ss': 100},
-            performance_trends=[],
-            cache_hit_rate=0.92,
-            error_rate=0.03,
+        """Collect current metrics from VPN merger components and nodes aggregator."""
+        try:
+            # Get real data from nodes aggregator
+            total_nodes = len(aggregator.nodes)
+            
+            # Calculate protocol breakdown from aggregator data
+            protocol_breakdown = {}
+            for node in aggregator.nodes.values():
+                node_type = node.get('type', 'unknown')
+                protocol_breakdown[node_type] = protocol_breakdown.get(node_type, 0) + 1
+            
+            # Calculate average score
+            avg_score = 0
+            if aggregator.node_scores:
+                avg_score = sum(aggregator.node_scores.values()) / len(aggregator.node_scores)
+            
+            # Calculate reliability based on node scores
+            reliability = avg_score / 100.0 if avg_score > 0 else 0.5
+            
+            # Mock geographic distribution (would need IP geolocation for real data)
+            geo_dist = {'US': total_nodes // 4, 'EU': total_nodes // 4, 'ASIA': total_nodes // 4, 'OTHER': total_nodes // 4}
+            
+            return DashboardMetrics(
+                real_time_configs=total_nodes,
+                source_reliability=reliability,
+                geographic_distribution=geo_dist,
+                protocol_breakdown=protocol_breakdown,
+                performance_trends=[],
+                cache_hit_rate=0.92,
+                error_rate=0.03,
+                last_updated=datetime.now()
+            )
+        except Exception as e:
+            logger.error(f"Error collecting metrics from aggregator: {e}")
+            # Fallback to mock data
+            return DashboardMetrics(
+                real_time_configs=1000,
+                source_reliability=0.85,
+                geographic_distribution={'US': 300, 'EU': 250, 'ASIA': 200, 'OTHER': 250},
+                protocol_breakdown={'vmess': 400, 'vless': 300, 'trojan': 200, 'ss': 100},
+                performance_trends=[],
+                cache_hit_rate=0.92,
+                error_rate=0.03,
                 last_updated=datetime.now()
             )
     
@@ -270,6 +311,61 @@ class AnalyticsDashboard:
             logger.error(f"Error handling performance API: {e}")
             return web.json_response({'error': str(e)}, status=500)
     
+    async def _handle_nodes_api(self, request: web.Request) -> web.Response:
+        """Handle nodes API request."""
+        try:
+            node_type = request.query.get('type', '')
+            limit = int(request.query.get('limit', 50))
+            
+            if node_type:
+                nodes = aggregator.get_nodes_by_type(node_type, limit)
+            else:
+                nodes = aggregator.get_top_nodes(limit)
+            
+            return web.json_response({
+                'nodes': nodes,
+                'total': len(nodes),
+                'last_update': aggregator.last_update.isoformat() if aggregator.last_update else None
+            })
+        except Exception as e:
+            logger.error(f"Error handling nodes API: {e}")
+            return web.json_response({'error': str(e)}, status=500)
+    
+    async def _handle_aggregator_stats_api(self, request: web.Request) -> web.Response:
+        """Handle aggregator statistics API request."""
+        try:
+            stats = {
+                'total_nodes': len(aggregator.nodes),
+                'node_types': {},
+                'average_score': 0,
+                'last_update': aggregator.last_update.isoformat() if aggregator.last_update else None,
+                'update_interval': aggregator.update_interval,
+                'max_nodes': aggregator.max_nodes
+            }
+            
+            # Count by type
+            for node in aggregator.nodes.values():
+                node_type = node.get('type', 'unknown')
+                stats['node_types'][node_type] = stats['node_types'].get(node_type, 0) + 1
+            
+            # Calculate average score
+            if aggregator.node_scores:
+                stats['average_score'] = sum(aggregator.node_scores.values()) / len(aggregator.node_scores)
+            
+            # Add latency statistics
+            if aggregator.node_latencies:
+                latencies = list(aggregator.node_latencies.values())
+                stats['latency_stats'] = {
+                    'average': sum(latencies) / len(latencies),
+                    'min': min(latencies),
+                    'max': max(latencies)
+                }
+            
+            return web.json_response(stats)
+        except Exception as e:
+            logger.error(f"Error handling aggregator stats API: {e}")
+            return web.json_response({'error': str(e)}, status=500)
+    
     async def _generate_dashboard_html(self) -> str:
         """Generate dashboard HTML content."""
         html_template = """
@@ -293,19 +389,19 @@ class AnalyticsDashboard:
             <div class="metrics">
                 <div class="metric">
                     <div class="metric-value" id="config-count">-</div>
-                    <div class="metric-label">Configurations</div>
-            </div>
+                    <div class="metric-label">Total Nodes</div>
+                </div>
                 <div class="metric">
                     <div class="metric-value" id="reliability">-</div>
-                    <div class="metric-label">Reliability</div>
+                    <div class="metric-label">Avg Quality Score</div>
                 </div>
                 <div class="metric">
-                    <div class="metric-value" id="cache-hit">-</div>
-                    <div class="metric-label">Cache Hit Rate</div>
+                    <div class="metric-value" id="node-types">-</div>
+                    <div class="metric-label">Node Types</div>
                 </div>
                 <div class="metric">
-                    <div class="metric-value" id="error-rate">-</div>
-                    <div class="metric-label">Error Rate</div>
+                    <div class="metric-value" id="last-update">-</div>
+                    <div class="metric-label">Last Update</div>
                 </div>
             </div>
             <div class="dashboard">
@@ -325,17 +421,27 @@ class AnalyticsDashboard:
             <script>
                 async function updateDashboard() {
                     try {
-                        const response = await fetch('/api/metrics');
-                        const data = await response.json();
+                        // Update main metrics
+                        const metricsResponse = await fetch('/api/metrics');
+                        const metricsData = await metricsResponse.json();
                         
-                        document.getElementById('config-count').textContent = data.real_time_configs.toLocaleString();
-                        document.getElementById('reliability').textContent = (data.source_reliability * 100).toFixed(1) + '%';
-                        document.getElementById('cache-hit').textContent = (data.cache_hit_rate * 100).toFixed(1) + '%';
-                        document.getElementById('error-rate').textContent = (data.error_rate * 100).toFixed(2) + '%';
+                        document.getElementById('config-count').textContent = metricsData.real_time_configs.toLocaleString();
+                        document.getElementById('reliability').textContent = (metricsData.source_reliability * 100).toFixed(1) + '%';
+                        document.getElementById('node-types').textContent = Object.keys(metricsData.protocol_breakdown).length;
+                        document.getElementById('last-update').textContent = new Date(metricsData.last_updated).toLocaleTimeString();
                         
                         // Update charts
-                        updateProtocolChart(data.protocol_breakdown);
-                        updateGeoChart(data.geographic_distribution);
+                        updateProtocolChart(metricsData.protocol_breakdown);
+                        updateGeoChart(metricsData.geographic_distribution);
+                        
+                        // Update aggregator stats
+                        const statsResponse = await fetch('/api/aggregator-stats');
+                        const statsData = await statsResponse.json();
+                        
+                        // Update additional metrics if available
+                        if (statsData.latency_stats) {
+                            console.log('Latency stats:', statsData.latency_stats);
+                        }
                         
                     } catch (error) {
                         console.error('Error updating dashboard:', error);

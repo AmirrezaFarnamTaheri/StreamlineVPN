@@ -84,8 +84,9 @@ class TestUnifiedSourceValidatorComprehensive:
                 
                 assert len(results) == 3
                 for result in results:
-                    assert result['accessible'] is True
-                    assert result['status_code'] == 200
+                    data = result if isinstance(result, dict) else result.to_dict()
+                    assert data['accessible'] is True
+                    assert data['status_code'] == 200
     
     @pytest.mark.asyncio
     async def test_timeout_handling(self):
@@ -95,10 +96,10 @@ class TestUnifiedSourceValidatorComprehensive:
             
             async with UnifiedSourceValidator() as validator:
                 result = await validator.validate_source("https://raw.githubusercontent.com/test")
-                
-                assert result['accessible'] is False
-                assert 'error' in result
-                assert 'timeout' in result['error'].lower()
+                data = result if isinstance(result, dict) else result.to_dict()
+                assert data['accessible'] is False
+                assert 'error' in data
+                assert 'timeout' in data['error'].lower()
     
     def test_protocol_detection_edge_cases(self):
         """Test protocol detection with edge cases."""

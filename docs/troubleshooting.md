@@ -10,7 +10,7 @@
 - Ensure `config/sources.unified.yaml` exists and has valid YAML syntax
 - Check file permissions: `ls -la config/sources.unified.yaml`
 - Validate YAML syntax: `python -c "import yaml; yaml.safe_load(open('config/sources.unified.yaml'))"`
-- Verify source URLs are accessible: `python vpn_merger.py --validate`
+- Verify source URLs are accessible: `python vpn_merger_main.py --validate`
 
 #### Configuration File Not Found
 **Problem**: Error "Config file not found, using fallback sources"
@@ -18,7 +18,7 @@
 - Check file path: `config/sources.unified.yaml`
 - Verify file exists: `ls -la config/`
 - Check working directory when running the application
-- Use absolute path if needed: `python vpn_merger.py --config /full/path/sources.unified.yaml`
+- Use absolute path if needed: `python vpn_merger_main.py --config /full/path/sources.unified.yaml`
 
 ### Import and Dependency Issues
 
@@ -28,7 +28,7 @@
 - Ensure you're running from the project root directory
 - Check Python version: `python --version` (requires Python 3.8+)
 - Install dependencies: `pip install -r requirements.txt`
-- Verify `vpn_merger.py` is in the current directory
+- Verify `vpn_merger_main.py` is in the current directory
 
 #### Missing Dependencies
 **Problem**: `ModuleNotFoundError` for aiohttp, yaml, etc.
@@ -44,7 +44,7 @@
 **Problem**: Application runs but no output files are created
 **Solutions**:
 - Check output directory permissions: `ls -la output/`
-- Verify sources are accessible: `python vpn_merger.py --validate`
+- Verify sources are accessible: `python vpn_merger_main.py --validate`
 - Check network connectivity to source URLs
 - Review log file: `tail -f vpn_merger.log`
 
@@ -52,8 +52,8 @@
 **Problem**: Application appears to freeze during execution
 **Solutions**:
 - Check network connectivity
-- Reduce concurrency: `python vpn_merger.py --concurrent 10`
-- Increase timeout: `python vpn_merger.py --timeout 60`
+- Reduce concurrency: `python vpn_merger_main.py --concurrent 10`
+- Increase timeout: `python vpn_merger_main.py --timeout 60`
 - Monitor system resources: CPU, memory, network
 
 #### Memory Issues
@@ -192,7 +192,7 @@ ping google.com
 curl -I https://google.com
 
 # Test source accessibility
-python vpn_merger.py --validate
+python vpn_merger_main.py --validate
 
 # Check DNS resolution
 nslookup raw.githubusercontent.com
@@ -206,7 +206,7 @@ iotop
 nethogs
 
 # Check Python performance
-python -m cProfile -o profile.stats vpn_merger.py
+python -m cProfile -o profile.stats vpn_merger_main.py
 python -c "import pstats; p = pstats.Stats('profile.stats'); p.sort_stats('cumulative').print_stats(20)"
 ```
 
@@ -226,7 +226,7 @@ ERROR - Error processing source URL: Error message
 export VPN_LOG_LEVEL=DEBUG
 
 # Run with verbose output
-python vpn_merger.py --verbose
+python vpn_merger_main.py --verbose
 
 # Monitor log file
 tail -f vpn_merger.log
