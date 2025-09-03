@@ -194,9 +194,22 @@ class FeatureExtractor:
             timestamp=datetime.now(),
         )
 
+    def get_feature_names(self) -> list[str]:
+        """Get list of feature names."""
+        return [
+            "config_length",
+            "protocol_score", 
+            "port_score",
+            "complexity_score",
+            "encryption_score",
+            "network_score",
+            "security_score",
+            "source_reliability"
+        ]
+
     def extract_batch_features(
         self, configs: list[str], source_reliability: float = 0.5
-    ) -> list[FeatureVector]:
+    ) -> list[dict]:
         """Extract features from multiple configurations.
 
         Args:
@@ -204,10 +217,10 @@ class FeatureExtractor:
             source_reliability: Reliability score of the source
 
         Returns:
-            List of FeatureVector objects
+            List of feature dictionaries
         """
         features = []
         for config in configs:
             feature_vector = self.extract_features(config, source_reliability)
-            features.append(feature_vector)
+            features.append(feature_vector.to_dict())
         return features

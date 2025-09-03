@@ -276,7 +276,7 @@ class EnhancedConfigQualityPredictor:
             logger.info(f"Model trained successfully. R²: {r2:.3f}, MSE: {mse:.3f}")
             return self.model_metrics
                 
-            except Exception as e:
+        except Exception as e:
             logger.error(f"Error training model: {e}")
             return None
     
@@ -318,7 +318,7 @@ class EnhancedConfigQualityPredictor:
             
             return None
                 
-            except Exception as e:
+        except Exception as e:
             logger.error(f"Error detecting drift: {e}")
             return None
     
@@ -332,16 +332,16 @@ class EnhancedConfigQualityPredictor:
             True if successful, False otherwise
         """
         try:
-        model_data = {
+            model_data = {
                 'model': self.model,
                 'scaler': self.scaler,
-            'feature_selector': self.feature_selector,
+                'feature_selector': self.feature_selector,
                 'model_metrics': self.model_metrics,
                 'model_version': self.model_version
             }
             
             with open(model_path, 'wb') as f:
-            pickle.dump(model_data, f)
+                pickle.dump(model_data, f)
         
             logger.info(f"Model saved to {model_path}")
             return True
