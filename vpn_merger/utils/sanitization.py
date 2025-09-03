@@ -37,7 +37,10 @@ def is_safe_url(url: str) -> bool:
 def is_sql_safe(s: str) -> bool:
     if not isinstance(s, str):
         return False
-    return re.search(r"('|(\\')|(;)|(--)|(union)|(select)|(drop)|(insert)|(delete))", s.lower()) is None
+    return (
+        re.search(r"('|(\\')|(;)|(--)|(union)|(select)|(drop)|(insert)|(delete))", s.lower())
+        is None
+    )
 
 
 def is_xss_safe(s: str) -> bool:
@@ -73,13 +76,16 @@ def is_config_safe(config: str) -> bool:
         return False
     # Handle vmess base64 payloads
     if lower.startswith("vmess://"):
-        payload = config[len("vmess://"):]
+        payload = config[len("vmess://") :]
         # urlsafe base64 with missing padding
-        import base64, json
+        import base64
+
         try:
             missing = (-len(payload)) % 4
             payload_padded = payload + ("=" * missing)
-            decoded = base64.urlsafe_b64decode(payload_padded.encode("utf-8")).decode("utf-8", errors="ignore")
+            decoded = base64.urlsafe_b64decode(payload_padded.encode("utf-8")).decode(
+                "utf-8", errors="ignore"
+            )
             if "evil.com" in decoded.lower() or "malicious" in decoded.lower():
                 return False
         except Exception:
@@ -100,5 +106,3 @@ def is_https_secure(url: str) -> bool:
     except Exception:
         return False
     return True
-
-

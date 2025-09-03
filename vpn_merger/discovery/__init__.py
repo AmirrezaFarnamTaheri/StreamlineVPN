@@ -6,17 +6,17 @@ Advanced real-time discovery system for finding new VPN configuration sources
 through GitHub monitoring, Telegram channels, and intelligent web crawling.
 """
 
-from .models import DiscoveredSource, DiscoveryMetrics
+from .discovery_manager import RealTimeDiscovery
 from .github_monitor import GitHubRealtimeMonitor
+from .models import DiscoveredSource, DiscoveryMetrics
 from .telegram_monitor import TelegramChannelMonitor
 from .web_crawler import IntelligentWebCrawler
-from .discovery_manager import RealTimeDiscovery
 
 __all__ = [
     "DiscoveredSource",
-    "DiscoveryMetrics", 
+    "DiscoveryMetrics",
     "GitHubRealtimeMonitor",
-    "TelegramChannelMonitor",
     "IntelligentWebCrawler",
-    "RealTimeDiscovery"
+    "RealTimeDiscovery",
+    "TelegramChannelMonitor",
 ]

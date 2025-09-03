@@ -8,8 +8,6 @@ Tests the API functionality with sample data and health checks.
 import asyncio
 import base64
 import json
-import time
-from typing import List
 
 import httpx
 
@@ -18,22 +16,36 @@ class APITester:
     def __init__(self, base_url: str = "http://localhost:8000"):
         self.base_url = base_url
         self.client = httpx.AsyncClient(timeout=30.0)
-        
+
         # Sample test data
         self.sample_links = [
             "vless://11111111-2222-3333-4444-555555555555@example.com:443?security=reality&pbk=PUBKEY&sid=abcdef&sni=www.microsoft.com&type=tcp#Sample-REALITY",
-            "vmess://" + base64.b64encode(json.dumps({
-                "v": "2", "ps": "Sample-VMESS", "add": "vmess.example.com", "port": "443", 
-                "id": "aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee", "net": "tcp", "type": "none", 
-                "tls": "tls", "sni": "www.cloudflare.com", "path": "/"
-            }).encode()).decode(),
+            "vmess://"
+            + base64.b64encode(
+                json.dumps(
+                    {
+                        "v": "2",
+                        "ps": "Sample-VMESS",
+                        "add": "vmess.example.com",
+                        "port": "443",
+                        "id": "aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee",
+                        "net": "tcp",
+                        "type": "none",
+                        "tls": "tls",
+                        "sni": "www.cloudflare.com",
+                        "path": "/",
+                    }
+                ).encode()
+            ).decode(),
             "trojan://pass123@trojan.example.com:443#Sample-Trojan",
-            "ss://" + base64.b64encode("chacha20-ietf-poly1305:passw0rd@ss.example.com:8388".encode()).decode() + "#Sample-SS",
+            "ss://"
+            + base64.b64encode(b"chacha20-ietf-poly1305:passw0rd@ss.example.com:8388").decode()
+            + "#Sample-SS",
         ]
-        
+
         self.sample_sources = [
             "https://httpbin.org/status/200",  # Will return HTML, not links
-            "https://httpbin.org/json",        # Will return JSON, not links
+            "https://httpbin.org/json",  # Will return JSON, not links
         ]
 
     async def test_health(self) -> bool:
@@ -57,8 +69,7 @@ class APITester:
         print("🔍 Testing ingest endpoint...")
         try:
             response = await self.client.post(
-                f"{self.base_url}/api/ingest",
-                json={"links": self.sample_links}
+                f"{self.base_url}/api/ingest", json={"links": self.sample_links}
             )
             if response.status_code == 200:
                 data = response.json()
@@ -76,8 +87,7 @@ class APITester:
         print("🔍 Testing sources endpoint...")
         try:
             response = await self.client.post(
-                f"{self.base_url}/api/sources",
-                json={"urls": self.sample_sources}
+                f"{self.base_url}/api/sources", json={"urls": self.sample_sources}
             )
             if response.status_code == 200:
                 data = response.json()
@@ -162,7 +172,7 @@ class APITester:
         try:
             response = await self.client.post(
                 f"{self.base_url}/api/ping",
-                json={"links": self.sample_links[:2]}  # Test first 2 links
+                json={"links": self.sample_links[:2]},  # Test first 2 links
             )
             if response.status_code == 200:
                 data = response.json()
@@ -185,20 +195,20 @@ class APITester:
             tasks = []
             for i in range(150):  # More than the 120/minute limit
                 tasks.append(self.client.get(f"{self.base_url}/health"))
-            
+
             responses = await asyncio.gather(*tasks, return_exceptions=True)
-            
+
             # Count successful vs rate limited
             successful = 0
             rate_limited = 0
-            
+
             for response in responses:
                 if isinstance(response, httpx.Response):
                     if response.status_code == 200:
                         successful += 1
                     elif response.status_code == 429:
                         rate_limited += 1
-            
+
             print(f"✅ Rate limiting test: {successful} successful, {rate_limited} rate limited")
             return rate_limited > 0  # Should have some rate limited
         except Exception as e:
@@ -209,7 +219,7 @@ class APITester:
         """Run all tests and return results."""
         print("🚀 Starting Free Nodes Aggregator API Tests")
         print("=" * 50)
-        
+
         tests = [
             ("Health Check", self.test_health),
             ("Ingest Nodes", self.test_ingest),
@@ -221,9 +231,9 @@ class APITester:
             ("Ping Nodes", self.test_ping),
             ("Rate Limiting", self.test_rate_limiting),
         ]
-        
+
         results = {}
-        
+
         for test_name, test_func in tests:
             print(f"\n📋 Running: {test_name}")
             try:
@@ -233,20 +243,20 @@ class APITester:
             except Exception as e:
                 print(f"❌ ERROR: {test_name} - {e}")
                 results[test_name] = False
-        
+
         print("\n" + "=" * 50)
         print("📊 Test Results Summary:")
         print("=" * 50)
-        
+
         passed = sum(1 for result in results.values() if result)
         total = len(results)
-        
+
         for test_name, result in results.items():
             status = "✅ PASSED" if result else "❌ FAILED"
             print(f"{status}: {test_name}")
-        
+
         print(f"\n🎯 Overall: {passed}/{total} tests passed")
-        
+
         return results
 
     async def close(self):
@@ -258,21 +268,21 @@ async def main():
     """Main test function."""
     # Test with default localhost
     tester = APITester()
-    
+
     try:
         results = await tester.run_all_tests()
-        
+
         # Exit with appropriate code
         passed = sum(1 for result in results.values() if result)
         total = len(results)
-        
+
         if passed == total:
             print("\n🎉 All tests passed!")
             exit(0)
         else:
             print(f"\n⚠️  {total - passed} tests failed")
             exit(1)
-            
+
     finally:
         await tester.close()
 

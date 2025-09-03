@@ -1,6 +1,5 @@
-import asyncio
-import zlib
 import gzip
+
 import pytest
 
 from vpn_merger.services.fetcher_service import AsyncSourceFetcher
@@ -76,7 +75,9 @@ async def test_fetcher_handles_gzip_decompression():
 
     proc = DummyProcessor()
     f = AsyncSourceFetcher(proc, concurrency=2)
-    f.session = DummySessionSingle(status=200, text="", headers={"content-encoding": "gzip"}, raw=gz)
+    f.session = DummySessionSingle(
+        status=200, text="", headers={"content-encoding": "gzip"}, raw=gz
+    )
     await f.open()
     out = await f.fetch_many(["https://raw.githubusercontent.com/test/a.txt"])
     assert out and out[0][0].endswith("a.txt")
@@ -95,8 +96,10 @@ async def test_fetcher_retries_then_succeeds_with_zero_backoff(monkeypatch):
     f.session = DummySessionFlaky(succeed_after=3, text="ok-line")
     # Patch missing logging symbol in module scope used by log_json calls
     import types
+
     import vpn_merger.services.fetcher_service as fs
-    if not hasattr(fs, 'logging'):
+
+    if not hasattr(fs, "logging"):
         fs.logging = types.SimpleNamespace(INFO=20, WARNING=30)
     await f.open()
     url, lines = (await f.fetch_many(["https://raw.githubusercontent.com/test/f.txt"]))[0]
@@ -110,7 +113,7 @@ async def test_fetcher_handles_brotli_if_available():
         import brotli  # type: ignore
     except Exception:
         pytest.skip("brotli not installed")
-    payload = "a\nb\n".encode("utf-8")
+    payload = b"a\nb\n"
     br = brotli.compress(payload)  # type: ignore[attr-defined]
     proc = DummyProcessor()
     f = AsyncSourceFetcher(proc)

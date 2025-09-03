@@ -19,18 +19,16 @@ from __future__ import annotations
 import asyncio
 import base64
 import json
-import os
 import random
 import re
 import time
-from typing import Dict, List, Optional, Tuple
-from urllib.parse import urlparse, parse_qs, unquote
+from urllib.parse import parse_qs, unquote, urlparse
 
 import httpx
 from fastapi import FastAPI, HTTPException, Request
-from prometheus_fastapi_instrumentator import Instrumentator
-from prometheus_client import Counter, Histogram, Gauge
 from fastapi.middleware.cors import CORSMiddleware
+from prometheus_client import Counter, Gauge, Histogram
+from prometheus_fastapi_instrumentator import Instrumentator
 from pydantic import BaseModel, Field
 
 # ------------------------------ Config ------------------------------------
@@ -78,6 +76,7 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+
 # ------------------------------ Models ------------------------------------
 class Node(BaseModel):
     proto: str
@@ -85,13 +84,13 @@ class Node(BaseModel):
     port: int
     name: str
     link: str
-    uuid: Optional[str] = None
-    password: Optional[str] = None
-    params: Dict = Field(default_factory=dict)
-    latency_ms: Optional[int] = None
-    healthy: Optional[bool] = None
-    score: Optional[float] = None
-    last_checked: Optional[float] = None
+    uuid: str | None = None
+    password: str | None = None
+    params: dict = Field(default_factory=dict)
+    latency_ms: int | None = None
+    healthy: bool | None = None
+    score: float | None = None
+    last_checked: float | None = None
 
     def key(self) -> str:
         token = self.uuid or self.password or self.name
@@ -99,18 +98,20 @@ class Node(BaseModel):
 
 
 class IngestBody(BaseModel):
-    links: List[str] = Field(default_factory=list, description="List of proxy share links")
+    links: list[str] = Field(default_factory=list, description="List of proxy share links")
 
 
 class SourcesBody(BaseModel):
-    urls: List[str] = Field(default_factory=list, description="List of http(s) URLs; each returns text lines of links")
+    urls: list[str] = Field(
+        default_factory=list, description="List of http(s) URLs; each returns text lines of links"
+    )
 
 
 # ------------------------------ Store -------------------------------------
 class NodeStore:
     def __init__(self):
-        self.map: Dict[str, Node] = {}
-        self.sources: List[str] = []
+        self.map: dict[str, Node] = {}
+        self.sources: list[str] = []
         self.lock = asyncio.Lock()
 
     def _evict_if_needed(self):
@@ -123,23 +124,25 @@ class NodeStore:
         for k, _ in items[:to_drop]:
             self.map.pop(k, None)
 
-    async def upsert_many(self, nodes: List[Node]):
+    async def upsert_many(self, nodes: list[Node]):
         async with self.lock:
             for n in nodes:
                 self.map[n.key()] = n
             self._evict_if_needed()
 
-    async def all(self) -> List[Node]:
+    async def all(self) -> list[Node]:
         async with self.lock:
             return list(self.map.values())
 
-    async def add_sources(self, urls: List[str]):
+    async def add_sources(self, urls: list[str]):
         async with self.lock:
             for u in urls:
                 if u not in self.sources:
                     self.sources.append(u)
 
+
 STORE = NodeStore()
+
 
 # --------------------------- Rate limiting ---------------------------------
 class RateBucket:
@@ -147,7 +150,8 @@ class RateBucket:
         self.count = 0
         self.reset_at = time.time() + 60
 
-RATE: Dict[str, RateBucket] = {}
+
+RATE: dict[str, RateBucket] = {}
 
 
 def rate_limit_ok(ip: str) -> bool:
@@ -170,7 +174,9 @@ async def ratelimit_mw(request: Request, call_next):
     RATE[ip].count += 1
     return await call_next(request)
 
+
 # ------------------------------ Parsing -----------------------------------
+
 
 def _b64decode_safe(b64: str) -> str:
     try:
@@ -183,7 +189,7 @@ def _b64decode_safe(b64: str) -> str:
         return ""
 
 
-def parse_vless(link: str) -> Optional[Node]:
+def parse_vless(link: str) -> Node | None:
     try:
         u = urlparse(link)
         qp = {k: v[0] for k, v in parse_qs(u.query).items()}
@@ -201,7 +207,7 @@ def parse_vless(link: str) -> Optional[Node]:
         return None
 
 
-def parse_vmess(link: str) -> Optional[Node]:
+def parse_vmess(link: str) -> Node | None:
     try:
         b64 = link.split("vmess://", 1)[1]
         raw = _b64decode_safe(b64)
@@ -229,7 +235,7 @@ def parse_vmess(link: str) -> Optional[Node]:
         return None
 
 
-def parse_trojan(link: str) -> Optional[Node]:
+def parse_trojan(link: str) -> Node | None:
     try:
         u = urlparse(link)
         qp = {k: v[0] for k, v in parse_qs(u.query).items()}
@@ -248,7 +254,7 @@ def parse_trojan(link: str) -> Optional[Node]:
         return None
 
 
-def parse_ss(link: str) -> Optional[Node]:
+def parse_ss(link: str) -> Node | None:
     try:
         raw = link.split("ss://", 1)[1]
         if "@" in raw:
@@ -277,7 +283,7 @@ def parse_ss(link: str) -> Optional[Node]:
         return None
 
 
-def parse_any(line: str) -> Optional[Node]:
+def parse_any(line: str) -> Node | None:
     s = line.strip()
     if not s:
         return None
@@ -311,13 +317,18 @@ def parse_any(line: str) -> Optional[Node]:
         pass
     return None
 
+
 # ---------------------------- Scoring/Health -------------------------------
+
 
 def score_node(n: Node) -> float:
     score = 0.0
     if n.port in (443, 8443):
         score += 1.2
-    tlsish = (n.proto == "vless" and (n.params.get("security") == "reality" or n.params.get("reality", {}).get("enabled"))) or (n.params.get("tls") == "tls")
+    tlsish = (
+        n.proto == "vless"
+        and (n.params.get("security") == "reality" or n.params.get("reality", {}).get("enabled"))
+    ) or (n.params.get("tls") == "tls")
     if tlsish:
         score += 1.0
     if n.latency_ms is not None:
@@ -325,7 +336,7 @@ def score_node(n: Node) -> float:
     return round(score, 3)
 
 
-async def tcp_latency(host: str, port: int) -> Optional[int]:
+async def tcp_latency(host: str, port: int) -> int | None:
     try:
         start = time.perf_counter()
         conn = asyncio.open_connection(host, port)
@@ -342,7 +353,7 @@ async def tcp_latency(host: str, port: int) -> Optional[int]:
         return None
 
 
-async def healthcheck_nodes(nodes: List[Node]):
+async def healthcheck_nodes(nodes: list[Node]):
     sem = asyncio.Semaphore(HEALTHCHECK_CONCURRENCY)
 
     async def one(n: Node):
@@ -355,13 +366,17 @@ async def healthcheck_nodes(nodes: List[Node]):
 
     await asyncio.gather(*(one(n) for n in nodes))
 
+
 # ----------------------------- Converters ----------------------------------
 
-def to_singbox_outbound(n: Node) -> Dict:
+
+def to_singbox_outbound(n: Node) -> dict:
     sni = n.params.get("sni") or n.params.get("server_name")
     tag = re.sub(r"\s+", "-", n.name).lower()
     if n.proto == "vless":
-        reality = n.params.get("security") == "reality" or (n.params.get("reality") or {}).get("enabled")
+        reality = n.params.get("security") == "reality" or (n.params.get("reality") or {}).get(
+            "enabled"
+        )
         outbound = {
             "type": "vless",
             "tag": tag,
@@ -372,14 +387,25 @@ def to_singbox_outbound(n: Node) -> Dict:
             "tls": {
                 "enabled": True,
                 "server_name": sni or n.host,
-                "reality": {
-                    "enabled": True,
-                    "public_key": n.params.get("pbk") or n.params.get("public_key"),
-                    "short_id": n.params.get("sid") or n.params.get("short_id"),
-                } if reality else None,
-                "utls": {"enabled": True, "fingerprint": n.params.get("fp") } if n.params.get("fp") else None,
+                "reality": (
+                    {
+                        "enabled": True,
+                        "public_key": n.params.get("pbk") or n.params.get("public_key"),
+                        "short_id": n.params.get("sid") or n.params.get("short_id"),
+                    }
+                    if reality
+                    else None
+                ),
+                "utls": (
+                    {"enabled": True, "fingerprint": n.params.get("fp")}
+                    if n.params.get("fp")
+                    else None
+                ),
             },
-            "transport": {"type": n.params.get("type") or n.params.get("net") or "tcp", "path": n.params.get("path")},
+            "transport": {
+                "type": n.params.get("type") or n.params.get("net") or "tcp",
+                "path": n.params.get("path"),
+            },
         }
         # remove Nones
         return json.loads(json.dumps(outbound))
@@ -415,6 +441,7 @@ def to_singbox_outbound(n: Node) -> Dict:
         }
     return n.params or {}
 
+
 # ------------------------------ Helpers ------------------------------------
 async def _fetch_text(url: str, timeout: float = 10.0) -> str:
     async with httpx.AsyncClient(timeout=timeout) as client:
@@ -423,14 +450,15 @@ async def _fetch_text(url: str, timeout: float = 10.0) -> str:
         return r.text
 
 
-def _normalize_lines_to_nodes(text: str) -> List[Node]:
-    nodes: List[Node] = []
+def _normalize_lines_to_nodes(text: str) -> list[Node]:
+    nodes: list[Node] = []
     for line in text.splitlines():
         n = parse_any(line)
         if n:
             n.score = score_node(n)
             nodes.append(n)
     return nodes
+
 
 # ------------------------------ Routes -------------------------------------
 @app.get("/health")
@@ -468,7 +496,7 @@ async def add_sources(body: SourcesBody):
 async def refresh_sources(healthcheck: bool = True):
     if not STORE.sources:
         return {"fetched": 0, "note": "No sources configured"}
-    collected: List[Node] = []
+    collected: list[Node] = []
     for url in STORE.sources:
         try:
             t0 = time.perf_counter()
@@ -481,7 +509,7 @@ async def refresh_sources(healthcheck: bool = True):
             print(f"fetch error {url}: {e}")
             NODES_PROCESSED.labels(source=url, result="error").inc()
     # de-dupe by key (latest wins)
-    by_key: Dict[str, Node] = {}
+    by_key: dict[str, Node] = {}
     for n in collected:
         by_key[n.key()] = n
     nodes = list(by_key.values())
@@ -492,7 +520,7 @@ async def refresh_sources(healthcheck: bool = True):
 
 
 @app.get("/api/nodes.json")
-async def get_nodes(limit: int = 200, proto: Optional[str] = None, sort: str = "score"):
+async def get_nodes(limit: int = 200, proto: str | None = None, sort: str = "score"):
     nodes = await STORE.all()
     if proto:
         nodes = [n for n in nodes if n.proto == proto]
@@ -531,7 +559,7 @@ async def export_singbox(limit: int = 200):
 @app.post("/api/ping")
 async def ping_nodes(body: IngestBody):
     # Measure TCP connect latency for provided links (not stored, unless you ingest separately)
-    targets: List[Node] = []
+    targets: list[Node] = []
     for s in body.links:
         n = parse_any(s)
         if n:
@@ -546,10 +574,26 @@ async def bootstrap_sample():
     # Seed with a tiny sample so the UI has something to show
     sample = [
         "vless://11111111-2222-3333-4444-555555555555@example.com:443?security=reality&pbk=PUBKEY&sid=abcdef&sni=www.microsoft.com&type=tcp#Sample-REALITY",
-        "vmess://" + base64.b64encode(json.dumps({
-            "v": "2", "ps": "Sample-VMESS", "add": "vmess.example.com", "port": "443", "id": "aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee", "net": "tcp", "type": "none", "tls": "tls", "sni": "www.cloudflare.com", "path": "/"
-        }).encode()).decode(),
+        "vmess://"
+        + base64.b64encode(
+            json.dumps(
+                {
+                    "v": "2",
+                    "ps": "Sample-VMESS",
+                    "add": "vmess.example.com",
+                    "port": "443",
+                    "id": "aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee",
+                    "net": "tcp",
+                    "type": "none",
+                    "tls": "tls",
+                    "sni": "www.cloudflare.com",
+                    "path": "/",
+                }
+            ).encode()
+        ).decode(),
         "trojan://pass123@trojan.example.com:443#Sample-Trojan",
-        "ss://" + base64.b64encode("chacha20-ietf-poly1305:passw0rd@ss.example.com:8388".encode()).decode() + "#Sample-SS",
+        "ss://"
+        + base64.b64encode(b"chacha20-ietf-poly1305:passw0rd@ss.example.com:8388").decode()
+        + "#Sample-SS",
     ]
     await ingest(IngestBody(links=sample))

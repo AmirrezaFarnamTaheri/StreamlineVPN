@@ -1,6 +1,3 @@
-import time
-import pytest
-
 # Security and reliability functionality has been refactored into core components
 # from vpn_merger.security.security_manager import SecurityManager, SecurityError
 # from vpn_merger.services.reliability import CircuitBreaker, ExponentialBackoff
@@ -19,7 +16,7 @@ import pytest
 #     )
 #     def test_sanitize_host_valid(self, input_val, expected):
 #         assert SecurityManager.sanitize_host(input_val) == expected
-# 
+#
 #     @pytest.mark.parametrize(
 #         "bad",
 #         [
@@ -32,7 +29,7 @@ import pytest
 #     def test_sanitize_host_rejects_invalid(self, bad):
 #         with pytest.raises(SecurityError):
 #             SecurityManager.sanitize_host(bad)
-# 
+#
 #     @pytest.mark.parametrize(
 #         "input_val,expected",
 #         [
@@ -62,14 +59,14 @@ import pytest
 #         # After cooldown it should half-open (return False and clear open marker)
 #         time.sleep(0.03)
 #         assert not cb.is_open(key)
-# 
+#
 #     def test_exponential_backoff_grows_and_caps(self):
 #         eb = ExponentialBackoff(base=0.5, max_delay=5.0)
 #         delays = [eb.get_delay(i) for i in range(8)]
 #         for i in range(1, len(delays)):
 #             assert delays[i] >= delays[i - 1]
 #         assert max(delays) <= 5.0
-# 
+#
 #     @pytest.mark.asyncio
 #     async def test_per_host_rate_limiter_waits(self):
 #         rl = PerHostRateLimiter(per_host_rate=1.0, per_host_capacity=1)

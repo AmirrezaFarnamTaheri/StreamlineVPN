@@ -6,8 +6,6 @@ Lightweight helpers used by tests for detecting risky inputs and sanitizing logs
 """
 
 import re
-from typing import List
-
 
 FORBIDDEN_URL_PREFIXES = ("javascript:", "data:", "file:", "ftp:")
 LOCAL_HOST_MARKERS = ("localhost", "127.0.0.1", "192.168.", "10.", "172.")
@@ -47,5 +45,3 @@ def contains_malicious_config(cfg: str) -> bool:
 
 def sanitize_log(line: str) -> str:
     return re.sub(r"(password|token|api_key|secret)=[^\s]+", r"\1=***REDACTED***", line or "")
-
-

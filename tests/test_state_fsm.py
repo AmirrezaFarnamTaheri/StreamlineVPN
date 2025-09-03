@@ -1,13 +1,21 @@
 from pathlib import Path
-from vpn_merger.sources.state_fsm import WarmupFSM, SourceState
+
 from vpn_merger.core.source_validator import ValidationResult
+from vpn_merger.sources.state_fsm import SourceState, WarmupFSM
 
 
 def make_health(url: str, ok: bool, reliability: float) -> ValidationResult:
-    h = ValidationResult(url=url, accessible=ok, status_code=200 if ok else 500, 
-                        config_count=100 if ok else 0, protocols_found=['vmess'] if ok else [],
-                        response_time=1.0 if ok else 5.0, reliability_score=reliability,
-                        last_checked=None, error_message=None if ok else "Connection failed")
+    h = ValidationResult(
+        url=url,
+        accessible=ok,
+        status_code=200 if ok else 500,
+        config_count=100 if ok else 0,
+        protocols_found=["vmess"] if ok else [],
+        response_time=1.0 if ok else 5.0,
+        reliability_score=reliability,
+        last_checked=None,
+        error_message=None if ok else "Connection failed",
+    )
     return h
 
 
@@ -47,4 +55,3 @@ def test_fsm_progression(tmp_path: Path):
     # Test getting ready sources
     ready_sources = fsm.get_ready_sources(max_sources=10)
     assert len(ready_sources) >= 0  # May or may not include our source depending on state
-

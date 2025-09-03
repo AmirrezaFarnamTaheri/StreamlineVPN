@@ -6,9 +6,7 @@ Parser for tunnel bridge configurations.
 """
 
 import logging
-import re
 from urllib.parse import urlparse
-from typing import Dict, List, Optional, Any
 
 logger = logging.getLogger(__name__)
 

@@ -30,7 +30,9 @@ def test_parse_ehi_base64_simple():
 
 
 def test_parse_ehi_zip(tmp_path):
-    import zipfile, json
+    import json
+    import zipfile
+
     payload = {"payload": "zipline"}
     zpath = tmp_path / "test.ehi"
     with zipfile.ZipFile(zpath, "w") as zf:
@@ -84,14 +86,17 @@ def test_parse_ehi_base64_zip():
 import pytest
 
 
-@pytest.mark.parametrize("line", [
-    "noscheme",
-    "ssh://host",
-    "ssh://user@:22",
-    "ssh://user:pass@host:notnum",
-    None,
-    123,
-])
+@pytest.mark.parametrize(
+    "line",
+    [
+        "noscheme",
+        "ssh://host",
+        "ssh://user@:22",
+        "ssh://user:pass@host:notnum",
+        None,
+        123,
+    ],
+)
 def test_parse_line_invalid(line):
     with pytest.raises((ValueError, TypeError)):
         parse_line(line)

@@ -1,6 +1,3 @@
-import asyncio
-from unittest.mock import patch
-
 import pytest
 
 from vpn_merger.core.merger import VPNSubscriptionMerger
@@ -34,6 +31,9 @@ def test_score_and_sort_monkeypatch():
 async def test_validate_sources_graceful_without_network():
     # Test validation with mock sources
     m = VPNSubscriptionMerger()
-    res = await m.validate_sources(["https://raw.githubusercontent.com/test/a", "https://raw.githubusercontent.com/test/b"], min_score=0.1)
+    res = await m.validate_sources(
+        ["https://raw.githubusercontent.com/test/a", "https://raw.githubusercontent.com/test/b"],
+        min_score=0.1,
+    )
     # Expect empty due to min_score filtering or graceful fallback
     assert isinstance(res, list)

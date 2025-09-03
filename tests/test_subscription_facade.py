@@ -1,10 +1,7 @@
-import os
-import time
 from fastapi.testclient import TestClient
 
 # Ensure import path works when running from repo root
 from vpn_automation.subscription_facade.app import app  # type: ignore
-
 
 client = TestClient(app)
 
@@ -39,4 +36,3 @@ def test_exports():
     rcl = client.get("/api/sub/clash.yaml")
     assert rcl.status_code == 200
     assert "proxy-groups" in rcl.text or "proxy-groups" in rcl.content.decode("utf-8")
-

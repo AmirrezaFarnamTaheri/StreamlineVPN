@@ -1,0 +1,74 @@
+openapi: 3.0.3
+info:
+  title: VPN Merger API
+  version: 1.0.0
+  description: Minimal REST surface for subscriptions, status, and health.
+servers:
+  - url: http://localhost:8000
+paths:
+  /api/v1/sub/raw:
+    get:
+      summary: Get raw subscription text
+      responses:
+        '200':
+          description: OK
+          content:
+            text/plain:
+              schema:
+                type: string
+  /api/v1/status:
+    get:
+      summary: Service status
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+  /api/v1/health:
+    get:
+      summary: Health check
+      responses:
+        '200':
+          description: OK
+  /api/v2/nodes:
+    get:
+      summary: List nodes
+      parameters:
+        - in: query
+          name: limit
+          schema:
+            type: integer
+            default: 100
+        - in: query
+          name: protocol
+          schema:
+            type: string
+            enum: [vmess, vless, trojan, ss]
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  nodes:
+                    type: array
+                    items:
+                      type: object
+                  count:
+                    type: integer
+components:
+  securitySchemes:
+    apiToken:
+      type: apiKey
+      in: header
+      name: X-API-Token
+security:
+  - apiToken: []
+

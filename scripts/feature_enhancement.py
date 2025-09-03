@@ -6,73 +6,70 @@ This script provides utilities for enhancing and extending the VPN merger functi
 """
 
 import asyncio
-import logging
-from pathlib import Path
-from typing import Dict, List, Optional
 import json
-import yaml
+import logging
 
 logger = logging.getLogger(__name__)
 
 
 class FeatureEnhancer:
     """Feature enhancement utilities for VPN merger."""
-    
+
     def __init__(self, config_path: str = "config/sources.unified.yaml"):
         self.config_path = config_path
         self.enhancements = {}
-    
-    async def enhance_source_validation(self) -> Dict:
+
+    async def enhance_source_validation(self) -> dict:
         """Enhance source validation with additional checks."""
         logger.info("Enhancing source validation...")
-        
+
         enhancements = {
             "validation_enhancements": {
                 "protocol_detection": "enhanced",
                 "content_analysis": "enabled",
                 "security_scanning": "enabled",
-                "performance_metrics": "enabled"
+                "performance_metrics": "enabled",
             }
         }
-        
+
         self.enhancements.update(enhancements)
         return enhancements
-    
-    async def enhance_output_formats(self) -> Dict:
+
+    async def enhance_output_formats(self) -> dict:
         """Enhance output format generation."""
         logger.info("Enhancing output formats...")
-        
+
         enhancements = {
             "output_enhancements": {
                 "compression": "enabled",
                 "encryption": "optional",
                 "metadata": "enhanced",
-                "validation": "enabled"
+                "validation": "enabled",
             }
         }
-        
+
         self.enhancements.update(enhancements)
         return enhancements
-    
-    async def enhance_monitoring(self) -> Dict:
+
+    async def enhance_monitoring(self) -> dict:
         """Enhance monitoring and observability."""
         logger.info("Enhancing monitoring capabilities...")
-        
+
         enhancements = {
             "monitoring_enhancements": {
                 "metrics_collection": "enhanced",
                 "alerting": "enabled",
                 "tracing": "enabled",
-                "logging": "structured"
+                "logging": "structured",
             }
         }
-        
+
         self.enhancements.update(enhancements)
         return enhancements
-    
+
     def save_enhancements(self, output_path: str = "enhancements.json"):
         """Save enhancement configuration."""
-        with open(output_path, 'w') as f:
+        with open(output_path, "w") as f:
             json.dump(self.enhancements, f, indent=2)
         logger.info(f"Enhancements saved to {output_path}")
 
@@ -80,15 +77,15 @@ class FeatureEnhancer:
 async def main():
     """Main enhancement function."""
     enhancer = FeatureEnhancer()
-    
+
     # Apply enhancements
     await enhancer.enhance_source_validation()
     await enhancer.enhance_output_formats()
     await enhancer.enhance_monitoring()
-    
+
     # Save configuration
     enhancer.save_enhancements()
-    
+
     logger.info("Feature enhancement completed successfully!")
 
 

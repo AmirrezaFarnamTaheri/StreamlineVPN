@@ -9,23 +9,24 @@ with online learning, drift detection, and hyperparameter optimization.
 import asyncio
 import json
 import logging
-import numpy as np
-import pandas as pd
+import pickle
 from datetime import datetime, timedelta
 from pathlib import Path
-from typing import Dict, List, Optional, Tuple, Any, Union
+from typing import Any, Dict, List, Optional, Tuple, Union
+
 import joblib
-import pickle
+import numpy as np
+import pandas as pd
 
 # ML Libraries
 try:
-    from sklearn.ensemble import RandomForestRegressor, GradientBoostingRegressor
-    from sklearn.linear_model import LinearRegression, Ridge
-    from sklearn.model_selection import GridSearchCV, cross_val_score
-    from sklearn.preprocessing import StandardScaler, RobustScaler
-    from sklearn.metrics import mean_squared_error, r2_score, mean_absolute_error
-    from sklearn.pipeline import Pipeline
+    from sklearn.ensemble import GradientBoostingRegressor, RandomForestRegressor
     from sklearn.feature_selection import SelectKBest, f_regression
+    from sklearn.linear_model import LinearRegression, Ridge
+    from sklearn.metrics import mean_absolute_error, mean_squared_error, r2_score
+    from sklearn.model_selection import GridSearchCV, cross_val_score
+    from sklearn.pipeline import Pipeline
+    from sklearn.preprocessing import RobustScaler, StandardScaler
     SKLEARN_AVAILABLE = True
 except ImportError:
     SKLEARN_AVAILABLE = False
@@ -33,8 +34,8 @@ except ImportError:
 
 # Optional advanced ML libraries
 try:
-    import xgboost as xgb
     import lightgbm as lgb
+    import xgboost as xgb
     XGBOOST_AVAILABLE = True
     LIGHTGBM_AVAILABLE = True
 except ImportError:
@@ -47,12 +48,19 @@ try:
 except ImportError:
     RIVER_AVAILABLE = False
 
-from .models import (
-    ModelMetrics, DriftDetection, FeatureVector, PredictionResult,
-    DEFAULT_BUFFER_SIZE, DEFAULT_FEATURE_SELECTION_K, DEFAULT_CROSS_VALIDATION_FOLDS,
-    DEFAULT_RANDOM_STATE, DEFAULT_N_ESTIMATORS, DEFAULT_RIDGE_ALPHA
-)
 from .feature_extractor import FeatureExtractor
+from .models import (
+    DEFAULT_BUFFER_SIZE,
+    DEFAULT_CROSS_VALIDATION_FOLDS,
+    DEFAULT_FEATURE_SELECTION_K,
+    DEFAULT_N_ESTIMATORS,
+    DEFAULT_RANDOM_STATE,
+    DEFAULT_RIDGE_ALPHA,
+    DriftDetection,
+    FeatureVector,
+    ModelMetrics,
+    PredictionResult,
+)
 
 logger = logging.getLogger(__name__)
 

@@ -1,19 +1,21 @@
-import asyncio
 import base64
+
 from fastapi.testclient import TestClient
 
 from vpn_merger.web.free_nodes_api_sqla import app  # type: ignore
-
 
 client = TestClient(app)
 
 
 def _sample_links():
-    vmess = "vmess://" + base64.b64encode(
-        ("{"
-         "\"v\":\"2\",\"ps\":\"T1\",\"add\":\"vmess.example.com\",\"port\":\"443\",\"id\":\"aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee\",\"net\":\"tcp\",\"type\":\"none\",\"tls\":\"tls\""  # noqa: E501
-         "}").encode()
-    ).decode()
+    vmess = (
+        "vmess://"
+        + base64.b64encode(
+            b"{"
+            b'"v":"2","ps":"T1","add":"vmess.example.com","port":"443","id":"aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee","net":"tcp","type":"none","tls":"tls"'
+            b"}"
+        ).decode()
+    )
     vless = "vless://11111111-2222-3333-4444-555555555555@example.com:443?security=reality&sni=www.microsoft.com#V1"
     return [vmess, vless]
 
@@ -41,4 +43,3 @@ def test_metrics_endpoints():
         node_id = lst.json()[0]["node_id"]
         one = client.get(f"/api/metrics/{node_id}")
         assert one.status_code in (200, 404)
-

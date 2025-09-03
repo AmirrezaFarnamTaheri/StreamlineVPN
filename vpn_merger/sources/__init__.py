@@ -5,13 +5,8 @@ Sources Module
 Source management and validation for VPN configurations.
 """
 
-from .discovery import discover_all
 from ..core.source_validator import UnifiedSourceValidator as SourceValidator
-from .state_fsm import WarmupFSM, SourceState
+from .discovery import discover_all
+from .state_fsm import SourceState, WarmupFSM
 
-__all__ = [
-    'discover_all',
-    'SourceValidator', 
-    'WarmupFSM',
-    'SourceState'
-]
+__all__ = ["SourceState", "SourceValidator", "WarmupFSM", "discover_all"]

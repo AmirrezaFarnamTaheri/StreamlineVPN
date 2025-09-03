@@ -42,33 +42,46 @@ from __future__ import annotations
 
 import asyncio
 import base64
+import builtins
 import os
 import re
 import time
 from collections import defaultdict, deque
-from dataclasses import dataclass, asdict
-from typing import Any, Dict, List, Optional
+from dataclasses import asdict, dataclass
+from typing import Any
 
 from fastapi import Body, Depends, FastAPI, Header, HTTPException, Query, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import HTMLResponse, JSONResponse, PlainTextResponse
 
 try:
-    from prometheus_fastapi_instrumentator import Instrumentator
     from prometheus_client import Counter, Histogram
+    from prometheus_fastapi_instrumentator import Instrumentator
 except Exception:  # pragma: no cover
+
     class _Noop:
         def __getattr__(self, *_):
             return self
+
         def __call__(self, *a, **k):
             return self
+
     Instrumentator = _Noop()  # type: ignore
+
     class Counter:  # type: ignore
-        def __init__(self, *a, **k): pass
-        def inc(self, *a, **k): pass
+        def __init__(self, *a, **k):
+            pass
+
+        def inc(self, *a, **k):
+            pass
+
     class Histogram:  # type: ignore
-        def __init__(self, *a, **k): pass
-        def observe(self, *a, **k): pass
+        def __init__(self, *a, **k):
+            pass
+
+        def observe(self, *a, **k):
+            pass
+
 
 try:
     import yaml  # type: ignore
@@ -85,6 +98,7 @@ CACHE_TTL_SECONDS = int(os.getenv("CACHE_TTL_SECONDS", "600"))
 RATE_LIMIT_REQUESTS = int(os.getenv("RATE_LIMIT_REQUESTS", "120"))
 RATE_LIMIT_WINDOW_SEC = int(os.getenv("RATE_LIMIT_WINDOW_SEC", "60"))
 
+
 # -------------------------------------------------------------
 # Models
 # -------------------------------------------------------------
@@ -95,15 +109,16 @@ class Node:
     port: int
     name: str
     raw: str
-    uuid: Optional[str] = None
-    password: Optional[str] = None
-    params: Optional[Dict[str, Any]] = None
-    latency_ms: Optional[float] = None  # last measured
-    healthy: Optional[bool] = None
+    uuid: str | None = None
+    password: str | None = None
+    params: dict[str, Any] | None = None
+    latency_ms: float | None = None  # last measured
+    healthy: bool | None = None
 
     @property
     def key(self) -> str:
         return f"{self.proto}|{self.host}|{self.port}|{self.uuid or self.password or self.name}"
+
 
 # -------------------------------------------------------------
 # Utilities — parsing & transforms (mirrors the React helper)
@@ -122,8 +137,8 @@ def b64_decode_safe(b64: str) -> str:
         return ""
 
 
-def parse_qs(qs: str) -> Dict[str, str]:
-    out: Dict[str, str] = {}
+def parse_qs(qs: str) -> dict[str, str]:
+    out: dict[str, str] = {}
     if qs.startswith("?"):
         qs = qs[1:]
     for kv in qs.split("&"):
@@ -134,21 +149,25 @@ def parse_qs(qs: str) -> Dict[str, str]:
         else:
             k, v = kv, ""
         try:
-            out[re.sub(r"\+", " ", re.sub(r"%([0-9A-Fa-f]{2})", lambda m: chr(int(m.group(1), 16)), k))] = (
-                re.sub(r"\+", " ", re.sub(r"%([0-9A-Fa-f]{2})", lambda m: chr(int(m.group(1), 16)), v))
+            out[
+                re.sub(
+                    r"\+", " ", re.sub(r"%([0-9A-Fa-f]{2})", lambda m: chr(int(m.group(1), 16)), k)
+                )
+            ] = re.sub(
+                r"\+", " ", re.sub(r"%([0-9A-Fa-f]{2})", lambda m: chr(int(m.group(1), 16)), v)
             )
         except Exception:
             out[k] = v
     return out
 
 
-def parse_vless(url: str) -> Optional[Node]:
+def parse_vless(url: str) -> Node | None:
     try:
         from urllib.parse import urlparse
 
         u = urlparse(url)
         qp = parse_qs(u.query)
-        name = (u.fragment or f"VLESS {u.hostname}")
+        name = u.fragment or f"VLESS {u.hostname}"
         return Node(
             proto="vless",
             uuid=(u.username or ""),
@@ -162,7 +181,7 @@ def parse_vless(url: str) -> Optional[Node]:
         return None
 
 
-def parse_vmess(url: str) -> Optional[Node]:
+def parse_vmess(url: str) -> Node | None:
     try:
         raw = url.replace("vmess://", "", 1)
         doc = b64_decode_safe(raw)
@@ -192,9 +211,9 @@ def parse_vmess(url: str) -> Optional[Node]:
         return None
 
 
-def parse_trojan(url: str) -> Optional[Node]:
+def parse_trojan(url: str) -> Node | None:
     try:
-        from urllib.parse import urlparse, unquote
+        from urllib.parse import unquote, urlparse
 
         u = urlparse(url)
         name = unquote(u.fragment) if u.fragment else f"TROJAN {u.hostname}"
@@ -211,7 +230,7 @@ def parse_trojan(url: str) -> Optional[Node]:
         return None
 
 
-def parse_ss(url: str) -> Optional[Node]:
+def parse_ss(url: str) -> Node | None:
     try:
         from urllib.parse import unquote
 
@@ -228,6 +247,7 @@ def parse_ss(url: str) -> Optional[Node]:
         method, password = creds.split(":", 1)
         host = re.split(r"[:/?#]", hostpart)[0]
         import re as _re
+
         port_search = _re.search(r":(\d+)", hostpart)
         port = int(port_search.group(1)) if port_search else 8388
         name = unquote(s.split("#", 1)[1]) if "#" in s else f"SS {host}"
@@ -244,7 +264,7 @@ def parse_ss(url: str) -> Optional[Node]:
         return None
 
 
-def parse_any(line: str) -> Optional[Node]:
+def parse_any(line: str) -> Node | None:
     s = line.strip()
     if not s:
         return None
@@ -280,12 +300,16 @@ def parse_any(line: str) -> Optional[Node]:
 # Transforms — Sing-Box & Clash
 # -------------------------------------------------------------
 
-def to_singbox_outbound(n: Node) -> Dict[str, Any]:
+
+def to_singbox_outbound(n: Node) -> dict[str, Any]:
     sni = (n.params or {}).get("sni") or (n.params or {}).get("server_name")
     import re as _re
+
     tag = _re.sub(r"\s+", "-", n.name or "node").lower()
     if n.proto == "vless":
-        is_reality = ((n.params or {}).get("security") == "reality") or ((n.params or {}).get("reality", {}).get("enabled"))
+        is_reality = ((n.params or {}).get("security") == "reality") or (
+            (n.params or {}).get("reality", {}).get("enabled")
+        )
         out = {
             "type": "vless",
             "tag": tag,
@@ -296,16 +320,26 @@ def to_singbox_outbound(n: Node) -> Dict[str, Any]:
             "tls": {
                 "enabled": True,
                 "server_name": sni or n.host,
-                "reality": {
-                    "enabled": True,
-                    "public_key": (n.params or {}).get("pbk") or (n.params or {}).get("public_key"),
-                    "short_id": (n.params or {}).get("sid") or (n.params or {}).get("short_id"),
-                } if is_reality else None,
-                "utls": {"enabled": True, "fingerprint": (n.params or {}).get("fp")}
-                if (n.params or {}).get("fp")
-                else None,
+                "reality": (
+                    {
+                        "enabled": True,
+                        "public_key": (n.params or {}).get("pbk")
+                        or (n.params or {}).get("public_key"),
+                        "short_id": (n.params or {}).get("sid") or (n.params or {}).get("short_id"),
+                    }
+                    if is_reality
+                    else None
+                ),
+                "utls": (
+                    {"enabled": True, "fingerprint": (n.params or {}).get("fp")}
+                    if (n.params or {}).get("fp")
+                    else None
+                ),
             },
-            "transport": {"type": (n.params or {}).get("type") or (n.params or {}).get("net") or "tcp", "path": (n.params or {}).get("path")},
+            "transport": {
+                "type": (n.params or {}).get("type") or (n.params or {}).get("net") or "tcp",
+                "path": (n.params or {}).get("path"),
+            },
         }
         return {k: v for k, v in out.items() if v is not None}
     if n.proto == "trojan":
@@ -316,7 +350,9 @@ def to_singbox_outbound(n: Node) -> Dict[str, Any]:
             "server_port": n.port or 443,
             "password": n.password,
             "tls": {"enabled": True, "server_name": sni or n.host},
-            "transport": {"type": (n.params or {}).get("type") or (n.params or {}).get("net") or "tcp"},
+            "transport": {
+                "type": (n.params or {}).get("type") or (n.params or {}).get("net") or "tcp"
+            },
         }
     if n.proto == "vmess":
         return {
@@ -326,8 +362,14 @@ def to_singbox_outbound(n: Node) -> Dict[str, Any]:
             "server_port": n.port or 443,
             "uuid": n.uuid,
             "security": (n.params or {}).get("scy") or "auto",
-            "tls": {"enabled": ((n.params or {}).get("tls") == "tls"), "server_name": sni or n.host},
-            "transport": {"type": (n.params or {}).get("net") or "tcp", "path": (n.params or {}).get("path")},
+            "tls": {
+                "enabled": ((n.params or {}).get("tls") == "tls"),
+                "server_name": sni or n.host,
+            },
+            "transport": {
+                "type": (n.params or {}).get("net") or "tcp",
+                "path": (n.params or {}).get("path"),
+            },
         }
     if n.proto == "ss":
         return {
@@ -338,10 +380,10 @@ def to_singbox_outbound(n: Node) -> Dict[str, Any]:
             "method": (n.params or {}).get("method") or "chacha20-ietf-poly1305",
             "password": n.password,
         }
-    return (n.params or {})
+    return n.params or {}
 
 
-def to_clash_proxy(n: Node) -> Dict[str, Any]:
+def to_clash_proxy(n: Node) -> dict[str, Any]:
     base = {"name": n.name, "server": n.host, "port": n.port}
     if n.proto == "vmess":
         p = {
@@ -356,7 +398,7 @@ def to_clash_proxy(n: Node) -> Dict[str, Any]:
         }
         return p
     if n.proto == "vless":
-        is_reality = ((n.params or {}).get("security") == "reality")
+        is_reality = (n.params or {}).get("security") == "reality"
         p = {
             **base,
             "type": "vless",
@@ -395,11 +437,14 @@ def to_clash_proxy(n: Node) -> Dict[str, Any]:
 # Scoring & latency
 # -------------------------------------------------------------
 
+
 def score_node(n: Node) -> float:
     score = 0.0
     if n.port in (443, 8443):
         score += 1.2
-    if n.proto == "vless" and (((n.params or {}).get("security") == "reality") or (n.params or {}).get("reality")):
+    if n.proto == "vless" and (
+        ((n.params or {}).get("security") == "reality") or (n.params or {}).get("reality")
+    ):
         score += 1.4
     if (n.params or {}).get("tls") == "tls":
         score += 0.6
@@ -408,7 +453,7 @@ def score_node(n: Node) -> float:
     return score
 
 
-async def tcp_ping(host: str, port: int, timeout: float = 2.0) -> Optional[float]:
+async def tcp_ping(host: str, port: int, timeout: float = 2.0) -> float | None:
     start = time.perf_counter()
     try:
         await asyncio.wait_for(asyncio.open_connection(host, port), timeout)
@@ -422,10 +467,10 @@ async def tcp_ping(host: str, port: int, timeout: float = 2.0) -> Optional[float
 # -------------------------------------------------------------
 class Store:
     def __init__(self):
-        self.nodes: Dict[str, Node] = {}
+        self.nodes: dict[str, Node] = {}
         self.last_health_ts: float = 0.0
 
-    def ingest(self, links: List[str], replace: bool = False) -> int:
+    def ingest(self, links: builtins.list[str], replace: bool = False) -> int:
         if replace:
             self.nodes.clear()
         count = 0
@@ -436,7 +481,7 @@ class Store:
                 count += 1
         return count
 
-    def list(self) -> List[Node]:
+    def list(self) -> builtins.list[Node]:
         return list(self.nodes.values())
 
 
@@ -447,7 +492,7 @@ class RateLimiter:
     def __init__(self, max_req: int, window_sec: int):
         self.max_req = max_req
         self.window = window_sec
-        self._hits: Dict[str, deque] = defaultdict(deque)
+        self._hits: dict[str, deque] = defaultdict(deque)
 
     def check(self, ip: str) -> bool:
         now = time.time()
@@ -463,7 +508,7 @@ class RateLimiter:
 limiter = RateLimiter(RATE_LIMIT_REQUESTS, RATE_LIMIT_WINDOW_SEC)
 
 
-async def require_api_key(x_api_key: Optional[str] = Header(None), request: Request = None):
+async def require_api_key(x_api_key: str | None = Header(None), request: Request = None):
     if API_KEY:
         provided = x_api_key or request.query_params.get("key")
         if provided != API_KEY:
@@ -485,7 +530,7 @@ app.add_middleware(
     allow_origins=CORS_ALLOW if CORS_ALLOW != ["*"] else ["*"],
     allow_credentials=True,
     allow_methods=["*"],
-    allow_headers=["*"]
+    allow_headers=["*"],
 )
 
 # Prometheus /metrics and HTTP metrics
@@ -504,28 +549,28 @@ NODES_INGESTED = Counter(
 HEALTH_DURATION = Histogram(
     "facade_health_latency_seconds",
     "Latency to run health checks on a batch",
-    buckets=(0.05, 0.1, 0.3, 0.5, 1, 2, 5)
+    buckets=(0.05, 0.1, 0.3, 0.5, 1, 2, 5),
 )
 
 
 # -------------------------------------------------------------
 # Helpers for formatting responses
 # -------------------------------------------------------------
-async def maybe_health(nodes: List[Node], do_health: bool, max_probe: int = 50):
+async def maybe_health(nodes: list[Node], do_health: bool, max_probe: int = 50):
     if not do_health:
         return nodes
     sample = nodes[:max_probe]
     t0 = time.perf_counter()
     tasks = [tcp_ping(n.host, n.port) for n in sample]
     results = await asyncio.gather(*tasks)
-    for n, lat in zip(sample, results):
+    for n, lat in zip(sample, results, strict=False):
         n.latency_ms = lat if lat is not None else None
         n.healthy = lat is not None
     HEALTH_DURATION.observe(time.perf_counter() - t0)
     return nodes
 
 
-def filter_sort(nodes: List[Node], proto: str, limit: int, sort: str) -> List[Node]:
+def filter_sort(nodes: list[Node], proto: str, limit: int, sort: str) -> list[Node]:
     filtered = [n for n in nodes if (proto == "all" or n.proto == proto)]
     if sort == "score":
         filtered.sort(key=lambda n: score_node(n), reverse=True)
@@ -563,14 +608,15 @@ async def health(request: Request):
 @app.post("/api/ingest")
 async def ingest(
     request: Request,
-    payload: Dict[str, Any] = Body(...),
+    payload: dict[str, Any] = Body(...),
     _auth: None = Depends(require_api_key),
 ):
     require_rate_limit(request)
-    links: List[str]
+    links: list[str]
     body_links = payload.get("links")
     if isinstance(body_links, str):
         import re as _re
+
         links = [s for s in _re.split(r"\r?\n", body_links) if s.strip()]
     elif isinstance(body_links, list):
         links = [str(x) for x in body_links if str(x).strip()]
@@ -586,9 +632,9 @@ async def ingest(
 @app.get("/api/nodes.txt")
 async def nodes_txt(
     request: Request,
-    proto: str = Query("all", regex=r"^(all|vless|vmess|trojan|ss)$"),
+    proto: str = Query("all", pattern=r"^(all|vless|vmess|trojan|ss)$"),
     limit: int = Query(100),
-    sort: str = Query("score", regex=r"^(score|latency|name)$"),
+    sort: str = Query("score", pattern=r"^(score|latency|name)$"),
     health: bool = Query(False),
 ):
     require_rate_limit(request)
@@ -603,9 +649,9 @@ async def nodes_txt(
 @app.get("/api/nodes.json")
 async def nodes_json(
     request: Request,
-    proto: str = Query("all", regex=r"^(all|vless|vmess|trojan|ss)$"),
+    proto: str = Query("all", pattern=r"^(all|vless|vmess|trojan|ss)$"),
     limit: int = Query(100),
-    sort: str = Query("score", regex=r"^(score|latency|name)$"),
+    sort: str = Query("score", pattern=r"^(score|latency|name)$"),
     health: bool = Query(False),
 ):
     require_rate_limit(request)
@@ -624,9 +670,9 @@ async def nodes_json(
 @app.get("/api/sub/singbox.json")
 async def sub_singbox(
     request: Request,
-    proto: str = Query("all", regex=r"^(all|vless|vmess|trojan|ss)$"),
+    proto: str = Query("all", pattern=r"^(all|vless|vmess|trojan|ss)$"),
     limit: int = Query(50),
-    sort: str = Query("score", regex=r"^(score|latency|name)$"),
+    sort: str = Query("score", pattern=r"^(score|latency|name)$"),
     health: bool = Query(False),
 ):
     require_rate_limit(request)
@@ -639,7 +685,7 @@ async def sub_singbox(
     return JSONResponse(payload)
 
 
-def to_clash_yaml(nodes: List[Node]) -> str:
+def to_clash_yaml(nodes: list[Node]) -> str:
     proxies = [to_clash_proxy(n) for n in nodes]
     proxy_names = [p.get("name") for p in proxies]
     doc = {
@@ -659,22 +705,24 @@ def to_clash_yaml(nodes: List[Node]) -> str:
     if yaml:
         return yaml.safe_dump(doc, sort_keys=False, allow_unicode=True)
     import json
+
     return (
-        "proxies:\n" +
-        "\n".join(["  - " + json.dumps(p) for p in proxies]) +
-        "\nproxy-groups:\n  - name: Auto\n    type: url-test\n    url: https://www.gstatic.com/generate_204\n    interval: 600\n    tolerance: 50\n    proxies:\n" +
-        "\n".join([f"      - {name}" for name in proxy_names]) +
-        "\n  - name: Manual\n    type: select\n    proxies:\n" +
-        "\n".join([f"      - {name}" for name in proxy_names]) + "\n"
+        "proxies:\n"
+        + "\n".join(["  - " + json.dumps(p) for p in proxies])
+        + "\nproxy-groups:\n  - name: Auto\n    type: url-test\n    url: https://www.gstatic.com/generate_204\n    interval: 600\n    tolerance: 50\n    proxies:\n"
+        + "\n".join([f"      - {name}" for name in proxy_names])
+        + "\n  - name: Manual\n    type: select\n    proxies:\n"
+        + "\n".join([f"      - {name}" for name in proxy_names])
+        + "\n"
     )
 
 
 @app.get("/api/sub/clash.yaml")
 async def sub_clash(
     request: Request,
-    proto: str = Query("all", regex=r"^(all|vless|vmess|trojan|ss)$"),
+    proto: str = Query("all", pattern=r"^(all|vless|vmess|trojan|ss)$"),
     limit: int = Query(50),
-    sort: str = Query("score", regex=r"^(score|latency|name)$"),
+    sort: str = Query("score", pattern=r"^(score|latency|name)$"),
     health: bool = Query(False),
 ):
     require_rate_limit(request)
@@ -692,7 +740,7 @@ async def sub_clash(
 seed_path = os.getenv("SEED_FILE", "seed.txt")
 if os.path.isfile(seed_path):
     try:
-        with open(seed_path, "r", encoding="utf-8") as f:
+        with open(seed_path, encoding="utf-8") as f:
             lines = [ln.strip() for ln in f if ln.strip()]
         if lines:
             STORE.ingest(lines, replace=True)
@@ -705,4 +753,3 @@ if __name__ == "__main__":
     import uvicorn
 
     uvicorn.run("app:app", host="0.0.0.0", port=PORT, reload=False)
-

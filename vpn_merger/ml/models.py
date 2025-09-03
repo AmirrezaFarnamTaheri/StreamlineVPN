@@ -6,9 +6,9 @@ Data models and constants for the ML quality prediction system.
 """
 
 import logging
-from datetime import datetime
 from dataclasses import dataclass
-from typing import List, Dict, Any
+from datetime import datetime
+from typing import Any
 
 logger = logging.getLogger(__name__)
 
@@ -22,24 +22,25 @@ DEFAULT_RIDGE_ALPHA = 1.0
 
 # Protocol patterns
 PROTOCOL_PATTERNS = {
-    'vmess': 'vmess://',
-    'vless': 'vless://',
-    'trojan': 'trojan://',
-    'shadowsocks': 'ss://',
-    'hysteria': 'hysteria://',
-    'tuic': 'tuic://'
+    "vmess": "vmess://",
+    "vless": "vless://",
+    "trojan": "trojan://",
+    "shadowsocks": "ss://",
+    "hysteria": "hysteria://",
+    "tuic": "tuic://",
 }
 
 # Common ports for quality assessment
-COMMON_PORTS = ['443', '80', '8080', '8443']
+COMMON_PORTS = ["443", "80", "8080", "8443"]
 
 # Special characters for complexity assessment
-SPECIAL_CHARS = '!@#$%^&*()_+-=[]{}|;:,.<>?'
+SPECIAL_CHARS = "!@#$%^&*()_+-=[]{}|;:,.<>?"
 
 
 @dataclass
 class ModelMetrics:
     """Model performance metrics."""
+
     r2_score: float
     mse: float
     mae: float
@@ -52,16 +53,18 @@ class ModelMetrics:
 @dataclass
 class DriftDetection:
     """Drift detection results."""
+
     drift_detected: bool
     confidence: float
     drift_type: str
-    affected_features: List[str]
+    affected_features: list[str]
     timestamp: datetime
 
 
 @dataclass
 class FeatureVector:
     """Feature vector for ML prediction."""
+
     config_length: int
     protocol_score: float
     port_score: float
@@ -71,28 +74,29 @@ class FeatureVector:
     security_score: float
     source_reliability: float
     timestamp: datetime
-    
-    def to_dict(self) -> Dict[str, Any]:
+
+    def to_dict(self) -> dict[str, Any]:
         """Convert to dictionary for ML processing."""
         return {
-            'config_length': self.config_length,
-            'protocol_score': self.protocol_score,
-            'port_score': self.port_score,
-            'complexity_score': self.complexity_score,
-            'encryption_score': self.encryption_score,
-            'network_score': self.network_score,
-            'security_score': self.security_score,
-            'source_reliability': self.source_reliability,
-            'timestamp': self.timestamp.isoformat()
+            "config_length": self.config_length,
+            "protocol_score": self.protocol_score,
+            "port_score": self.port_score,
+            "complexity_score": self.complexity_score,
+            "encryption_score": self.encryption_score,
+            "network_score": self.network_score,
+            "security_score": self.security_score,
+            "source_reliability": self.source_reliability,
+            "timestamp": self.timestamp.isoformat(),
         }
 
 
 @dataclass
 class PredictionResult:
     """Prediction result with confidence."""
+
     quality_score: float
     confidence: float
-    features_used: List[str]
+    features_used: list[str]
     model_version: str
     timestamp: datetime
-    metadata: Dict[str, Any]
+    metadata: dict[str, Any]

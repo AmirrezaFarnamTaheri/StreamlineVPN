@@ -5,18 +5,18 @@ Core VPN Merger Components
 Core functionality for VPN configuration processing, merging, and management.
 """
 
-from .merger import VPNSubscriptionMerger
-from .source_manager import SourceManager
 from .config_processor import ConfigurationProcessor
-from .source_validator import UnifiedSourceValidator
-from .source_processor import SourceProcessor
+from .merger import VPNSubscriptionMerger
 from .output import OutputManager
+from .source_manager import SourceManager
+from .source_processor import SourceProcessor
+from .source_validator import UnifiedSourceValidator
 
 __all__ = [
-    'VPNSubscriptionMerger',
-    'SourceManager',
-    'ConfigurationProcessor', 
-    'UnifiedSourceValidator',
-    'SourceProcessor',
-    'OutputManager'
+    "ConfigurationProcessor",
+    "OutputManager",
+    "SourceManager",
+    "SourceProcessor",
+    "UnifiedSourceValidator",
+    "VPNSubscriptionMerger",
 ]

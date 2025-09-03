@@ -1,5 +1,4 @@
 #!/usr/bin/env python3
-# -*- coding: utf-8 -*-
 
 """
 VPN Subscription Merger - Main Entry Point
@@ -26,10 +25,9 @@ Author: VPN Merger Team
 Expected Output: 1M+ tested and sorted configs
 """
 
-import sys
 import logging
+import sys
 from pathlib import Path
-from typing import Optional
 
 # Add the current directory to Python path for imports
 sys.path.insert(0, str(Path(__file__).parent))
@@ -37,11 +35,8 @@ sys.path.insert(0, str(Path(__file__).parent))
 # Configure logging
 logging.basicConfig(
     level=logging.INFO,
-    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
-    handlers=[
-        logging.StreamHandler(),
-        logging.FileHandler('vpn_merger.log')
-    ]
+    format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
+    handlers=[logging.StreamHandler(), logging.FileHandler("vpn_merger.log")],
 )
 logger = logging.getLogger(__name__)
 
@@ -49,16 +44,17 @@ logger = logging.getLogger(__name__)
 def main() -> int:
     """
     Main entry point that delegates to the vpn_merger module.
-    
+
     Returns:
         int: Exit code (0 for success, 1 for failure)
     """
     logger.info("🚀 VPN Subscription Merger v2.0.0")
     logger.info("=" * 50)
-    
+
     try:
         # Import and run the main module
         from vpn_merger.__main__ import main as module_main
+
         return module_main()
     except ImportError as e:
         logger.error(f"Import error: {e}")
