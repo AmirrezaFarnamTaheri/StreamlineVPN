@@ -29,8 +29,13 @@ import logging
 import sys
 from pathlib import Path
 
-# Add the current directory to Python path for imports
-sys.path.insert(0, str(Path(__file__).parent))
+# Ensure local imports work whether using src/ layout or flat layout
+_root = Path(__file__).parent
+_src = _root / "src"
+if _src.exists():
+    sys.path.insert(0, str(_src))
+else:
+    sys.path.insert(0, str(_root))
 
 # Configure logging
 logging.basicConfig(

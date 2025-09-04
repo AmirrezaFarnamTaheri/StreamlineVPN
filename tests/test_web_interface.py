@@ -183,8 +183,13 @@ class TestWebInterface:
 
     async def test_static_server_static_files(self, static_server):
         """Test static file serving"""
-        # Check if static files exist
-        static_dir = Path(__file__).parent.parent / "vpn_merger" / "web" / "static"
+        # Check if static files exist (support src/ layout and flat layout)
+        base = Path(__file__).parent.parent
+        candidates = [
+            base / "src" / "vpn_merger" / "web" / "static",
+            base / "vpn_merger" / "web" / "static",
+        ]
+        static_dir = next((p for p in candidates if p.exists()), candidates[0])
         assert static_dir.exists()
 
         generator_html = static_dir / "generator.html"

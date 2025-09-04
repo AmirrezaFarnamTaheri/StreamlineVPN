@@ -12,11 +12,15 @@ repo_url: https://github.com/AmirrezaFarnamTaheri/CleanConfigs-SubMerger-
 nav:
   - Home: index.md
   - Quick Start: quick-start.md
+  - Configuration: configuration/index.md
   - API:
     - REST (OpenAPI): api/index.md
     - OpenAPI (Redoc): api/openapi.md
     - GraphQL: api/graphql.md
   - Deployment: deployment.md
+  - Web Interface: web-interface.md
+  - FAQ: faq.md
+  - Glossary: glossary.md
   - Architecture: architecture.md
   - Troubleshooting: troubleshooting.md
   - Python SDK: sdk-python.md

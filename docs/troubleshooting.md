@@ -258,7 +258,7 @@ tail -f vpn_merger.log
 ### Support Resources
 - **Project Issues**: Create an issue in the project repository
 - **Documentation**: Review this troubleshooting guide and other docs
-- **Configuration**: Check `docs/CONFIGURATION.md` for setup details
+- **Configuration**: Check `docs/configuration/` for setup details
 - **Testing**: Use `scripts/run_tests.py` for comprehensive testing
 
 ## Prevention
@@ -278,3 +278,4 @@ tail -f vpn_merger.log
 5. **Update dependencies**: Keep packages up to date
 
 This troubleshooting guide covers the most common issues and solutions. For additional help, refer to the configuration guide or create an issue in the project repository.
+

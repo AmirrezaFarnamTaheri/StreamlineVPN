@@ -1,27 +1,50 @@
 openapi: 3.0.3
 info:
-  title: VPN Merger API
+  title: VPN Subscription Merger API
+  description: |
+    Comprehensive API for VPN subscription merging, configuration generation, and management.
+    
+    ## Features
+    - Multi-source VPN subscription aggregation
+    - Configuration generation for multiple protocols
+    - Real-time monitoring and analytics
+    - GraphQL API for advanced queries
+    - Web-based configuration generator
+    
+    ## Authentication
+    Most endpoints require no authentication. Some administrative endpoints may require API tokens.
+    
+    ## Rate Limiting
+    API calls are rate-limited to prevent abuse. Default limits:
+    - 100 requests per minute for most endpoints
+    - 10 requests per minute for resource-intensive operations
+    
+    ## Error Handling
+    All errors follow a consistent format with appropriate HTTP status codes.
   version: 1.0.0
-  description: Minimal REST surface for subscriptions, status, and health.
+  contact:
+    name: VPN Merger Support
+    url: https://github.com/your-org/CleanConfigs-SubMerger
+  license:
+    name: GPL-3.0-or-later
+    url: https://spdx.org/licenses/GPL-3.0-or-later.html
+
 servers:
   - url: http://localhost:8000
+    description: Development server
+  - url: https://api.vpnmerger.com
+    description: Production server
+
 paths:
-  /api/v1/sub/raw:
+  /api/v1/health:
     get:
-      summary: Get raw subscription text
+      summary: Health Check
+      description: Check the health status of the API
+      tags:
+        - Health
       responses:
         '200':
-          description: OK
-          content:
-            text/plain:
-              schema:
-                type: string
-  /api/v1/status:
-    get:
-      summary: Service status
-      responses:
-        '200':
-          description: OK
+          description: Service is healthy
           content:
             application/json:
               schema:
@@ -29,46 +52,743 @@ paths:
                 properties:
                   status:
                     type: string
-  /api/v1/health:
-    get:
-      summary: Health check
+                    example: "healthy"
+                  timestamp:
+                    type: string
+                    format: date-time
+                  version:
+                    type: string
+                    example: "1.0.0"
+        '503':
+          description: Service is unhealthy
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /api/v1/generate/vless:
+    post:
+      summary: Generate VLESS REALITY Configuration
+      description: Generate a VLESS REALITY client configuration with QR code
+      tags:
+        - Configuration Generation
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/VLESSRequest'
       responses:
         '200':
-          description: OK
-  /api/v2/nodes:
-    get:
-      summary: List nodes
-      parameters:
-        - in: query
-          name: limit
-          schema:
-            type: integer
-            default: 100
-        - in: query
-          name: protocol
-          schema:
-            type: string
-            enum: [vmess, vless, trojan, ss]
+          description: Configuration generated successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/VLESSResponse'
+        '400':
+          description: Invalid request parameters
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /api/v1/generate/singbox:
+    post:
+      summary: Generate sing-box JSON Configuration
+      description: Generate a sing-box compatible JSON configuration
+      tags:
+        - Configuration Generation
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SingboxRequest'
       responses:
         '200':
-          description: OK
+          description: Configuration generated successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SingboxResponse'
+        '400':
+          description: Invalid request parameters
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /api/v1/generate/wireguard:
+    post:
+      summary: Generate WireGuard Configuration
+      description: Generate a WireGuard client configuration with QR code
+      tags:
+        - Configuration Generation
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/WireGuardRequest'
+      responses:
+        '200':
+          description: Configuration generated successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/WireGuardResponse'
+        '400':
+          description: Invalid request parameters
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /api/v1/generate/shadowsocks:
+    post:
+      summary: Generate Shadowsocks Configuration
+      description: Generate a Shadowsocks client configuration with QR code
+      tags:
+        - Configuration Generation
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ShadowsocksRequest'
+      responses:
+        '200':
+          description: Configuration generated successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ShadowsocksResponse'
+        '400':
+          description: Invalid request parameters
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /api/v1/utils/uuid:
+    get:
+      summary: Generate UUID
+      description: Generate a random UUID
+      tags:
+        - Utilities
+      responses:
+        '200':
+          description: UUID generated successfully
           content:
             application/json:
               schema:
                 type: object
                 properties:
-                  nodes:
-                    type: array
-                    items:
-                      type: object
-                  count:
+                  uuid:
+                    type: string
+                    format: uuid
+                    example: "550e8400-e29b-41d4-a716-446655440000"
+
+  /api/v1/utils/shortid:
+    get:
+      summary: Generate Short ID
+      description: Generate a short random identifier
+      tags:
+        - Utilities
+      parameters:
+        - name: length
+          in: query
+          description: Length of the short ID
+          required: false
+          schema:
+            type: integer
+            minimum: 4
+            maximum: 32
+            default: 8
+      responses:
+        '200':
+          description: Short ID generated successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  shortid:
+                    type: string
+                    example: "a1b2c3d4"
+
+  /api/v1/utils/password:
+    get:
+      summary: Generate Secure Password
+      description: Generate a cryptographically secure password
+      tags:
+        - Utilities
+      parameters:
+        - name: length
+          in: query
+          description: Length of the password
+          required: false
+          schema:
+            type: integer
+            minimum: 8
+            maximum: 128
+            default: 16
+        - name: include_symbols
+          in: query
+          description: Include special symbols
+          required: false
+          schema:
+            type: boolean
+            default: true
+      responses:
+        '200':
+          description: Password generated successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  password:
+                    type: string
+                    example: "Kx9#mP2$vL8@nQ4!"
+
+  /api/v1/utils/wg-key:
+    get:
+      summary: Generate WireGuard Key
+      description: Generate a WireGuard private key
+      tags:
+        - Utilities
+      responses:
+        '200':
+          description: WireGuard key generated successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  private_key:
+                    type: string
+                    example: "cF2B8vK9mN3pQ7rT1wX4yZ6aB9cD2eF5gH8iJ1kL4mN7oP0qR3sT6uV9wX2yZ5"
+                  public_key:
+                    type: string
+                    example: "dG3C9wL0nO4qR8sU2xY5zA0bC3dE6fG9hI2jK5lM8nO1pQ4rS7tU0vW3xY6zA9"
+                  key_type:
+                    type: string
+                    example: "WireGuard"
+                  key_length:
                     type: integer
+                    example: 44
+
+  /api/nodes.json:
+    get:
+      summary: Get VPN Nodes
+      description: Retrieve available VPN nodes with filtering and sorting
+      tags:
+        - Free Nodes Aggregator
+      parameters:
+        - name: limit
+          in: query
+          description: Maximum number of nodes to return
+          required: false
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 1000
+            default: 100
+        - name: sort
+          in: query
+          description: Sort order for nodes
+          required: false
+          schema:
+            type: string
+            enum: [score, latency, country, protocol]
+            default: score
+        - name: protocol
+          in: query
+          description: Filter by protocol
+          required: false
+          schema:
+            type: string
+            enum: [vless, vmess, trojan, shadowsocks]
+        - name: country
+          in: query
+          description: Filter by country code
+          required: false
+          schema:
+            type: string
+            pattern: '^[A-Z]{2}$'
+      responses:
+        '200':
+          description: Nodes retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/NodesResponse'
+        '400':
+          description: Invalid request parameters
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /api/subscription.txt:
+    get:
+      summary: Get Raw Subscription
+      description: Get raw subscription text in standard format
+      tags:
+        - Free Nodes Aggregator
+      responses:
+        '200':
+          description: Raw subscription retrieved successfully
+          content:
+            text/plain:
+              schema:
+                type: string
+                example: "vless://uuid@host:port?encryption=none&security=tls&type=ws&path=/path#name"
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /api/export/singbox.json:
+    get:
+      summary: Export sing-box Configuration
+      description: Export nodes in sing-box JSON format
+      tags:
+        - Free Nodes Aggregator
+      responses:
+        '200':
+          description: sing-box configuration exported successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SingboxExportResponse'
+
+  /api/sources:
+    post:
+      summary: Add Source URLs
+      description: Add new source URLs to the aggregator
+      tags:
+        - Free Nodes Aggregator
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SourcesRequest'
+      responses:
+        '200':
+          description: Sources added successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SourcesResponse'
+        '400':
+          description: Invalid source URLs
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /api/refresh:
+    post:
+      summary: Trigger Manual Refresh
+      description: Manually trigger a refresh of all sources
+      tags:
+        - Free Nodes Aggregator
+      parameters:
+        - name: healthcheck
+          in: query
+          description: Perform health checks on nodes
+          required: false
+          schema:
+            type: boolean
+            default: false
+      responses:
+        '200':
+          description: Refresh triggered successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "Refresh triggered successfully"
+                  job_id:
+                    type: string
+                    example: "refresh_20231201_143022"
+
+  /api/ping:
+    post:
+      summary: Health Check Specific Nodes
+      description: Perform health checks on specific nodes
+      tags:
+        - Free Nodes Aggregator
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PingRequest'
+      responses:
+        '200':
+          description: Health checks completed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PingResponse'
+
 components:
+  schemas:
+    Error:
+      type: object
+      required:
+        - error
+        - message
+      properties:
+        error:
+          type: string
+          example: "validation_error"
+        message:
+          type: string
+          example: "Invalid request parameters"
+        details:
+          type: object
+          additionalProperties: true
+        timestamp:
+          type: string
+          format: date-time
+
+    VLESSRequest:
+      type: object
+      required:
+        - host
+        - port
+        - uuid
+        - server_name
+        - dest
+      properties:
+        host:
+          type: string
+          example: "example.com"
+        port:
+          type: integer
+          minimum: 1
+          maximum: 65535
+          example: 443
+        uuid:
+          type: string
+          format: uuid
+          example: "550e8400-e29b-41d4-a716-446655440000"
+        server_name:
+          type: string
+          example: "www.microsoft.com"
+        dest:
+          type: string
+          example: "www.microsoft.com:443"
+        path:
+          type: string
+          default: "/"
+          example: "/vless"
+        remark:
+          type: string
+          example: "My VLESS Server"
+
+    VLESSResponse:
+      type: object
+      properties:
+        config:
+          type: string
+          example: "vless://uuid@host:port?encryption=none&security=reality&sni=server_name&type=tcp&flow=xtls-rprx-vision&pbk=public_key&sid=short_id&spx=spider_x&fp=chrome&dest=dest&path=path#remark"
+        qr_code:
+          type: string
+          format: base64
+          description: Base64 encoded QR code image
+        config_type:
+          type: string
+          example: "VLESS REALITY"
+
+    SingboxRequest:
+      type: object
+      required:
+        - host
+        - port
+        - uuid
+        - server_name
+        - dest
+      properties:
+        host:
+          type: string
+          example: "example.com"
+        port:
+          type: integer
+          minimum: 1
+          maximum: 65535
+          example: 443
+        uuid:
+          type: string
+          format: uuid
+          example: "550e8400-e29b-41d4-a716-446655440000"
+        server_name:
+          type: string
+          example: "www.microsoft.com"
+        dest:
+          type: string
+          example: "www.microsoft.com:443"
+        path:
+          type: string
+          default: "/"
+          example: "/vless"
+        remark:
+          type: string
+          example: "My VLESS Server"
+
+    SingboxResponse:
+      type: object
+      properties:
+        config:
+          type: object
+          description: Complete sing-box configuration
+        config_type:
+          type: string
+          example: "sing-box JSON"
+
+    WireGuardRequest:
+      type: object
+      required:
+        - server_public_key
+        - server_endpoint
+        - client_private_key
+      properties:
+        server_public_key:
+          type: string
+          example: "dG3C9wL0nO4qR8sU2xY5zA0bC3dE6fG9hI2jK5lM8nO1pQ4rS7tU0vW3xY6zA9"
+        server_endpoint:
+          type: string
+          example: "example.com:51820"
+        client_private_key:
+          type: string
+          example: "cF2B8vK9mN3pQ7rT1wX4yZ6aB9cD2eF5gH8iJ1kL4mN7oP0qR3sT6uV9wX2yZ5"
+        allowed_ips:
+          type: string
+          default: "0.0.0.0/0"
+          example: "0.0.0.0/0, ::/0"
+        dns:
+          type: string
+          default: "1.1.1.1"
+          example: "1.1.1.1, 1.0.0.1"
+        persistent_keepalive:
+          type: integer
+          default: 25
+          example: 25
+        interface_name:
+          type: string
+          default: "wg0"
+          example: "wg0"
+
+    WireGuardResponse:
+      type: object
+      properties:
+        config:
+          type: string
+          description: WireGuard client configuration
+        qr_code:
+          type: string
+          format: base64
+          description: Base64 encoded QR code image
+        config_type:
+          type: string
+          example: "WireGuard"
+
+    ShadowsocksRequest:
+      type: object
+      required:
+        - host
+        - port
+        - password
+        - method
+      properties:
+        host:
+          type: string
+          example: "example.com"
+        port:
+          type: integer
+          minimum: 1
+          maximum: 65535
+          example: 8388
+        password:
+          type: string
+          example: "mypassword123"
+        method:
+          type: string
+          enum: [aes-256-gcm, aes-128-gcm, chacha20-ietf-poly1305, xchacha20-ietf-poly1305]
+          example: "aes-256-gcm"
+        remark:
+          type: string
+          example: "My Shadowsocks Server"
+        plugin:
+          type: string
+          example: "v2ray-plugin"
+        plugin_opts:
+          type: string
+          example: "server;tls;host=example.com"
+
+    ShadowsocksResponse:
+      type: object
+      properties:
+        config:
+          type: string
+          example: "ss://base64(method:password)@host:port#remark"
+        qr_code:
+          type: string
+          format: base64
+          description: Base64 encoded QR code image
+        config_type:
+          type: string
+          example: "Shadowsocks"
+
+    Node:
+      type: object
+      properties:
+        id:
+          type: string
+          example: "node_123"
+        host:
+          type: string
+          example: "example.com"
+        port:
+          type: integer
+          example: 443
+        protocol:
+          type: string
+          enum: [vless, vmess, trojan, shadowsocks]
+          example: "vless"
+        country:
+          type: string
+          example: "US"
+        score:
+          type: number
+          format: float
+          example: 0.85
+        latency:
+          type: number
+          format: float
+          example: 45.2
+        last_checked:
+          type: string
+          format: date-time
+        config:
+          type: string
+          description: Full configuration string
+
+    NodesResponse:
+      type: object
+      properties:
+        nodes:
+          type: array
+          items:
+            $ref: '#/components/schemas/Node'
+        total:
+          type: integer
+          example: 150
+        filtered:
+          type: integer
+          example: 100
+
+    SourcesRequest:
+      type: object
+      required:
+        - urls
+      properties:
+        urls:
+          type: array
+          items:
+            type: string
+            format: uri
+          example: ["https://example.com/free.txt", "https://another.com/nodes.txt"]
+
+    SourcesResponse:
+      type: object
+      properties:
+        added:
+          type: integer
+          example: 2
+        skipped:
+          type: integer
+          example: 0
+        errors:
+          type: array
+          items:
+            type: string
+
+    PingRequest:
+      type: object
+      required:
+        - node_ids
+      properties:
+        node_ids:
+          type: array
+          items:
+            type: string
+          example: ["node_123", "node_456"]
+
+    PingResponse:
+      type: object
+      properties:
+        results:
+          type: array
+          items:
+            type: object
+            properties:
+              node_id:
+                type: string
+              latency:
+                type: number
+                format: float
+              status:
+                type: string
+                enum: [success, failed, timeout]
+
+    SingboxExportResponse:
+      type: object
+      properties:
+        outbounds:
+          type: array
+          items:
+            type: object
+            properties:
+              type:
+                type: string
+              tag:
+                type: string
+              server:
+                type: string
+              server_port:
+                type: integer
+              # Additional properties based on protocol
+
   securitySchemes:
-    apiToken:
+    ApiKeyAuth:
       type: apiKey
       in: header
-      name: X-API-Token
-security:
-  - apiToken: []
+      name: X-API-Key
+      description: API key for authentication (if required)
 
+tags:
+  - name: Health
+    description: Health check and status endpoints
+  - name: Configuration Generation
+    description: VPN configuration generation endpoints
+  - name: Utilities
+    description: Utility functions for generating IDs, passwords, and keys
+  - name: Free Nodes Aggregator
+    description: Free VPN nodes aggregation and management

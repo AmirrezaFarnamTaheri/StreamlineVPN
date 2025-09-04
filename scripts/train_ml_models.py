@@ -11,6 +11,19 @@ from pathlib import Path
 from typing import Any
 
 import joblib
+import numpy as np
+import pandas as pd
+
+# ML Libraries
+try:
+    from sklearn.ensemble import GradientBoostingRegressor, RandomForestRegressor
+    from sklearn.metrics import mean_squared_error, r2_score
+    from sklearn.model_selection import cross_val_score, train_test_split
+    from sklearn.preprocessing import StandardScaler
+    SKLEARN_AVAILABLE = True
+except ImportError:
+    SKLEARN_AVAILABLE = False
+    logging.warning("scikit-learn not available, ML features disabled")
 
 # Import with fallbacks for missing modules
 try:

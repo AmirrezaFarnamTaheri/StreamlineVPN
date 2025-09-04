@@ -7,7 +7,7 @@ name = "vpn-subscription-merger"
 version = "2.0.0"
 description = "High-performance VPN subscription merger with advanced filtering, validation, and output formatting"
 readme = "README.md"
-license = {text = "MIT"}
+license = "GPL-3.0-or-later"
 authors = [
     {name = "VPN Merger Team", email = "team@vpnmerger.dev"}
 ]
@@ -20,7 +20,7 @@ classifiers = [
     "Intended Audience :: Developers",
     "Intended Audience :: System Administrators",
     "Intended Audience :: Information Technology",
-    "License :: OSI Approved :: MIT License",
+    # License classifier intentionally omitted; SPDX expression used in `project.license`.
     "Operating System :: OS Independent",
     "Programming Language :: Python :: 3",
     "Programming Language :: Python :: 3.10",
@@ -101,6 +101,20 @@ Download = "https://pypi.org/project/vpn-subscription-merger/"
 
 [project.scripts]
 vpn-merger = "vpn_merger.__main__:main"
+
+[tool.setuptools]
+include-package-data = true
+license-files = ["LICENSE"]
+
+[tool.setuptools.packages.find]
+where = ["src"]
+include = ["vpn_merger*"]
+
+[tool.setuptools.package-data]
+"vpn_merger.web" = [
+  "static/*",
+  "static/**/*",
+]
 
 [tool.black]
 line-length = 100
@@ -208,4 +222,3 @@ exclude_lines = [
     "class .*\\bProtocol\\):",
     "@(abc\\.)?abstractmethod",
 ]
-
