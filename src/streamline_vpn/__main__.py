@@ -60,7 +60,7 @@ async def main(config: str, output: str, formats: Optional[List[str]] = None) ->
         logger.info("Starting StreamlineVPN processing...")
         results = await merger.process_all(output_dir=output, formats=formats)
         
-        logger.info(f"Processing completed successfully. Results saved to {output_dir}")
+        logger.info(f"Processing completed successfully. Results saved to {output}")
         return 0
         
     except KeyboardInterrupt:
