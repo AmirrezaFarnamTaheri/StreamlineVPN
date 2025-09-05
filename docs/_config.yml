@@ -1,0 +1,29 @@
+title: StreamlineVPN
+description: Enterprise VPN configuration aggregator
+theme: jekyll-theme-cayman
+markdown: kramdown
+highlighter: rouge
+
+# Process Markdown files even without front matter and apply a default layout
+plugins:
+  - jekyll-optional-front-matter
+  - jekyll-default-layout
+  - jekyll-relative-links
+
+relative_links:
+  enabled: true
+  collections: true
+
+defaults:
+  - scope:
+      path: ""
+      type: "pages"
+    values:
+      layout: default
+
+exclude:
+  - node_modules
+  - vendor
+  - README.md
+  - Gemfile
+  - Gemfile.lock

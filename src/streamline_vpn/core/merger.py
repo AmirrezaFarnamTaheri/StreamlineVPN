@@ -112,10 +112,13 @@ class StreamlineVPNMerger(BaseMerger):
             # Apply enhancements
             enhanced_configs = await self.processor.apply_enhancements(unique_configs)
             
+            # Store results for downstream consumers (saving/statistics)
+            self.results = enhanced_configs
+
             # Update statistics
             self._update_statistics(
                 total_sources=len(self.sources),
-                total_configs=len(enhanced_configs),
+                total_configs=len(self.results),
                 processing_duration=(datetime.now() - start_time).total_seconds()
             )
 
@@ -126,23 +129,24 @@ class StreamlineVPNMerger(BaseMerger):
             duration = (datetime.now() - start_time).total_seconds()
             log_performance("process_all", duration, 
                           sources_processed=len(self.sources),
-                          configs_found=len(enhanced_configs))
+                          configs_found=len(self.results))
 
             return {
                 "success": True,
                 "sources_processed": len(self.sources),
-                "configurations_found": len(enhanced_configs),
+                "configurations_found": len(self.results),
                 "processing_duration": duration,
                 "statistics": self.statistics.to_dict()
             }
 
         except Exception as e:
-            logger.error(f"Error in process_all: {e}")
+            logger.error(f"Error in process_all: {e}", exc_info=True)
             return {
                 "success": False,
                 "error": str(e),
-                "sources_processed": len(self.sources) if self.sources else 0,
-                "configurations_found": 0
+                "exception": e.__class__.__name__,
+                "sources_processed": int(len(self.sources) if self.sources else 0),
+                "configurations_found": 0,
             }
 
     async def _load_sources(self) -> None:

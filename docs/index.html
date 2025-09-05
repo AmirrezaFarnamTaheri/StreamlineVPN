@@ -1,0 +1,61 @@
+---
+layout: default
+title: StreamlineVPN • Project Home
+---
+
+<section class="hero">
+  <div class="card">
+    <h1>Modern aggregation of VPN configurations</h1>
+    <p class="muted">Fetch, deduplicate, enhance, and export VPN configs in multiple formats with a single command or via a FastAPI backend.</p>
+    <div class="cta">
+      <a class="btn" href="#cli">Run via CLI</a>
+      <a class="btn secondary" href="#api">Start API</a>
+      <a class="btn secondary" href="api/openapi.yaml">OpenAPI</a>
+    </div>
+    <div id="status" style="margin-top:14px" class="muted">Tip: Start the API to see live health below.</div>
+  </div>
+  <div class="card cli" id="cli">
+    <h3 style="margin:0 0 6px">Quick Start</h3>
+    <div class="muted" style="margin-bottom:8px">Create a virtualenv and install dependencies</div>
+    <pre><code>python -m venv .venv
+source .venv/bin/activate   # Windows: .\.venv\Scripts\Activate.ps1
+pip install -U pip
+pip install -r requirements.txt</code></pre>
+    <div class="muted" style="margin:12px 0 8px">Run the merger and generate outputs</div>
+    <pre><code>python -m streamline_vpn --config config/sources.yaml --output output --format json --format clash</code></pre>
+    <div class="muted" style="margin:12px 0 8px">Start the FastAPI server</div>
+    <pre><code>uvicorn streamline_vpn.web.api:create_app --factory --host 0.0.0.0 --port 8000 --reload</code></pre>
+  </div>
+</section>
+
+<section class="grid" style="margin-top:22px">
+  <div class="card links">
+    <h3>Documentation</h3>
+    <ul>
+      <li><a href="quick-start.html">Quick Start</a></li>
+      <li><a href="architecture.html">Architecture</a></li>
+      <li><a href="configuration/">Configuration</a></li>
+      <li><a href="performance/tuning-guide.html">Performance Tuning</a></li>
+      <li><a href="troubleshooting.html">Troubleshooting</a></li>
+    </ul>
+  </div>
+  <div class="card links" id="api">
+    <h3>API</h3>
+    <ul>
+      <li><a href="api/">REST API Guide</a></li>
+      <li><a href="api/error-codes.html">Error Codes</a></li>
+      <li><a href="api/openapi.yaml">OpenAPI (YAML)</a></li>
+      <li><a href="#" id="health-link">Try health (localhost)</a></li>
+    </ul>
+  </div>
+  <div class="card links">
+    <h3>Operations</h3>
+    <ul>
+      <li><a href="DEPLOYMENT.html">Deployment</a></li>
+      <li><a href="web-interface.html">Web Interface</a></li>
+      <li><a href="faq.html">FAQ</a></li>
+      <li><a href="glossary.html">Glossary</a></li>
+    </ul>
+  </div>
+</section>
+

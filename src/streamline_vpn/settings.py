@@ -101,3 +101,13 @@ class Settings(BaseSettings):
 @lru_cache()
 def get_settings() -> Settings:
     return Settings()
+
+
+def reset_settings_cache() -> None:
+    """Reset cached Settings to pick up environment changes."""
+    try:
+        # Available on functools.lru_cache-wrapped callables
+        get_settings.cache_clear()  # type: ignore[attr-defined]
+    except Exception:
+        # Be tolerant in environments where cache_clear isn't available
+        pass

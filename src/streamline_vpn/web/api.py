@@ -216,12 +216,7 @@ def create_app() -> FastAPI:
 
     @app.post("/config/reload")
     async def reload_runtime_configuration(overrides: Optional[Dict[str, Any]] = Body(None)):
-        """Reload runtime configuration by re-reading environment variables.
-
-        Optionally accepts a JSON body of env var overrides (STREAMLINE_* keys),
-        which are applied before reloading. The merger instance is re-initialized
-        to ensure new settings take effect across components.
-        """
+        """Reload runtime configuration by re-reading environment variables."""
         global merger
         try:
             # Apply provided overrides
@@ -230,6 +225,12 @@ def create_app() -> FastAPI:
                     if isinstance(k, str) and k.startswith("STREAMLINE_"):
                         os.environ[k] = str(v)
 
+            # Clear cached settings to pick up new env
+            try:
+                get_settings.cache_clear()  # type: ignore[attr-defined]
+            except Exception:
+                pass
+
             # Recreate merger to pick up new settings
             if merger is not None:
                 try:
@@ -237,6 +238,9 @@ def create_app() -> FastAPI:
                 except Exception:
                     pass
                 merger = None
+
+            # Re-initialize merger with fresh settings
+            merger = StreamlineVPNMerger()
 
             # Return the fresh settings snapshot
             settings = get_settings()

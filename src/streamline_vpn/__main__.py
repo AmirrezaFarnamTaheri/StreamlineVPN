@@ -56,14 +56,9 @@ async def main(config: str, output: str, formats: Optional[List[str]] = None) ->
         # Create merger instance
         merger = StreamlineVPNMerger(config_path=config)
         
-        # Process configurations
+        # Process configurations and save results (handled inside process_all)
         logger.info("Starting StreamlineVPN processing...")
-        results = await merger.process_all()
-        
-        # Save results
-        output_dir = Path(output)
-        output_dir.mkdir(exist_ok=True)
-        await merger.save_results(str(output_dir), formats)
+        results = await merger.process_all(output_dir=output, formats=formats)
         
         logger.info(f"Processing completed successfully. Results saved to {output_dir}")
         return 0
@@ -79,8 +74,12 @@ async def main(config: str, output: str, formats: Optional[List[str]] = None) ->
 def cli_main() -> int:
     """CLI entry point that handles async execution."""
     try:
-        cli()
-        return 0
+        # Run click command without auto SystemExit to capture exit code
+        exit_code = cli.main(standalone_mode=False)  # type: ignore[attr-defined]
+        return int(exit_code) if isinstance(exit_code, int) else 0
+    except SystemExit as e:
+        # Click may raise SystemExit with code
+        return int(e.code) if hasattr(e, "code") else 1
     except KeyboardInterrupt:
         return 1
     except Exception as e:

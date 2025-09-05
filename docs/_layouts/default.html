@@ -1,0 +1,76 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>{{ page.title | default: site.title }}</title>
+    <meta name="description" content="{{ site.description }}" />
+    <!-- Cayman theme CSS (hosted) -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/pages-themes/cayman@v0.2.0/assets/css/style.css" />
+    <!-- Custom site styles -->
+    <link rel="stylesheet" href="{{ "/assets/site.css" | relative_url }}" />
+  </head>
+  <body>
+    <section class="page-header">
+      <img src="{{ "/assets/logo.svg" | relative_url }}" alt="StreamlineVPN" style="height:40px; vertical-align:middle; margin-right: 10px;" />
+      <h1 class="project-name" style="display:inline-block; vertical-align:middle; margin:0;">{{ site.title }}</h1>
+      <h2 class="project-tagline">{{ site.description }}</h2>
+      <nav class="nav-links">
+        <a href="{{ "/" | relative_url }}">Home</a>
+        <a href="{{ "/quick-start.html" | relative_url }}">Quick Start</a>
+        <a href="{{ "/api/" | relative_url }}">API</a>
+        <a href="{{ "/configuration/" | relative_url }}">Configuration</a>
+        <a href="{{ "/DEPLOYMENT.html" | relative_url }}">Deployment</a>
+        <a href="{{ "/web-interface.html" | relative_url }}">Web UI</a>
+        <button id="theme-toggle" class="btn">Toggle Theme</button>
+      </nav>
+    </section>
+
+    <section class="main-content" data-page="{{ page.url }}">
+      <nav class="breadcrumbs">
+        <a href="{{ "/" | relative_url }}">Home</a>
+        {% assign parts = page.url | split:'/' %}
+        {% assign built = '' %}
+        {% for part in parts %}
+          {% if part == '' or part == 'index.html' %}{% continue %}{% endif %}
+          {% assign built = built | append: '/' | append: part %}
+          {% assign pretty = part | replace:'-',' ' | replace:'.html','' %}
+          <span class="sep">/</span>
+          {% if forloop.last %}
+            <span class="crumb current">{{ pretty | capitalize }}</span>
+          {% else %}
+            <a class="crumb" href="{{ built | relative_url }}">{{ pretty | capitalize }}</a>
+          {% endif %}
+        {% endfor %}
+      </nav>
+      <div class="content-grid">
+        <aside class="sidebar">
+          {% assign nav = site.data.nav.sections %}
+          {% if nav %}
+            {% for section in nav %}
+              <div class="sidebar-section">
+                <div class="sidebar-title">{{ section.title }}</div>
+                <ul class="sidebar-list">
+                  {% for item in section.items %}
+                    {% assign item_path = item.url | replace:'index.html','' %}
+                    {% assign active = page.url == item.url or page.url == item_path %}
+                    <li class="sidebar-item{% if active %} active{% endif %}"><a href="{{ item.url | relative_url }}">{{ item.title }}</a></li>
+                  {% endfor %}
+                </ul>
+              </div>
+            {% endfor %}
+          {% endif %}
+        </aside>
+        <article class="content-body">
+          {{ content }}
+          <footer class="site-footer">
+            <span class="site-footer-owner">© StreamlineVPN</span>
+            <span class="site-footer-credits">Built with GitHub Pages + Jekyll</span>
+          </footer>
+        </article>
+      </div>
+    </section>
+
+    <script src="{{ "/assets/site.js" | relative_url }}"></script>
+  </body>
+  </html>
