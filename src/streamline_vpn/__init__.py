@@ -28,7 +28,7 @@ if TYPE_CHECKING:
     from .core.source_manager import SourceManager
     from .core.config_processor import ConfigurationProcessor
     from .core.output_manager import OutputManager
-    from .core.cache_manager import CacheManager
+    from .core.caching import VPNCacheService
     
     # Enhanced modules
     from .ml.quality_predictor import QualityPredictor
@@ -51,14 +51,27 @@ from .core.source_manager import SourceManager
 from .core.config_processor import ConfigurationProcessor
 from .core.output_manager import OutputManager
 
-# Web components
-from .web import create_app, create_graphql_app, VPNConfigGenerator, IntegratedWebServer, StaticFileServer
+# Web components (lazy import to avoid dependency issues)
+try:
+    from .web import APIServer, VPNConfigGenerator, IntegratedWebServer, StaticFileServer
+except ImportError:
+    # Handle missing dependencies gracefully
+    APIServer = None
+    VPNConfigGenerator = None
+    IntegratedWebServer = None
+    StaticFileServer = None
 
 # Job management
 from .jobs import JobManager, Job, JobStatus, JobType
 
-# Security components
-from .security import SecurityManager, ThreatAnalyzer, SecurityValidator
+# Security components (lazy import to avoid dependency issues)
+try:
+    from .security import SecurityManager, ThreatAnalyzer, SecurityValidator, ZeroTrustVPN
+except ImportError:
+    SecurityManager = None
+    ThreatAnalyzer = None
+    SecurityValidator = None
+    ZeroTrustVPN = None
 
 # Fetcher service
 from .fetcher import FetcherService, CircuitBreaker, RateLimiter

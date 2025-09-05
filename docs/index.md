@@ -1,47 +1,80 @@
-# CleanConfigs SubMerger
+# StreamlineVPN Documentation
 
-A trustworthy, fast, maintainable VPN subscription aggregator that auto-discovers sources, verifies endpoints by real connectivity and QoS, deduplicates and ranks nodes with transparent scoring, and exports client‑valid artifacts with enterprise‑grade security and observability.
+Welcome to the StreamlineVPN documentation. This comprehensive guide covers everything you need to know about our enterprise-grade VPN configuration management platform.
 
-## Highlights
+## 🚀 Quick Start
 
-- ML‑powered quality scoring with drift detection
-- Zero‑trust validation pipeline with warm‑up FSM (new → probation → trusted → suspended)
-- Kubernetes‑ready deployment with metrics and tracing
-- Multi‑tier caching and adaptive processing
+- **New Users**: Start with [Quick Start Guide](quick-start.md)
+- **Configuration**: See [Configuration Guide](configuration/)
+- **Deployment**: Check [Deployment Guide](deployment.md)
+- **API Reference**: Browse [API Documentation](api/)
 
-## Quick Links
+## 📚 Documentation Sections
 
-- Production sources: `config/sources.unified.yaml`
-- Main runner: `vpn_merger_main.py`
-- Configuration: See [configuration/](configuration/)
-- Deployment: See [deployment.md](deployment.md)
-- API reference: See [api/](api/)
+### Core Features
+- [Architecture Overview](architecture.md) - System design and components
+- [Configuration Guide](configuration/) - Setup and customization
+- [Performance Tuning](performance/tuning-guide.md) - Optimization strategies
 
-## Choose Your Path
+### Development
+- [Python SDK](sdk-python.md) - Developer integration guide
+- [API Reference](api/) - RESTful API documentation
+- [GraphQL API](api/graphql.md) - GraphQL endpoint documentation
 
-- New to SubMerger: Start with the [Quick Start](quick-start.md)
-- Power users: Tune options in [Configuration](configuration/)
-- Operators/SREs: See [Deployment](deployment.md) and [Troubleshooting](troubleshooting.md)
-- Developers: Check the [Python SDK](sdk-python.md), [Architecture](architecture.md), and [API](api/)
-- Performance enthusiasts: Visit [Performance Tuning](performance/tuning-guide.md)
+### Operations
+- [Deployment Guide](deployment.md) - Production deployment
+- [Monitoring Setup](monitoring/) - Observability configuration
+- [Troubleshooting](troubleshooting.md) - Common issues and solutions
 
-## Helpful Scripts
+### Advanced Topics
+- [Web Interface](web-interface.md) - User interface guide
+- [Output Formats](output/formats-and-capabilities.md) - Supported formats
+- [FAQ](faq.md) - Frequently asked questions
+- [Glossary](glossary.md) - Technical terms and definitions
 
-- Smoke run integrated server (start/stop on ephemeral port):
-  - `PYTHONPATH=src python scripts/smoke_integrated_server.py`
+## 🛠️ Development Scripts
 
-- Smoke core endpoints from the integrated server (health/status previews):
-  - `PYTHONPATH=src python scripts/smoke_endpoints.py`
+### Testing and Validation
+```bash
+# Run quick start test
+python scripts/quick_start.py
 
-- Run non‑network tests quickly (skips network‑marked tests via env):
-  - `PYTHONPATH=src python scripts/run_tests_no_network.py`
+# Run demonstration
+python scripts/demo.py
 
-## Dependency Report (ASCII Only)
+# Run tests without network dependencies
+python scripts/run_tests_no_network.py
 
-Environment/dependency status prints clean ASCII with YES/NO statuses.
+# Run full test suite
+python scripts/run_tests.py
+```
 
-Run report:
+### Deployment and Management
+```bash
+# Deploy to production
+python scripts/deploy_production.py
+
+# Deploy with monitoring
+python scripts/deploy_with_monitoring.py
+
+# Run benchmarks
+python scripts/benchmark/benchmark_runner.py
+```
+
+## 📊 System Status
+
+Check system health and dependencies:
 
 ```bash
-python -c "from vpn_merger.utils.dependencies import print_dependency_report; print_dependency_report()"
+# Check dependency status
+python -c "from streamline_vpn.utils.helpers import check_dependencies; check_dependencies()"
+
+# Verify installation
+python verify_installation.py
 ```
+
+## 🤝 Getting Help
+
+- **Documentation Issues**: [GitHub Issues](https://github.com/streamlinevpn/streamlinevpn/issues)
+- **Feature Requests**: [GitHub Discussions](https://github.com/streamlinevpn/streamlinevpn/discussions)
+- **Support**: support@streamlinevpn.com

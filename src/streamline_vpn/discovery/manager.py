@@ -11,7 +11,7 @@ from typing import Dict, List, Optional, Set
 from datetime import datetime, timedelta
 
 from ..utils.logging import get_logger
-from ..utils.validation import validate_url
+from ..security.validator import SecurityValidator
 
 logger = get_logger(__name__)
 
@@ -24,6 +24,7 @@ class DiscoveryManager:
         self.discovered_sources: Set[str] = set()
         self.last_discovery = datetime.now()
         self.discovery_interval = timedelta(hours=6)
+        self.validator = SecurityValidator()
         logger.info("Discovery manager initialized")
 
     async def discover_sources(self) -> List[str]:
@@ -45,7 +46,7 @@ class DiscoveryManager:
         # Filter and validate sources
         valid_sources = []
         for source in sources:
-            if validate_url(source) and source not in self.discovered_sources:
+            if self.validator.validate_url(source) and source not in self.discovered_sources:
                 valid_sources.append(source)
                 self.discovered_sources.add(source)
         

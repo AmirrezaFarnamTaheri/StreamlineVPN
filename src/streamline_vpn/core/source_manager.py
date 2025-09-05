@@ -15,7 +15,7 @@ from datetime import datetime, timedelta
 from ..models.source import SourceMetadata, SourceTier
 from ..models.processing_result import ProcessingResult
 from ..utils.logging import get_logger
-from ..utils.validation import validate_url
+from ..security.validator import SecurityValidator
 
 logger = get_logger(__name__)
 
@@ -23,7 +23,7 @@ logger = get_logger(__name__)
 class SourceManager:
     """Manages VPN configuration sources with reputation tracking."""
 
-    def __init__(self, config_path: Path):
+    def __init__(self, config_path: str):
         """Initialize source manager.
 
         Args:
@@ -32,6 +32,7 @@ class SourceManager:
         self.config_path = Path(config_path)
         self.sources: Dict[str, SourceMetadata] = {}
         self.performance_file = Path("data/source_performance.json")
+        self.validator = SecurityValidator()
         
         # Load sources and performance data
         self._load_sources()
@@ -58,7 +59,7 @@ class SourceManager:
                 for source_config in tier_data['urls']:
                     if isinstance(source_config, dict):
                         url = source_config.get('url')
-                        if url and validate_url(url):
+                        if url and self.validator.validate_url(url):
                             metadata = SourceMetadata(
                                 url=url,
                                 tier=tier,
@@ -71,7 +72,7 @@ class SourceManager:
                         else:
                             logger.warning(f"Invalid source URL: {url}")
                     elif isinstance(source_config, str):
-                        if validate_url(source_config):
+                        if self.validator.validate_url(source_config):
                             metadata = SourceMetadata(
                                 url=source_config,
                                 tier=tier,

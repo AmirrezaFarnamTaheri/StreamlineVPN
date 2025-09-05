@@ -147,7 +147,8 @@ class TestCacheManager:
     @pytest.fixture
     def cache_manager(self):
         """Create cache manager instance for testing."""
-        return CacheManager()
+        redis_nodes = [{"host": "localhost", "port": "6379"}]
+        return CacheManager(redis_nodes)
 
     @pytest.mark.asyncio
     async def test_cache_set_get(self, cache_manager):
@@ -176,7 +177,9 @@ class TestCacheManager:
         """Test cache statistics."""
         stats = cache_manager.get_statistics()
         assert isinstance(stats, dict)
-        assert "total_requests" in stats
+        assert "l1_cache" in stats
+        assert "l2_redis" in stats
+        assert "circuit_breaker" in stats
 
 
 if __name__ == "__main__":

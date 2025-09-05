@@ -1,0 +1,35 @@
+"""
+Constants
+=========
+
+Centralized constants for StreamlineVPN.
+"""
+
+# Cache TTL values (in seconds)
+DEFAULT_CACHE_TTL = 300  # 5 minutes
+DNS_CACHE_TTL = 300      # 5 minutes
+SERVER_RECOMMENDATION_TTL = 300  # 5 minutes
+
+# Redis configuration
+DEFAULT_REDIS_HOST = "localhost"
+DEFAULT_REDIS_PORT = "6379"
+DEFAULT_REDIS_NODES = [{"host": DEFAULT_REDIS_HOST, "port": DEFAULT_REDIS_PORT}]
+
+# Time intervals (in seconds)
+DEFAULT_UPDATE_INTERVAL = 86400  # 24 hours
+DEFAULT_DISCOVERY_INTERVAL = 21600  # 6 hours
+DEFAULT_METRICS_COLLECTION_INTERVAL = 30  # 30 seconds
+
+# Cache sizes
+DEFAULT_L1_CACHE_SIZE = 1000
+DEFAULT_CIRCUIT_BREAKER_THRESHOLD = 5
+DEFAULT_CIRCUIT_BREAKER_TIMEOUT = 60  # seconds
+
+# Security
+DEFAULT_MAX_REQUESTS_PER_MINUTE = 60
+DEFAULT_JWT_SECRET_KEY = "default-secret-key"
+
+# Performance
+DEFAULT_MAX_CONCURRENT_TASKS = 50
+DEFAULT_CONNECTION_TIMEOUT = 30  # seconds
+DEFAULT_READ_TIMEOUT = 30  # seconds

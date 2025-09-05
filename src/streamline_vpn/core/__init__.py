@@ -10,12 +10,12 @@ from .merger import StreamlineVPNMerger
 from .source_manager import SourceManager
 from .config_processor import ConfigurationProcessor
 from .output_manager import OutputManager
-from .cache_manager import CacheManager
+from .caching import VPNCacheService
 
 __all__ = [
     "StreamlineVPNMerger",
     "SourceManager",
     "ConfigurationProcessor", 
     "OutputManager",
-    "CacheManager"
+    "VPNCacheService"
 ]

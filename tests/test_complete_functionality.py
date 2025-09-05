@@ -70,7 +70,7 @@ sources:
         # Test FastAPI app creation
         app = create_app()
         assert app is not None
-        assert app.title == "StreamlineVPN API"
+        assert app.get_app().title == "StreamlineVPN API"
         
         # Test GraphQL app creation
         graphql_app = create_graphql_app()
@@ -324,10 +324,12 @@ sources:
         assert format_bytes(1024) == "1.0 KB"
         assert format_duration(65.5) == "1m 5s"
         
-        from streamline_vpn.utils.validation import validate_url, is_valid_ip
+        from streamline_vpn.security.validator import SecurityValidator
+        from streamline_vpn.utils.validation import is_valid_ip
         
         # Test validation functions
-        assert validate_url("https://example.com") is True
-        assert validate_url("invalid-url") is False
+        validator = SecurityValidator()
+        assert validator.validate_url("https://example.com") is True
+        assert validator.validate_url("invalid-url") is False
         assert is_valid_ip("1.1.1.1") is True
         assert is_valid_ip("invalid-ip") is False

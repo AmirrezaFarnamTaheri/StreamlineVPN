@@ -64,7 +64,13 @@ class VPNConfiguration:
     metadata: Dict[str, Any] = field(default_factory=dict)
     
     def __post_init__(self):
-        """Validate configuration after initialization."""
+        """Generate ID and validate configuration after initialization."""
+        if not hasattr(self, 'id') or not self.id:
+            # Generate a unique ID based on configuration content
+            import hashlib
+            content = f"{self.protocol.value}:{self.server}:{self.port}:{self.user_id or ''}:{self.password or ''}"
+            self.id = hashlib.md5(content.encode()).hexdigest()[:8]
+        
         if not self.server:
             raise ValueError("Server address is required")
         if not (1 <= self.port <= 65535):

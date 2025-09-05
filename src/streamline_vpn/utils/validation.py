@@ -14,52 +14,8 @@ from .logging import get_logger
 logger = get_logger(__name__)
 
 
-def validate_url(url: str) -> bool:
-    """Validate URL format and accessibility.
-    
-    Args:
-        url: URL to validate
-        
-    Returns:
-        True if URL is valid, False otherwise
-    """
-    if not url or not isinstance(url, str):
-        return False
-    
-    try:
-        # Parse URL
-        parsed = urllib.parse.urlparse(url)
-        
-        # Check scheme
-        if parsed.scheme not in ['http', 'https']:
-            return False
-        
-        # Check netloc (domain)
-        if not parsed.netloc:
-            return False
-        
-        # Check for suspicious patterns
-        suspicious_patterns = [
-            r'javascript:',
-            r'data:',
-            r'file:',
-            r'ftp:',
-            r'<script',
-            r'</script>',
-            r'javascript\s*:',
-            r'on\w+\s*=',
-        ]
-        
-        for pattern in suspicious_patterns:
-            if re.search(pattern, url, re.IGNORECASE):
-                logger.warning(f"Suspicious URL pattern detected: {url}")
-                return False
-        
-        return True
-        
-    except Exception as e:
-        logger.debug(f"URL validation error for {url}: {e}")
-        return False
+# validate_url function moved to security.validator.SecurityValidator
+# Use SecurityValidator.validate_url() instead
 
 
 def validate_config_line(config_line: str) -> bool:
@@ -250,7 +206,10 @@ def validate_domain(domain: str) -> bool:
         return False
     
     # Domain pattern
-    domain_pattern = r'^(?:[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?\.)*[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?$'
+    domain_pattern = (
+        r'^(?:[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?\.)*'
+        r'[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?$'
+    )
     
     return bool(re.match(domain_pattern, domain))
 
