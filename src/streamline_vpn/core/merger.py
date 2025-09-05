@@ -19,6 +19,7 @@ from .merger_processor import MergerProcessor
 from .source_manager import SourceManager
 from .config_processor import ConfigurationProcessor
 from .output_manager import OutputManager
+from ..security.manager import SecurityManager
 
 logger = get_logger(__name__)
 
@@ -42,7 +43,6 @@ class StreamlineVPNMerger(BaseMerger):
         super().__init__(config_path, cache_enabled, max_concurrent)
 
         # Initialize security manager
-        from ..security.manager import SecurityManager
         self.security_manager = SecurityManager()
 
         # Initialize core managers
@@ -57,6 +57,16 @@ class StreamlineVPNMerger(BaseMerger):
         self.sources: List[str] = []
 
         logger.info(f"StreamlineVPN merger initialized with config: {config_path}")
+
+    async def initialize(self):
+        """Initialize the merger."""
+        # Nothing to do here for now
+        pass
+
+    async def shutdown(self):
+        """Shutdown the merger."""
+        # Nothing to do here for now
+        pass
 
     async def __aenter__(self):
         """Async context manager entry."""
@@ -102,9 +112,6 @@ class StreamlineVPNMerger(BaseMerger):
             # Apply enhancements
             enhanced_configs = await self.processor.apply_enhancements(unique_configs)
             
-            # Store results
-            self.results = enhanced_configs
-            
             # Update statistics
             self._update_statistics(
                 total_sources=len(self.sources),
@@ -135,7 +142,7 @@ class StreamlineVPNMerger(BaseMerger):
                 "success": False,
                 "error": str(e),
                 "sources_processed": len(self.sources) if self.sources else 0,
-                "configurations_found": len(self.results)
+                "configurations_found": 0
             }
 
     async def _load_sources(self) -> None:
@@ -231,7 +238,6 @@ class StreamlineVPNMerger(BaseMerger):
         """
         return {
             "total_sources": len(self.sources),
-            "total_configurations": len(self.results),
             "statistics": self.statistics.to_dict(),
             "cache_enabled": self.cache_enabled,
             "max_concurrent": self.max_concurrent

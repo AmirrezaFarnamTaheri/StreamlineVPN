@@ -1,10 +1,10 @@
 import re
 from typing import List
-from ...settings import get_security_settings
+from ...settings import get_settings
 
 
 def _defaults() -> List[str]:
-    return get_security_settings().suspicious_text_patterns
+    return get_settings().security.suspicious_text_patterns
 
 
 def find_suspicious_patterns(text: str, patterns: List[str] | None = None) -> List[str]:
