@@ -26,7 +26,8 @@ logger = logging.getLogger(__name__)
 @click.option("--format", "formats", multiple=True, help="Output format(s). Can be repeated.")
 def cli(config: str, output: str, formats: Optional[tuple[str, ...]] = None):
     """StreamlineVPN runner"""
-    asyncio.run(main(config, output, formats))
+    formats_list = list(formats) if formats else None
+    asyncio.run(main(config, output, formats_list))
 
 
 async def main(config: str, output: str, formats: Optional[List[str]] = None) -> int:
