@@ -16,6 +16,9 @@ from ..models.processing_result import ProcessingResult, ProcessingStatistics
 from ..utils.logging import get_logger, log_performance
 from .merger_base import BaseMerger
 from .merger_processor import MergerProcessor
+from .source_manager import SourceManager
+from .config_processor import ConfigurationProcessor
+from .output_manager import OutputManager
 
 logger = get_logger(__name__)
 
@@ -27,7 +30,7 @@ class StreamlineVPNMerger(BaseMerger):
         self,
         config_path: str = "config/sources.yaml",
         cache_enabled: bool = True,
-        max_concurrent: int = 50
+        max_concurrent: int = 50,
     ):
         """Initialize the StreamlineVPN merger.
 
@@ -38,12 +41,12 @@ class StreamlineVPNMerger(BaseMerger):
         """
         super().__init__(config_path, cache_enabled, max_concurrent)
 
-        # Eagerly initialize core managers to satisfy immediate availability
-        from .source_manager import SourceManager
-        from .config_processor import ConfigurationProcessor
-        from .output_manager import OutputManager
+        # Initialize security manager
+        from ..security.manager import SecurityManager
+        self.security_manager = SecurityManager()
 
-        self.source_manager = SourceManager(self.config_path)
+        # Initialize core managers
+        self.source_manager = SourceManager(self.config_path, self.security_manager)
         self.config_processor = ConfigurationProcessor()
         self.output_manager = OutputManager()
 

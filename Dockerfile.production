@@ -16,7 +16,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 COPY requirements-prod.txt .
 
 # Install Python packages
-RUN pip install --no-cache-dir --user -r requirements-prod.txt
+RUN pip install --no-cache-dir -r requirements-prod.txt
 
 # Production stage
 FROM python:3.11-slim
@@ -30,8 +30,8 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     && rm -rf /var/lib/apt/lists/*
 
 # Copy Python packages from builder
-COPY --from=builder /root/.local /root/.local
-ENV PATH=/root/.local/bin:$PATH
+COPY --from=builder /usr/local/lib/python3.11/site-packages /usr/local/lib/python3.11/site-packages
+COPY --from=builder /usr/local/bin /usr/local/bin
 
 # Copy application
 COPY src/streamline_vpn/ ./streamline_vpn/
@@ -44,18 +44,19 @@ COPY monitoring/ ./monitoring/
 RUN mkdir -p /app/output /app/logs /app/cache /app/data
 
 # Create non-root user
-RUN useradd -m -u 1000 streamline && \
-    chown -R streamline:streamline /app
+RUN useradd -m -u 1000 merger && \
+    chown -R merger:merger /app
 
-USER streamline
+USER merger
 
 # Health check
 HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
-    CMD curl -f http://localhost:8000/health || exit 1
+    CMD curl -f http://localhost:${API_PORT:-8000}/health || exit 1
 
 # Environment variables
 ENV PYTHONUNBUFFERED=1
 ENV STREAMLINE_ENV=production
+ENV API_PORT=8000
 
 EXPOSE 8000 8001 9090
 

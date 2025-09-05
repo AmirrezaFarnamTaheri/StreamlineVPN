@@ -4,6 +4,7 @@
   become: yes
   vars:
     app_name: streamline-vpn
+    app_user: merger
     app_version: "{{ lookup('env', 'VERSION') | default('latest') }}"
     
   tasks:
@@ -25,8 +26,8 @@
       file:
         path: "{{ item }}"
         state: directory
-        owner: streamline
-        group: streamline
+        owner: "{{ app_user }}"
+        group: "{{ app_user }}"
       loop:
         - /opt/streamline
         - /opt/streamline/config
@@ -35,7 +36,7 @@
         
     - name: Deploy configuration
       template:
-        src: config.yaml.j2
+        src: templates/config.yaml.j2
         dest: /opt/streamline/config/config.yaml
         
     - name: Start StreamlineVPN container
@@ -55,7 +56,7 @@
           
     - name: Configure nginx
       template:
-        src: nginx.conf.j2
+        src: templates/nginx.conf.j2
         dest: /etc/nginx/sites-available/streamline
       notify: reload nginx
       

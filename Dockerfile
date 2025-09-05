@@ -14,7 +14,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 
 # Copy and install Python dependencies
 COPY requirements.txt requirements-prod.txt ./
-RUN pip install --no-cache-dir --user -r requirements-prod.txt
+RUN pip install --no-cache-dir -r requirements-prod.txt
 
 # Production stage
 FROM python:3.11-slim
@@ -28,8 +28,8 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     && rm -rf /var/lib/apt/lists/*
 
 # Copy Python packages from builder stage
-COPY --from=builder /root/.local /root/.local
-ENV PATH=/root/.local/bin:$PATH
+COPY --from=builder /usr/local/lib/python3.11/site-packages /usr/local/lib/python3.11/site-packages
+COPY --from=builder /usr/local/bin /usr/local/bin
 
 # Copy application code
 COPY . .
@@ -40,7 +40,7 @@ RUN mkdir -p /app/output /app/logs && \
 
 # Health check against REST API endpoint
 HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
-    CMD curl -f http://localhost:8000/api/v1/health || exit 1
+    CMD curl -f http://localhost:${API_PORT:-8000}/api/v1/health || exit 1
 
 # Expose ports
 # 8000: Main API
@@ -57,8 +57,7 @@ ENV PYTHONUNBUFFERED=1
 ENV VPN_MERGER_OUTPUT_DIR=/app/output
 ENV VPN_MERGER_LOG_DIR=/app/logs
 ENV PYTHONPATH=/app
+ENV API_PORT=8000
 
 # Default command - run the merger as a module
-CMD ["python", "-m", "vpn_merger"]
-
-
+CMD ["python", "-m", "streamline_vpn"]

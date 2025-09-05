@@ -83,6 +83,11 @@ class MergerProcessor:
             # Parse each configuration line
             parsed_configs: List[VPNConfiguration] = []
             for line in fetch_result.configs:
+                security_analysis = self.merger.security_manager.analyze_configuration(line)
+                if not security_analysis["is_safe"]:
+                    logger.warning(f"Skipping unsafe configuration from {source}: {line}")
+                    continue
+
                 cfg = self.merger.config_processor.parser.parse_configuration(line)
                 if cfg:
                     parsed_configs.append(cfg)

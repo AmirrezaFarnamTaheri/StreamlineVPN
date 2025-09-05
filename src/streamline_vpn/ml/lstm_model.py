@@ -7,6 +7,11 @@ LSTM model implementation for quality prediction.
 
 from typing import Dict, List
 from dataclasses import dataclass, field
+import joblib
+from pathlib import Path
+import numpy as np
+
+from sklearn.neural_network import MLPRegressor
 
 from ..utils.logging import get_logger
 
@@ -27,22 +32,36 @@ class QualityPrediction:
 class LSTMModel:
     """Simplified LSTM model for quality prediction."""
     
-    def __init__(self):
+    def __init__(self, model_path: str = "data/ml_model.joblib"):
         """Initialize LSTM model."""
-        self.model_loaded = False
-        self.feature_weights = {
-            "packet_inter_arrival_time": 0.1,
-            "rtt_variance": 0.2,
-            "bandwidth_trend": 0.15,
-            "packet_size_variance": 0.05,
-            "flow_bytes_per_second": 0.2,
-            "connection_duration_avg": 0.1,
-            "latency_p95": 0.15,
-            "packet_loss_rate": 0.2,
-            "jitter_measurement": 0.1,
-            "bandwidth_utilization": 0.15
-        }
+        self.model_path = Path(model_path)
+        self.model = None
+        self._load_model()
     
+    def _load_model(self):
+        """Load the pre-trained model."""
+        if self.model_path.exists():
+            try:
+                self.model = joblib.load(self.model_path)
+                logger.info("ML model loaded successfully.")
+            except Exception as e:
+                logger.error(f"Failed to load ML model: {e}")
+                self.model = None
+        else:
+            logger.warning("ML model not found. Using a dummy model.")
+            self.model = self._create_dummy_model()
+
+    def _create_dummy_model(self):
+        """Create and train a dummy model for placeholder purposes."""
+        # This is not a real training process, just a placeholder
+        # to create a model file with the correct structure.
+        model = MLPRegressor(hidden_layer_sizes=(10,), max_iter=1)
+        # Create some dummy data to fit the model
+        X = np.random.rand(10, 10)
+        y = np.random.rand(10, 3)
+        model.fit(X, y)
+        return model
+
     async def predict(self, features: Dict[str, float]) -> QualityPrediction:
         """Predict connection quality from features.
         
@@ -52,64 +71,51 @@ class LSTMModel:
         Returns:
             Quality prediction result
         """
-        # Simplified prediction logic (in production, use actual LSTM model)
-        predicted_latency = self._predict_latency(features)
-        bandwidth_estimate = self._predict_bandwidth(features)
-        reliability_score = self._predict_reliability(features)
-        confidence = self._calculate_confidence(features)
-        quality_grade = self._determine_quality_grade(reliability_score)
-        recommendations = self._generate_recommendations(features, reliability_score)
-        
-        return QualityPrediction(
-            predicted_latency=predicted_latency,
-            bandwidth_estimate=bandwidth_estimate,
-            reliability_score=reliability_score,
-            confidence=confidence,
-            quality_grade=quality_grade,
-            recommendations=recommendations
-        )
+        if not self.model:
+            return self._get_default_prediction()
+
+        try:
+            # Prepare features for prediction
+            feature_vector = self._prepare_features(features)
+
+            # Run prediction
+            prediction = self.model.predict([feature_vector])[0]
+
+            predicted_latency = float(prediction[0])
+            bandwidth_estimate = float(prediction[1])
+            reliability_score = float(prediction[2])
+
+            confidence = self._calculate_confidence(features)
+            quality_grade = self._determine_quality_grade(reliability_score)
+            recommendations = self._generate_recommendations(features, reliability_score)
+
+            return QualityPrediction(
+                predicted_latency=predicted_latency,
+                bandwidth_estimate=bandwidth_estimate,
+                reliability_score=reliability_score,
+                confidence=confidence,
+                quality_grade=quality_grade,
+                recommendations=recommendations
+            )
+        except Exception as e:
+            logger.error(f"ML prediction failed: {e}")
+            return self._get_default_prediction()
     
-    def _predict_latency(self, features: Dict[str, float]) -> float:
-        """Predict connection latency."""
-        # Weighted combination of latency-related features
-        latency_score = (
-            features.get("latency_p95", 0) * 0.4 +
-            features.get("rtt_variance", 0) * 0.3 +
-            features.get("jitter_measurement", 0) * 0.3
-        )
-        
-        # Convert to predicted latency (simplified model)
-        return max(10.0, latency_score * 1.2)
-    
-    def _predict_bandwidth(self, features: Dict[str, float]) -> float:
-        """Predict available bandwidth."""
-        # Weighted combination of bandwidth-related features
-        bandwidth_score = (
-            features.get("bandwidth_utilization", 0) * 0.5 +
-            features.get("flow_bytes_per_second", 0) * 0.3 +
-            features.get("bandwidth_trend", 0) * 0.2
-        )
-        
-        # Convert to bandwidth estimate in Mbps
-        return max(1.0, bandwidth_score / 1000000)  # Convert bytes to Mbps
-    
-    def _predict_reliability(self, features: Dict[str, float]) -> float:
-        """Predict connection reliability score (0-1)."""
-        # Calculate reliability based on multiple factors
-        packet_loss_penalty = features.get("packet_loss_rate", 0) * 0.3
-        jitter_penalty = min(features.get("jitter_measurement", 0) / 100, 0.2)
-        latency_penalty = min(features.get("latency_p95", 0) / 1000, 0.2)
-        
-        reliability = 1.0 - packet_loss_penalty - jitter_penalty - latency_penalty
-        return max(0.0, min(1.0, reliability))
-    
+    def _prepare_features(self, features: Dict[str, float]) -> List[float]:
+        """Prepare feature vector for prediction."""
+        feature_keys = [
+            "packet_inter_arrival_time", "rtt_variance", "bandwidth_trend",
+            "packet_size_variance", "flow_bytes_per_second", "connection_duration_avg",
+            "latency_p95", "packet_loss_rate", "jitter_measurement",
+            "bandwidth_utilization"
+        ]
+        return [features.get(key, 0.0) for key in feature_keys]
+
     def _calculate_confidence(self, features: Dict[str, float]) -> float:
         """Calculate prediction confidence (0-1)."""
-        # Confidence based on feature completeness and variance
         feature_count = sum(1 for v in features.values() if v > 0)
         completeness = feature_count / len(features)
         
-        # Lower confidence for high variance
         variance_penalty = min(features.get("rtt_variance", 0) / 100, 0.3)
         
         confidence = completeness - variance_penalty
@@ -148,3 +154,14 @@ class LSTMModel:
             recommendations.append("Connection quality is good")
         
         return recommendations
+
+    def _get_default_prediction(self) -> QualityPrediction:
+        """Get default prediction when ML fails."""
+        return QualityPrediction(
+            predicted_latency=100.0,
+            bandwidth_estimate=10.0,
+            reliability_score=0.7,
+            confidence=0.5,
+            quality_grade='C',
+            recommendations=['Unable to predict quality - using default values']
+        )

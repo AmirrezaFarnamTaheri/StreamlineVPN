@@ -24,7 +24,13 @@ class TestStreamlineVPNMerger:
     @pytest.fixture
     def merger(self):
         """Create merger instance for testing."""
-        return StreamlineVPNMerger()
+        with patch("streamline_vpn.core.source_manager.SourceManager"), \
+             patch("streamline_vpn.core.config_processor.ConfigurationProcessor"), \
+             patch("streamline_vpn.core.output_manager.OutputManager"), \
+             patch("streamline_vpn.security.manager.SecurityManager"):
+            merger = StreamlineVPNMerger()
+            merger.source_manager.get_active_sources = AsyncMock(return_value=[])
+            return merger
 
     @pytest.mark.asyncio
     async def test_merger_initialization(self, merger):
@@ -57,7 +63,9 @@ class TestSourceManager:
     def source_manager(self):
         """Create source manager instance for testing."""
         config_path = Path("tests/fixtures/test_sources.yaml")
-        return SourceManager(config_path)
+        mock_security_manager = Mock()
+        mock_security_manager.validate_source.return_value = {"is_safe": True}
+        return SourceManager(config_path, mock_security_manager)
 
     def test_source_manager_initialization(self, source_manager):
         """Test source manager initialization."""

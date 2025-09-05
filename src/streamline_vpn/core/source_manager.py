@@ -15,7 +15,7 @@ from datetime import datetime, timedelta
 from ..models.source import SourceMetadata, SourceTier
 from ..models.processing_result import ProcessingResult
 from ..utils.logging import get_logger
-from ..security.validator import SecurityValidator
+from ..security.manager import SecurityManager
 
 logger = get_logger(__name__)
 
@@ -23,7 +23,7 @@ logger = get_logger(__name__)
 class SourceManager:
     """Manages VPN configuration sources with reputation tracking."""
 
-    def __init__(self, config_path: str):
+    def __init__(self, config_path: str, security_manager: SecurityManager):
         """Initialize source manager.
 
         Args:
@@ -32,7 +32,7 @@ class SourceManager:
         self.config_path = Path(config_path)
         self.sources: Dict[str, SourceMetadata] = {}
         self.performance_file = Path("data/source_performance.json")
-        self.validator = SecurityValidator()
+        self.security_manager = security_manager
         
         # Load sources and performance data
         self._load_sources()
@@ -59,7 +59,8 @@ class SourceManager:
                 for source_config in tier_data['urls']:
                     if isinstance(source_config, dict):
                         url = source_config.get('url')
-                        if url and self.validator.validate_url(url):
+                        validation_result = self.security_manager.validate_source(url)
+                        if url and validation_result["is_safe"]:
                             metadata = SourceMetadata(
                                 url=url,
                                 tier=tier,
@@ -70,9 +71,10 @@ class SourceManager:
                             )
                             self.sources[url] = metadata
                         else:
-                            logger.warning(f"Invalid source URL: {url}")
+                            logger.warning(f"Invalid or unsafe source URL: {url}")
                     elif isinstance(source_config, str):
-                        if self.validator.validate_url(source_config):
+                        validation_result = self.security_manager.validate_source(source_config)
+                        if validation_result["is_safe"]:
                             metadata = SourceMetadata(
                                 url=source_config,
                                 tier=tier,
@@ -82,7 +84,7 @@ class SourceManager:
                             )
                             self.sources[source_config] = metadata
                         else:
-                            logger.warning(f"Invalid source URL: {source_config}")
+                            logger.warning(f"Invalid or unsafe source URL: {source_config}")
 
             logger.info(f"Loaded {len(self.sources)} sources from {self.config_path}")
 

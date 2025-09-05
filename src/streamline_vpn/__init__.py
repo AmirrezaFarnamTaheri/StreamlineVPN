@@ -64,14 +64,8 @@ except ImportError:
 # Job management
 from .jobs import JobManager, Job, JobStatus, JobType
 
-# Security components (lazy import to avoid dependency issues)
-try:
-    from .security import SecurityManager, ThreatAnalyzer, SecurityValidator, ZeroTrustVPN
-except ImportError:
-    SecurityManager = None
-    ThreatAnalyzer = None
-    SecurityValidator = None
-    ZeroTrustVPN = None
+# Security components
+from .security import SecurityManager, ThreatAnalyzer, SecurityValidator, ZeroTrustVPN
 
 # Fetcher service
 from .fetcher import FetcherService, CircuitBreaker, RateLimiter
@@ -113,6 +107,10 @@ __all__ = [
     "SourceManager", 
     "ConfigurationProcessor",
     "OutputManager",
+    "SecurityManager",
+    "ThreatAnalyzer",
+    "SecurityValidator",
+    "ZeroTrustVPN",
     "create_merger",
     "merge_configurations",
     "__version__",

@@ -12,8 +12,9 @@ This module provides a unified interface to the modularized ML system.
 from typing import Dict, Any
 
 from .quality_service import QualityPredictionService
-from .feature_processor import NetworkMetrics
-from .lstm_model import QualityPrediction
+from .feature_processor import NetworkFeatureProcessor
+from .lstm_model import QualityPrediction, LSTMModel
+from ..core.cache_manager import CacheManager
 
 # Re-export main classes for backward compatibility
 __all__ = [
@@ -23,7 +24,15 @@ __all__ = [
 ]
 
 # Global service instance
-_quality_prediction_service = QualityPredictionService()
+_cache_manager = CacheManager()
+_feature_processor = NetworkFeatureProcessor()
+_lstm_model = LSTMModel()
+
+_quality_prediction_service = QualityPredictionService(
+    cache_manager=_cache_manager,
+    feature_processor=_feature_processor,
+    lstm_model=_lstm_model
+)
 
 
 async def predict_connection_quality(server_metrics: Dict[str, Any]) -> Dict[str, Any]:

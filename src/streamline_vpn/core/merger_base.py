@@ -14,6 +14,11 @@ from datetime import datetime
 from ..models.configuration import VPNConfiguration
 from ..models.processing_result import ProcessingResult, ProcessingStatistics
 from ..utils.logging import get_logger, log_performance
+from .source_manager import SourceManager
+from .config_processor import ConfigurationProcessor
+from .output_manager import OutputManager
+from .cache_manager import CacheManager
+
 
 logger = get_logger(__name__)
 
@@ -39,10 +44,10 @@ class BaseMerger:
         self.max_concurrent = max_concurrent
         
         # Initialize components
-        self.source_manager = None
-        self.config_processor = None
-        self.output_manager = None
-        self.cache_manager = None
+        self.source_manager: Optional[SourceManager] = None
+        self.config_processor: Optional[ConfigurationProcessor] = None
+        self.output_manager: Optional[OutputManager] = None
+        self.cache_manager: Optional[CacheManager] = None
         
         # Statistics
         self.statistics = ProcessingStatistics()
@@ -53,20 +58,15 @@ class BaseMerger:
 
     async def initialize(self) -> None:
         """Initialize merger components."""
-        from .source_manager import SourceManager
-        from .config_processor import ConfigurationProcessor
-        from .output_manager import OutputManager
-        from .cache_manager import CacheManager
+        if not all([self.source_manager, self.config_processor, self.output_manager]):
+            raise RuntimeError("Managers must be initialized before calling initialize")
 
-        self.source_manager = SourceManager(self.config_path)
-        self.config_processor = ConfigurationProcessor()
-        self.output_manager = OutputManager()
-        
         if self.cache_enabled:
             self.cache_manager = CacheManager()
             try:
                 await self.cache_manager.connect()
-            except Exception:
+            except Exception as e:
+                logger.error(f"Failed to connect to cache manager: {e}")
                 # Continue without Redis if connection fails
                 pass
 
@@ -77,7 +77,8 @@ class BaseMerger:
         if self.cache_manager and hasattr(self.cache_manager, "disconnect"):
             try:
                 await self.cache_manager.disconnect()
-            except Exception:
+            except Exception as e:
+                logger.error(f"Failed to disconnect from cache manager: {e}")
                 pass
         logger.info("Merger components shutdown")
 
@@ -115,6 +116,9 @@ class BaseMerger:
         if not self.results:
             logger.warning("No results to save")
             return
+
+        if not self.output_manager:
+            raise RuntimeError("Output manager not initialized")
 
         output_path = Path(output_dir)
         output_path.mkdir(parents=True, exist_ok=True)
