@@ -79,9 +79,11 @@ class SecuritySettings(BaseSettings):
     model_config = SettingsConfigDict(env_prefix='STREAMLINE_SECURITY_')
 
 
+from pydantic import Field
+
 class Settings(BaseSettings):
-    fetcher: FetcherSettings = FetcherSettings()
-    security: SecuritySettings = SecuritySettings()
+    fetcher: FetcherSettings = Field(default_factory=FetcherSettings)
+    security: SecuritySettings = Field(default_factory=SecuritySettings)
     supported_protocol_prefixes: List[str] = [
         "vmess://",
         "vless://",
