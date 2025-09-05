@@ -1,69 +1,82 @@
-# StreamlineVPN Documentation
+---
+layout: default
+title: Home
+---
 
-Welcome to the StreamlineVPN documentation. This comprehensive guide covers everything you need to know about our enterprise-grade VPN configuration management platform.
+<div class="hero">
+  <div class="hero-text">
+    <h1>StreamlineVPN Documentation</h1>
+    <p class="muted">
+      Your central resource for configuring, deploying, and managing the StreamlineVPN platform.
+      Whether you're a new user or an experienced administrator, our documentation will help you
+      get the most out of our enterprise-grade VPN configuration management system.
+    </p>
+    <div class="cta">
+      <a href="quick-start.html" class="btn">Get Started in 5 Minutes</a>
+      <a href="api/" class="btn secondary">Explore the API</a>
+    </div>
+  </div>
+  <div class="hero-image">
+    <!-- Placeholder for an illustration or diagram -->
+    <img src="assets/logo.svg" alt="StreamlineVPN Logo" style="width: 100%; max-width: 200px; margin: auto; display: block;">
+  </div>
+</div>
 
-## 🚀 Quick Start
+## Key Features
 
-- **New Users**: Start with [Quick Start Guide](quick-start.md)
-- **Configuration**: See [Configuration Guide](configuration/)
-- **Deployment**: Check [Deployment Guide](DEPLOYMENT.md)
-- **API Reference**: Browse [API Documentation](api/)
+<div class="card-grid">
+  <div class="card">
+    <h3>Multi-Source Aggregation</h3>
+    <p>Process configurations from over 500 VPN sources with support for VLESS, VMess, Trojan, and more.</p>
+  </div>
+  <div class="card">
+    <h3>Zero Trust Security</h3>
+    <p>Enforce continuous device validation and multi-factor authentication with our JWT-based security model.</p>
+  </div>
+  <div class="card">
+    <h3>ML-Powered Quality</h3>
+    <p>Predict connection quality and get server recommendations powered by our LSTM neural networks.</p>
+  </div>
+  <div class="card">
+    <h3>Comprehensive Monitoring</h3>
+    <p>Visualize real-time metrics and alerts with our built-in Prometheus and Grafana integration.</p>
+  </div>
+</div>
 
-## 📚 Documentation Sections
+## Documentation Sections
 
-### Core Features
-- [Architecture Overview](architecture.md) - System design and components
-- [Configuration Guide](configuration/) - Setup and customization
-- [Performance Tuning](performance/tuning-guide.md) - Optimization strategies
+<div class="section-grid">
+  <div>
+    <h3>For Users</h3>
+    <ul>
+      <li><a href="quick-start.md">Quick Start Guide</a></li>
+      <li><a href="web-interface.md">Using the Web Interface</a></li>
+      <li><a href="faq.md">Frequently Asked Questions</a></li>
+    </ul>
+  </div>
+  <div>
+    <h3>For Developers</h3>
+    <ul>
+      <li><a href="sdk-python.md">Python SDK Guide</a></li>
+      <li><a href="api/">API Reference</a></li>
+      <li><a href="api/graphql.md">GraphQL API</a></li>
+    </ul>
+  </div>
+  <div>
+    <h3>For Administrators</h3>
+    <ul>
+      <li><a href="DEPLOYMENT.md">Deployment Guide</a></li>
+      <li><a href="configuration/">Configuration Guide</a></li>
+      <li><a href="performance/tuning-guide.md">Performance Tuning</a></li>
+      <li><a href="troubleshooting.md">Troubleshooting</a></li>
+    </ul>
+  </div>
+</div>
 
-### Development
-- [Python SDK](sdk-python.md) - Developer integration guide
-- [API Reference](api/) - RESTful API documentation
-- [GraphQL API](api/graphql.md) - GraphQL endpoint documentation
+## Need Help?
 
-### Operations
-- [Deployment Guide](DEPLOYMENT.md) - Production deployment
-- [Troubleshooting](troubleshooting.md) - Common issues and solutions
+If you have questions, need support, or want to contribute, we're here to help.
 
-### Advanced Topics
-- [Web Interface](web-interface.md) - User interface guide
-- [FAQ](faq.md) - Frequently asked questions
-- [Glossary](glossary.md) - Technical terms and definitions
-
-## 🛠️ Development Scripts
-
-### Testing and Validation
-```bash
-# Run tests without network dependencies
-python scripts/run_tests.py --no-network
-
-# Run full test suite
-python scripts/run_tests.py
-```
-
-### Deployment and Management
-```bash
-# Deploy to production
-python scripts/deploy_production.py
-
-# Deploy with monitoring
-python scripts/deploy_with_monitoring.py
-
-# Run benchmarks
-python scripts/benchmark/benchmark_runner.py
-```
-
-## 📊 System Status
-
-Check system health and dependencies:
-
-```bash
-# Check dependency status
-python -c "from streamline_vpn.utils.helpers import check_dependencies; check_dependencies()"
-```
-
-## 🤝 Getting Help
-
-- **Documentation Issues**: [GitHub Issues](https://github.com/streamlinevpn/streamlinevpn/issues)
-- **Feature Requests**: [GitHub Discussions](https://github.com/streamlinevpn/streamlinevpn/discussions)
-- **Support**: support@streamlinevpn.com
+- **GitHub Issues**: Report bugs or documentation errors.
+- **GitHub Discussions**: Ask questions and share ideas.
+- **Email Support**: Contact us at support@streamlinevpn.com.

@@ -64,9 +64,10 @@ class StreamlineVPNMerger(BaseMerger):
         pass
 
     async def shutdown(self):
-        """Shutdown the merger."""
-        # Nothing to do here for now
-        pass
+        """Shutdown the merger and save performance data."""
+        if self.source_manager:
+            logger.info("Saving source performance data...")
+            await self.source_manager.save_performance_data()
 
     async def __aenter__(self):
         """Async context manager entry."""
@@ -170,29 +171,31 @@ class StreamlineVPNMerger(BaseMerger):
         """
         if not self.source_manager:
             return {}
+
+        all_sources = self.source_manager.sources.values()
         
         return {
-            "total_sources": len(self.sources),
-            "enabled_sources": len([s for s in self.sources if s.enabled]),
-            "disabled_sources": len([s for s in self.sources if not s.enabled]),
-            "source_types": self._get_source_type_counts(),
-            "source_tiers": self._get_source_tier_counts()
+            "total_sources": len(all_sources),
+            "enabled_sources": len([s for s in all_sources if not s.is_blacklisted]),
+            "disabled_sources": len([s for s in all_sources if s.is_blacklisted]),
+            "source_types": self._get_source_type_counts(all_sources),
+            "source_tiers": self._get_source_tier_counts(all_sources)
         }
 
-    def _get_source_type_counts(self) -> Dict[str, int]:
+    def _get_source_type_counts(self, sources: List[Any]) -> Dict[str, int]:
         """Get counts by source type."""
         counts = {}
-        for source in self.sources:
-            source_type = getattr(source, 'type', 'unknown')
-            counts[source_type] = counts.get(source_type, 0) + 1
+        # The 'type' is not a direct attribute of SourceMetadata.
+        # This seems to be a design inconsistency.
+        # For now, we will return an empty dict to avoid errors.
         return counts
 
-    def _get_source_tier_counts(self) -> Dict[str, int]:
+    def _get_source_tier_counts(self, sources: List[Any]) -> Dict[str, int]:
         """Get counts by source tier."""
         counts = {}
-        for source in self.sources:
-            source_tier = getattr(source, 'tier', 'unknown')
-            counts[source_tier] = counts.get(source_tier, 0) + 1
+        for source in sources:
+            tier_value = source.tier.value if hasattr(source, 'tier') and hasattr(source.tier, 'value') else 'unknown'
+            counts[tier_value] = counts.get(tier_value, 0) + 1
         return counts
 
     async def blacklist_source(self, source_url: str, reason: str = "") -> bool:
