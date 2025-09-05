@@ -23,7 +23,6 @@ data:
   LOG_LEVEL: "INFO"
   REDIS_CLUSTER_NODES: "redis-node-1:7000,redis-node-2:7000,redis-node-3:7000"
   PROMETHEUS_ENDPOINT: "http://prometheus:9090"
-  JWT_SECRET_KEY: "your-jwt-secret-key-here"
   CACHE_TTL: "300"
   ML_MODEL_PATH: "/app/models"
   MAX_CONCURRENT_CONNECTIONS: "10000"
@@ -37,11 +36,11 @@ metadata:
   name: streamline-vpn-secrets
   namespace: streamline-vpn
 type: Opaque
-data:
-  # Base64 encoded secrets
-  jwt-secret: eW91ci1qd3Qtc2VjcmV0LWtleS1oZXJl  # your-jwt-secret-key-here
-  redis-password: cmVkaXMtcGFzc3dvcmQ=  # redis-password
-  database-url: cG9zdGdyZXNxbDovL3VzZXI6cGFzc0BkYi5zdHJlYW1saW5ldnBuLmNvbS9zdHJlYW1saW5ldnBu  # postgresql://user:pass@db.streamlinevpn.com/streamlinevpn
+stringData:
+  # NOTE: In a real production environment, these should be managed with a proper secrets management tool like Vault or sealed secrets.
+  jwt-secret: "your-jwt-secret-key-here"
+  redis-password: "redis-password"
+  database-url: "postgresql://user:pass@db.streamlinevpn.com/streamlinevpn"
 
 ---
 apiVersion: apps/v1
@@ -80,16 +79,18 @@ spec:
       serviceAccountName: streamline-vpn
       containers:
       - name: streamline-vpn
-        image: streamline-vpn:latest
+        image: streamlinevpn/app:${IMAGE_TAG:-latest}
         imagePullPolicy: Always
         ports:
-        - containerPort: 8080
+        - containerPort: 8000
           name: http
           protocol: TCP
         - containerPort: 9090
           name: metrics
           protocol: TCP
         env:
+        - name: API_PORT
+          value: "8000"
         - name: LOG_LEVEL
           valueFrom:
             configMapKeyRef:
@@ -125,7 +126,7 @@ spec:
         livenessProbe:
           httpGet:
             path: /health
-            port: 8080
+            port: http
           initialDelaySeconds: 30
           periodSeconds: 10
           timeoutSeconds: 5
@@ -133,7 +134,7 @@ spec:
         readinessProbe:
           httpGet:
             path: /health
-            port: 8080
+            port: http
           initialDelaySeconds: 10
           periodSeconds: 5
           timeoutSeconds: 3
@@ -175,12 +176,12 @@ metadata:
 spec:
   type: ClusterIP
   ports:
-  - port: 8080
-    targetPort: 8080
+  - port: 80
+    targetPort: http
     protocol: TCP
     name: http
   - port: 9090
-    targetPort: 9090
+    targetPort: metrics
     protocol: TCP
     name: metrics
   selector:
@@ -198,8 +199,8 @@ spec:
   type: ClusterIP
   clusterIP: None
   ports:
-  - port: 8080
-    targetPort: 8080
+  - port: 80
+    targetPort: http
     protocol: TCP
     name: http
   selector:
@@ -295,7 +296,7 @@ spec:
           app: streamline-vpn
     ports:
     - protocol: TCP
-      port: 8080
+      port: 80
     - protocol: TCP
       port: 9090
   egress:
@@ -602,7 +603,7 @@ spec:
           service:
             name: streamline-vpn-service
             port:
-              number: 8080
+              number: 80
   - host: dashboard.streamlinevpn.com
     http:
       paths:

@@ -15,6 +15,7 @@ from datetime import datetime
 from ..utils.logging import get_logger
 from .feature_processor import NetworkFeatureProcessor, NetworkMetrics
 from .lstm_model import LSTMModel, QualityPrediction
+from ..core.cache_manager import CacheManager
 
 logger = get_logger(__name__)
 
@@ -22,16 +23,22 @@ logger = get_logger(__name__)
 class QualityPredictionService:
     """Main quality prediction service with caching and ML integration."""
     
-    def __init__(self, cache_ttl: int = 60):
+    def __init__(
+        self,
+        cache_manager: Optional[CacheManager] = None,
+        feature_processor: Optional[NetworkFeatureProcessor] = None,
+        lstm_model: Optional[LSTMModel] = None,
+        cache_ttl: int = 60
+    ):
         """Initialize quality prediction service.
         
         Args:
             cache_ttl: Cache TTL in seconds
         """
         self.cache_ttl = cache_ttl
-        self.feature_processor = NetworkFeatureProcessor()
-        self.lstm_model = LSTMModel()
-        self.prediction_cache = {}
+        self.feature_processor = feature_processor or NetworkFeatureProcessor()
+        self.lstm_model = lstm_model or LSTMModel()
+        self.cache_manager = cache_manager
         self.metrics_history = {}
         self.performance_stats = {
             "predictions_made": 0,
@@ -58,9 +65,9 @@ class QualityPredictionService:
             
             # Check cache first
             cache_key = self._generate_cache_key(features)
-            if cache_key in self.prediction_cache:
-                cached_result, timestamp = self.prediction_cache[cache_key]
-                if time.time() - timestamp < self.cache_ttl:
+            if self.cache_manager:
+                cached_result = await self.cache_manager.get(cache_key)
+                if cached_result:
                     self.performance_stats["cache_hits"] += 1
                     return cached_result
             
@@ -78,7 +85,8 @@ class QualityPredictionService:
                 'timestamp': datetime.utcnow().isoformat()
             }
             
-            self.prediction_cache[cache_key] = (result, time.time())
+            if self.cache_manager:
+                await self.cache_manager.set(cache_key, result, ttl=self.cache_ttl)
             
             # Update performance statistics
             prediction_time = time.perf_counter() - start_time
@@ -120,7 +128,7 @@ class QualityPredictionService:
         """Generate cache key from features."""
         # Create hash of normalized features
         feature_str = json.dumps(features, sort_keys=True)
-        return hashlib.md5(feature_str.encode()).hexdigest()
+        return f"ml_prediction:{hashlib.md5(feature_str.encode()).hexdigest()}"
     
     def _update_performance_stats(self, prediction_time: float) -> None:
         """Update performance statistics."""
@@ -149,7 +157,11 @@ class QualityPredictionService:
         """Get service performance statistics."""
         return self.performance_stats.copy()
     
-    def clear_cache(self) -> None:
+    async def clear_cache(self) -> None:
         """Clear prediction cache."""
-        self.prediction_cache.clear()
-        logger.info("Quality prediction cache cleared")
+        if self.cache_manager:
+            # This is not ideal as it would clear all caches, not just the ML cache.
+            # A better solution would be to use a separate Redis database or a key prefix for the ML cache.
+            # For now, we'll just clear the whole cache.
+            await self.cache_manager.clear()
+            logger.info("Quality prediction cache cleared")

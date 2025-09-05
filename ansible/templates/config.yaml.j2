@@ -1,0 +1,9 @@
+# StreamlineVPN Configuration
+
+# This is a placeholder file. In a real environment, this would be a Jinja2
+# template that generates the application's configuration file.
+
+# Example configuration:
+log_level: {{ log_level | default('INFO') }}
+redis_url: {{ redis_url | default('redis://localhost:6379/0') }}
+postgres_url: {{ postgres_url | default('postgresql://user:password@localhost:5432/streamline') }}

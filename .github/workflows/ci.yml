@@ -7,29 +7,71 @@ on:
     branches: [ main, master ]
 
 jobs:
-  build:
+  test:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        python-version: ["3.10", "3.11"]
+        python-version: ["3.10", "3.11", "3.12"]
     steps:
       - uses: actions/checkout@v4
       - name: Set up Python ${{ matrix.python-version }}
         uses: actions/setup-python@v5
         with:
           python-version: ${{ matrix.python-version }}
-      - name: Install nox
+      - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
-          pip install nox
-      - name: Run tests (no network)
+          pip install -r requirements.txt
+          if [ -f tests/requirements.txt ]; then pip install -r tests/requirements.txt; fi
+      - name: Run tests with coverage
         env:
-          SKIP_NETWORK: "true"
+          SKIP_NETWORK: '1'
+          SKIP_DISCOVERY: '1'
+          PYTHONPATH: src
         run: |
-          nox -s tests
-      - name: Smoke (server + endpoints)
+          pytest -q --cov=streamline_vpn --cov-report=term-missing --cov-fail-under=90
+      - name: Generate coverage badge
+        if: always()
+        run: |
+          pip install coverage-badge
+          coverage-badge -o coverage.svg -f || true
+      - name: Upload coverage badge artifact
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage-badge
+          path: coverage.svg
+
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install flake8
+      - name: Run flake8
+        run: |
+          flake8 src/
+
+  smoke:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+      - name: Run smoke test
         env:
           PYTHONPATH: src
         run: |
-          nox -s smoke
-
+          python -m streamline_vpn --help

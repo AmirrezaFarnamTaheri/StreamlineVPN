@@ -20,13 +20,20 @@ logger = get_logger(__name__)
 class SecurityManager:
     """Security management system."""
     
-    def __init__(self):
+    def __init__(
+        self,
+        threat_analyzer: Optional[ThreatAnalyzer] = None,
+        validator: Optional[SecurityValidator] = None,
+        pattern_analyzer: Optional[PatternAnalyzer] = None,
+        rate_limiter: Optional[RateLimiter] = None,
+        blocklist_manager: Optional[BlocklistManager] = None,
+    ):
         """Initialize security manager."""
-        self.threat_analyzer = ThreatAnalyzer()
-        self.validator = SecurityValidator()
-        self.pattern_analyzer = PatternAnalyzer()
-        self.rate_limiter = RateLimiter()
-        self.blocklist_manager = BlocklistManager()
+        self.threat_analyzer = threat_analyzer or ThreatAnalyzer()
+        self.validator = validator or SecurityValidator()
+        self.pattern_analyzer = pattern_analyzer or PatternAnalyzer()
+        self.rate_limiter = rate_limiter or RateLimiter()
+        self.blocklist_manager = blocklist_manager or BlocklistManager()
     
     def analyze_configuration(self, config: str) -> Dict[str, Any]:
         """Analyze configuration for security threats.
@@ -210,4 +217,3 @@ class SecurityManager:
         
         # Cap at 1.0
         return min(score, 1.0)
-

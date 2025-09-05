@@ -9,4 +9,10 @@ services:
       interval: 5s
       timeout: 3s
       retries: 10
+    networks:
+      - vpn-merger-network
+
+networks:
+  vpn-merger-network:
+    external: true
 
