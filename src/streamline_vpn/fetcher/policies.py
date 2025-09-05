@@ -12,7 +12,7 @@ from typing import Dict, Tuple
 
 from .circuit_breaker import CircuitBreaker, CircuitBreakerOpenException
 from .rate_limiter import AdaptiveRateLimiter
-from ..settings import get_fetcher_settings
+from ..settings import get_settings
 
 
 def ensure_policies(
@@ -21,7 +21,8 @@ def ensure_policies(
     rate_limiters: Dict[str, AdaptiveRateLimiter],
 ) -> Tuple[CircuitBreaker, AdaptiveRateLimiter]:
     """Ensure there is a circuit breaker and a rate limiter for a domain."""
-    s = get_fetcher_settings()
+    settings = get_settings()
+    s = settings.fetcher
     if domain not in circuit_breakers:
         circuit_breakers[domain] = CircuitBreaker(
             failure_threshold=s.cb_failure_threshold,

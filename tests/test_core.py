@@ -149,6 +149,9 @@ class TestOutputManager:
             assert isinstance(result, Path)
 
 
+import fakeredis.aioredis
+
+
 class TestCacheManager:
     """Test cache manager functionality."""
 
@@ -156,17 +159,19 @@ class TestCacheManager:
     def cache_manager(self):
         """Create cache manager instance for testing."""
         redis_nodes = [{"host": "localhost", "port": "6379"}]
-        return CacheManager(redis_nodes)
+        cm = CacheManager(redis_nodes)
+        cm.l2_redis_client = fakeredis.aioredis.FakeRedis()
+        return cm
 
     @pytest.mark.asyncio
     async def test_cache_set_get(self, cache_manager):
         """Test cache set and get operations."""
         key = "test_key"
         value = {"test": "data"}
-        
+
         await cache_manager.set(key, value)
         result = await cache_manager.get(key)
-        
+
         assert result == value
 
     @pytest.mark.asyncio
@@ -174,11 +179,11 @@ class TestCacheManager:
         """Test cache invalidation."""
         key = "test_key"
         value = {"test": "data"}
-        
+
         await cache_manager.set(key, value)
         await cache_manager.invalidate(key)
         result = await cache_manager.get(key)
-        
+
         assert result is None
 
     def test_get_statistics(self, cache_manager):

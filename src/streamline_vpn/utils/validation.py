@@ -8,8 +8,9 @@ Validation functions for URLs, configurations, and other data.
 import re
 import urllib.parse
 from typing import Optional, List, Dict, Any
-from ..settings import get_supported_protocol_prefixes
+from ..settings import get_settings
 from .logging import get_logger
+from ..security.validator import SecurityValidator
 
 logger = get_logger(__name__)
 
@@ -55,8 +56,9 @@ def validate_config_line(config_line: str) -> bool:
             return False
     
     # Check for valid VPN protocol prefixes
-    prefixes = get_supported_protocol_prefixes()
-    return any(config_line.startswith(protocol) for protocol in prefixes)
+    prefixes = get_settings().supported_protocol_prefixes
+    line = config_line.strip().lower()
+    return any(line.startswith(protocol.lower()) for protocol in prefixes)
 
 
 def validate_config(config: Dict[str, Any]) -> bool:
@@ -120,7 +122,8 @@ def validate_source_metadata(metadata: Dict[str, Any]) -> bool:
         return False
     
     # Validate URL
-    if not validate_url(metadata['url']):
+    validator = SecurityValidator()
+    if not validator.validate_url(metadata['url']):
         return False
     
     # Validate optional fields

@@ -50,14 +50,6 @@ sources:
         metadata:
           description: "Large collection of free nodes"
           region: "global"
-      
-      - url: "https://raw.githubusercontent.com/peasoft/NoMoreWalls/master/list.txt"
-        weight: 0.5
-        protocols: ["vmess", "vless", "trojan", "ss"]
-        update: "24h"
-        metadata:
-          description: "Bulk source with mixed quality"
-          region: "global"
 
   experimental:
     description: "Experimental sources for testing"

@@ -11,7 +11,7 @@ from urllib.parse import urlparse
 from typing import Dict, List, Any, Optional
 
 from ..utils.logging import get_logger
-from ..settings import get_security_settings
+from ..settings import get_settings
 
 logger = get_logger(__name__)
 
@@ -20,7 +20,8 @@ class SecurityValidator:
     
     def __init__(self):
         """Initialize security validator."""
-        s = get_security_settings()
+        settings = get_settings()
+        s = settings.security
         self.safe_ports = s.safe_ports
         self.safe_protocols = s.safe_protocols
         self.safe_encryptions = s.safe_encryptions
@@ -242,7 +243,8 @@ class SecurityValidator:
             return False
         
         # Check for suspicious TLDs
-        if any(hostname.lower().endswith(tld) for tld in get_security_settings().suspicious_tlds):
+        settings = get_settings()
+        if any(hostname.lower().endswith(tld) for tld in settings.security.suspicious_tlds):
             return False
         
         return True

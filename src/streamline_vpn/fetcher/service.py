@@ -16,7 +16,7 @@ from .circuit_breaker import CircuitBreaker, CircuitBreakerOpenException
 from .rate_limiter import RateLimiter, AdaptiveRateLimiter
 from .policies import ensure_policies, apply_rate_limit, call_with_breaker
 from ..utils.logging import get_logger
-from ..settings import get_fetcher_settings
+from ..settings import get_settings
 from ..utils.helpers import measure_time
 
 logger = get_logger(__name__)
@@ -45,7 +45,8 @@ class FetcherService:
             rate_limit_requests: Rate limit requests per window
             rate_limit_window: Rate limit window in seconds
         """
-        s = get_fetcher_settings()
+        settings = get_settings()
+        s = settings.fetcher
         self.max_concurrent = max_concurrent if max_concurrent is not None else s.max_concurrent
         self.timeout = timeout if timeout is not None else s.timeout_seconds
         self.retry_attempts = retry_attempts if retry_attempts is not None else s.retry_attempts

@@ -17,11 +17,7 @@ from pydantic import BaseModel
 
 from ..core.merger import StreamlineVPNMerger
 from ..utils.logging import get_logger
-from ..settings import (
-    get_fetcher_settings,
-    get_security_settings,
-    get_supported_protocol_prefixes,
-)
+from ..settings import get_settings
 
 logger = get_logger(__name__)
 
@@ -208,28 +204,11 @@ def create_app() -> FastAPI:
     async def get_runtime_configuration():
         """Dump current runtime configuration (sanitized)."""
         try:
-            fetcher = get_fetcher_settings()
-            security = get_security_settings()
+            settings = get_settings()
             return {
-                "fetcher": {
-                    "max_concurrent": fetcher.max_concurrent,
-                    "timeout_seconds": fetcher.timeout_seconds,
-                    "retry_attempts": fetcher.retry_attempts,
-                    "retry_delay": fetcher.retry_delay,
-                    "cb_failure_threshold": fetcher.cb_failure_threshold,
-                    "cb_recovery_timeout_seconds": fetcher.cb_recovery_timeout_seconds,
-                    "rl_max_requests": fetcher.rl_max_requests,
-                    "rl_time_window_seconds": fetcher.rl_time_window_seconds,
-                    "rl_burst_limit": fetcher.rl_burst_limit,
-                },
-                "security": {
-                    "suspicious_tlds": security.suspicious_tlds,
-                    "safe_protocols": security.safe_protocols,
-                    "safe_encryptions": security.safe_encryptions,
-                    "safe_ports": security.safe_ports,
-                    "suspicious_text_patterns": security.suspicious_text_patterns,
-                },
-                "supported_protocol_prefixes": get_supported_protocol_prefixes(),
+                "fetcher": settings.fetcher.model_dump(),
+                "security": settings.security.model_dump(),
+                "supported_protocol_prefixes": settings.supported_protocol_prefixes,
             }
         except Exception as e:
             logger.error(f"Runtime config error: {e}")
@@ -260,29 +239,12 @@ def create_app() -> FastAPI:
                 merger = None
 
             # Return the fresh settings snapshot
-            fetcher = get_fetcher_settings()
-            security = get_security_settings()
+            settings = get_settings()
             return {
                 "message": "Runtime configuration reloaded",
-                "fetcher": {
-                    "max_concurrent": fetcher.max_concurrent,
-                    "timeout_seconds": fetcher.timeout_seconds,
-                    "retry_attempts": fetcher.retry_attempts,
-                    "retry_delay": fetcher.retry_delay,
-                    "cb_failure_threshold": fetcher.cb_failure_threshold,
-                    "cb_recovery_timeout_seconds": fetcher.cb_recovery_timeout_seconds,
-                    "rl_max_requests": fetcher.rl_max_requests,
-                    "rl_time_window_seconds": fetcher.rl_time_window_seconds,
-                    "rl_burst_limit": fetcher.rl_burst_limit,
-                },
-                "security": {
-                    "suspicious_tlds": security.suspicious_tlds,
-                    "safe_protocols": security.safe_protocols,
-                    "safe_encryptions": security.safe_encryptions,
-                    "safe_ports": security.safe_ports,
-                    "suspicious_text_patterns": security.suspicious_text_patterns,
-                },
-                "supported_protocol_prefixes": get_supported_protocol_prefixes(),
+                "fetcher": settings.fetcher.model_dump(),
+                "security": settings.security.model_dump(),
+                "supported_protocol_prefixes": settings.supported_protocol_prefixes,
             }
         except Exception as e:
             logger.error(f"Reload settings error: {e}")

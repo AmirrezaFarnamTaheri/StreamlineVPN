@@ -1,15 +1,16 @@
 import re
 from typing import Dict, Any, List, Set
 from urllib.parse import urlparse
-from ...settings import get_security_settings
+from ...settings import get_settings
 
 
 def analyze_domain_info(url: str, blocked_domains: Set[str]) -> Dict[str, Any]:
     try:
+        settings = get_settings()
         parsed = urlparse(url)
         domain = parsed.hostname or ""
         is_blocked = any(b in domain for b in blocked_domains)
-        has_suspicious_tld = any(domain.endswith(t) for t in get_security_settings().suspicious_tlds)
+        has_suspicious_tld = any(domain.endswith(t) for t in settings.security.suspicious_tlds)
         is_ip = bool(re.match(r"^\d+\.\d+\.\d+\.\d+$", domain))
         return {
             "domain": domain,
