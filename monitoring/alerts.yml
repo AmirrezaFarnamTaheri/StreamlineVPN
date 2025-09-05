@@ -1,0 +1,48 @@
+groups:
+  - name: streamline
+    interval: 30s
+    rules:
+      - alert: HighErrorRate
+        expr: rate(streamline_errors_total[5m]) > 0.1
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: High error rate detected
+          description: "Error rate is {{ $value }} errors per second"
+          
+      - alert: HighMemoryUsage
+        expr: streamline_memory_usage_bytes / streamline_memory_limit_bytes > 0.9
+        for: 5m
+        labels:
+          severity: critical
+        annotations:
+          summary: High memory usage
+          description: "Memory usage is above 90%"
+          
+      - alert: HighResponseTime
+        expr: streamline_request_duration_seconds{quantile="0.95"} > 2
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: High response time
+          description: "95th percentile response time is above 2 seconds"
+          
+      - alert: LowCacheHitRate
+        expr: streamline_cache_hit_rate < 0.5
+        for: 10m
+        labels:
+          severity: warning
+        annotations:
+          summary: Low cache hit rate
+          description: "Cache hit rate is below 50%"
+          
+      - alert: SourceDiscoveryFailure
+        expr: rate(streamline_source_discovery_failures_total[5m]) > 0
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: Source discovery failures
+          description: "Source discovery is failing"

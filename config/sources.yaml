@@ -1,0 +1,103 @@
+# StreamlineVPN Sources Configuration
+# ===================================
+
+sources:
+  premium:
+    description: "High-quality, reliable sources with excellent uptime"
+    urls:
+      - url: "https://raw.githubusercontent.com/peasoft/NoMoreWalls/master/list.txt"
+        weight: 0.9
+        protocols: ["vmess", "vless", "trojan"]
+        update: "1h"
+        metadata:
+          description: "Premium source with high-quality configurations"
+          region: "global"
+      
+      - url: "https://raw.githubusercontent.com/mahdibland/V2RayAggregator/master/sub/sub_merge.txt"
+        weight: 0.85
+        protocols: ["vmess", "vless"]
+        update: "2h"
+        metadata:
+          description: "Reliable aggregator with good performance"
+          region: "global"
+
+  reliable:
+    description: "Trusted sources with good performance"
+    urls:
+      - url: "https://raw.githubusercontent.com/aiboboxx/v2rayfree/main/v2"
+        weight: 0.7
+        protocols: ["vmess", "vless", "trojan", "ss"]
+        update: "4h"
+        metadata:
+          description: "Free VPN configurations"
+          region: "global"
+      
+      - url: "https://raw.githubusercontent.com/Leon406/SubCrawler/main/sub/sub_merge.txt"
+        weight: 0.75
+        protocols: ["vmess", "vless", "trojan"]
+        update: "6h"
+        metadata:
+          description: "SubCrawler aggregated sources"
+          region: "global"
+
+  bulk:
+    description: "Bulk sources with many configurations"
+    urls:
+      - url: "https://raw.githubusercontent.com/ripaojiedian/freenode/main/sub"
+        weight: 0.6
+        protocols: ["vmess", "vless", "trojan", "ss", "ssr"]
+        update: "12h"
+        metadata:
+          description: "Large collection of free nodes"
+          region: "global"
+      
+      - url: "https://raw.githubusercontent.com/peasoft/NoMoreWalls/master/list.txt"
+        weight: 0.5
+        protocols: ["vmess", "vless", "trojan", "ss"]
+        update: "24h"
+        metadata:
+          description: "Bulk source with mixed quality"
+          region: "global"
+
+  experimental:
+    description: "Experimental sources for testing"
+    urls:
+      - url: "https://raw.githubusercontent.com/colatiger/v2ray-nodes/master/sub"
+        weight: 0.3
+        protocols: ["vmess", "vless"]
+        update: "24h"
+        metadata:
+          description: "Experimental source"
+          region: "global"
+
+# Processing configuration
+processing:
+  max_concurrent: 50
+  timeout: 30
+  retry_attempts: 3
+  retry_delay: 2
+
+# Quality thresholds
+quality:
+  min_score: 0.3
+  high_quality_threshold: 0.7
+  blacklist_threshold: 0.1
+
+# Output configuration
+output:
+  formats: ["raw", "base64", "json", "csv", "clash", "singbox"]
+  include_metadata: true
+  sort_by_quality: true
+
+# Cache configuration
+cache:
+  enabled: true
+  ttl: 3600
+  max_size: 1000
+
+# Discovery configuration
+discovery:
+  enabled: true
+  interval: "6h"
+  platforms: ["github", "telegram"]
+  max_new_sources: 50

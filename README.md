@@ -1,38 +1,78 @@
-# VPN Subscription Merger
+# StreamlineVPN
 
-A high‑performance, production‑ready VPN subscription merger that aggregates and processes VPN configurations from multiple sources with advanced filtering, validation, and output formatting.
+[![Python Version](https://img.shields.io/badge/python-3.8%2B-blue.svg)](https://python.org)
+[![License](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
+[![Status](https://img.shields.io/badge/status-production%20ready-brightgreen.svg)](https://github.com/streamlinevpn/streamline-vpn)
 
-## Quick Start
+**Enterprise-grade VPN configuration aggregator with advanced features**
 
-### Installation
+StreamlineVPN is a high-performance, production-ready VPN configuration aggregator that processes VPN configurations from multiple sources with advanced filtering, validation, and output formatting. Built for enterprise use with comprehensive monitoring, caching, and quality prediction.
 
+## 🚀 Features
+
+### Core Features
+- **Multi-source Aggregation**: Process configurations from 500+ sources
+- **Real-time Validation**: Validate accessibility and configuration validity
+- **Advanced Deduplication**: Semantic analysis-based deduplication
+- **Quality Scoring**: ML-powered quality prediction and ranking
+- **Multiple Output Formats**: Raw, base64, CSV, JSON, Clash, SingBox
+
+### Advanced Features
+- **Machine Learning**: Quality prediction with feature analysis
+- **Geographic Optimization**: Location-based server selection
+- **Real-time Discovery**: Automatic source discovery from GitHub, Telegram
+- **Multi-tier Caching**: L1 (memory), L2 (Redis), L3 (disk) caching
+- **Enterprise Monitoring**: Prometheus metrics, Grafana dashboards
+- **High Availability**: Circuit breakers, retry logic, fault tolerance
+
+## 📦 Installation
+
+### From PyPI (Recommended)
 ```bash
-# Install from PyPI
-pip install vpn-subscription-merger
+pip install streamline-vpn
+```
 
-# Or install from source
-git clone https://github.com/vpn-merger-team/vpn-subscription-merger.git
-cd vpn-subscription-merger
+### From Source
+```bash
+git clone https://github.com/streamlinevpn/streamline-vpn.git
+cd streamline-vpn
 pip install -e .
 ```
+
+### With Optional Features
+```bash
+# With ML features
+pip install streamline-vpn[ml]
+
+# With geographic optimization
+pip install streamline-vpn[geo]
+
+# With source discovery
+pip install streamline-vpn[discovery]
+
+# All features
+pip install streamline-vpn[ml,geo,discovery]
+```
+
+## 🎯 Quick Start
 
 ### Basic Usage
 
 ```python
 import asyncio
-from vpn_merger import VPNSubscriptionMerger
+from streamline_vpn import StreamlineVPNMerger
 
 async def main():
-    # Initialize the merger
-    merger = VPNSubscriptionMerger()
+    # Create merger instance
+    merger = StreamlineVPNMerger()
     
-    # Run comprehensive merge
-    results = await merger.run_comprehensive_merge()
-    
+    # Process all sources
+    results = await merger.process_all()
+
     # Save results
-    merger.save_results("output/")
-    
-    print(f"Processed {len(results)} configurations")
+    await merger.save_results("output/")
+
+    print(f"Processed {results['configurations_found']} configurations")
 
 # Run the merger
 asyncio.run(main())
@@ -42,121 +82,244 @@ asyncio.run(main())
 
 ```bash
 # Run with default configuration
-vpn-merger
+streamline-vpn
 
 # Run with custom config
-vpn-merger --config config/sources.unified.yaml
+streamline-vpn --config config/sources.yaml
 
 # Run with specific output directory
-vpn-merger --output output/ --format clash
+streamline-vpn --output output/ --format clash
 ```
 
-## Features
+### Advanced Usage
 
-### Core Features
-- Multi‑source aggregation from 500+ sources
-- Real‑time validation of accessibility and configuration validity
-- Advanced deduplication using semantic analysis
-- Quality scoring by performance and reliability
-- Multiple output formats: raw, base64, CSV, JSON, sing‑box, and clash
+```python
+from streamline_vpn import StreamlineVPNMerger, create_merger
 
-### Advanced Features
-- Machine learning‑based quality prediction
-- Geographic optimization for location‑based selection
-- Real‑time source discovery (GitHub, Telegram)
-- Web analytics dashboard
-- Multi‑tier caching for performance
+# Create with custom configuration
+merger = create_merger("config/custom_sources.yaml")
 
-## Architecture
+# Process with specific options
+results = await merger.process_all(
+    output_dir="output/",
+    formats=["json", "clash", "singbox"]
+)
 
-The VPN Subscription Merger follows a modular, event‑driven architecture.
+# Get statistics
+stats = await merger.get_statistics()
+print(f"Success rate: {stats['success_rate']:.1%}")
+
+# Get configurations
+configs = await merger.get_configurations()
+print(f"Found {len(configs)} high-quality configurations")
+```
+
+## 🏗️ Architecture
+
+StreamlineVPN follows a modular, event-driven architecture:
+
+```
+┌─────────────────┐    ┌─────────────────┐    ┌─────────────────┐
+│   Source        │    │   Configuration │    │   Output        │
+│   Manager       │───▶│   Processor     │───▶│   Manager       │
+└─────────────────┘    └─────────────────┘    └─────────────────┘
+         │                       │                       │
+         ▼                       ▼                       ▼
+┌─────────────────┐    ┌─────────────────┐    ┌─────────────────┐
+│   Discovery     │    │   Quality       │    │   Cache         │
+│   Manager       │    │   Predictor     │    │   Manager       │
+└─────────────────┘    └─────────────────┘    └─────────────────┘
+```
 
 ### Key Components
 
-- SourceManager: Manages VPN subscription sources with tiered reliability
-- SourceProcessor: Processes and validates configurations
-- ConfigurationProcessor: Handles protocol parsing and deduplication
-- OutputManager: Generates multiple output formats
-- QualityPredictor: ML‑based quality assessment
-- AnalyticsDashboard: Real‑time monitoring and analytics
+- **SourceManager**: Manages VPN sources with reputation tracking
+- **ConfigurationProcessor**: Parses and validates configurations
+- **QualityPredictor**: ML-based quality scoring
+- **GeographicOptimizer**: Location-based optimization
+- **CacheManager**: Multi-tier caching system
+- **OutputManager**: Multiple format generation
+- **DiscoveryManager**: Automatic source discovery
 
-## Documentation
+## 📊 Configuration
 
-### Choose Your Path
-
-- New to SubMerger: Start with the [Quick Start Guide](docs/quick-start.md)
-- Power users: Configure deeply in [Configuration](docs/configuration/)
-- Operators/SREs: Deploy via the [Deployment Guide](docs/deployment.md) and see [Troubleshooting](docs/troubleshooting.md)
-- Developers: Use the [Python SDK](docs/sdk-python.md), study the [Architecture](docs/architecture.md), and browse the [API Reference](docs/api/)
-
-### User Guides
-- Quick Start: [docs/quick-start.md](docs/quick-start.md)
-- Configuration Guide: [docs/configuration/](docs/configuration/)
-- Output Formats: [docs/output/](docs/output/)
-
-### Developer Documentation
-- API Reference: [docs/api/](docs/api/)
-- Architecture Overview: [docs/architecture.md](docs/architecture.md)
-- Contributing Guide: [CONTRIBUTING.md](CONTRIBUTING.md)
-
-### Advanced Topics
-- Performance Tuning: [docs/performance/](docs/performance/)
-- Security Policies: [SECURITY.md](SECURITY.md)
-- Troubleshooting: [docs/troubleshooting.md](docs/troubleshooting.md)
-
-## Testing
-
-```bash
-# Run all tests
-pytest
-
-# Run specific test categories
-pytest tests/unit/                    # Unit tests
-pytest tests/integration/             # Integration tests
-pytest tests/performance/             # Performance tests
-
-# Run with coverage
-pytest --cov=vpn_merger --cov-report=html
-```
-
-## Performance
-
-- Processing speed: 1000+ configurations per second
-- Memory usage: Optimized for large‑scale processing
-- Concurrency: Async/await for maximum efficiency
-- Caching: Multi‑tier caching reduces redundant operations
-
-## Configuration
-
-The merger uses YAML configuration files to define sources and processing options:
+### Sources Configuration
 
 ```yaml
-metadata:
-  name: "VPN Sources"
-  version: "2.0.0"
-  description: "Comprehensive VPN source collection"
-
+# config/sources.yaml
 sources:
-  tier1:
-    metadata:
-      type: "validated"
-      reliability: "high"
+  premium:
+    description: "High-quality, reliable sources"
     urls:
-      - url: "https://example.com/sources.txt"
-        weight: 1.0
+      - url: "https://example.com/configs.txt"
+        weight: 0.9
+        protocols: ["vmess", "vless", "trojan"]
+        update: "1h"
+        metadata:
+          description: "Premium source"
+          region: "global"
+
+  reliable:
+    description: "Trusted sources with good performance"
+    urls:
+      - url: "https://example.com/bulk.txt"
+        weight: 0.7
         protocols: ["vmess", "vless"]
+        update: "4h"
 ```
 
-## Contributing
+### Processing Configuration
+
+```yaml
+processing:
+  max_concurrent: 50
+  timeout: 30
+  retry_attempts: 3
+  retry_delay: 2
+
+quality:
+  min_score: 0.3
+  high_quality_threshold: 0.7
+  blacklist_threshold: 0.1
+
+output:
+  formats: ["raw", "base64", "json", "csv", "clash", "singbox"]
+  include_metadata: true
+  sort_by_quality: true
+```
+
+## 🔧 API Reference
+
+### Core Classes
+
+#### StreamlineVPNMerger
+Main orchestration class for VPN configuration processing.
+
+```python
+class StreamlineVPNMerger:
+    def __init__(self, config_path: str = "config/sources.yaml")
+    async def process_all(self, output_dir: str = "output") -> Dict[str, Any]
+    async def get_statistics(self) -> Dict[str, Any]
+    async def get_configurations(self) -> List[VPNConfiguration]
+    def save_results(self, output_dir: str) -> None
+```
+
+#### VPNConfiguration
+Data model for VPN configurations.
+
+```python
+@dataclass
+class VPNConfiguration:
+    protocol: ProtocolType
+    server: str
+    port: int
+    user_id: Optional[str] = None
+    password: Optional[str] = None
+    encryption: Optional[str] = None
+    quality_score: float = 0.0
+    # ... other fields
+```
+
+### Utility Functions
+
+```python
+# Create merger instance
+merger = create_merger("config/sources.yaml")
+
+# Quick merge function
+results = await merge_configurations("config/sources.yaml", "output/")
+```
+
+## 📈 Monitoring
+
+### Metrics
+
+StreamlineVPN exposes Prometheus-compatible metrics:
+
+- `streamline_requests_total`: Total requests processed
+- `streamline_errors_total`: Total errors encountered
+- `streamline_request_duration_seconds`: Request duration histogram
+- `streamline_configs_processed_total`: Total configurations processed
+- `streamline_cache_hit_rate`: Cache hit rate
+- `streamline_source_reputation`: Source reputation scores
+
+### Health Checks
+
+```bash
+# Health check endpoint
+curl http://localhost:8000/health
+
+# Metrics endpoint
+curl http://localhost:8000/metrics
+```
+
+### Grafana Dashboards
+
+Pre-configured dashboards for:
+- System overview and performance
+- Application metrics and errors
+- Business metrics and quality scores
+- Infrastructure health and caching
+
+## 🚀 Deployment
+
+### Docker
+
+```bash
+# Build image
+docker build -t streamline-vpn .
+
+# Run container
+docker run -p 8000:8000 -v $(pwd)/config:/app/config streamline-vpn
+```
+
+### Docker Compose
+
+```bash
+# Start complete stack
+docker-compose -f docker-compose.production.yml up -d
+```
+
+### Kubernetes
+
+```bash
+# Deploy to Kubernetes
+kubectl apply -f kubernetes/
+```
+
+## 🧪 Testing
+
+```bash
+# Run tests
+pytest tests/
+
+# Run with coverage
+pytest --cov=streamline_vpn --cov-report=html
+
+# Run specific test categories
+pytest -m unit
+pytest -m integration
+pytest -m performance
+```
+
+## 📚 Documentation
+
+- [Installation Guide](docs/installation/)
+- [Configuration Reference](docs/configuration/)
+- [API Documentation](docs/api/)
+- [Deployment Guide](docs/DEPLOYMENT_GUIDE.md)
+- [Troubleshooting](docs/troubleshooting.md)
+
+## 🤝 Contributing
 
 We welcome contributions! Please see our [Contributing Guide](CONTRIBUTING.md) for details.
 
 ### Development Setup
 
 ```bash
-# Clone the repository
-git clone https://github.com/vpn-merger-team/vpn-subscription-merger.git
-cd vpn-subscription-merger
+# Clone repository
+git clone https://github.com/streamlinevpn/streamline-vpn.git
+cd streamline-vpn
 
 # Install development dependencies
 pip install -e ".[dev]"
@@ -164,29 +327,30 @@ pip install -e ".[dev]"
 # Run tests
 pytest
 
-# Run linting
+# Format code
 black src/ tests/
-isort src/ tests/
-ruff check src/ tests/
+
+# Type checking
+mypy src/
 ```
 
-## License
+## 📄 License
 
-This project is licensed under the GPL-3.0-or-later License — see the [LICENSE](LICENSE) file for details.
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
 
-## Support
+## 🆘 Support
 
-- Documentation: [docs/](docs/)
-- Issues: [GitHub Issues](https://github.com/vpn-merger-team/vpn-subscription-merger/issues)
-- Discussions: [GitHub Discussions](https://github.com/vpn-merger-team/vpn-subscription-merger/discussions)
+- **Documentation**: [docs.streamlinevpn.io](https://docs.streamlinevpn.io)
+- **Issues**: [GitHub Issues](https://github.com/streamlinevpn/streamline-vpn/issues)
+- **Discussions**: [GitHub Discussions](https://github.com/streamlinevpn/streamline-vpn/discussions)
+- **Email**: support@streamlinevpn.io
 
-## Acknowledgments
+## 🙏 Acknowledgments
 
-- VPN community for providing source configurations
-- Open source contributors and maintainers
-- Security researchers for vulnerability reports
+- VPN community for source contributions
+- Open source projects that made this possible
+- Contributors and maintainers
 
 ---
 
-Note: This tool is for educational and research purposes. Please ensure compliance with local laws and regulations when using VPN services.
-
+**Made with ❤️ by the StreamlineVPN Team**

@@ -1,0 +1,73 @@
+---
+- name: Deploy StreamlineVPN
+  hosts: production
+  become: yes
+  vars:
+    app_name: streamline-vpn
+    app_version: "{{ lookup('env', 'VERSION') | default('latest') }}"
+    
+  tasks:
+    - name: Update system packages
+      apt:
+        update_cache: yes
+        upgrade: yes
+        
+    - name: Install Docker
+      docker_installation:
+        state: present
+        
+    - name: Pull latest image
+      docker_image:
+        name: "streamlinevpn/app:{{ app_version }}"
+        source: pull
+        
+    - name: Create app directories
+      file:
+        path: "{{ item }}"
+        state: directory
+        owner: streamline
+        group: streamline
+      loop:
+        - /opt/streamline
+        - /opt/streamline/config
+        - /opt/streamline/data
+        - /var/log/streamline
+        
+    - name: Deploy configuration
+      template:
+        src: config.yaml.j2
+        dest: /opt/streamline/config/config.yaml
+        
+    - name: Start StreamlineVPN container
+      docker_container:
+        name: "{{ app_name }}"
+        image: "streamlinevpn/app:{{ app_version }}"
+        state: started
+        restart_policy: unless-stopped
+        ports:
+          - "8000:8000"
+          - "9090:9090"
+        volumes:
+          - /opt/streamline/config:/app/config:ro
+          - /opt/streamline/data:/app/data:rw
+        env:
+          STREAMLINE_ENV: production
+          
+    - name: Configure nginx
+      template:
+        src: nginx.conf.j2
+        dest: /etc/nginx/sites-available/streamline
+      notify: reload nginx
+      
+    - name: Enable site
+      file:
+        src: /etc/nginx/sites-available/streamline
+        dest: /etc/nginx/sites-enabled/streamline
+        state: link
+      notify: reload nginx
+      
+  handlers:
+    - name: reload nginx
+      systemd:
+        name: nginx
+        state: reloaded

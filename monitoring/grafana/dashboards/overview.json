@@ -1,0 +1,52 @@
+{
+  "dashboard": {
+    "title": "StreamlineVPN Overview",
+    "panels": [
+      {
+        "title": "Request Rate",
+        "type": "graph",
+        "query": "rate(streamline_requests_total[5m])"
+      },
+      {
+        "title": "Error Rate",
+        "type": "graph",
+        "query": "rate(streamline_errors_total[5m])"
+      },
+      {
+        "title": "Response Time (p95)",
+        "type": "graph",
+        "query": "histogram_quantile(0.95, streamline_request_duration_seconds)"
+      },
+      {
+        "title": "Active Sources",
+        "type": "stat",
+        "query": "streamline_active_sources"
+      },
+      {
+        "title": "Cache Hit Rate",
+        "type": "gauge",
+        "query": "streamline_cache_hit_rate"
+      },
+      {
+        "title": "Memory Usage",
+        "type": "graph",
+        "query": "streamline_memory_usage_bytes"
+      },
+      {
+        "title": "CPU Usage",
+        "type": "graph",
+        "query": "rate(streamline_cpu_seconds_total[5m])"
+      },
+      {
+        "title": "Configs Processed",
+        "type": "stat",
+        "query": "streamline_configs_processed_total"
+      },
+      {
+        "title": "Source Reputation",
+        "type": "heatmap",
+        "query": "streamline_source_reputation"
+      }
+    ]
+  }
+}

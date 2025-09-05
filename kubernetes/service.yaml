@@ -1,0 +1,24 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: streamline-service
+  namespace: streamline-vpn
+  labels:
+    app: streamline
+spec:
+  type: ClusterIP
+  selector:
+    app: streamline
+  ports:
+  - port: 8000
+    targetPort: 8000
+    name: http
+  - port: 8001
+    targetPort: 8001
+    name: websocket
+  - port: 8080
+    targetPort: 8080
+    name: config-generator
+  - port: 9000
+    targetPort: 9000
+    name: static-files

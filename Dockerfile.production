@@ -1,0 +1,62 @@
+# Multi-stage build for production
+FROM python:3.11-slim AS builder
+
+WORKDIR /build
+
+# Install build dependencies
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    gcc \
+    g++ \
+    python3-dev \
+    libssl-dev \
+    libffi-dev \
+    && rm -rf /var/lib/apt/lists/*
+
+# Copy requirements
+COPY requirements-prod.txt .
+
+# Install Python packages
+RUN pip install --no-cache-dir --user -r requirements-prod.txt
+
+# Production stage
+FROM python:3.11-slim
+
+WORKDIR /app
+
+# Install runtime dependencies
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    ca-certificates \
+    curl \
+    && rm -rf /var/lib/apt/lists/*
+
+# Copy Python packages from builder
+COPY --from=builder /root/.local /root/.local
+ENV PATH=/root/.local/bin:$PATH
+
+# Copy application
+COPY src/streamline_vpn/ ./streamline_vpn/
+COPY config/ ./config/
+COPY scripts/ ./scripts/
+COPY kubernetes/ ./kubernetes/
+COPY monitoring/ ./monitoring/
+
+# Create necessary directories
+RUN mkdir -p /app/output /app/logs /app/cache /app/data
+
+# Create non-root user
+RUN useradd -m -u 1000 streamline && \
+    chown -R streamline:streamline /app
+
+USER streamline
+
+# Health check
+HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
+    CMD curl -f http://localhost:8000/health || exit 1
+
+# Environment variables
+ENV PYTHONUNBUFFERED=1
+ENV STREAMLINE_ENV=production
+
+EXPOSE 8000 8001 9090
+
+CMD ["python", "-m", "streamline_vpn"]
