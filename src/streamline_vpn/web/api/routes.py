@@ -282,9 +282,15 @@ def setup_routes(
         """WebSocket endpoint for real-time updates."""
         await websocket_manager.connect(websocket, user_id)
 
+        MAX_MSG_BYTES = 256 * 1024  # 256 KiB limit
+
         try:
             while True:
                 data = await websocket.receive_text()
+                if len(data.encode("utf-8", "ignore")) > MAX_MSG_BYTES:
+                    await websocket.send_text('{"error":"message_too_large"}')
+                    await websocket.close(code=1009)  # Message too big
+                    break
                 try:
                     message_data = json.loads(data)
                 except Exception:
@@ -312,7 +318,7 @@ def setup_routes(
     @app.get("/metrics")
     async def get_metrics():
         """Get Prometheus metrics."""
-        body = "# StreamlineVPN Metrics\n# (metrics would be implemented here)"
+        body = "# StreamlineVPN Metrics\n# (metrics would be implemented here)\n"
         return PlainTextResponse(
             content=body,
             media_type="text/plain; version=0.0.4; charset=utf-8",

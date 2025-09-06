@@ -359,15 +359,27 @@ class MetricsCollector:
 
         entry = self.metrics[metric_name]["values"][label_key]
         buckets = sorted(self.metrics[metric_name].get("buckets", []))
-        for bucket in buckets:
-            if value <= bucket:
-                bucket_key = f"le_{bucket}"
-                entry["buckets"][bucket_key] = entry["buckets"].get(bucket_key, 0) + 1
-        # +Inf bucket
-        entry["buckets"]["le_+Inf"] = entry["buckets"].get("le_+Inf", 0) + 1
 
+        try:
+            v = float(value)
+        except (TypeError, ValueError):
+            v = float("inf")
+
+        is_finite = not (v != v or v == float("inf")or v == float("-inf"))
+
+        if is_finite:
+            # Increment all buckets that are >= value
+            for bucket in buckets:
+                if v <= bucket:
+                    bucket_key = f"le_{bucket}"
+                    entry["buckets"][bucket_key] = (
+                        entry["buckets"].get(bucket_key, 0) + 1
+                    )
+            entry["sum"] += v
+
+        # +Inf bucket counts all observations
+        entry["buckets"]["le_+Inf"] = entry["buckets"].get("le_+Inf", 0) + 1
         entry["count"] += 1
-        entry["sum"] += value
         entry["timestamp"] = time.time()
 
     def _create_label_key(self, labels: Dict[str, str]) -> str:

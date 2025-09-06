@@ -137,7 +137,7 @@ class SecurityManager:
             logger.error(f"Source validation error: {e}")
             return {
                 "is_valid_url": False,
-                "is_blocked": False,
+                "is_blocked": True,
                 "is_rate_limited": False,
                 "domain_analysis": {},
                 "is_safe": False,

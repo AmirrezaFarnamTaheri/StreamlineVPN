@@ -158,15 +158,18 @@ class VPNConfigGenerator:
                             ${data.configurations.map(config => `
                                 <div class="config-item">
                                     <strong>${config.protocol}</strong> - ${config.server}:${config.port}
-                                    <br><small>Quality: ${config.quality_score.toFixed(2)} | Network: ${config.network}</small>
+                                    <br><small>Quality: ${config.quality_score.toFixed(2)}</small>
+                                    <br><small>Network: ${config.network}</small>
                                 </div>
                             `).join('')}
                         `;
                     } catch (error) {
-                        alert('Error loading configurations: ' + error.message);
+                        alert(
+                            'Error loading configurations: ' + error.message
+                        );
                     }
                 }
-                
+
                 async function generateConfigs() {
                     try {
                         const response = await fetch('/api/generate', { method: 'POST' });
