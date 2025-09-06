@@ -30,10 +30,14 @@ class VPNConfigGenerator:
 
     def _setup_routes(self):
         """Setup FastAPI routes."""
-        assets_path = Path(__file__).resolve().parents[3] / "docs" / "assets"
-        self.app.mount(
-            "/assets", StaticFiles(directory=assets_path), name="assets"
-        )
+        try:
+            self.app.mount(
+                "/assets",
+                StaticFiles(packages=["streamline_vpn.web.static"]),
+                name="assets",
+            )
+        except Exception as exc:  # pragma: no cover
+            logger.warning("Static assets not found: %s", exc)
 
         @self.app.get("/", response_class=HTMLResponse)
         async def index():

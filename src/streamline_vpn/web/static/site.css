@@ -1,0 +1,12 @@
+body.config-generator { font-family: Arial, sans-serif; margin: 40px; }
+.config-generator .container { max-width: 800px; margin: 0 auto; }
+.config-generator .button {
+    background: #007bff; color: white; padding: 10px 20px;
+    border: none; border-radius: 5px; cursor: pointer; margin: 5px;
+}
+.config-generator .button:hover { background: #0056b3; }
+.config-generator .config-list { margin: 20px 0; }
+.config-generator .config-item {
+    background: #f8f9fa; padding: 10px; margin: 5px 0;
+    border-radius: 5px; border-left: 4px solid #007bff;
+}
