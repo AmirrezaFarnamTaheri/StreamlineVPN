@@ -1,10 +1,9 @@
 """Optimized Shadowsocks 2022 Parser."""
 
-import hashlib
 import re
-from typing import Dict, Optional, Any
+from typing import Any, Dict, Optional
 
-from ....models.configuration import VPNConfiguration, Protocol
+from ....models.configuration import Protocol, VPNConfiguration
 from ....utils.logging import get_logger
 
 logger = get_logger(__name__)
@@ -22,7 +21,6 @@ class Shadowsocks2022Parser:
             "parse_count": 0,
             "total_time": 0.0,
             "avg_time": 0.0,
-            "blake3_derivations": 0,
         }
 
     async def parse(self, uri: str) -> Optional[VPNConfiguration]:
@@ -49,9 +47,6 @@ class Shadowsocks2022Parser:
 
             # Query parameters are not used in this implementation.
 
-            # Derive key using BLAKE3 (simplified implementation)
-            await self._derive_key_blake3(password, method)
-
             # Create configuration
             config = VPNConfiguration(
                 id=f"ss2022_{method}_{host}_{port}",
@@ -67,7 +62,6 @@ class Shadowsocks2022Parser:
                     "parser": "optimized_ss2022",
                     "version": "1.0",
                     "performance_optimized": True,
-                    "blake3_derived": True,
                     "security_level": self._get_security_level(method),
                     "aead_support": self._supports_aead(method),
                 },
@@ -83,29 +77,6 @@ class Shadowsocks2022Parser:
         except Exception as e:
             logger.error(f"Failed to parse SS2022 URI: {e}")
             return None
-
-    async def _derive_key_blake3(self, password: str, method: str) -> str:
-        """Derive key using BLAKE3 algorithm.
-
-        Args:
-            password: Password string
-            method: Encryption method
-
-        Returns:
-            Derived key
-        """
-        # In production, use actual BLAKE3 implementation
-        # For now, simulate with SHA-256
-        # Create salt based on method
-        salt = f"ss2022_{method}_{password}"
-
-        # Simulate BLAKE3 key derivation
-        key_material = f"{password}:{salt}:{method}"
-        derived_key = hashlib.sha256(key_material.encode()).hexdigest()
-
-        self.performance_stats["blake3_derivations"] += 1
-
-        return derived_key
 
     def _get_security_level(self, method: str) -> str:
         """Get security level for encryption method.

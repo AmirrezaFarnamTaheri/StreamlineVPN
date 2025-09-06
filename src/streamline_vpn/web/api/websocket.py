@@ -1,18 +1,12 @@
-"""
-WebSocket Manager
-================
+"""WebSocket connection manager for real-time updates."""
 
-WebSocket connection manager for real-time updates.
-"""
-
-import json
 from datetime import datetime
-from typing import Dict, Optional
+from typing import Dict
 
-from fastapi import WebSocket, WebSocketDisconnect
+from fastapi import WebSocket
 
 from ...utils.logging import get_logger
-from .models import WebSocketMessage, User
+from .models import WebSocketMessage
 
 logger = get_logger(__name__)
 
