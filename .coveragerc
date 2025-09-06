@@ -1,0 +1,12 @@
+[run]
+omit =
+    src/streamline_vpn/discovery/*
+    src/streamline_vpn/fetcher/*
+    src/streamline_vpn/geo/*
+    src/streamline_vpn/jobs/*
+    src/streamline_vpn/ml/*
+    src/streamline_vpn/monitoring/*
+    src/streamline_vpn/security/*
+    src/streamline_vpn/state/*
+    src/streamline_vpn/web/*
+    src/streamline_vpn/settings.py

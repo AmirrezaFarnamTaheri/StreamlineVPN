@@ -8,6 +8,8 @@ Tests for core StreamlineVPN components.
 # isort:skip_file
 
 import sys
+import time
+import asyncio
 import types
 from pathlib import Path
 from unittest.mock import AsyncMock, Mock, patch
@@ -70,16 +72,25 @@ class FakeRedis:
 
     def __init__(self):
         self.store = {}
+        self.expiry = {}
 
     async def get(self, key):
+        exp = self.expiry.get(key)
+        if exp is not None and exp <= time.time():
+            self.store.pop(key, None)
+            self.expiry.pop(key, None)
+            return None
         return self.store.get(key)
 
     async def set(self, key, value, ttl=None):
         self.store[key] = value
+        if ttl:
+            self.expiry[key] = time.time() + ttl
         return True
 
     async def delete(self, key):
         self.store.pop(key, None)
+        self.expiry.pop(key, None)
         return True
 
     def get_stats(self):
@@ -292,6 +303,18 @@ class TestCacheManager:
 
         await cache_manager.set(key, value)
         await cache_manager.invalidate(key)
+        result = await cache_manager.get(key)
+
+        assert result is None
+
+    @pytest.mark.asyncio
+    async def test_cache_ttl_expiration(self, cache_manager):
+        """Ensure cached values expire after TTL."""
+        key = "ttl_key"
+        value = {"exp": "soon"}
+
+        await cache_manager.set(key, value, ttl=0.01)
+        await asyncio.sleep(0.02)
         result = await cache_manager.get(key)
 
         assert result is None
