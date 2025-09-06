@@ -10,4 +10,3 @@ __all__ = [
     "analyze_urls_in_text",
     "analyze_domain_info",
 ]
-

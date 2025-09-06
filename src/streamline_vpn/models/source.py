@@ -14,6 +14,7 @@ import json
 
 class SourceTier(Enum):
     """Source reliability tiers."""
+
     PREMIUM = "premium"
     RELIABLE = "reliable"
     BULK = "bulk"
@@ -23,7 +24,7 @@ class SourceTier(Enum):
 @dataclass
 class SourceMetadata:
     """Source metadata with performance tracking.
-    
+
     Attributes:
         url: Source URL
         tier: Source reliability tier
@@ -40,13 +41,15 @@ class SourceMetadata:
         is_blacklisted: Whether source is blacklisted
         metadata: Additional metadata
     """
-    
+
     url: str
     tier: SourceTier
     weight: float = 0.5
     protocols: List[str] = field(default_factory=lambda: ["all"])
     update_frequency: str = "24h"
-    last_check: datetime = field(default_factory=datetime.now)
+    last_check: datetime = field(
+        default_factory=lambda: datetime.now() - timedelta(days=1)
+    )
     success_count: int = 0
     failure_count: int = 0
     avg_response_time: float = 0.0
@@ -55,7 +58,7 @@ class SourceMetadata:
     history: List[Dict[str, Any]] = field(default_factory=list)
     is_blacklisted: bool = False
     metadata: Dict[str, Any] = field(default_factory=dict)
-    
+
     @property
     def enabled(self) -> bool:
         """Return True if the source is not blacklisted."""
@@ -69,94 +72,108 @@ class SourceMetadata:
             raise ValueError("Weight must be between 0 and 1")
         if not (0 <= self.reputation_score <= 1):
             raise ValueError("Reputation score must be between 0 and 1")
-    
+
     def update_reputation(self) -> None:
         """Update reputation score based on recent performance."""
         if not self.history:
             return
-        
+
         # Use last 10 checks for reputation calculation
         recent_history = self.history[-10:]
-        
+
         # Calculate success rate
-        success_rate = sum(1 for h in recent_history if h.get('success', False)) / len(recent_history)
-        
+        success_rate = sum(
+            1 for h in recent_history if h.get("success", False)
+        ) / len(recent_history)
+
         # Calculate average config count (only successful fetches)
-        successful_fetches = [h for h in recent_history if h.get('success', False)]
-        avg_configs = sum(h.get('config_count', 0) for h in successful_fetches) / max(len(successful_fetches), 1)
-        
+        successful_fetches = [
+            h for h in recent_history if h.get("success", False)
+        ]
+        avg_configs = sum(
+            h.get("config_count", 0) for h in successful_fetches
+        ) / max(len(successful_fetches), 1)
+
         # Calculate average response time
-        avg_response = sum(h.get('response_time', 0) for h in recent_history) / len(recent_history)
-        
+        avg_response = sum(
+            h.get("response_time", 0) for h in recent_history
+        ) / len(recent_history)
+
         # Calculate reputation (0.0 to 1.0)
         self.reputation_score = (
-            success_rate * 0.4 +  # 40% weight on success rate
-            min(avg_configs / 1000, 1.0) * 0.3 +  # 30% weight on config count
-            max(0, 1 - avg_response / 30) * 0.2 +  # 20% weight on response time
-            self.weight * 0.1  # 10% weight on base weight
+            success_rate * 0.4  # 40% weight on success rate
+            + min(avg_configs / 1000, 1.0) * 0.3  # 30% weight on config count
+            + max(0, 1 - avg_response / 30)
+            * 0.2  # 20% weight on response time
+            + self.weight * 0.1  # 10% weight on base weight
         )
-        
+
         # Apply slight decay to prevent reputation from staying too high
         self.reputation_score = self.reputation_score * 0.95 + 0.05
-    
+
     def add_performance_record(
-        self, 
-        success: bool, 
-        config_count: int, 
-        response_time: float
+        self, success: bool, config_count: int, response_time: float
     ) -> None:
         """Add a performance record and update statistics."""
         record = {
-            'timestamp': datetime.now().isoformat(),
-            'success': success,
-            'config_count': config_count,
-            'response_time': response_time
+            "timestamp": datetime.now().isoformat(),
+            "success": success,
+            "config_count": config_count,
+            "response_time": response_time,
         }
-        
+
         self.history.append(record)
-        
+
         # Update counters
         if success:
             self.success_count += 1
         else:
             self.failure_count += 1
-        
+
         # Update averages
         if self.history:
             recent = self.history[-20:]  # Last 20 records
-            self.avg_response_time = sum(h.get('response_time', 0) for h in recent) / len(recent)
-            successful_records = [h for h in recent if h.get('success', False)]
+            self.avg_response_time = sum(
+                h.get("response_time", 0) for h in recent
+            ) / len(recent)
+            successful_records = [h for h in recent if h.get("success", False)]
             if successful_records:
-                self.avg_config_count = int(sum(h.get('config_count', 0) for h in successful_records) / len(successful_records))
-        
+                self.avg_config_count = int(
+                    sum(h.get("config_count", 0) for h in successful_records)
+                    / len(successful_records)
+                )
+
         # Update reputation
         self.update_reputation()
-        
+
         # Update last check time
         self.last_check = datetime.now()
-        
+
         # Check for blacklisting
-        if self.failure_count > 10 and self.success_count < self.failure_count * 0.2:
+        if (
+            self.failure_count > 10
+            and self.success_count < self.failure_count * 0.2
+        ):
             self.is_blacklisted = True
-    
+
     def should_update(self) -> bool:
         """Check if source should be updated based on frequency."""
         if self.is_blacklisted:
             return False
-        
+
         # Parse update frequency
         freq_str = self.update_frequency.lower()
-        if freq_str.endswith('m'):
+        if freq_str.endswith("m"):
             interval = timedelta(minutes=int(freq_str[:-1]))
-        elif freq_str.endswith('h'):
+        elif freq_str.endswith("h"):
             interval = timedelta(hours=int(freq_str[:-1]))
-        elif freq_str.endswith('d'):
+        elif freq_str.endswith("d"):
             interval = timedelta(days=int(freq_str[:-1]))
         else:
             interval = timedelta(hours=24)  # Default
-        
+
         return datetime.now() - self.last_check > interval
-    
+
     def to_dict(self) -> Dict[str, Any]:
         """Convert to dictionary."""
         return {
@@ -173,13 +190,13 @@ class SourceMetadata:
             "reputation_score": self.reputation_score,
             "history": self.history,
             "is_blacklisted": self.is_blacklisted,
-            "metadata": self.metadata
+            "metadata": self.metadata,
         }
-    
+
     def to_json(self) -> str:
         """Convert to JSON string."""
         return json.dumps(self.to_dict(), indent=2)
-    
+
     @classmethod
     def from_dict(cls, data: Dict[str, Any]) -> "SourceMetadata":
         """Create from dictionary."""
@@ -188,19 +205,21 @@ class SourceMetadata:
         if "last_check" in data and isinstance(data["last_check"], str):
             data["last_check"] = datetime.fromisoformat(data["last_check"])
         return cls(**data)
-    
+
     @classmethod
     def from_json(cls, json_str: str) -> "SourceMetadata":
         """Create from JSON string."""
         data = json.loads(json_str)
         return cls.from_dict(data)
-    
+
     def __str__(self) -> str:
         """String representation."""
         return f"{self.tier.value}:{self.url}"
-    
+
     def __repr__(self) -> str:
         """Detailed representation."""
-        return (f"SourceMetadata(url={self.url}, tier={self.tier.value}, "
-                f"reputation={self.reputation_score:.2f}, "
-                f"blacklisted={self.is_blacklisted})")
+        return (
+            f"SourceMetadata(url={self.url}, tier={self.tier.value}, "
+            f"reputation={self.reputation_score:.2f}, "
+            f"blacklisted={self.is_blacklisted})"
+        )

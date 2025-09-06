@@ -20,7 +20,7 @@ class JobExecutor:
 
     def __init__(self, job_manager):
         """Initialize job executor.
-        
+
         Args:
             job_manager: Parent job manager instance
         """
@@ -40,7 +40,7 @@ class JobExecutor:
 
     async def execute_job(self, job: Job) -> None:
         """Execute a job.
-        
+
         Args:
             job: Job to execute
         """
@@ -84,7 +84,7 @@ class JobExecutor:
         # Process configurations
         results = await merger.process_all(
             output_dir=job.parameters.get("output_dir", "output"),
-            formats=job.parameters.get("formats", ["json", "clash"])
+            formats=job.parameters.get("formats", ["json", "clash"]),
         )
 
         # Update progress
@@ -172,5 +172,5 @@ class JobExecutor:
         return {
             "exported_configurations": len(configs),
             "output_dir": output_dir,
-            "formats": formats
+            "formats": formats,
         }

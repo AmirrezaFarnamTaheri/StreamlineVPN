@@ -10,7 +10,9 @@ def analyze_domain_info(url: str, blocked_domains: Set[str]) -> Dict[str, Any]:
         parsed = urlparse(url)
         domain = parsed.hostname or ""
         is_blocked = any(b in domain for b in blocked_domains)
-        has_suspicious_tld = any(domain.endswith(t) for t in settings.security.suspicious_tlds)
+        has_suspicious_tld = any(
+            domain.endswith(t) for t in settings.security.suspicious_tlds
+        )
         is_ip = bool(re.match(r"^\d+\.\d+\.\d+\.\d+$", domain))
         return {
             "domain": domain,

@@ -28,4 +28,3 @@ def parse_trojan(config_string: str) -> Optional[VPNConfiguration]:
     except Exception as e:
         logger.debug(f"Failed to parse Trojan: {e}")
         return None
-

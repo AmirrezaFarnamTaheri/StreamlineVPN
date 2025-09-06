@@ -15,6 +15,7 @@ from pydantic import BaseModel, Field
 
 class UserTier(Enum):
     """User subscription tiers."""
+
     FREE = "free"
     PREMIUM = "premium"
     ENTERPRISE = "enterprise"
@@ -22,6 +23,7 @@ class UserTier(Enum):
 
 class ConnectionStatus(Enum):
     """VPN connection status."""
+
     DISCONNECTED = "disconnected"
     CONNECTING = "connecting"
     CONNECTED = "connected"
@@ -32,6 +34,7 @@ class ConnectionStatus(Enum):
 @dataclass
 class User:
     """User model."""
+
     id: str
     username: str
     email: str
@@ -46,6 +49,7 @@ class User:
 @dataclass
 class VPNServer:
     """VPN server model."""
+
     id: str
     name: str
     host: str
@@ -62,6 +66,7 @@ class VPNServer:
 @dataclass
 class VPNConnection:
     """VPN connection model."""
+
     id: str
     user_id: str
     server_id: str

@@ -59,5 +59,5 @@ ENV VPN_MERGER_LOG_DIR=/app/logs
 ENV PYTHONPATH=/app
 ENV API_PORT=8000
 
-# Default command - run the merger as a module
-CMD ["python", "-m", "streamline_vpn"]
+# Default command - run the API server
+CMD ["python", "run_server.py"]

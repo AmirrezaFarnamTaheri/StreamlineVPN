@@ -38,7 +38,9 @@ def ensure_policies(
     return circuit_breakers[domain], rate_limiters[domain]
 
 
-async def apply_rate_limit(domain: str, rate_limiter: AdaptiveRateLimiter) -> None:
+async def apply_rate_limit(
+    domain: str, rate_limiter: AdaptiveRateLimiter
+) -> None:
     """Await rate limiter before a request."""
     await rate_limiter.wait_if_needed(domain)
 

@@ -16,7 +16,7 @@ async def mock_vpn_server(aiohttp_server):
         return web.Response(text="vmess://test_config")
 
     app = web.Application()
-    app.router.add_get('/test_source', handler)
+    app.router.add_get("/test_source", handler)
     server = await aiohttp_server(app)
     return server
 
@@ -24,30 +24,34 @@ async def mock_vpn_server(aiohttp_server):
 @pytest.fixture
 def temp_config_file(tmp_path, mock_vpn_server):
     config = {
-        'sources': {
-            'reliable': {
-                'urls': [
+        "sources": {
+            "reliable": {
+                "urls": [
                     {
-                        'url': f"http://{mock_vpn_server.host}:{mock_vpn_server.port}/test_source",
-                        'weight': 1.0,
-                        'protocols': ['vmess']
+                        "url": f"http://{mock_vpn_server.host}:{mock_vpn_server.port}/test_source",
+                        "weight": 1.0,
+                        "protocols": ["vmess"],
                     }
                 ]
             }
         }
     }
     config_path = tmp_path / "test_config.yaml"
-    with open(config_path, 'w') as f:
+    with open(config_path, "w") as f:
         yaml.dump(config, f)
     return config_path
 
 
 @pytest.mark.asyncio
-async def test_end_to_end_processing(temp_config_file, tmp_path, mock_vpn_server):
+async def test_end_to_end_processing(
+    temp_config_file, tmp_path, mock_vpn_server
+):
     output_dir = tmp_path / "output"
     output_dir.mkdir()
 
-    test_url = f"http://{mock_vpn_server.host}:{mock_vpn_server.port}/test_source"
+    test_url = (
+        f"http://{mock_vpn_server.host}:{mock_vpn_server.port}/test_source"
+    )
     with patch(
         "streamline_vpn.security.manager.SecurityManager.validate_source",
         return_value={"is_safe": True},
@@ -67,9 +71,9 @@ async def test_end_to_end_processing(temp_config_file, tmp_path, mock_vpn_server
         merger = StreamlineVPNMerger(config_path=str(temp_config_file))
         result = await merger.process_all(output_dir=str(output_dir))
 
-    assert result['success']
-    assert result['sources_processed'] == 1
-    assert result['configurations_found'] > 0
+    assert result["success"]
+    assert result["sources_processed"] == 1
+    assert result["configurations_found"] > 0
 
     # Check that output files were created
     output_files = list(output_dir.iterdir())

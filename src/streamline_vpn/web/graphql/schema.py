@@ -9,6 +9,7 @@ import strawberry
 from typing import List, Optional
 from datetime import datetime
 
+
 @strawberry.type
 class VPNConfiguration:
     protocol: str
@@ -25,6 +26,7 @@ class VPNConfiguration:
     source_url: Optional[str] = None
     created_at: str
 
+
 @strawberry.type
 class SourceMetadata:
     url: str
@@ -34,6 +36,7 @@ class SourceMetadata:
     failure_count: int
     reputation_score: float
     is_blacklisted: bool
+
 
 @strawberry.type
 class ProcessingStatistics:
@@ -45,6 +48,7 @@ class ProcessingStatistics:
     avg_response_time: float
     total_processing_time: float
 
+
 @strawberry.type
 class Health:
     status: str
@@ -52,34 +56,36 @@ class Health:
     version: str
     uptime: float
 
+
 @strawberry.type
 class Query:
     @strawberry.field
     def health(self) -> Health:
         """Health check."""
         from ..api import start_time
+
         uptime = (datetime.now() - start_time).total_seconds()
         return Health(
             status="healthy",
             timestamp=datetime.now().isoformat(),
             version="2.0.0",
-            uptime=uptime
+            uptime=uptime,
         )
-    
+
     @strawberry.field
     def configurations(self) -> List[VPNConfiguration]:
         """Get all configurations."""
         # Return empty list for now to avoid circular imports
         # In a real implementation, this would be injected
         return []
-    
+
     @strawberry.field
     def sources(self) -> List[SourceMetadata]:
         """Get all sources."""
         # Return empty list for now to avoid circular imports
         # In a real implementation, this would be injected
         return []
-    
+
     @strawberry.field
     def statistics(self) -> ProcessingStatistics:
         """Get processing statistics."""
@@ -92,8 +98,9 @@ class Query:
             total_configs=0,
             success_rate=0.0,
             avg_response_time=0.0,
-            total_processing_time=0.0
+            total_processing_time=0.0,
         )
+
 
 @strawberry.type
 class Mutation:
@@ -103,20 +110,21 @@ class Mutation:
         # Return placeholder to avoid circular imports
         # In a real implementation, this would be injected
         return "Processing not available in GraphQL mode"
-    
+
     @strawberry.field
     def blacklist_source(self, source_url: str, reason: str = "") -> str:
         """Blacklist a source."""
         # Return placeholder to avoid circular imports
         # In a real implementation, this would be injected
         return f"Blacklist not available in GraphQL mode"
-    
+
     @strawberry.field
     def whitelist_source(self, source_url: str) -> str:
         """Whitelist a source."""
         # Return placeholder to avoid circular imports
         # In a real implementation, this would be injected
         return f"Whitelist not available in GraphQL mode"
+
 
 # Create schema
 schema = strawberry.Schema(query=Query, mutation=Mutation)

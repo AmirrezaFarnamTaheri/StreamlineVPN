@@ -15,7 +15,7 @@ from .caching import VPNCacheService
 __all__ = [
     "StreamlineVPNMerger",
     "SourceManager",
-    "ConfigurationProcessor", 
+    "ConfigurationProcessor",
     "OutputManager",
-    "VPNCacheService"
+    "VPNCacheService",
 ]

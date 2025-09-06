@@ -12,9 +12,9 @@ from .auth import ZeroTrustVPN, initialize_zero_trust, get_zero_trust
 
 __all__ = [
     "SecurityManager",
-    "ThreatAnalyzer", 
+    "ThreatAnalyzer",
     "SecurityValidator",
     "ZeroTrustVPN",
     "initialize_zero_trust",
-    "get_zero_trust"
+    "get_zero_trust",
 ]

@@ -50,4 +50,3 @@ def parse_ssr(config_string: str) -> Optional[VPNConfiguration]:
     except Exception as e:
         logger.debug(f"Failed to parse SSR: {e}")
         return None
-

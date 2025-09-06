@@ -22,7 +22,7 @@ class JobManager:
 
     def __init__(self, persistence: Optional[JobPersistence] = None):
         """Initialize job manager.
-        
+
         Args:
             persistence: Job persistence layer
         """
@@ -31,38 +31,36 @@ class JobManager:
         self.executor = JobExecutor(self)
 
     async def create_job(
-        self, 
-        job_type: JobType, 
+        self,
+        job_type: JobType,
         parameters: Optional[Dict[str, Any]] = None,
-        metadata: Optional[Dict[str, Any]] = None
+        metadata: Optional[Dict[str, Any]] = None,
     ) -> Job:
         """Create a new job.
-        
+
         Args:
             job_type: Type of job to create
             parameters: Job parameters
             metadata: Additional metadata
-            
+
         Returns:
             Created job instance
         """
         job = Job(
-            type=job_type,
-            parameters=parameters or {},
-            metadata=metadata or {}
+            type=job_type, parameters=parameters or {}, metadata=metadata or {}
         )
-        
+
         self.persistence.save_job(job)
         logger.info(f"Created job {job.id} of type {job_type.value}")
-        
+
         return job
 
     async def start_job(self, job_id: str) -> bool:
         """Start a job.
-        
+
         Args:
             job_id: Job ID to start
-            
+
         Returns:
             True if started successfully, False otherwise
         """
@@ -72,7 +70,9 @@ class JobManager:
             return False
 
         if job.status != JobStatus.PENDING:
-            logger.warning(f"Job {job_id} is not pending (status: {job.status.value})")
+            logger.warning(
+                f"Job {job_id} is not pending (status: {job.status.value})"
+            )
             return False
 
         if job_id in self.running_jobs:
@@ -92,10 +92,10 @@ class JobManager:
 
     async def cancel_job(self, job_id: str) -> bool:
         """Cancel a running job.
-        
+
         Args:
             job_id: Job ID to cancel
-            
+
         Returns:
             True if cancelled successfully, False otherwise
         """
@@ -121,30 +121,30 @@ class JobManager:
 
     async def get_job(self, job_id: str) -> Optional[Job]:
         """Get job by ID.
-        
+
         Args:
             job_id: Job ID
-            
+
         Returns:
             Job instance or None if not found
         """
         return self.persistence.get_job(job_id)
 
     async def get_jobs(
-        self, 
+        self,
         status: Optional[JobStatus] = None,
         job_type: Optional[JobType] = None,
         limit: int = 100,
-        offset: int = 0
+        offset: int = 0,
     ) -> List[Job]:
         """Get jobs with optional filtering.
-        
+
         Args:
             status: Filter by job status
             job_type: Filter by job type
             limit: Maximum number of jobs to return
             offset: Number of jobs to skip
-            
+
         Returns:
             List of job instances
         """
@@ -152,10 +152,10 @@ class JobManager:
 
     async def delete_job(self, job_id: str) -> bool:
         """Delete job by ID.
-        
+
         Args:
             job_id: Job ID
-            
+
         Returns:
             True if deleted, False if not found
         """
@@ -167,10 +167,10 @@ class JobManager:
 
     async def cleanup_old_jobs(self, days: int = 30) -> int:
         """Clean up old completed jobs.
-        
+
         Args:
             days: Number of days to keep completed jobs
-            
+
         Returns:
             Number of jobs deleted
         """
@@ -178,7 +178,7 @@ class JobManager:
 
     async def get_statistics(self) -> Dict[str, Any]:
         """Get job statistics.
-        
+
         Returns:
             Dictionary with job statistics
         """

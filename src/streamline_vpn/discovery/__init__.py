@@ -7,6 +7,4 @@ Source discovery and management components.
 
 from .manager import DiscoveryManager
 
-__all__ = [
-    "DiscoveryManager"
-]
+__all__ = ["DiscoveryManager"]

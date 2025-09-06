@@ -19,7 +19,10 @@ class StaticFileServer:
     """Static file server for StreamlineVPN."""
 
     def __init__(
-        self, host: str = "127.0.0.1", port: int = 9000, static_dir: str = "static"
+        self,
+        host: str = "127.0.0.1",
+        port: int = 9000,
+        static_dir: str = "static",
     ):
         """Initialize static file server.
 
@@ -50,7 +53,9 @@ class StaticFileServer:
 
         # Mount StaticFiles to handle all file serving, including index.html
         app.mount(
-            "/", StaticFiles(directory=str(self.static_dir), html=True), name="static"
+            "/",
+            StaticFiles(directory=str(self.static_dir), html=True),
+            name="static",
         )
 
         # Use middleware to add cache headers specifically for index.html

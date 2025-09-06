@@ -78,10 +78,13 @@ class OutputManager:
 
                 # Determine target path early for fallback on write errors
                 target_path = (
-                    output_path / f"configurations{formatter.get_file_extension()}"
+                    output_path
+                    / f"configurations{formatter.get_file_extension()}"
                 )
                 try:
-                    file_path = formatter.save_configurations(configs, "configurations")
+                    file_path = formatter.save_configurations(
+                        configs, "configurations"
+                    )
                     saved_files[format_name] = file_path
                     logger.info(
                         f"Saved {len(configs)} configurations in {format_name} format"
@@ -115,7 +118,9 @@ class OutputManager:
             asyncio.get_running_loop()
         except RuntimeError:
             # No running loop
-            return asyncio.run(self.save_configurations(configs, output_dir, formats))
+            return asyncio.run(
+                self.save_configurations(configs, output_dir, formats)
+            )
         else:
             # Running in an event loop; avoid deadlock
             raise RuntimeError(

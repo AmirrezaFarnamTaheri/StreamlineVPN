@@ -10,19 +10,25 @@ This module provides a unified interface to the modularized metrics system.
 
 from typing import Optional
 
-from .metrics_service import MetricsService, initialize_metrics, get_metrics, get_alerting_rules
+from .metrics_service import (
+    MetricsService,
+    initialize_metrics,
+    get_metrics,
+    get_alerting_rules,
+)
 from .metrics_collector import VPNServerMetrics, MetricType, MetricLabel
 
 # Re-export main classes for backward compatibility
 __all__ = [
-    'MetricsService',
-    'VPNServerMetrics', 
-    'MetricType',
-    'MetricLabel',
-    'initialize_metrics',
-    'get_metrics',
-    'get_alerting_rules'
+    "MetricsService",
+    "VPNServerMetrics",
+    "MetricType",
+    "MetricLabel",
+    "initialize_metrics",
+    "get_metrics",
+    "get_alerting_rules",
 ]
+
 
 # Legacy compatibility - maintain old interface
 def initialize_metrics_legacy():

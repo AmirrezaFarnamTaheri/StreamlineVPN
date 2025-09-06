@@ -15,9 +15,10 @@ from ..settings import get_settings
 
 logger = get_logger(__name__)
 
+
 class SecurityValidator:
     """Security validation utilities."""
-    
+
     def __init__(self):
         """Initialize security validator."""
         settings = get_settings()
@@ -25,51 +26,51 @@ class SecurityValidator:
         self.safe_ports = s.safe_ports
         self.safe_protocols = s.safe_protocols
         self.safe_encryptions = s.safe_encryptions
-    
+
     def validate_url(self, url: str) -> bool:
         """Validate URL for security.
-        
+
         Args:
             url: URL to validate
-            
+
         Returns:
             True if URL is safe, False otherwise
         """
         try:
             parsed = urlparse(url)
-            
+
             # Check scheme
-            if parsed.scheme not in ['http', 'https']:
+            if parsed.scheme not in ["http", "https"]:
                 return False
-            
+
             # Check hostname
             if not parsed.hostname:
                 return False
-            
+
             # Check for suspicious patterns
             if self._has_suspicious_patterns(url):
                 return False
-            
+
             # Check for valid IP address
             if self._is_valid_ip(parsed.hostname):
                 return True
-            
+
             # Check for valid domain
             if self._is_valid_domain(parsed.hostname):
                 return True
-            
+
             return False
-            
+
         except Exception as e:
             logger.debug(f"URL validation error: {e}")
             return False
-    
+
     def validate_port(self, port: int) -> bool:
         """Validate port for security.
-        
+
         Args:
             port: Port number to validate
-            
+
         Returns:
             True if port is safe, False otherwise
         """
@@ -77,48 +78,48 @@ class SecurityValidator:
             # Check if port is in valid range
             if not (1 <= port <= 65535):
                 return False
-            
+
             # Check if port is in safe ports list
             if port in self.safe_ports:
                 return True
-            
+
             # Check if port is in common VPN ranges
             if 1000 <= port <= 65535:
                 return True
-            
+
             return False
-            
+
         except Exception:
             return False
-    
+
     def validate_protocol(self, protocol: str) -> bool:
         """Validate protocol for security.
-        
+
         Args:
             protocol: Protocol to validate
-            
+
         Returns:
             True if protocol is safe, False otherwise
         """
         return protocol.lower() in self.safe_protocols
-    
+
     def validate_encryption(self, encryption: str) -> bool:
         """Validate encryption method for security.
-        
+
         Args:
             encryption: Encryption method to validate
-            
+
         Returns:
             True if encryption is safe, False otherwise
         """
         return encryption.lower() in self.safe_encryptions
-    
+
     def validate_configuration(self, config: Dict[str, Any]) -> Dict[str, Any]:
         """Validate VPN configuration for security.
-        
+
         Args:
             config: Configuration dictionary to validate
-            
+
         Returns:
             Validation results
         """
@@ -126,98 +127,110 @@ class SecurityValidator:
             "is_valid": True,
             "warnings": [],
             "errors": [],
-            "security_score": 1.0
+            "security_score": 1.0,
         }
-        
+
         try:
             # Validate server
             if "server" in config:
                 if not self._is_valid_server(config["server"]):
                     results["errors"].append("Invalid server address")
                     results["is_valid"] = False
-            
+
             # Validate port
             if "port" in config:
                 if not self.validate_port(config["port"]):
-                    results["errors"].append(f"Invalid or unsafe port: {config['port']}")
+                    results["errors"].append(
+                        f"Invalid or unsafe port: {config['port']}"
+                    )
                     results["is_valid"] = False
                 else:
                     if config["port"] not in self.safe_ports:
-                        results["warnings"].append(f"Port {config['port']} may not be optimal")
+                        results["warnings"].append(
+                            f"Port {config['port']} may not be optimal"
+                        )
                         results["security_score"] -= 0.1
-            
+
             # Validate protocol
             if "protocol" in config:
                 if not self.validate_protocol(config["protocol"]):
-                    results["errors"].append(f"Unsafe protocol: {config['protocol']}")
+                    results["errors"].append(
+                        f"Unsafe protocol: {config['protocol']}"
+                    )
                     results["is_valid"] = False
-            
+
             # Validate encryption
             if "encryption" in config:
                 if not self.validate_encryption(config["encryption"]):
-                    results["warnings"].append(f"Encryption method may not be secure: {config['encryption']}")
+                    results["warnings"].append(
+                        f"Encryption method may not be secure: {config['encryption']}"
+                    )
                     results["security_score"] -= 0.2
-            
+
             # Validate TLS
             if config.get("tls", False):
                 results["security_score"] += 0.1
-            
+
             # Check for suspicious fields
             suspicious_fields = ["script", "command", "exec", "eval"]
             for field in suspicious_fields:
                 if field in config:
-                    results["errors"].append(f"Suspicious field detected: {field}")
+                    results["errors"].append(
+                        f"Suspicious field detected: {field}"
+                    )
                     results["is_valid"] = False
-            
+
             # Ensure security score is between 0 and 1
-            results["security_score"] = max(0.0, min(1.0, results["security_score"]))
-            
+            results["security_score"] = max(
+                0.0, min(1.0, results["security_score"])
+            )
+
         except Exception as e:
             results["errors"].append(f"Validation error: {e}")
             results["is_valid"] = False
-        
+
         return results
-    
+
     def _has_suspicious_patterns(self, url: str) -> bool:
         """Check for suspicious patterns in URL.
-        
+
         Args:
             url: URL to check
-            
+
         Returns:
             True if suspicious patterns found, False otherwise
         """
         suspicious_patterns = [
-            r'<script',
-            r'javascript:',
-            r'vbscript:',
-            r'data:',
-            r'file:',
-            r'ftp:',
-            r'telnet:',
-            r'ssh:',
-            r'rm\s+-rf',
-            r'del\s+/s',
-            r'format\s+',
-            r'eval\s*\(',
-            r'exec\s*\(',
-            r'__import__',
-            r'subprocess',
-            r'os\.system',
+            r"<script",
+            r"javascript:",
+            r"vbscript:",
+            r"data:",
+            r"file:",
+            r"ftp:",
+            r"telnet:",
+            r"ssh:",
+            r"rm\s+-rf",
+            r"del\s+/s",
+            r"format\s+",
+            r"eval\s*\(",
+            r"exec\s*\(",
+            r"__import__",
+            r"subprocess",
+            r"os\.system",
         ]
-        
+
         for pattern in suspicious_patterns:
             if re.search(pattern, url, re.IGNORECASE):
                 return True
-        
+
         return False
-    
+
     def _is_valid_ip(self, hostname: str) -> bool:
         """Check if hostname is a valid IP address.
-        
+
         Args:
             hostname: Hostname to check
-            
+
         Returns:
             True if valid IP, False otherwise
         """
@@ -226,56 +239,59 @@ class SecurityValidator:
             return True
         except ValueError:
             return False
-    
+
     def _is_valid_domain(self, hostname: str) -> bool:
         """Check if hostname is a valid domain.
-        
+
         Args:
             hostname: Hostname to check
-            
+
         Returns:
             True if valid domain, False otherwise
         """
         # Basic domain validation
-        domain_pattern = r'^[a-zA-Z0-9]([a-zA-Z0-9\-]{0,61}[a-zA-Z0-9])?(\.[a-zA-Z0-9]([a-zA-Z0-9\-]{0,61}[a-zA-Z0-9])?)*$'
-        
+        domain_pattern = r"^[a-zA-Z0-9]([a-zA-Z0-9\-]{0,61}[a-zA-Z0-9])?(\.[a-zA-Z0-9]([a-zA-Z0-9\-]{0,61}[a-zA-Z0-9])?)*$"
+
         if not re.match(domain_pattern, hostname):
             return False
-        
+
         # Check for suspicious TLDs
         settings = get_settings()
-        if any(hostname.lower().endswith(tld) for tld in settings.security.suspicious_tlds):
+        if any(
+            hostname.lower().endswith(tld)
+            for tld in settings.security.suspicious_tlds
+        ):
             return False
-        
+
         return True
-    
+
     def _is_valid_server(self, server: str) -> bool:
         """Check if server address is valid.
-        
+
         Args:
             server: Server address to check
-            
+
         Returns:
             True if valid server, False otherwise
         """
         # Check if it's a valid IP
         if self._is_valid_ip(server):
             return True
-        
+
         # Check if it's a valid domain
         if self._is_valid_domain(server):
             return True
-        
+
         return False
-    
+
     def get_validation_statistics(self) -> Dict[str, Any]:
         """Get validation statistics.
-        
+
         Returns:
             Validation statistics
         """
         return {
             "safe_ports": len(self.safe_ports),
             "safe_protocols": len(self.safe_protocols),
-            "safe_encryptions": len(self.safe_encryptions)
+            "safe_encryptions": len(self.safe_encryptions),
         }

@@ -16,12 +16,16 @@ class ClashFormatter:
         """Return the file extension for Clash YAML output."""
         return ".yaml"
 
-    def save_configurations(self, configs: List[VPNConfiguration], base_filename: str) -> Path:
+    def save_configurations(
+        self, configs: List[VPNConfiguration], base_filename: str
+    ) -> Path:
         """Save configurations in a basic YAML-like format.
 
         This implementation intentionally avoids external YAML dependencies.
         """
-        file_path = self.output_dir / f"{base_filename}{self.get_file_extension()}"
+        file_path = (
+            self.output_dir / f"{base_filename}{self.get_file_extension()}"
+        )
         f = open(file_path, "w", encoding="utf-8")
         try:
             f.write("proxies:\n")

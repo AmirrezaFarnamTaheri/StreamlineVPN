@@ -12,4 +12,4 @@ from .caching.service import VPNCacheService
 CacheManager = VPNCacheService
 
 # Re-export for convenience
-__all__ = ['CacheManager', 'VPNCacheService']
+__all__ = ["CacheManager", "VPNCacheService"]

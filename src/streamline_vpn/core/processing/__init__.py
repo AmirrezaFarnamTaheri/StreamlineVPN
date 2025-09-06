@@ -11,6 +11,6 @@ from .deduplicator import ConfigurationDeduplicator
 
 __all__ = [
     "ConfigurationParser",
-    "ConfigurationValidator", 
-    "ConfigurationDeduplicator"
+    "ConfigurationValidator",
+    "ConfigurationDeduplicator",
 ]

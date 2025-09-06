@@ -20,6 +20,7 @@ logger = get_logger(__name__)
 
 class MetricType(Enum):
     """Metric types for monitoring."""
+
     COUNTER = "counter"
     GAUGE = "gauge"
     HISTOGRAM = "histogram"
@@ -29,6 +30,7 @@ class MetricType(Enum):
 @dataclass
 class MetricLabel:
     """Metric label for Prometheus."""
+
     name: str
     value: str
 
@@ -36,6 +38,7 @@ class MetricLabel:
 @dataclass
 class VPNServerMetrics:
     """VPN server performance metrics."""
+
     server_id: str
     server_name: str
     protocol: str
@@ -54,17 +57,17 @@ class VPNServerMetrics:
 
 class MetricsCollector:
     """Core metrics collection functionality."""
-    
+
     def __init__(self):
         """Initialize metrics collector."""
         self.metrics = {}
         self.collection_interval = 30  # seconds
         self.is_collecting = False
         self.collection_task = None
-        
+
         # Initialize metric definitions
         self._initialize_metrics()
-    
+
     def _initialize_metrics(self) -> None:
         """Initialize Prometheus metric definitions."""
         # VPN Connection Metrics
@@ -72,163 +75,188 @@ class MetricsCollector:
             "type": MetricType.GAUGE,
             "help": "Number of active VPN connections",
             "labels": ["server", "protocol", "region"],
-            "values": {}
+            "values": {},
         }
-        
+
         self.metrics["vpn_connections_total"] = {
             "type": MetricType.COUNTER,
             "help": "Total number of VPN connections",
             "labels": ["server", "protocol", "region", "status"],
-            "values": {}
+            "values": {},
         }
-        
+
         self.metrics["vpn_connection_latency_seconds"] = {
             "type": MetricType.HISTOGRAM,
             "help": "VPN connection latency distribution",
             "labels": ["server", "protocol"],
             "buckets": [0.01, 0.05, 0.1, 0.2, 0.5, 1.0, 2.0, 5.0, 10.0],
-            "values": {}
+            "values": {},
         }
-        
+
         self.metrics["vpn_bandwidth_bytes"] = {
             "type": MetricType.GAUGE,
             "help": "VPN bandwidth usage in bytes per second",
             "labels": ["server", "protocol", "direction"],
-            "values": {}
+            "values": {},
         }
-        
+
         self.metrics["vpn_packet_loss_rate"] = {
             "type": MetricType.GAUGE,
             "help": "VPN packet loss rate",
             "labels": ["server", "protocol"],
-            "values": {}
+            "values": {},
         }
-        
+
         # Server Performance Metrics
         self.metrics["vpn_server_cpu_usage"] = {
             "type": MetricType.GAUGE,
             "help": "VPN server CPU usage percentage",
             "labels": ["server", "region"],
-            "values": {}
+            "values": {},
         }
-        
+
         self.metrics["vpn_server_memory_usage"] = {
             "type": MetricType.GAUGE,
             "help": "VPN server memory usage percentage",
             "labels": ["server", "region"],
-            "values": {}
+            "values": {},
         }
-        
+
         self.metrics["vpn_server_disk_usage"] = {
             "type": MetricType.GAUGE,
             "help": "VPN server disk usage percentage",
             "labels": ["server", "region"],
-            "values": {}
+            "values": {},
         }
-        
+
         # Cache Performance Metrics
         self.metrics["cache_hits_total"] = {
             "type": MetricType.COUNTER,
             "help": "Total cache hits",
             "labels": ["cache_level", "cache_type"],
-            "values": {}
+            "values": {},
         }
-        
+
         self.metrics["cache_misses_total"] = {
             "type": MetricType.COUNTER,
             "help": "Total cache misses",
             "labels": ["cache_level", "cache_type"],
-            "values": {}
+            "values": {},
         }
-        
+
         # ML Quality Prediction Metrics
         self.metrics["ml_predictions_total"] = {
             "type": MetricType.COUNTER,
             "help": "Total ML quality predictions",
             "labels": ["model_type", "prediction_grade"],
-            "values": {}
+            "values": {},
         }
-        
+
         self.metrics["ml_prediction_accuracy"] = {
             "type": MetricType.GAUGE,
             "help": "ML prediction accuracy",
             "labels": ["model_type"],
-            "values": {}
+            "values": {},
         }
-        
+
         # Error and Alert Metrics
         self.metrics["vpn_errors_total"] = {
             "type": MetricType.COUNTER,
             "help": "Total VPN errors",
             "labels": ["error_type", "server", "severity"],
-            "values": {}
+            "values": {},
         }
-        
+
         self.metrics["vpn_alerts_active"] = {
             "type": MetricType.GAUGE,
             "help": "Number of active VPN alerts",
             "labels": ["alert_type", "severity"],
-            "values": {}
+            "values": {},
         }
-    
-    def update_connection_metrics(self, server_metrics: VPNServerMetrics) -> None:
+
+    def update_connection_metrics(
+        self, server_metrics: VPNServerMetrics
+    ) -> None:
         """Update VPN connection metrics.
-        
+
         Args:
             server_metrics: VPN server metrics
         """
         labels = {
             "server": server_metrics.server_name,
             "protocol": server_metrics.protocol,
-            "region": server_metrics.region
+            "region": server_metrics.region,
         }
-        
+
         # Update active connections
-        self._update_gauge("vpn_connections_active", labels, server_metrics.active_connections)
-        
+        self._update_gauge(
+            "vpn_connections_active", labels, server_metrics.active_connections
+        )
+
         # Update latency histogram
-        self._update_histogram("vpn_connection_latency_seconds", labels, server_metrics.avg_latency)
-        
+        self._update_histogram(
+            "vpn_connection_latency_seconds",
+            labels,
+            server_metrics.avg_latency,
+        )
+
         # Update bandwidth metrics
         upload_labels = {**labels, "direction": "upload"}
         download_labels = {**labels, "direction": "download"}
-        
-        self._update_gauge("vpn_bandwidth_bytes", upload_labels, server_metrics.bytes_uploaded)
-        self._update_gauge("vpn_bandwidth_bytes", download_labels, server_metrics.bytes_downloaded)
-        
+
+        self._update_gauge(
+            "vpn_bandwidth_bytes", upload_labels, server_metrics.bytes_uploaded
+        )
+        self._update_gauge(
+            "vpn_bandwidth_bytes",
+            download_labels,
+            server_metrics.bytes_downloaded,
+        )
+
         # Update packet loss rate
-        self._update_gauge("vpn_packet_loss_rate", labels, server_metrics.packet_loss_rate)
-        
+        self._update_gauge(
+            "vpn_packet_loss_rate", labels, server_metrics.packet_loss_rate
+        )
+
         # Update server performance metrics
         server_labels = {
             "server": server_metrics.server_name,
-            "region": server_metrics.region
+            "region": server_metrics.region,
         }
-        
-        self._update_gauge("vpn_server_cpu_usage", server_labels, server_metrics.cpu_usage)
-        self._update_gauge("vpn_server_memory_usage", server_labels, server_metrics.memory_usage)
-        self._update_gauge("vpn_server_disk_usage", server_labels, server_metrics.disk_usage)
-    
-    def update_cache_metrics(self, cache_level: str, cache_type: str, hits: int, misses: int) -> None:
+
+        self._update_gauge(
+            "vpn_server_cpu_usage", server_labels, server_metrics.cpu_usage
+        )
+        self._update_gauge(
+            "vpn_server_memory_usage",
+            server_labels,
+            server_metrics.memory_usage,
+        )
+        self._update_gauge(
+            "vpn_server_disk_usage", server_labels, server_metrics.disk_usage
+        )
+
+    def update_cache_metrics(
+        self, cache_level: str, cache_type: str, hits: int, misses: int
+    ) -> None:
         """Update cache performance metrics.
-        
+
         Args:
             cache_level: Cache level (L1, L2, L3)
             cache_type: Cache type (server_rec, quality_pred, etc.)
             hits: Number of cache hits
             misses: Number of cache misses
         """
-        labels = {
-            "cache_level": cache_level,
-            "cache_type": cache_type
-        }
-        
+        labels = {"cache_level": cache_level, "cache_type": cache_type}
+
         self._update_counter("cache_hits_total", labels, hits)
         self._update_counter("cache_misses_total", labels, misses)
-    
-    def update_ml_metrics(self, model_type: str, prediction_grade: str, accuracy: float) -> None:
+
+    def update_ml_metrics(
+        self, model_type: str, prediction_grade: str, accuracy: float
+    ) -> None:
         """Update ML quality prediction metrics.
-        
+
         Args:
             model_type: ML model type
             prediction_grade: Quality prediction grade
@@ -236,19 +264,19 @@ class MetricsCollector:
         """
         prediction_labels = {
             "model_type": model_type,
-            "prediction_grade": prediction_grade
+            "prediction_grade": prediction_grade,
         }
-        
-        accuracy_labels = {
-            "model_type": model_type
-        }
-        
+
+        accuracy_labels = {"model_type": model_type}
+
         self._update_counter("ml_predictions_total", prediction_labels, 1)
         self._update_gauge("ml_prediction_accuracy", accuracy_labels, accuracy)
-    
-    def update_error_metrics(self, error_type: str, server: str, severity: str) -> None:
+
+    def update_error_metrics(
+        self, error_type: str, server: str, severity: str
+    ) -> None:
         """Update error metrics.
-        
+
         Args:
             error_type: Type of error
             server: Server where error occurred
@@ -257,89 +285,107 @@ class MetricsCollector:
         labels = {
             "error_type": error_type,
             "server": server,
-            "severity": severity
+            "severity": severity,
         }
-        
+
         self._update_counter("vpn_errors_total", labels, 1)
-    
-    def update_alert_metrics(self, alert_type: str, severity: str, count: int) -> None:
+
+    def update_alert_metrics(
+        self, alert_type: str, severity: str, count: int
+    ) -> None:
         """Update alert metrics.
-        
+
         Args:
             alert_type: Type of alert
             severity: Alert severity
             count: Number of active alerts
         """
-        labels = {
-            "alert_type": alert_type,
-            "severity": severity
-        }
-        
+        labels = {"alert_type": alert_type, "severity": severity}
+
         self._update_gauge("vpn_alerts_active", labels, count)
-    
-    def _update_gauge(self, metric_name: str, labels: Dict[str, str], value: float) -> None:
+
+    def _update_gauge(
+        self, metric_name: str, labels: Dict[str, str], value: float
+    ) -> None:
         """Update gauge metric."""
         if metric_name not in self.metrics:
             return
-        
+
         label_key = self._create_label_key(labels)
         self.metrics[metric_name]["values"][label_key] = {
             "labels": labels,
             "value": value,
-            "timestamp": time.time()
+            "timestamp": time.time(),
         }
-    
-    def _update_counter(self, metric_name: str, labels: Dict[str, str], increment: int) -> None:
+
+    def _update_counter(
+        self, metric_name: str, labels: Dict[str, str], increment: int
+    ) -> None:
         """Update counter metric."""
         if metric_name not in self.metrics:
             return
-        
+
         label_key = self._create_label_key(labels)
-        
+
         if label_key not in self.metrics[metric_name]["values"]:
             self.metrics[metric_name]["values"][label_key] = {
                 "labels": labels,
                 "value": 0,
-                "timestamp": time.time()
+                "timestamp": time.time(),
             }
-        
+
         self.metrics[metric_name]["values"][label_key]["value"] += increment
-        self.metrics[metric_name]["values"][label_key]["timestamp"] = time.time()
-    
-    def _update_histogram(self, metric_name: str, labels: Dict[str, str], value: float) -> None:
+        self.metrics[metric_name]["values"][label_key][
+            "timestamp"
+        ] = time.time()
+
+    def _update_histogram(
+        self, metric_name: str, labels: Dict[str, str], value: float
+    ) -> None:
         """Update histogram metric."""
         if metric_name not in self.metrics:
             return
-        
+
         label_key = self._create_label_key(labels)
-        
+
         if label_key not in self.metrics[metric_name]["values"]:
             self.metrics[metric_name]["values"][label_key] = {
                 "labels": labels,
                 "buckets": {},
                 "count": 0,
                 "sum": 0.0,
-                "timestamp": time.time()
+                "timestamp": time.time(),
             }
-        
+
         # Update histogram buckets
         buckets = self.metrics[metric_name].get("buckets", [])
         for bucket in buckets:
             if value <= bucket:
                 bucket_key = f"le_{bucket}"
-                if bucket_key not in self.metrics[metric_name]["values"][label_key]["buckets"]:
-                    self.metrics[metric_name]["values"][label_key]["buckets"][bucket_key] = 0
-                self.metrics[metric_name]["values"][label_key]["buckets"][bucket_key] += 1
-        
+                if (
+                    bucket_key
+                    not in self.metrics[metric_name]["values"][label_key][
+                        "buckets"
+                    ]
+                ):
+                    self.metrics[metric_name]["values"][label_key]["buckets"][
+                        bucket_key
+                    ] = 0
+                self.metrics[metric_name]["values"][label_key]["buckets"][
+                    bucket_key
+                ] += 1
+
         # Update count and sum
         self.metrics[metric_name]["values"][label_key]["count"] += 1
         self.metrics[metric_name]["values"][label_key]["sum"] += value
-        self.metrics[metric_name]["values"][label_key]["timestamp"] = time.time()
-    
+        self.metrics[metric_name]["values"][label_key][
+            "timestamp"
+        ] = time.time()
+
     def _create_label_key(self, labels: Dict[str, str]) -> str:
         """Create unique key from labels."""
         return "|".join(f"{k}={v}" for k, v in sorted(labels.items()))
-    
+
     def get_metrics_summary(self) -> Dict[str, Any]:
         """Get metrics summary for monitoring dashboard."""
         summary = {
@@ -347,26 +393,30 @@ class MetricsCollector:
             "collection_active": self.is_collecting,
             "collection_interval": self.collection_interval,
             "metrics_by_type": {},
-            "recent_updates": []
+            "recent_updates": [],
         }
-        
+
         # Count metrics by type
         for metric_name, metric_data in self.metrics.items():
             metric_type = metric_data["type"].value
             if metric_type not in summary["metrics_by_type"]:
                 summary["metrics_by_type"][metric_type] = 0
             summary["metrics_by_type"][metric_type] += 1
-        
+
         # Get recent updates
         current_time = time.time()
         for metric_name, metric_data in self.metrics.items():
             for label_key, value_data in metric_data["values"].items():
-                if current_time - value_data["timestamp"] < 300:  # Last 5 minutes
-                    summary["recent_updates"].append({
-                        "metric": metric_name,
-                        "labels": value_data["labels"],
-                        "value": value_data["value"],
-                        "timestamp": value_data["timestamp"]
-                    })
-        
+                if (
+                    current_time - value_data["timestamp"] < 300
+                ):  # Last 5 minutes
+                    summary["recent_updates"].append(
+                        {
+                            "metric": metric_name,
+                            "labels": value_data["labels"],
+                            "value": value_data["value"],
+                            "timestamp": value_data["timestamp"],
+                        }
+                    )
+
         return summary

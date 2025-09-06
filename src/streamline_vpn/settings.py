@@ -5,11 +5,12 @@ Settings and Runtime Overrides
 Central place for system-wide defaults and helpers to apply environment-based
 overrides at runtime without code changes.
 """
+
 from __future__ import annotations
 
 import os
 from functools import lru_cache
-from typing import List
+from typing import Dict, List
 
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
@@ -25,7 +26,7 @@ class FetcherSettings(BaseSettings):
     rl_time_window_seconds: int = 60
     rl_burst_limit: int = 10
 
-    model_config = SettingsConfigDict(env_prefix='STREAMLINE_FETCHER_')
+    model_config = SettingsConfigDict(env_prefix="STREAMLINE_FETCHER_")
 
 
 class SecuritySettings(BaseSettings):
@@ -51,7 +52,21 @@ class SecuritySettings(BaseSettings):
         "rc4-md5",
         "none",
     ]
-    safe_ports: List[int] = [80, 443, 8080, 8443, 53, 853, 123, 993, 995, 587, 465, 993, 995]
+    safe_ports: List[int] = [
+        80,
+        443,
+        8080,
+        8443,
+        53,
+        853,
+        123,
+        993,
+        995,
+        587,
+        465,
+        993,
+        995,
+    ]
     suspicious_text_patterns: List[str] = [
         r"<script",
         r"javascript:",
@@ -76,14 +91,24 @@ class SecuritySettings(BaseSettings):
         r"rsync\s+",
     ]
 
-    model_config = SettingsConfigDict(env_prefix='STREAMLINE_SECURITY_')
+    model_config = SettingsConfigDict(env_prefix="STREAMLINE_SECURITY_")
 
 
 from pydantic import Field
 
+
+class RedisSettings(BaseSettings):
+    nodes: List[Dict[str, str]] = [{"host": "redis", "port": "6379"}]
+
+    model_config = SettingsConfigDict(env_prefix="STREAMLINE_REDIS_")
+
+
 class Settings(BaseSettings):
+    secret_key: str = "a_default_secret_key"
+    redis_nodes: List[Dict[str, str]] = [{"host": "localhost", "port": "6379"}]
     fetcher: FetcherSettings = Field(default_factory=FetcherSettings)
     security: SecuritySettings = Field(default_factory=SecuritySettings)
+    redis: RedisSettings = Field(default_factory=RedisSettings)
     supported_protocol_prefixes: List[str] = [
         "vmess://",
         "vless://",
@@ -95,7 +120,9 @@ class Settings(BaseSettings):
         "tuic://",
     ]
 
-    model_config = SettingsConfigDict(env_file='.env', env_nested_delimiter='__')
+    model_config = SettingsConfigDict(
+        env_file=".env", env_nested_delimiter="__"
+    )
 
 
 @lru_cache()

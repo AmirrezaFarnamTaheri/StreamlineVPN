@@ -21,9 +21,16 @@ logger = logging.getLogger(__name__)
 
 
 @click.command()
-@click.option("--config", default="config/sources.yaml", help="Path to sources config")
+@click.option(
+    "--config", default="config/sources.yaml", help="Path to sources config"
+)
 @click.option("--output", default="output", help="Output directory")
-@click.option("--format", "formats", multiple=True, help="Output format(s). Can be repeated.")
+@click.option(
+    "--format",
+    "formats",
+    multiple=True,
+    help="Output format(s). Can be repeated.",
+)
 def cli(config: str, output: str, formats: Optional[tuple[str, ...]] = None):
     """StreamlineVPN runner"""
     formats_list = list(formats) if formats else None
@@ -40,9 +47,11 @@ def cli(config: str, output: str, formats: Optional[tuple[str, ...]] = None):
         return asyncio.run(main(config, output, list(formats_list) if formats_list else None))  # type: ignore[arg-type]
 
 
-async def main(config: str, output: str, formats: Optional[List[str]] = None) -> int:
+async def main(
+    config: str, output: str, formats: Optional[List[str]] = None
+) -> int:
     """Main entry point for StreamlineVPN.
-    
+
     Returns:
         Exit code (0 for success, 1 for error)
     """
@@ -55,14 +64,17 @@ async def main(config: str, output: str, formats: Optional[List[str]] = None) ->
 
         # Create merger instance
         merger = StreamlineVPNMerger(config_path=config)
-        
+        await merger.initialize()
+
         # Process configurations and save results (handled inside process_all)
         logger.info("Starting StreamlineVPN processing...")
         results = await merger.process_all(output_dir=output, formats=formats)
-        
-        logger.info(f"Processing completed successfully. Results saved to {output}")
+
+        logger.info(
+            f"Processing completed successfully. Results saved to {output}"
+        )
         return 0
-        
+
     except KeyboardInterrupt:
         logger.info("Processing interrupted by user")
         return 1

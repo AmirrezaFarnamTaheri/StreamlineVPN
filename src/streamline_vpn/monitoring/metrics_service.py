@@ -19,22 +19,24 @@ logger = get_logger(__name__)
 
 class MetricsService:
     """Main metrics service with collection and export capabilities."""
-    
+
     def __init__(self):
         """Initialize metrics service."""
         self.collector = MetricsCollector()
         self.exporter = MetricsExporter(self.collector)
         self.alerting_rules = AlertingRules()
-    
+
     async def start_collection(self) -> None:
         """Start metrics collection."""
         if self.collector.is_collecting:
             return
-        
+
         self.collector.is_collecting = True
-        self.collector.collection_task = asyncio.create_task(self._collect_metrics_loop())
+        self.collector.collection_task = asyncio.create_task(
+            self._collect_metrics_loop()
+        )
         logger.info("Started Prometheus metrics collection")
-    
+
     async def stop_collection(self) -> None:
         """Stop metrics collection."""
         self.collector.is_collecting = False
@@ -45,7 +47,7 @@ class MetricsService:
             except asyncio.CancelledError:
                 pass
         logger.info("Stopped Prometheus metrics collection")
-    
+
     async def _collect_metrics_loop(self) -> None:
         """Main metrics collection loop."""
         while self.collector.is_collecting:
@@ -55,23 +57,23 @@ class MetricsService:
             except Exception as e:
                 logger.error(f"Error in metrics collection: {e}")
                 await asyncio.sleep(self.collector.collection_interval)
-    
+
     async def _collect_vpn_metrics(self) -> None:
         """Collect VPN metrics from various sources."""
         # This would integrate with actual VPN servers and services
         # For now, we'll simulate metric collection
-        
+
         # Simulate server metrics collection
         servers = await self._get_vpn_servers()
         for server in servers:
             metrics = await self._get_server_metrics(server)
             self.collector.update_connection_metrics(metrics)
-    
+
     async def _get_vpn_servers(self) -> List[str]:
         """Get list of VPN servers."""
         # Simulate server discovery
         return ["server-1", "server-2", "server-3"]
-    
+
     async def _get_server_metrics(self, server_id: str) -> VPNServerMetrics:
         """Get metrics for a specific server."""
         # Simulate server metrics collection
@@ -89,17 +91,17 @@ class MetricsService:
             cpu_usage=45.0,
             memory_usage=60.0,
             disk_usage=30.0,
-            last_updated=datetime.now()
+            last_updated=datetime.now(),
         )
-    
+
     def export_metrics(self) -> str:
         """Export metrics in Prometheus format."""
         return self.exporter.export_prometheus_metrics()
-    
+
     def get_metrics_summary(self) -> Dict[str, Any]:
         """Get metrics summary for monitoring dashboard."""
         return self.collector.get_metrics_summary()
-    
+
     def get_alerting_rules(self) -> str:
         """Get alerting rules in Prometheus format."""
         return self.alerting_rules.get_prometheus_rules()
