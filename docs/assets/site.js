@@ -16,8 +16,8 @@
 })();
 
 // Add copy buttons to code blocks
-(function () {
-  const blocks = document.querySelectorAll('pre');
+function addCopyButtons(root = document) {
+  const blocks = root.querySelectorAll('pre');
   blocks.forEach(pre => {
     if (pre.querySelector('.copy-btn')) return;
     const btn = document.createElement('button');
@@ -41,7 +41,8 @@
     });
     pre.appendChild(btn);
   });
-})();
+}
+addCopyButtons();
 
 // Optional homepage health check (only runs if elements exist)
 (function () {
@@ -101,14 +102,25 @@
       if (response.ok) {
         logsEl.textContent = `Pipeline completed successfully:\n${result.message}`;
 
-        let outputHTML = '<ul>';
+        let outputHTML = '';
+        const escapeHtml = (str) => str
+          .replace(/&/g, "&amp;")
+          .replace(/</g, "&lt;")
+          .replace(/>/g, "&gt;");
+
         for (const [fileName, content] of Object.entries(result.output_files)) {
           const blob = new Blob([content], { type: 'text/plain' });
           const url = URL.createObjectURL(blob);
-          outputHTML += `<li><a href="${url}" download="${fileName}">${fileName}</a></li>`;
+          outputHTML += `\n<details><summary>${fileName}</summary>`;
+          outputHTML += `<div class="output-actions"><a href="${url}" download="${fileName}" class="btn secondary">Download</a></div>`;
+          outputHTML += `<pre>${escapeHtml(content)}</pre></details>`;
         }
-        outputHTML += '</ul>';
+
+        if (!outputHTML) {
+          outputHTML = '<p>No output files produced.</p>';
+        }
         outputFilesEl.innerHTML = outputHTML;
+        addCopyButtons(outputFilesEl);
 
       } else {
         logsEl.textContent = `Error:\n${result.detail}`;

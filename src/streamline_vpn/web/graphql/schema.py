@@ -5,9 +5,10 @@ GraphQL Schema
 GraphQL schema definitions for StreamlineVPN.
 """
 
-import strawberry
-from typing import List, Optional
 from datetime import datetime
+from typing import List, Optional
+
+import strawberry
 
 
 @strawberry.type
@@ -116,14 +117,14 @@ class Mutation:
         """Blacklist a source."""
         # Return placeholder to avoid circular imports
         # In a real implementation, this would be injected
-        return f"Blacklist not available in GraphQL mode"
+        return "Blacklist not available in GraphQL mode"
 
     @strawberry.field
     def whitelist_source(self, source_url: str) -> str:
         """Whitelist a source."""
         # Return placeholder to avoid circular imports
         # In a real implementation, this would be injected
-        return f"Whitelist not available in GraphQL mode"
+        return "Whitelist not available in GraphQL mode"
 
 
 # Create schema
