@@ -7,7 +7,6 @@ Refactored configuration processing system for StreamlineVPN.
 
 from typing import List, Dict, Any, Optional
 import hashlib
-import uuid
 
 from ..models.configuration import VPNConfiguration
 from ..utils.logging import get_logger
@@ -21,7 +20,7 @@ logger = get_logger(__name__)
 
 
 class ConfigurationProcessor:
-    """Refactored configuration processor for parsing, validating, and deduplicating configurations."""
+    """Processor for parsing, validating, and deduplicating configs."""
 
     def __init__(self):
         """Initialize configuration processor."""
@@ -102,15 +101,6 @@ class ConfigurationProcessor:
     def deduplicate_configurations(
         self, configs: List[VPNConfiguration], strategy: str = "exact"
     ) -> List[VPNConfiguration]:
-        """Deduplicate configurations.
-
-        Args:
-            configs: List of configurations to deduplicate
-            strategy: Deduplication strategy
-
-        Returns:
-            List of unique configurations
-        """
         unique = self.deduplicator.deduplicate_configurations(
             configs, strategy
         )
@@ -127,7 +117,10 @@ class ConfigurationProcessor:
             Unique configuration ID
         """
         # Create a hash of the configuration content
-        content = f"{config_data.get('protocol', '')}:{config_data.get('server', '')}:{config_data.get('port', '')}"
+        protocol = config_data.get("protocol", "")
+        server = config_data.get("server", "")
+        port = config_data.get("port", "")
+        content = f"{protocol}:{server}:{port}"
         return hashlib.md5(content.encode()).hexdigest()[:8]
 
     # Backwards-compatibility: single-line async parse API expected by tests

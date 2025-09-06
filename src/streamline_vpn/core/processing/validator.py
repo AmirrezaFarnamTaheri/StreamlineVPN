@@ -8,7 +8,6 @@ Handles validation of VPN configurations.
 import re
 import ipaddress
 from typing import List, Dict, Any, Optional, Tuple
-from urllib.parse import urlparse
 
 from ...models.configuration import VPNConfiguration, Protocol
 from ...utils.logging import get_logger
@@ -127,16 +126,7 @@ class ConfigurationValidator:
         rules: Dict[str, Any],
         errors: List[str],
     ) -> bool:
-        """Validate against custom rules.
-
-        Args:
-            config: Configuration to validate
-            rules: Custom validation rules
-            errors: List to append errors to
-
-        Returns:
-            True if valid
-        """
+        """Validate against custom rules."""
         valid = True
 
         # Check minimum quality score
@@ -251,15 +241,7 @@ class ConfigurationValidator:
         configs: List[VPNConfiguration],
         rules: Optional[Dict[str, Any]] = None,
     ) -> List[VPNConfiguration]:
-        """Validate a list of configurations.
-
-        Args:
-            configs: List of configurations to validate
-            rules: Optional validation rules
-
-        Returns:
-            List of valid configurations
-        """
+        """Validate a list of configurations."""
         valid_configs = []
 
         for config in configs:

@@ -23,7 +23,7 @@ logger = get_logger(__name__)
 
 
 class OutputManager:
-    """Refactored output manager for saving configurations in various formats."""
+    """Saves configurations in various formats."""
 
     def __init__(self):
         """Initialize output manager."""
@@ -77,10 +77,8 @@ class OutputManager:
                 formatter = formatter_class(output_path)
 
                 # Determine target path early for fallback on write errors
-                target_path = (
-                    output_path
-                    / f"configurations{formatter.get_file_extension()}"
-                )
+                file_ext = formatter.get_file_extension()
+                target_path = output_path / f"configurations{file_ext}"
                 try:
                     file_path = formatter.save_configurations(
                         configs, "configurations"

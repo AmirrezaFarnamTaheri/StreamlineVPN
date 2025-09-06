@@ -5,6 +5,7 @@ Helper Utilities
 General helper functions for StreamlineVPN.
 """
 
+import inspect
 import time
 from datetime import datetime, timedelta
 from typing import Any, Dict, List, Optional, Union
@@ -279,8 +280,6 @@ def retry_on_exception(
 
     return decorator
 
-
-import inspect
 
 def measure_time(func):
     """Decorator to measure function execution time (sync or async)."""

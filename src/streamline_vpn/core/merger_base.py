@@ -5,15 +5,12 @@ Base Merger Class
 Base class for VPN configuration merging functionality.
 """
 
-import asyncio
-import logging
 from pathlib import Path
 from typing import Dict, List, Optional, Any
-from datetime import datetime
 
 from ..models.configuration import VPNConfiguration
 from ..models.processing_result import ProcessingResult, ProcessingStatistics
-from ..utils.logging import get_logger, log_performance
+from ..utils.logging import get_logger
 from .source_manager import SourceManager
 from .config_processor import ConfigurationProcessor
 from .output_manager import OutputManager

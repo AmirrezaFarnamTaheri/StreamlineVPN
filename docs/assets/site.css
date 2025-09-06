@@ -1,334 +1,348 @@
-/* General variables */
+/* ---
+Modern UI Redesign for StreamlineVPN Docs
+- Author: Jules
+- Date: 2025-09-06
+--- */
+
+/* 1. General Variables & Theming
+   - Using a more modern color palette with better contrast.
+   - Using CSS variables extensively for easy theming.
+   - Added variables for spacing and transitions.
+*/
 :root {
-  --font-family-sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
+  --font-family-sans: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
   --font-family-mono: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, Courier, monospace;
 
-  --light-bg: #f6f8fa;
-  --light-text: #24292e;
-  --light-border: #e1e4e8;
-  --light-header-bg: linear-gradient(120deg, #155799, #159957);
-  --light-link: #0366d6;
-  --light-code-bg: #ffffff;
+  /* Light Theme */
+  --light-bg: #ffffff;
+  --light-text: #2a2a2a;
+  --light-text-muted: #6b7280;
+  --light-border: #e5e7eb;
+  --light-header-bg: #ffffff;
+  --light-header-text: #1f2937;
+  --light-link: #3b82f6;
+  --light-link-hover: #1d4ed8;
+  --light-code-bg: #f9fafb;
   --light-card-bg: #ffffff;
+  --light-btn-primary-bg: #3b82f6;
+  --light-btn-primary-text: #ffffff;
+  --light-btn-primary-hover: #2563eb;
 
-  --dark-bg: #0d1117;
-  --dark-text: #c9d1d9;
-  --dark-border: #30363d;
-  --dark-header-bg: linear-gradient(120deg, #155799, #159957);
-  --dark-link: #58a6ff;
-  --dark-code-bg: #161b22;
-  --dark-card-bg: #161b22;
+  /* Dark Theme */
+  --dark-bg: #111827;
+  --dark-text: #d1d5db;
+  --dark-text-muted: #9ca3af;
+  --dark-border: #374151;
+  --dark-header-bg: #1f2937;
+  --dark-header-text: #f9fafb;
+  --dark-link: #60a5fa;
+  --dark-link-hover: #93c5fd;
+  --dark-code-bg: #1f2937;
+  --dark-card-bg: #1f2937;
+  --dark-btn-primary-bg: #60a5fa;
+  --dark-btn-primary-text: #111827;
+  --dark-btn-primary-hover: #3b82f6;
 
-  --border-radius: 6px;
-  --shadow: 0 1px 3px rgba(0,0,0,0.12), 0 1px 2px rgba(0,0,0,0.24);
+  /* General styles */
+  --border-radius: 8px;
+  --shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -2px rgba(0, 0, 0, 0.1);
+  --transition-speed: 0.2s;
 }
 
-/* Light theme (default) */
+/* 2. Base Styles
+   - Applying the theme variables.
+   - Improved readability with better line-height.
+*/
 body {
   background-color: var(--light-bg);
   color: var(--light-text);
   font-family: var(--font-family-sans);
   margin: 0;
+  line-height: 1.6;
+  transition: background-color var(--transition-speed), color var(--transition-speed);
 }
 
-.page-header {
-  background-image: var(--light-header-bg);
-  color: white;
-}
-
-.main-content {
-  color: var(--light-text);
-  max-width: 960px;
-  margin: 0 auto;
-  padding: 2rem;
-}
-
-a {
-  color: var(--light-link);
-  text-decoration: none;
-}
-
-a:hover {
-    text-decoration: underline;
-}
-
-pre, code {
-  background-color: var(--light-code-bg);
-  font-family: var(--font-family-mono);
-  border: 1px solid var(--light-border);
-  border-radius: var(--border-radius);
-}
-
-/* Dark theme */
 [data-theme="dark"] body {
   background-color: var(--dark-bg);
   color: var(--dark-text);
 }
 
-[data-theme="dark"] .page-header {
-  background-image: var(--dark-header-bg);
+.main-content {
+  max-width: 1024px;
+  margin: 0 auto;
+  padding: 3rem 1.5rem;
 }
 
-[data-theme="dark"] .main-content {
-  color: var(--dark-text);
+a {
+  color: var(--light-link);
+  text-decoration: none;
+  font-weight: 500;
+  transition: color var(--transition-speed);
 }
-
-[data-theme="dark"] a {
-  color: var(--dark-link);
+a:hover {
+  color: var(--light-link-hover);
+  text-decoration: underline;
 }
+[data-theme="dark"] a { color: var(--dark-link); }
+[data-theme="dark"] a:hover { color: var(--dark-link-hover); }
 
-[data-theme="dark"] pre, [data-theme="dark"] code {
-  background-color: var(--dark-code-bg);
-  border-color: var(--dark-border);
-}
-
-[data-theme="dark"] .card {
-    background-color: var(--dark-card-bg);
-    border-color: var(--dark-border);
-}
-
-/* Header and Navigation */
+/* 3. Header and Navigation
+   - A cleaner, more modern header with a subtle border.
+*/
 .page-header {
-  padding: 2rem 4rem;
+  background-color: var(--light-header-bg);
+  color: var(--light-header-text);
+  padding: 1rem 2rem;
   display: flex;
   justify-content: space-between;
   align-items: center;
+  border-bottom: 1px solid var(--light-border);
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  transition: background-color var(--transition-speed), border-color var(--transition-speed);
+}
+[data-theme="dark"] .page-header {
+  background-color: var(--dark-header-bg);
+  color: var(--dark-header-text);
+  border-bottom-color: var(--dark-border);
 }
 
-.nav-links {
-  display: flex;
-  align-items: center;
-  gap: 15px;
-}
-
+.nav-links { display: flex; align-items: center; gap: 1rem; }
 .nav-links a, .nav-links button.btn {
-  color: white;
+  color: var(--light-header-text);
   text-decoration: none;
   font-weight: 500;
-  transition: opacity 0.2s;
+  transition: opacity var(--transition-speed);
 }
-
-.nav-links a:hover {
-  opacity: 0.8;
-  text-decoration: none;
+[data-theme="dark"] .nav-links a, [data-theme="dark"] .nav-links button.btn {
+  color: var(--dark-header-text);
 }
+.nav-links a:hover { opacity: 0.7; text-decoration: none; }
 
 #theme-toggle {
-    border: 1px solid white;
+    border: 1px solid var(--light-border);
     background: transparent;
-    color: white;
+    color: var(--light-text);
     padding: 8px 12px;
     border-radius: var(--border-radius);
     cursor: pointer;
+    transition: background-color var(--transition-speed), border-color var(--transition-speed);
 }
+[data-theme="dark"] #theme-toggle {
+    border-color: var(--dark-border);
+    color: var(--dark-text);
+}
+#theme-toggle:hover { background-color: var(--light-code-bg); }
+[data-theme="dark"] #theme-toggle:hover { background-color: var(--dark-code-bg); }
+
 
 /* Logo */
-.logo {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-}
-
-.logo img {
-    height: 40px;
-}
-
-.logo h1 {
-    font-size: 1.5rem;
-    font-weight: 600;
-    margin: 0;
-}
+.logo { display: flex; align-items: center; gap: 12px; }
+.logo img { height: 36px; }
+.logo h1 { font-size: 1.25rem; font-weight: 600; margin: 0; }
 
 /* Hero Section */
-.hero {
-    text-align: center;
-    padding: 4rem 2rem;
-}
+.hero { text-align: center; padding: 4rem 1rem; }
+.hero h1 { font-size: 3rem; font-weight: 800; margin-bottom: 1rem; }
+.hero .muted { font-size: 1.125rem; color: var(--light-text-muted); margin-bottom: 2.5rem; max-width: 600px; margin-left: auto; margin-right: auto;}
+[data-theme="dark"] .hero .muted { color: var(--dark-text-muted); }
+.hero .cta { display: flex; justify-content: center; gap: 1rem; flex-wrap: wrap; }
 
-.hero h1 {
-    font-size: 2.5rem;
-    font-weight: 700;
-    margin-bottom: 1rem;
-}
-
-.hero .muted {
-    font-size: 1.2rem;
-    color: #586069;
-    margin-bottom: 2rem;
-}
-
-[data-theme="dark"] .hero .muted {
-    color: #8b949e;
-}
-
-.hero .cta {
-    display: flex;
-    justify-content: center;
-    gap: 1rem;
-}
-
-/* Card */
+/* 4. Components
+   - Redesigned cards, buttons, and code blocks.
+*/
 .card {
-    background-color: var(--light-card-bg);
-    border: 1px solid var(--light-border);
-    border-radius: var(--border-radius);
-    padding: 1.5rem;
-    box-shadow: var(--shadow);
+  background-color: var(--light-card-bg);
+  border: 1px solid var(--light-border);
+  border-radius: var(--border-radius);
+  padding: 1.5rem;
+  box-shadow: var(--shadow);
+  transition: background-color var(--transition-speed), border-color var(--transition-speed), box-shadow var(--transition-speed);
+}
+.card:hover {
+  box-shadow: 0 10px 15px -3px rgba(0,0,0,0.1), 0 4px 6px -4px rgba(0,0,0,0.1);
+}
+[data-theme="dark"] .card {
+  background-color: var(--dark-card-bg);
+  border-color: var(--dark-border);
 }
 
-/* Grid */
 .grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-    gap: 2rem;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: 1.5rem;
 }
 
-/* Buttons */
 .btn {
-    display: inline-block;
-    padding: 10px 20px;
-    border-radius: var(--border-radius);
-    background-color: var(--light-link);
-    color: white;
-    font-weight: 600;
-    text-decoration: none;
-    transition: background-color 0.2s;
+  display: inline-block;
+  padding: 12px 24px;
+  border-radius: var(--border-radius);
+  background-color: var(--light-btn-primary-bg);
+  color: var(--light-btn-primary-text);
+  font-weight: 600;
+  text-decoration: none;
+  border: none;
+  cursor: pointer;
+  transition: background-color var(--transition-speed), transform var(--transition-speed);
 }
-
 .btn:hover {
-    background-color: #024ca7;
-    color: white;
-    text-decoration: none;
+  background-color: var(--light-btn-primary-hover);
+  color: var(--light-btn-primary-text);
+  text-decoration: none;
+  transform: translateY(-2px);
+}
+[data-theme="dark"] .btn {
+    background-color: var(--dark-btn-primary-bg);
+    color: var(--dark-btn-primary-text);
+}
+[data-theme="dark"] .btn:hover {
+    background-color: var(--dark-btn-primary-hover);
+    color: var(--dark-btn-primary-text);
 }
 
 .btn.secondary {
-    background-color: transparent;
-    color: var(--light-link);
-    border: 1px solid var(--light-link);
+  background-color: transparent;
+  color: var(--light-link);
+  border: 1px solid var(--light-border);
 }
-
 .btn.secondary:hover {
-    background-color: var(--light-link);
-    color: white;
+  background-color: var(--light-code-bg);
+  color: var(--light-link-hover);
+  border-color: var(--light-border);
 }
-
 [data-theme="dark"] .btn.secondary {
-    color: var(--dark-link);
-    border-color: var(--dark-link);
+  color: var(--dark-link);
+  border-color: var(--dark-border);
 }
-
 [data-theme="dark"] .btn.secondary:hover {
-    background-color: var(--dark-link);
-    color: var(--dark-bg);
+  background-color: var(--dark-code-bg);
+  color: var(--dark-link-hover);
 }
 
-/* Code blocks */
-pre {
+
+pre, .log-output {
   position: relative;
   padding: 1rem;
+  background-color: var(--light-code-bg);
+  border: 1px solid var(--light-border);
+  border-radius: var(--border-radius);
+  overflow-x: auto;
+  font-family: var(--font-family-mono);
+  font-size: 0.9rem;
+  line-height: 1.5;
+}
+[data-theme="dark"] pre, [data-theme="dark"] .log-output {
+  background-color: var(--dark-code-bg);
+  border-color: var(--dark-border);
 }
 
 .copy-btn {
   position: absolute;
   top: 10px;
   right: 10px;
-  background-color: #fff;
+  background-color: var(--light-card-bg);
   border: 1px solid var(--light-border);
   padding: 5px 10px;
-  border-radius: var(--border-radius);
+  border-radius: 6px;
   cursor: pointer;
   font-size: 0.8rem;
-  transition: background-color 0.2s;
+  opacity: 0.7;
+  transition: all var(--transition-speed);
 }
-
+pre:hover .copy-btn { opacity: 1; }
+.copy-btn:hover { background-color: var(--light-bg); }
 [data-theme="dark"] .copy-btn {
   background-color: var(--dark-code-bg);
   border-color: var(--dark-border);
   color: var(--dark-text);
 }
+[data-theme="dark"] .copy-btn:hover { background-color: #374151; }
 
-.copy-btn:hover {
-  background-color: #f0f0f0;
+
+/* 5. Forms (from interactive.html)
+   - Moved inline styles to the stylesheet.
+   - Modernized form controls.
+*/
+.form-group { margin-bottom: 1.5rem; }
+.form-group label { display: block; font-weight: 600; margin-bottom: 0.5rem; }
+.form-control {
+  width: 100%;
+  padding: 0.75rem 1rem;
+  border: 1px solid var(--light-border);
+  border-radius: var(--border-radius);
+  background-color: var(--light-bg);
+  color: var(--light-text);
+  transition: border-color var(--transition-speed), box-shadow var(--transition-speed);
+}
+.form-control:focus {
+  outline: none;
+  border-color: var(--light-link);
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.3);
+}
+[data-theme="dark"] .form-control {
+  background-color: var(--dark-bg);
+  border-color: var(--dark-border);
+  color: var(--dark-text);
+}
+[data-theme="dark"] .form-control:focus {
+  border-color: var(--dark-link);
+  box-shadow: 0 0 0 3px rgba(96, 165, 250, 0.3);
 }
 
-[data-theme="dark"] .copy-btn:hover {
-  background-color: #2c323a;
-}
+.checkbox-group { display: flex; gap: 1.5rem; flex-wrap: wrap; }
+.checkbox-group label { display: flex; align-items: center; gap: 0.5rem; font-weight: normal; }
 
-/* Footer */
-.site-footer {
-  margin-top: 2rem;
-  padding-top: 1rem;
-  border-top: 1px solid var(--light-border);
-  font-size: 0.8rem;
-  color: #6a737d;
-  text-align: center;
-}
 
-/* Output preview */
+/* 6. Other Components */
+.log-output { height: 300px; }
+
 details {
   margin-bottom: 1rem;
   border: 1px solid var(--light-border);
   border-radius: var(--border-radius);
-  padding: 0.5rem 1rem;
+  transition: background-color var(--transition-speed);
 }
-details[open] {
-  background-color: var(--light-code-bg);
-}
+details[open] { background-color: var(--light-code-bg); }
 details summary {
   cursor: pointer;
   font-weight: 600;
   outline: none;
   word-break: break-all;
+  padding: 1rem;
 }
 details pre {
-  margin-top: 0.5rem;
-  overflow-x: auto;
-  white-space: pre;
+  margin-top: 0;
+  padding: 0 1rem 1rem 1rem;
+  border: none;
+  border-top: 1px solid var(--light-border);
+  border-radius: 0;
 }
-.output-actions {
-  margin: 0.5rem 0;
-}
-[data-theme="dark"] details {
-  border-color: var(--dark-border);
-}
-[data-theme="dark"] details[open] {
-  background-color: var(--dark-code-bg);
-}
+.output-actions { padding: 0 1rem 1rem 1rem; margin: 0; }
+[data-theme="dark"] details { border-color: var(--dark-border); }
+[data-theme="dark"] details[open] { background-color: var(--dark-code-bg); }
+[data-theme="dark"] details pre { border-top-color: var(--dark-border); }
 
-/* Logs output styling */
-.log-output {
-  height: 300px;
-  overflow-y: auto;
-  background-color: var(--light-code-bg);
-  border: 1px solid var(--light-border);
-  border-radius: var(--border-radius);
-  padding: 0.5rem;
-}
-[data-theme="dark"] .log-output {
-  background-color: var(--dark-code-bg);
-  border-color: var(--dark-border);
-}
 
+.site-footer {
+  margin-top: 3rem;
+  padding: 2rem 1rem;
+  border-top: 1px solid var(--light-border);
+  font-size: 0.9rem;
+  color: var(--light-text-muted);
+  text-align: center;
+  transition: border-color var(--transition-speed), color var(--transition-speed);
+}
 [data-theme="dark"] .site-footer {
   border-top-color: var(--dark-border);
-  color: #8b949e;
+  color: var(--dark-text-muted);
 }
 
-/* Responsive */
-@media (max-width: 960px) {
-  .page-header {
-    padding: 2rem 1rem;
-    flex-direction: column;
-    gap: 1rem;
-  }
-  .main-content {
-      padding: 1rem;
-  }
-  .hero {
-      padding: 2rem 1rem;
-  }
-  .grid {
-      grid-template-columns: 1fr;
-  }
+/* 7. Responsive Design */
+@media (max-width: 768px) {
+  .page-header { flex-direction: column; gap: 1rem; padding: 1rem; }
+  .main-content { padding: 2rem 1rem; }
+  .hero { padding: 2rem 1rem; }
+  .hero h1 { font-size: 2.5rem; }
+  .grid { grid-template-columns: 1fr; }
 }

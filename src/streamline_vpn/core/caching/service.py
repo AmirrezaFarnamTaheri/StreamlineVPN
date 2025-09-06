@@ -5,7 +5,6 @@ VPN Cache Service
 Main VPN caching service with multi-level architecture.
 """
 
-import asyncio
 import json
 import time
 from typing import Dict, List, Optional, Any

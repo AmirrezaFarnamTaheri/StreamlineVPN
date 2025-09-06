@@ -8,7 +8,7 @@ from ...models.configuration import VPNConfiguration
 
 
 class SingBoxFormatter:
-    """Formatter that outputs configurations in a minimal Sing-box JSON structure."""
+    """Formatter for Sing-box JSON output."""
 
     def __init__(self, output_dir: Path) -> None:
         self.output_dir = output_dir

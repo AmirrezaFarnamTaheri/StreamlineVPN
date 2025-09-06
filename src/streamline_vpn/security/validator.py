@@ -7,6 +7,7 @@ Security validation utilities for StreamlineVPN.
 
 import re
 import ipaddress
+import socket
 from urllib.parse import urlparse
 from typing import Dict, List, Any, Optional
 
@@ -253,8 +254,29 @@ class SecurityValidator:
             return False
 
         settings = get_settings()
-        if any(host.endswith(tld) for tld in settings.security.suspicious_tlds):
+        if any(
+            host.endswith(tld) for tld in settings.security.suspicious_tlds
+        ):
             return False
+
+        # Reject domains that resolve to private/loopback/link-local/reserved IPs
+        try:
+            infos = socket.getaddrinfo(host, None)
+            for _, _, _, _, sockaddr in infos:
+                ip = sockaddr[0]
+                ip_obj = ipaddress.ip_address(ip)
+                if (
+                    ip_obj.is_private
+                    or ip_obj.is_loopback
+                    or ip_obj.is_link_local
+                    or ip_obj.is_reserved
+                    or ip_obj.is_multicast
+                    or ip_obj.is_unspecified
+                ):
+                    return False
+        except Exception:
+            # If resolution fails, keep previous syntactic decision
+            pass
 
         return True
 

@@ -282,9 +282,15 @@ def setup_routes(
         """WebSocket endpoint for real-time updates."""
         await websocket_manager.connect(websocket, user_id)
 
+        MAX_MSG_BYTES = 256 * 1024  # 256 KiB limit
+
         try:
             while True:
                 data = await websocket.receive_text()
+                if len(data.encode("utf-8", "ignore")) > MAX_MSG_BYTES:
+                    await websocket.send_text('{"error":"message_too_large"}')
+                    await websocket.close(code=1009)  # Message too big
+                    break
                 try:
                     message_data = json.loads(data)
                 except Exception:
@@ -312,7 +318,9 @@ def setup_routes(
     @app.get("/metrics")
     async def get_metrics():
         """Get Prometheus metrics."""
-        body = "# StreamlineVPN Metrics\n# (metrics would be implemented here)"
+        body = (
+            "# StreamlineVPN Metrics\n# (metrics would be implemented here)\n"
+        )
         return PlainTextResponse(
             content=body,
             media_type="text/plain; version=0.0.4; charset=utf-8",
@@ -323,6 +331,7 @@ def setup_routes(
     async def run_pipeline(request: dict):
         """Run the VPN merger pipeline."""
         import os
+
         config_path = request.get("config_path", "config/sources.yaml")
         output_dir = request.get("output_dir", "output")
         formats = request.get("formats")
@@ -331,7 +340,9 @@ def setup_routes(
             # Note: The `run_pipeline_main` function is async.
             # We can await it directly.
             # We're also capturing the exit code to see if it was successful.
-            exit_code = await run_pipeline_main(config_path, output_dir, formats)
+            exit_code = await run_pipeline_main(
+                config_path, output_dir, formats
+            )
 
             if exit_code == 0:
                 output_files = {}
@@ -346,14 +357,19 @@ def setup_routes(
                         elif format_name == "singbox":
                             file_name = "singbox.json"
                         else:
-                            file_name = f"{format_name}.txt" # A sensible default
+                            # A sensible default
+                            file_name = f"{format_name}.txt"
 
                         file_path = os.path.join(output_dir, file_name)
                         if os.path.exists(file_path):
                             with open(file_path, "r") as f:
                                 output_files[file_name] = f.read()
 
-                return {"status": "success", "message": "Pipeline completed successfully.", "output_files": output_files}
+                return {
+                    "status": "success",
+                    "message": "Pipeline completed successfully.",
+                    "output_files": output_files,
+                }
             else:
                 raise HTTPException(
                     status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,

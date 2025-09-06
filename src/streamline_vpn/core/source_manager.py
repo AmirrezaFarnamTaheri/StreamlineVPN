@@ -2,15 +2,15 @@
 Source Manager
 ==============
 
-Manages VPN configuration sources with reputation tracking and performance monitoring.
+Manages VPN configuration sources.
 """
 
 import asyncio
 import json
 import yaml
 from pathlib import Path
-from typing import Dict, List, Optional, Any
-from datetime import datetime, timedelta
+from typing import Dict, List, Any
+from datetime import datetime
 
 from ..models.source import SourceMetadata, SourceTier
 from ..models.processing_result import ProcessingResult
@@ -103,7 +103,8 @@ class SourceManager:
                             )
 
             logger.info(
-                f"Loaded {len(self.sources)} sources from {self.config_path}"
+                f"Loaded {len(self.sources)} sources "
+                f"from {self.config_path}"
             )
 
         except Exception as e:

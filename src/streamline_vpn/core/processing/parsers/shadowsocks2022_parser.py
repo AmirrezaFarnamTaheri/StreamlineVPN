@@ -1,12 +1,5 @@
-"""
-Optimized Shadowsocks 2022 Parser
-================================
+"""Optimized Shadowsocks 2022 Parser."""
 
-High-performance Shadowsocks 2022 parser with BLAKE3 key derivation and async patterns.
-"""
-
-import asyncio
-import base64
 import hashlib
 import re
 from typing import Dict, Optional, Any
@@ -18,7 +11,7 @@ logger = get_logger(__name__)
 
 
 class Shadowsocks2022Parser:
-    """High-performance Shadowsocks 2022 parser with BLAKE3 key derivation and async patterns."""
+    """High-performance Shadowsocks 2022 parser."""
 
     def __init__(self):
         """Initialize Shadowsocks 2022 parser."""
@@ -54,16 +47,10 @@ class Shadowsocks2022Parser:
             # Extract components
             method, password, host, port, query_string = match.groups()
 
-            # Parse query parameters
-            params = {}
-            if query_string:
-                from urllib.parse import parse_qs
-
-                query_params = parse_qs(query_string[1:])  # Remove '?'
-                params = {k: v[0] for k, v in query_params.items()}
+            # Query parameters are not used in this implementation.
 
             # Derive key using BLAKE3 (simplified implementation)
-            derived_key = await self._derive_key_blake3(password, method)
+            await self._derive_key_blake3(password, method)
 
             # Create configuration
             config = VPNConfiguration(
@@ -109,8 +96,6 @@ class Shadowsocks2022Parser:
         """
         # In production, use actual BLAKE3 implementation
         # For now, simulate with SHA-256
-        import hashlib
-
         # Create salt based on method
         salt = f"ss2022_{method}_{password}"
 

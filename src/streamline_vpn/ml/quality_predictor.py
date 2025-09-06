@@ -11,42 +11,49 @@ This module provides a unified interface to the modularized ML system.
 
 from typing import Dict, Any
 
+from typing import Dict, Any
+
 from .quality_service import QualityPredictionService
 from .feature_processor import NetworkFeatureProcessor
 from .lstm_model import QualityPrediction, LSTMModel
 from ..core.cache_manager import CacheManager
+from ..settings import get_settings
 
 # Re-export main classes for backward compatibility
-__all__ = ["QualityPredictionService", "NetworkMetrics", "QualityPrediction"]
+__all__ = [
+    "QualityPredictionService",
+    "QualityPrediction",
+    "create_quality_prediction_service",
+]
 
-# Global service instance
-_cache_manager = CacheManager()
-_feature_processor = NetworkFeatureProcessor()
-_lstm_model = LSTMModel()
+_quality_prediction_service_instance = None
 
-_quality_prediction_service = QualityPredictionService(
-    cache_manager=_cache_manager,
-    feature_processor=_feature_processor,
-    lstm_model=_lstm_model,
-)
+
+def create_quality_prediction_service() -> QualityPredictionService:
+    """Factory function to create a quality prediction service."""
+    global _quality_prediction_service_instance
+    if _quality_prediction_service_instance is None:
+        settings = get_settings()
+        cache_manager = CacheManager(redis_nodes=settings.redis.nodes)
+        feature_processor = NetworkFeatureProcessor()
+        lstm_model = LSTMModel()
+        _quality_prediction_service_instance = QualityPredictionService(
+            cache_manager=cache_manager,
+            feature_processor=feature_processor,
+            lstm_model=lstm_model,
+        )
+    return _quality_prediction_service_instance
 
 
 async def predict_connection_quality(
     server_metrics: Dict[str, Any],
 ) -> Dict[str, Any]:
-    """Predict connection quality for a server.
-
-    Args:
-        server_metrics: Server performance metrics
-
-    Returns:
-        Quality prediction result
-    """
-    return await _quality_prediction_service.predict_connection_quality(
-        server_metrics
-    )
+    """Predict connection quality for a server."""
+    service = create_quality_prediction_service()
+    return await service.predict_connection_quality(server_metrics)
 
 
 def get_quality_prediction_stats() -> Dict[str, Any]:
     """Get quality prediction service statistics."""
-    return _quality_prediction_service.get_performance_stats()
+    service = create_quality_prediction_service()
+    return service.get_performance_stats()

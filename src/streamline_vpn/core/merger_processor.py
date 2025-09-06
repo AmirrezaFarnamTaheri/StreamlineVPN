@@ -5,13 +5,10 @@ Merger Processor
 Processing logic for VPN configuration merging.
 """
 
-import asyncio
-from typing import Dict, List, Optional, Any
-from datetime import datetime
+from typing import List, Any
 
 from ..models.configuration import VPNConfiguration
-from ..models.processing_result import ProcessingResult
-from ..utils.logging import get_logger, log_performance
+from ..utils.logging import get_logger
 from ..utils.helpers import run_concurrently
 
 logger = get_logger(__name__)
@@ -56,7 +53,8 @@ class MergerProcessor:
                 all_configs.extend(configs)
 
         logger.info(
-            f"Processed {len(all_configs)} configurations from {len(sources)} sources"
+            f"Processed {len(all_configs)} configurations from "
+            f"{len(sources)} sources"
         )
         return all_configs
 
@@ -78,7 +76,7 @@ class MergerProcessor:
             )
             if not fetch_result or not fetch_result.success:
                 logger.warning(
-                    f"Failed to fetch or no content from source {source}"
+                    "Failed to fetch or no content from source " f"{source}"
                 )
                 # Update performance as failed
                 await self.merger.source_manager.update_source_performance(
@@ -94,18 +92,15 @@ class MergerProcessor:
             # Parse each configuration line
             parsed_configs: List[VPNConfiguration] = []
             for line in fetch_result.configs:
-                security_analysis = (
-                    self.merger.security_manager.analyze_configuration(line)
-                )
+                security_analysis = self.merger.security_manager.analyze_configuration(
+                    line)
                 if not security_analysis["is_safe"]:
-                    logger.warning(
-                        f"Skipping unsafe configuration from {source}: {line}"
-                    )
+                    logger.warning("Skipping unsafe configuration from "
+                                   f"{source}: {line}")
                     continue
 
-                cfg = self.merger.config_processor.parser.parse_configuration(
-                    line
-                )
+                parser = self.merger.config_processor.parser
+                cfg = parser.parse_configuration(line)
                 if cfg:
                     parsed_configs.append(cfg)
 

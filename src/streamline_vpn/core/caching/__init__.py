@@ -2,8 +2,8 @@
 Caching Module
 ==============
 
-Advanced caching system with multi-level architecture, intelligent invalidation,
-and circuit breaker patterns.
+Advanced caching system with multi-level architecture, intelligent
+invalidation, and circuit breaker patterns.
 """
 
 from .models import CacheLevel, CacheEntry, CacheStats

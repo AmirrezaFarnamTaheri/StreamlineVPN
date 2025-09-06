@@ -5,7 +5,6 @@ GraphQL Application
 GraphQL FastAPI application for StreamlineVPN.
 """
 
-import os
 from fastapi import FastAPI
 from strawberry.fastapi import GraphQLRouter
 from .schema import schema

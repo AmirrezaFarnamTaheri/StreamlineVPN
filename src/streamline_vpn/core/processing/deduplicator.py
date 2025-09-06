@@ -6,7 +6,7 @@ Handles deduplication of VPN configurations.
 """
 
 import hashlib
-from typing import List, Dict, Any, Set, Tuple
+from typing import List, Dict, Any, Tuple
 from collections import defaultdict
 
 from ...models.configuration import VPNConfiguration
@@ -30,15 +30,7 @@ class ConfigurationDeduplicator:
     def deduplicate_configurations(
         self, configs: List[VPNConfiguration], strategy: str = "exact"
     ) -> List[VPNConfiguration]:
-        """Deduplicate configurations using specified strategy.
-
-        Args:
-            configs: List of configurations to deduplicate
-            strategy: Deduplication strategy to use
-
-        Returns:
-            List of unique configurations
-        """
+        """Deduplicate configurations."""
         if strategy not in self.duplicate_strategies:
             logger.warning(f"Unknown deduplication strategy: {strategy}")
             strategy = "exact"
@@ -141,14 +133,17 @@ class ConfigurationDeduplicator:
 
     def _get_exact_key(self, config: VPNConfiguration) -> Tuple:
         """Get exact match key for configuration without exposing secrets."""
-        safe_user = bool(config.user_id)
-        safe_pass = bool(config.password)
+        cred_material = f"{config.user_id or ''}:{config.password or ''}"
+        credentials_digest = (
+            hashlib.sha256(cred_material.encode()).hexdigest()
+            if (config.user_id or config.password)
+            else ""
+        )
         return (
             config.protocol.value,
             config.server,
             config.port,
-            safe_user,
-            safe_pass,
+            credentials_digest,
             config.encryption,
             config.network,
             config.path,
@@ -158,6 +153,12 @@ class ConfigurationDeduplicator:
 
     def _get_content_hash(self, config: VPNConfiguration) -> str:
         """Get content hash for configuration without sensitive fields."""
+        cred_material = f"{config.user_id or ''}:{config.password or ''}"
+        credentials_digest = (
+            hashlib.sha256(cred_material.encode()).hexdigest()
+            if (config.user_id or config.password)
+            else ""
+        )
         stable_parts = [
             config.protocol.value,
             config.server,
@@ -167,6 +168,7 @@ class ConfigurationDeduplicator:
             config.path or "",
             config.host or "",
             str(bool(config.tls)),
+            credentials_digest,
         ]
         content = ":".join(stable_parts)
         return hashlib.md5(content.encode()).hexdigest()

@@ -23,8 +23,9 @@ function addCopyButtons(root = document) {
     const btn = document.createElement('button');
     btn.className = 'copy-btn';
     btn.type = 'button';
-    btn.tabIndex = -1;
-    btn.setAttribute('aria-hidden', 'true');
+    btn.tabIndex = 0;
+    btn.setAttribute('aria-label', 'Copy code to clipboard');
+    btn.setAttribute('aria-live', 'polite');
     btn.textContent = 'Copy';
     btn.addEventListener('mousedown', (e) => e.preventDefault());
     btn.addEventListener('click', async () => {
@@ -108,12 +109,16 @@ addCopyButtons();
 
         let outputHTML = '';
         const objectUrls = [];
-        const escapeHtml = (str) => String(str)
-          .replace(/&/g, "&amp;")
-          .replace(/</g, "&lt;")
-          .replace(/>/g, "&gt;")
-          .replace(/"/g, "&quot;")
-          .replace(/'/g, "&#39;");
+        const escapeHtml = (val) => {
+          if (val === null || val === undefined) return "";
+          const str = typeof val === "string" ? val : String(val);
+          return str
+            .replace(/&/g, "&amp;")
+            .replace(/</g, "&lt;")
+            .replace(/>/g, "&gt;")
+            .replace(/"/g, "&quot;")
+            .replace(/'/g, "&#39;");
+        };
 
         for (const [fileName, content] of Object.entries(result.output_files)) {
           const blob = new Blob([content], { type: 'text/plain' });

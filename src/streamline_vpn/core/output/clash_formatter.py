@@ -7,7 +7,7 @@ from ...models.configuration import VPNConfiguration
 
 
 class ClashFormatter:
-    """Formatter that outputs configurations in a simple YAML structure for Clash."""
+    """Formatter for Clash YAML output."""
 
     def __init__(self, output_dir: Path) -> None:
         self.output_dir = output_dir
