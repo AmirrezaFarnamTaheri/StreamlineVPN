@@ -165,7 +165,8 @@ class SecurityValidator:
             if "encryption" in config:
                 if not self.validate_encryption(config["encryption"]):
                     results["warnings"].append(
-                        f"Encryption method may not be secure: {config['encryption']}"
+                        "Encryption method may not be secure: "
+                        f"{config['encryption']}"
                     )
                     results["security_score"] -= 0.2
 
@@ -250,7 +251,10 @@ class SecurityValidator:
         if "." not in host:
             return False
 
-        domain_pattern = r"^[a-z0-9]([a-z0-9\-]{0,61}[a-z0-9])?(\.[a-z0-9]([a-z0-9\-]{0,61}[a-z0-9])?)+$"
+        domain_pattern = (
+            r"^[a-z0-9]([a-z0-9\-]{0,61}[a-z0-9])?"
+            r"(\.[a-z0-9]([a-z0-9\-]{0,61}[a-z0-9])?)+$"
+        )
         if not re.match(domain_pattern, host):
             return False
 
@@ -260,7 +264,7 @@ class SecurityValidator:
         ):
             return False
 
-        # Reject domains that resolve to private/loopback/link-local/reserved IPs
+        # Reject domains resolving to private/loopback/link-local/reserved IPs
         try:
             with concurrent.futures.ThreadPoolExecutor(max_workers=1) as exe:
                 future = exe.submit(socket.getaddrinfo, host, None)
@@ -277,11 +281,9 @@ class SecurityValidator:
                     or ip_obj.is_unspecified
                 ):
                     return False
-        except concurrent.futures.TimeoutError:
+        except (concurrent.futures.TimeoutError, Exception):
+            # DNS resolution failed or timed out - reject for security
             return False
-        except Exception:
-            # If resolution fails, keep previous syntactic decision
-            pass
 
         return True
 

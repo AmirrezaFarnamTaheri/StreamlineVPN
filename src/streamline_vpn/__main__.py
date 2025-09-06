@@ -34,9 +34,7 @@ def cli(config: str, output: str, formats: Optional[tuple[str, ...]] = None):
     """StreamlineVPN runner"""
     formats_list = list(formats) if formats else None
     # Always create and use a fresh event loop for CLI execution
-    return asyncio.run(
-        main(config, output, list(formats_list) if formats_list else None)
-    )
+    return asyncio.run(main(config, output, formats_list))
 
 
 async def main(
