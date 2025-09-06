@@ -39,7 +39,11 @@ class StaticFileServer:
         app = FastAPI(title="StreamlineVPN Static Server")
 
         # Create static directory if it doesn't exist
-        self.static_dir.mkdir(parents=True, exist_ok=True)
+        try:
+            self.static_dir.mkdir(parents=True, exist_ok=True)
+        except Exception as e:
+            logger.error(f"Failed to create static directory '{self.static_dir}': {e}")
+            raise
 
         # Mount static files
         app.mount("/static", StaticFiles(directory=str(self.static_dir)), name="static")
