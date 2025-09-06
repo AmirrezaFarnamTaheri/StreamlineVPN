@@ -14,15 +14,85 @@ from unittest.mock import AsyncMock, Mock, patch
 
 import pytest
 
+
+class _FakeFormatter:
+    """Minimal formatter implementation used for tests."""
+
+    def __init__(self, output_path):
+        self.output_path = Path(output_path)
+
+    def get_file_extension(self):  # pragma: no cover - overridden in subclasses
+        return ""
+
+    def save_configurations(self, configs, filename):
+        path = self.output_path / f"{filename}{self.get_file_extension()}"
+        self.output_path.mkdir(parents=True, exist_ok=True)
+        Path(path).touch()
+        return path
+
+
+class JSONFormatter(_FakeFormatter):
+    def get_file_extension(self):  # pragma: no cover - simple override
+        return ".json"
+
+
+class ClashFormatter(_FakeFormatter):
+    def get_file_extension(self):  # pragma: no cover - simple override
+        return ".yaml"
+
+
+class SingBoxFormatter(_FakeFormatter):
+    def get_file_extension(self):  # pragma: no cover - simple override
+        return ".singbox.json"
+
+
+class RawFormatter(_FakeFormatter):
+    def get_file_extension(self):  # pragma: no cover - simple override
+        return ""
+
+    def save_configurations(self, configs, filename):
+        path = self.output_path / filename
+        self.output_path.mkdir(parents=True, exist_ok=True)
+        Path(path).touch()
+        return path
+
+
 output_module = types.ModuleType("streamline_vpn.core.output")
-output_module.JSONFormatter = object
-output_module.ClashFormatter = object
-output_module.SingBoxFormatter = object
-output_module.RawFormatter = object
+output_module.JSONFormatter = JSONFormatter
+output_module.ClashFormatter = ClashFormatter
+output_module.SingBoxFormatter = SingBoxFormatter
+output_module.RawFormatter = RawFormatter
 sys.modules["streamline_vpn.core.output"] = output_module
 
+
+class FakeRedis:
+    """Simplified in-memory async Redis replacement."""
+
+    def __init__(self):
+        self.store = {}
+
+    async def get(self, key):
+        return self.store.get(key)
+
+    async def set(self, key, value, ttl=None):
+        self.store[key] = value
+        return True
+
+    async def delete(self, key):
+        self.store.pop(key, None)
+        return True
+
+    def get_stats(self):
+        return {
+            "hits": 0,
+            "misses": 0,
+            "hit_rate": 0.0,
+            "avg_response_time": 0.0,
+        }
+
+
 fakeredis_module = types.ModuleType("fakeredis.aioredis")
-fakeredis_module.FakeRedis = object
+fakeredis_module.FakeRedis = FakeRedis
 sys.modules["fakeredis.aioredis"] = fakeredis_module
 fakeredis_pkg = types.ModuleType("fakeredis")
 fakeredis_pkg.aioredis = fakeredis_module
@@ -200,7 +270,7 @@ class TestCacheManager:
         """Create cache manager instance for testing."""
         redis_nodes = [{"host": "localhost", "port": "6379"}]
         cm = CacheManager(redis_nodes)
-        cm.l2_redis_client = fakeredis.aioredis.FakeRedis()
+        cm.redis_client = fakeredis.aioredis.FakeRedis()
         return cm
 
     @pytest.mark.asyncio
