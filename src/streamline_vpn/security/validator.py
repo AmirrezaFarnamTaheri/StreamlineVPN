@@ -5,14 +5,15 @@ Security Validator
 Security validation utilities for StreamlineVPN.
 """
 
-import re
+import concurrent.futures
 import ipaddress
+import re
 import socket
+from typing import Any, Dict
 from urllib.parse import urlparse
-from typing import Dict, List, Any, Optional
 
-from ..utils.logging import get_logger
 from ..settings import get_settings
+from ..utils.logging import get_logger
 
 logger = get_logger(__name__)
 
@@ -260,23 +261,32 @@ class SecurityValidator:
             return False
 
         # Reject domains that resolve to private/loopback/link-local/reserved IPs
-        try:
-            infos = socket.getaddrinfo(host, None)
-            for _, _, _, _, sockaddr in infos:
-                ip = sockaddr[0]
-                ip_obj = ipaddress.ip_address(ip)
-                if (
-                    ip_obj.is_private
-                    or ip_obj.is_loopback
-                    or ip_obj.is_link_local
-                    or ip_obj.is_reserved
-                    or ip_obj.is_multicast
-                    or ip_obj.is_unspecified
-                ):
+        for attempt in (1, 2):
+            try:
+                with concurrent.futures.ThreadPoolExecutor(
+                    max_workers=1
+                ) as exe:
+                    future = exe.submit(socket.getaddrinfo, host, None)
+                    infos = future.result(timeout=2)
+                for _, _, _, _, sockaddr in infos:
+                    ip = sockaddr[0]
+                    ip_obj = ipaddress.ip_address(ip)
+                    if (
+                        ip_obj.is_private
+                        or ip_obj.is_loopback
+                        or ip_obj.is_link_local
+                        or ip_obj.is_reserved
+                        or ip_obj.is_multicast
+                        or ip_obj.is_unspecified
+                    ):
+                        return False
+                break
+            except concurrent.futures.TimeoutError:
+                if attempt == 2:
                     return False
-        except Exception:
-            # If resolution fails, keep previous syntactic decision
-            pass
+            except Exception:
+                # If resolution fails, keep previous syntactic decision
+                break
 
         return True
 

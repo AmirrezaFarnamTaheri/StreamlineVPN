@@ -1,17 +1,9 @@
-"""
-VPN Configuration Generator
-===========================
+"""Web-based VPN configuration generator."""
 
-Web-based VPN configuration generator.
-"""
-
-import asyncio
-import json
-from typing import Dict, List, Optional, Any
 from pathlib import Path
 
 from fastapi import FastAPI, HTTPException
-from fastapi.responses import HTMLResponse, FileResponse
+from fastapi.responses import FileResponse, HTMLResponse
 from fastapi.staticfiles import StaticFiles
 
 from ..core.merger import StreamlineVPNMerger
@@ -38,6 +30,10 @@ class VPNConfigGenerator:
 
     def _setup_routes(self):
         """Setup FastAPI routes."""
+        assets_path = Path(__file__).resolve().parents[3] / "docs" / "assets"
+        self.app.mount(
+            "/assets", StaticFiles(directory=assets_path), name="assets"
+        )
 
         @self.app.get("/", response_class=HTMLResponse)
         async def index():
