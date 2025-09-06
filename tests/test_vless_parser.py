@@ -1,8 +1,12 @@
+"""Tests for VLESS parser."""
+
+# isort:skip_file
 import pytest
-from streamline_vpn.core.processing.parsers.vless_parser import VLESSParser
+
 from streamline_vpn.core.processing.parsers.vless_parser import (
-    parse_vless_async,
+    VLESSParser,
     get_vless_parser_stats,
+    parse_vless_async,
 )
 
 
@@ -62,11 +66,16 @@ async def test_parse_vless_uri_invalid_port(parser):
     config = await parser.parse(uri)
     assert config is None
 
+    uri_neg = "vless://a-uuid-goes-here@example.com:-1"
+    config_neg = await parser.parse(uri_neg)
+    assert config_neg is None
+
 
 @pytest.mark.asyncio
 async def test_async_parse_helper_and_stats():
     uri = "vless://a-uuid-goes-here@example.com:443"
+    before = get_vless_parser_stats().get("parse_count", 0)
     config = await parse_vless_async(uri)
     assert config is not None
     stats = get_vless_parser_stats()
-    assert stats["parse_count"] >= 1
+    assert stats["parse_count"] == before + 1
