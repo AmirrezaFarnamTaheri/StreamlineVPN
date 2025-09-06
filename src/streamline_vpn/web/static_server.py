@@ -7,7 +7,7 @@ Static file server for StreamlineVPN web interface.
 
 from pathlib import Path
 
-from fastapi import FastAPI
+from fastapi import FastAPI, HTTPException
 from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
 
@@ -42,8 +42,10 @@ class StaticFileServer:
         try:
             self.static_dir.mkdir(parents=True, exist_ok=True)
         except Exception as e:
-            logger.error(f"Failed to create static directory '{self.static_dir}': {e}")
-            raise
+            logger.error(
+                "Failed to create static directory '%s'", self.static_dir, exc_info=e
+            )
+            raise RuntimeError("Failed to initialize static directory") from e
 
         # Mount static files
         app.mount("/static", StaticFiles(directory=str(self.static_dir)), name="static")
@@ -53,28 +55,33 @@ class StaticFileServer:
         async def serve_index():
             index_file = self.static_dir / "index.html"
             if index_file.exists():
-                return FileResponse(str(index_file))
-            else:
-                return {"message": "StreamlineVPN Static Server", "files": "/static"}
+                resp = FileResponse(str(index_file))
+                resp.headers["Cache-Control"] = "no-cache, no-store, must-revalidate"
+                resp.headers["Pragma"] = "no-cache"
+                resp.headers["Expires"] = "0"
+                return resp
+            raise HTTPException(status_code=404, detail="Index not found")
 
         # Serve any file from static directory
         @app.get("/{file_path:path}")
         async def serve_file(file_path: str):
-            requested = (self.static_dir / file_path).resolve()
+            safe_path = file_path.lstrip("/\\")
+            requested = (self.static_dir / safe_path).resolve()
             static_root = self.static_dir.resolve()
-            if not str(requested).startswith(str(static_root) + str(Path().anchor if Path().anchor else "")) and static_root not in requested.parents:
-                from fastapi.responses import JSONResponse
-                return JSONResponse(content={"error": "File not found"}, status_code=404)
+            try:
+                is_within = requested.is_relative_to(static_root)
+            except AttributeError:
+                try:
+                    requested.relative_to(static_root)
+                    is_within = True
+                except ValueError:
+                    is_within = False
+            if not is_within:
+                raise HTTPException(status_code=404, detail="File not found")
             if requested.exists() and requested.is_file():
-                return FileResponse(str(requested))
-            else:
-                from fastapi.responses import JSONResponse
-                return JSONResponse(content={"error": "File not found"}, status_code=404)
-
-            if full_path.exists() and full_path.is_file():
-                return FileResponse(str(full_path))
-            else:
-                return {"error": "File not found"}, 404
+                media_type = "text/html" if requested.suffix == ".html" else None
+                return FileResponse(str(requested), media_type=media_type)
+            raise HTTPException(status_code=404, detail="File not found")
 
         return app
 
