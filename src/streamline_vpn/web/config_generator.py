@@ -157,7 +157,8 @@ class VPNConfigGenerator:
                             <h3>Available Configurations (${data.count})</h3>
                             ${data.configurations.map(config => `
                                 <div class="config-item">
-                                    <strong>${config.protocol}</strong> - ${config.server}:${config.port}
+                                    <strong>${config.protocol}</strong> -
+                                    ${config.server}:${config.port}
                                     <br><small>Quality: ${config.quality_score.toFixed(2)}</small>
                                     <br><small>Network: ${config.network}</small>
                                 </div>
@@ -177,12 +178,17 @@ class VPNConfigGenerator:
                         alert(data.message);
                         loadConfigs();
                     } catch (error) {
-                        alert('Error generating configurations: ' + error.message);
+                        alert(
+                            'Error generating configurations: ' +
+                                error.message
+                        );
                     }
                 }
-                
+
                 function downloadConfigs(format) {
-                    window.open(`/api/download/${format}`, '_blank');
+                    window.open(
+                        `/api/download/${format}`, '_blank'
+                    );
                 }
             </script>
         </body>
