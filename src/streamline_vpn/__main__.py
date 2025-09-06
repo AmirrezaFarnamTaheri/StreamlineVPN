@@ -8,7 +8,6 @@ Main entry point for the StreamlineVPN application.
 import asyncio
 import logging
 import sys
-from pathlib import Path
 from typing import Optional, List
 
 import click
@@ -42,9 +41,15 @@ def cli(config: str, output: str, formats: Optional[tuple[str, ...]] = None):
 
     if loop and loop.is_running():
         # Schedule and wait from running loop
-        return loop.run_until_complete(main(config, output, list(formats_list) if formats_list else None))  # type: ignore[arg-type]
+        # type: ignore[arg-type]
+        return loop.run_until_complete(
+            main(config, output, list(formats_list) if formats_list else None)
+        )
     else:
-        return asyncio.run(main(config, output, list(formats_list) if formats_list else None))  # type: ignore[arg-type]
+        # type: ignore[arg-type]
+        return asyncio.run(
+            main(config, output, list(formats_list) if formats_list else None)
+        )
 
 
 async def main(
@@ -68,7 +73,7 @@ async def main(
 
         # Process configurations and save results (handled inside process_all)
         logger.info("Starting StreamlineVPN processing...")
-        results = await merger.process_all(output_dir=output, formats=formats)
+        await merger.process_all(output_dir=output, formats=formats)
 
         logger.info(
             f"Processing completed successfully. Results saved to {output}"
@@ -87,7 +92,8 @@ def cli_main() -> int:
     """CLI entry point that handles async execution."""
     try:
         # Run click command without auto SystemExit to capture exit code
-        exit_code = cli.main(standalone_mode=False)  # type: ignore[attr-defined]
+        # type: ignore[attr-defined]
+        exit_code = cli.main(standalone_mode=False)
         return int(exit_code) if isinstance(exit_code, int) else 0
     except SystemExit as e:
         # Click may raise SystemExit with code

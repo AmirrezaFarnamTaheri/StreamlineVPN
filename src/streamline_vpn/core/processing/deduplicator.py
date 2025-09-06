@@ -6,7 +6,7 @@ Handles deduplication of VPN configurations.
 """
 
 import hashlib
-from typing import List, Dict, Any, Set, Tuple
+from typing import List, Dict, Any, Tuple
 from collections import defaultdict
 
 from ...models.configuration import VPNConfiguration
@@ -30,15 +30,7 @@ class ConfigurationDeduplicator:
     def deduplicate_configurations(
         self, configs: List[VPNConfiguration], strategy: str = "exact"
     ) -> List[VPNConfiguration]:
-        """Deduplicate configurations using specified strategy.
-
-        Args:
-            configs: List of configurations to deduplicate
-            strategy: Deduplication strategy to use
-
-        Returns:
-            List of unique configurations
-        """
+        """Deduplicate configurations."""
         if strategy not in self.duplicate_strategies:
             logger.warning(f"Unknown deduplication strategy: {strategy}")
             strategy = "exact"

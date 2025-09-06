@@ -2,42 +2,8 @@
 StreamlineVPN - Enterprise VPN Configuration Aggregator
 ======================================================
 
-A high-performance, production-ready VPN configuration aggregator that processes
-VPN configurations from multiple sources with advanced filtering, validation,
-and output formatting.
-
-Features:
-- Multi-source aggregation from 500+ sources
-- Machine learning quality prediction
-- Advanced multi-tier caching
-- Geographic optimization
-- Real-time source discovery
-- Enterprise-grade security and monitoring
-
-Version: 2.0.0
-Status: Production Ready
-License: MIT
-Author: StreamlineVPN Team
+A high-performance, production-ready VPN configuration aggregator.
 """
-
-from typing import TYPE_CHECKING
-
-if TYPE_CHECKING:
-    # Core components
-    from .core.merger import StreamlineVPNMerger
-    from .core.source_manager import SourceManager
-    from .core.config_processor import ConfigurationProcessor
-    from .core.output_manager import OutputManager
-    from .core.caching import VPNCacheService
-
-    # Enhanced modules
-    from .ml.quality_predictor import QualityPredictor
-    from .geo.optimizer import GeographicOptimizer
-    from .discovery.manager import DiscoveryManager
-
-    # Data models
-    from .models.configuration import VPNConfiguration
-    from .models.source import SourceMetadata
 
 # Version information
 __version__ = "2.0.0"
@@ -45,11 +11,21 @@ __author__ = "StreamlineVPN Team"
 __status__ = "Production Ready"
 __license__ = "MIT"
 
-# Core components - always available
+# Core components
 from .core.merger import StreamlineVPNMerger
 from .core.source_manager import SourceManager
 from .core.config_processor import ConfigurationProcessor
 from .core.output_manager import OutputManager
+from .core.caching import VPNCacheService
+
+# Enhanced modules
+from .ml.quality_predictor import QualityPredictionService
+from .geo.optimizer import GeographicOptimizer
+from .discovery.manager import DiscoveryManager
+
+# Data models
+from .models.configuration import VPNConfiguration
+from .models.source import SourceMetadata
 
 # Web components (lazy import to avoid dependency issues)
 try:
@@ -60,7 +36,6 @@ try:
         StaticFileServer,
     )
 except ImportError:
-    # Handle missing dependencies gracefully
     APIServer = None
     VPNConfigGenerator = None
     IntegratedWebServer = None
@@ -87,15 +62,8 @@ from .state import SourceStateMachine, SourceState, SourceEvent, StateManager
 # Main entry point
 def create_merger(
     config_path: str = "config/sources.yaml",
-) -> StreamlineVPNMerger:
-    """Create a new StreamlineVPN merger instance.
-
-    Args:
-        config_path: Path to the configuration file
-
-    Returns:
-        Configured StreamlineVPN merger instance
-    """
+) -> "StreamlineVPNMerger":
+    """Create a new StreamlineVPN merger instance."""
     return StreamlineVPNMerger(config_path=config_path)
 
 
@@ -103,30 +71,53 @@ def create_merger(
 async def merge_configurations(
     config_path: str = "config/sources.yaml", output_dir: str = "output"
 ) -> dict:
-    """Quick function to merge VPN configurations.
-
-    Args:
-        config_path: Path to the configuration file
-        output_dir: Output directory for results
-
-    Returns:
-        Dictionary with processing results
-    """
+    """Quick function to merge VPN configurations."""
     merger = create_merger(config_path)
     return await merger.process_all(output_dir=output_dir)
 
 
 __all__ = [
+    # Core
     "StreamlineVPNMerger",
     "SourceManager",
     "ConfigurationProcessor",
     "OutputManager",
+    "VPNCacheService",
+    # Enhanced
+    "QualityPredictionService",
+    "GeographicOptimizer",
+    "DiscoveryManager",
+    # Models
+    "VPNConfiguration",
+    "SourceMetadata",
+    # Web
+    "APIServer",
+    "VPNConfigGenerator",
+    "IntegratedWebServer",
+    "StaticFileServer",
+    # Jobs
+    "JobManager",
+    "Job",
+    "JobStatus",
+    "JobType",
+    # Security
     "SecurityManager",
     "ThreatAnalyzer",
     "SecurityValidator",
     "ZeroTrustVPN",
+    # Fetcher
+    "FetcherService",
+    "CircuitBreaker",
+    "RateLimiter",
+    # State
+    "SourceStateMachine",
+    "SourceState",
+    "SourceEvent",
+    "StateManager",
+    # Functions
     "create_merger",
     "merge_configurations",
+    # Metadata
     "__version__",
     "__author__",
     "__status__",

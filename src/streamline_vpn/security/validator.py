@@ -254,7 +254,9 @@ class SecurityValidator:
             return False
 
         settings = get_settings()
-        if any(host.endswith(tld) for tld in settings.security.suspicious_tlds):
+        if any(
+            host.endswith(tld) for tld in settings.security.suspicious_tlds
+        ):
             return False
 
         # Reject domains that resolve to private/loopback/link-local/reserved IPs

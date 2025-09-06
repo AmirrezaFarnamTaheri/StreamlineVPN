@@ -5,7 +5,6 @@ Cache Manager
 Cache manager providing backward compatibility with VPNCacheService.
 """
 
-from typing import Dict, List, Optional, Any
 from .caching.service import VPNCacheService
 
 # Alias for backward compatibility

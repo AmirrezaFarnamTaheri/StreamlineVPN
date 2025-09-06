@@ -19,10 +19,7 @@ class RawFormatter:
     def save_configurations(
         self, configs: List[VPNConfiguration], base_filename: str
     ) -> Path:
-        """Save configurations as plain text.
-
-        Each configuration is written on a new line using its string representation.
-        """
+        """Save configurations as plain text."""
         file_path = (
             self.output_dir / f"{base_filename}{self.get_file_extension()}"
         )

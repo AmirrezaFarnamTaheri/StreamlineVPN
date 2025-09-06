@@ -5,7 +5,7 @@ Cache Invalidation Service
 Intelligent cache invalidation service with pattern-based targeting.
 """
 
-from typing import Dict, List, Optional, Any
+from typing import Dict, Optional, Any
 
 from ...utils.logging import get_logger
 from .redis_client import RedisClusterClient

@@ -2,14 +2,16 @@ from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from streamline_vpn.__main__ import main as run_pipeline_main
 import asyncio
 
+
 def setup_scheduler():
     """
     Initializes and starts the scheduler.
     """
     scheduler = AsyncIOScheduler()
-    scheduler.add_job(run_pipeline_job, 'interval', hours=12)
+    scheduler.add_job(run_pipeline_job, "interval", hours=12)
     scheduler.start()
     print("Scheduler started, pipeline will run every 12 hours.")
+
 
 async def run_pipeline_job():
     """
@@ -22,6 +24,7 @@ async def run_pipeline_job():
         print("VPN data update completed successfully.")
     except Exception as e:
         print(f"An error occurred during the scheduled VPN data update: {e}")
+
 
 if __name__ == "__main__":
     setup_scheduler()

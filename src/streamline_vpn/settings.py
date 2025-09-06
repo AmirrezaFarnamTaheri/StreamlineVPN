@@ -7,6 +7,7 @@ overrides at runtime without code changes.
 """
 
 from __future__ import annotations
+from pydantic import Field
 
 import os
 from functools import lru_cache
@@ -92,9 +93,6 @@ class SecuritySettings(BaseSettings):
     ]
 
     model_config = SettingsConfigDict(env_prefix="STREAMLINE_SECURITY_")
-
-
-from pydantic import Field
 
 
 class RedisSettings(BaseSettings):

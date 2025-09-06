@@ -5,7 +5,6 @@ Redis Cluster Client
 Redis cluster client with connection pooling and failover.
 """
 
-import asyncio
 import time
 from typing import Dict, List, Optional, Any
 

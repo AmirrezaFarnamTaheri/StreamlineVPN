@@ -365,7 +365,7 @@ class MetricsCollector:
         except (TypeError, ValueError):
             v = float("inf")
 
-        is_finite = not (v != v or v == float("inf")or v == float("-inf"))
+        is_finite = not (v != v or v == float("inf") or v == float("-inf"))
 
         if is_finite:
             # Increment all buckets that are >= value
