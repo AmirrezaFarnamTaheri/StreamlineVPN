@@ -10,3 +10,4 @@ omit =
     src/streamline_vpn/state/*
     src/streamline_vpn/web/*
     src/streamline_vpn/settings.py
+
