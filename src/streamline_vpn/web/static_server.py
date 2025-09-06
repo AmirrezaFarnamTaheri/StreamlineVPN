@@ -56,8 +56,16 @@ class StaticFileServer:
         # Serve any file from static directory
         @app.get("/{file_path:path}")
         async def serve_file(file_path: str):
-            file_path = Path(file_path)
-            full_path = self.static_dir / file_path
+            requested = (self.static_dir / file_path).resolve()
+            static_root = self.static_dir.resolve()
+            if not str(requested).startswith(str(static_root) + str(Path().anchor if Path().anchor else "")) and static_root not in requested.parents:
+                from fastapi.responses import JSONResponse
+                return JSONResponse(content={"error": "File not found"}, status_code=404)
+            if requested.exists() and requested.is_file():
+                return FileResponse(str(requested))
+            else:
+                from fastapi.responses import JSONResponse
+                return JSONResponse(content={"error": "File not found"}, status_code=404)
 
             if full_path.exists() and full_path.is_file():
                 return FileResponse(str(full_path))
