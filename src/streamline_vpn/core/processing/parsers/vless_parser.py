@@ -56,34 +56,48 @@ class VLESSParser:
             # Parse query parameters
             params = {}
             if query_string:
-                query_params = parse_qs(query_string[1:])  # Remove '?'
+                query_part = query_string[1:]  # Remove '?'
+                if '#' in query_part:
+                    query_part = query_part.split('#', 1)[0]
+                query_params = parse_qs(query_part)
                 params = {k: v[0] for k, v in query_params.items()}
+
+            # Validate and normalize port
+            port_int = int(port)
+            if not (1 <= port_int <= 65535):
+                logger.error(f"Invalid VLESS port: {port_int}")
+                return None
+
+            # Determine TLS usage and security details
+            security = params.get("security", "tls").lower()
 
             # Create configuration
             config = VPNConfiguration(
-                id=f"vless_{uuid[:8]}_{host}_{port}",
-                name=f"VLESS {host}",
-                server=host,
-                port=int(port),
                 protocol=Protocol.VLESS,
-                uuid=uuid,
-                security=params.get("security", "tls"),
+                server=host,
+                port=port_int,
+                user_id=uuid,
                 network=params.get("type", "tcp"),
                 host=params.get("host", host),
                 path=params.get("path", ""),
-                tls=params.get("security") == "tls",
-                sni=params.get("sni", host),
-                alpn=params.get("alpn", ""),
-                fingerprint=params.get("fp", ""),
-                public_key=params.get("pbk", ""),
-                short_id=params.get("sid", ""),
-                spider_x=params.get("spx", ""),
+                tls=security == "tls",
                 metadata={
                     "parser": "optimized_vless",
                     "version": "1.0",
                     "performance_optimized": True,
+                    "security": security,
+                    "sni": params.get("sni", host),
+                    "alpn": params.get("alpn", ""),
+                    "fingerprint": params.get("fp", ""),
+                    "public_key": params.get("pbk", ""),
+                    "short_id": params.get("sid", ""),
+                    "spider_x": params.get("spx", ""),
                 },
             )
+
+            # Preserve original UUID for compatibility
+            config.uuid = uuid
+            config.security = security
 
             # Update performance stats
             parse_time = time.perf_counter() - start_time

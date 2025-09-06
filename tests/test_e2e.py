@@ -1,13 +1,16 @@
 import pytest
 from aiohttp import web
-import asyncio
 from pathlib import Path
 import yaml
 
+import pytest_asyncio
+from unittest.mock import patch, AsyncMock
+
 from streamline_vpn.core.merger import StreamlineVPNMerger
+from streamline_vpn.models.configuration import VPNConfiguration, ProtocolType
 
 
-@pytest.fixture
+@pytest_asyncio.fixture
 async def mock_vpn_server(aiohttp_server):
     async def handler(request):
         return web.Response(text="vmess://test_config")
@@ -22,7 +25,7 @@ async def mock_vpn_server(aiohttp_server):
 def temp_config_file(tmp_path, mock_vpn_server):
     config = {
         'sources': {
-            'test_group': {
+            'reliable': {
                 'urls': [
                     {
                         'url': f"http://{mock_vpn_server.host}:{mock_vpn_server.port}/test_source",
@@ -40,12 +43,29 @@ def temp_config_file(tmp_path, mock_vpn_server):
 
 
 @pytest.mark.asyncio
-async def test_end_to_end_processing(temp_config_file, tmp_path):
+async def test_end_to_end_processing(temp_config_file, tmp_path, mock_vpn_server):
     output_dir = tmp_path / "output"
     output_dir.mkdir()
 
-    merger = StreamlineVPNMerger(config_path=str(temp_config_file))
-    result = await merger.process_all(output_dir=str(output_dir))
+    test_url = f"http://{mock_vpn_server.host}:{mock_vpn_server.port}/test_source"
+    with patch(
+        "streamline_vpn.security.manager.SecurityManager.validate_source",
+        return_value={"is_safe": True},
+    ), patch(
+        "streamline_vpn.core.source_manager.SourceManager.get_active_sources",
+        new_callable=AsyncMock,
+        return_value=[test_url],
+    ), patch(
+        "streamline_vpn.core.processing.parser.ConfigurationParser.parse_configuration",
+        return_value=VPNConfiguration(
+            protocol=ProtocolType.VMESS,
+            server="example.com",
+            port=443,
+            user_id="test",
+        ),
+    ):
+        merger = StreamlineVPNMerger(config_path=str(temp_config_file))
+        result = await merger.process_all(output_dir=str(output_dir))
 
     assert result['success']
     assert result['sources_processed'] == 1
