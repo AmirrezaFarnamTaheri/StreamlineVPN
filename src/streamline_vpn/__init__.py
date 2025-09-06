@@ -1,65 +1,69 @@
-"""
-StreamlineVPN - Enterprise VPN Configuration Aggregator
+# isort: skip_file
+"""StreamlineVPN - Enterprise VPN Configuration Aggregator
 ======================================================
 
 A high-performance, production-ready VPN configuration aggregator.
 """
 
-# Version information
 __version__ = "2.0.0"
 __author__ = "StreamlineVPN Team"
 __status__ = "Production Ready"
 __license__ = "MIT"
 
-# Core components
-from .core.merger import StreamlineVPNMerger
-from .core.source_manager import SourceManager
-from .core.config_processor import ConfigurationProcessor
-from .core.output_manager import OutputManager
 from .core.caching import VPNCacheService
-
-# Enhanced modules
-from .ml.quality_predictor import QualityPredictionService
-from .geo.optimizer import GeographicOptimizer
+from .core.config_processor import ConfigurationProcessor
+from .core.merger import StreamlineVPNMerger
+from .core.output_manager import OutputManager
+from .core.source_manager import SourceManager
 from .discovery.manager import DiscoveryManager
-
-# Data models
+from .geo.optimizer import GeographicOptimizer
+from .ml.quality_predictor import QualityPredictionService
 from .models.configuration import VPNConfiguration
 from .models.source import SourceMetadata
 
-# Web components (lazy import to avoid dependency issues)
 try:
     from .web import (
         APIServer,
-        VPNConfigGenerator,
         IntegratedWebServer,
         StaticFileServer,
+        VPNConfigGenerator,
     )
 except ImportError:
-    APIServer = None
-    VPNConfigGenerator = None
-    IntegratedWebServer = None
-    StaticFileServer = None
+    APIServer = VPNConfigGenerator = IntegratedWebServer = StaticFileServer = (
+        None
+    )
 
-# Job management
-from .jobs import JobManager, Job, JobStatus, JobType
+try:
+    from .jobs import Job, JobManager, JobStatus, JobType
+except ImportError:  # pragma: no cover
+    JobManager = Job = JobStatus = JobType = None
 
-# Security components
-from .security import (
-    SecurityManager,
-    ThreatAnalyzer,
-    SecurityValidator,
-    ZeroTrustVPN,
-)
+try:
+    from .security import (
+        SecurityManager,
+        SecurityValidator,
+        ThreatAnalyzer,
+        ZeroTrustVPN,
+    )
+except ImportError:  # pragma: no cover
+    SecurityManager = ThreatAnalyzer = SecurityValidator = ZeroTrustVPN = None
 
-# Fetcher service
-from .fetcher import FetcherService, CircuitBreaker, RateLimiter
+try:
+    from .fetcher import CircuitBreaker, FetcherService, RateLimiter
+except ImportError:  # pragma: no cover
+    FetcherService = CircuitBreaker = RateLimiter = None
 
-# State management
-from .state import SourceStateMachine, SourceState, SourceEvent, StateManager
+try:
+    from .state import (
+        SourceEvent,
+        SourceState,
+        SourceStateMachine,
+        StateManager,
+    )
+except ImportError:  # pragma: no cover
+    SourceStateMachine = SourceState = SourceEvent = StateManager = None
 
 
-# Main entry point
 def create_merger(
     config_path: str = "config/sources.yaml",
 ) -> "StreamlineVPNMerger":
@@ -67,7 +71,6 @@ def create_merger(
     return StreamlineVPNMerger(config_path=config_path)
 
 
-# Convenience function for quick usage
 async def merge_configurations(
     config_path: str = "config/sources.yaml", output_dir: str = "output"
 ) -> dict:
@@ -77,49 +80,44 @@ async def merge_configurations(
 
 
 __all__ = [
-    # Core
     "StreamlineVPNMerger",
     "SourceManager",
     "ConfigurationProcessor",
     "OutputManager",
     "VPNCacheService",
-    # Enhanced
     "QualityPredictionService",
     "GeographicOptimizer",
     "DiscoveryManager",
-    # Models
     "VPNConfiguration",
     "SourceMetadata",
-    # Web
-    "APIServer",
-    "VPNConfigGenerator",
-    "IntegratedWebServer",
-    "StaticFileServer",
-    # Jobs
-    "JobManager",
-    "Job",
-    "JobStatus",
-    "JobType",
-    # Security
-    "SecurityManager",
-    "ThreatAnalyzer",
-    "SecurityValidator",
-    "ZeroTrustVPN",
-    # Fetcher
-    "FetcherService",
-    "CircuitBreaker",
-    "RateLimiter",
-    # State
-    "SourceStateMachine",
-    "SourceState",
-    "SourceEvent",
-    "StateManager",
-    # Functions
     "create_merger",
     "merge_configurations",
-    # Metadata
     "__version__",
     "__author__",
     "__status__",
     "__license__",
 ]
+
+for _name in [
+    "APIServer",
+    "VPNConfigGenerator",
+    "IntegratedWebServer",
+    "StaticFileServer",
+    "JobManager",
+    "Job",
+    "JobStatus",
+    "JobType",
+    "SecurityManager",
+    "ThreatAnalyzer",
+    "SecurityValidator",
+    "ZeroTrustVPN",
+    "FetcherService",
+    "CircuitBreaker",
+    "RateLimiter",
+    "SourceStateMachine",
+    "SourceState",
+    "SourceEvent",
+    "StateManager",
+]:
+    if locals().get(_name) is not None:
+        __all__.append(_name)
