@@ -8,7 +8,7 @@ zero-copy parsing.
 
 import re
 from typing import Dict, Optional, Any
-from urllib.parse import parse_qs
+from urllib.parse import parse_qs, urlsplit
 
 from ....models.configuration import VPNConfiguration, Protocol
 from ....utils.logging import get_logger
@@ -53,13 +53,11 @@ class VLESSParser:
             # Extract components
             uuid, host, port, query_string = match.groups()
 
-            # Parse query parameters
+            # Parse query parameters using urlsplit for robust fragment handling
             params = {}
             if query_string:
-                query_part = query_string[1:]  # Remove '?'
-                if '#' in query_part:
-                    query_part = query_part.split('#', 1)[0]
-                query_params = parse_qs(query_part)
+                split_result = urlsplit(query_string)
+                query_params = parse_qs(split_result.query)
                 params = {k: v[0] for k, v in query_params.items()}
 
             # Validate and normalize port
@@ -106,7 +104,7 @@ class VLESSParser:
             logger.debug(f"VLESS config parsed in {parse_time*1000:.2f}ms")
             return config
 
-        except Exception as e:
+        except Exception as e:  # pragma: no cover - defensive logging
             logger.error(f"Failed to parse VLESS URI: {e}")
             return None
 
