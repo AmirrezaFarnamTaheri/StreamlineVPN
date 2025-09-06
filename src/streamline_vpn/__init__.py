@@ -42,21 +42,33 @@ except ImportError:
     StaticFileServer = None
 
 # Job management
-from .jobs import JobManager, Job, JobStatus, JobType
+try:
+    from .jobs import JobManager, Job, JobStatus, JobType
+except ImportError:
+    JobManager = Job = JobStatus = JobType = None
 
 # Security components
-from .security import (
-    SecurityManager,
-    ThreatAnalyzer,
-    SecurityValidator,
-    ZeroTrustVPN,
-)
+try:
+    from .security import (
+        SecurityManager,
+        ThreatAnalyzer,
+        SecurityValidator,
+        ZeroTrustVPN,
+    )
+except ImportError:
+    SecurityManager = ThreatAnalyzer = SecurityValidator = ZeroTrustVPN = None
 
 # Fetcher service
-from .fetcher import FetcherService, CircuitBreaker, RateLimiter
+try:
+    from .fetcher import FetcherService, CircuitBreaker, RateLimiter
+except ImportError:
+    FetcherService = CircuitBreaker = RateLimiter = None
 
 # State management
-from .state import SourceStateMachine, SourceState, SourceEvent, StateManager
+try:
+    from .state import SourceStateMachine, SourceState, SourceEvent, StateManager
+except ImportError:
+    SourceStateMachine = SourceState = SourceEvent = StateManager = None
 
 
 # Main entry point

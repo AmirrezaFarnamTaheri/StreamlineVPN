@@ -50,7 +50,7 @@ class Shadowsocks2022Parser:
             # Query parameters are not used in this implementation.
 
             # Derive key using BLAKE3 (simplified implementation)
-            await self._derive_key_blake3(password, method)
+            derived_key = await self._derive_key_blake3(password, method)
 
             # Create configuration
             config = VPNConfiguration(
@@ -67,7 +67,7 @@ class Shadowsocks2022Parser:
                     "parser": "optimized_ss2022",
                     "version": "1.0",
                     "performance_optimized": True,
-                    "blake3_derived": True,
+                    "derived_key": derived_key,
                     "security_level": self._get_security_level(method),
                     "aead_support": self._supports_aead(method),
                 },

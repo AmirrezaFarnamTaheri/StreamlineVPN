@@ -7,12 +7,10 @@ Web-based VPN configuration generator.
 
 import asyncio
 import json
-from typing import Dict, List, Optional, Any
 from pathlib import Path
 
 from fastapi import FastAPI, HTTPException
 from fastapi.responses import HTMLResponse, FileResponse
-from fastapi.staticfiles import StaticFiles
 
 from ..core.merger import StreamlineVPNMerger
 from ..utils.logging import get_logger

@@ -8,6 +8,7 @@ Security validation utilities for StreamlineVPN.
 import re
 import ipaddress
 import socket
+from concurrent.futures import ThreadPoolExecutor, TimeoutError as FuturesTimeoutError
 from urllib.parse import urlparse
 from typing import Dict, List, Any, Optional
 
@@ -261,7 +262,10 @@ class SecurityValidator:
 
         # Reject domains that resolve to private/loopback/link-local/reserved IPs
         try:
-            infos = socket.getaddrinfo(host, None)
+            with ThreadPoolExecutor(max_workers=1) as executor:
+                infos = executor.submit(socket.getaddrinfo, host, None).result(
+                    timeout=2.0
+                )
             for _, _, _, _, sockaddr in infos:
                 ip = sockaddr[0]
                 ip_obj = ipaddress.ip_address(ip)
@@ -274,6 +278,9 @@ class SecurityValidator:
                     or ip_obj.is_unspecified
                 ):
                     return False
+        except FuturesTimeoutError:
+            # DNS resolution timed out; treat as invalid to avoid blocking
+            return False
         except Exception:
             # If resolution fails, keep previous syntactic decision
             pass
