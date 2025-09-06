@@ -7,10 +7,10 @@ zero-copy parsing.
 """
 
 import re
-from typing import Dict, Optional, Any
+from typing import Any, Dict, Optional
 from urllib.parse import parse_qs, urlsplit
 
-from ....models.configuration import VPNConfiguration, Protocol
+from ....models.configuration import Protocol, VPNConfiguration
 from ....utils.logging import get_logger
 
 logger = get_logger(__name__)
@@ -53,10 +53,13 @@ class VLESSParser:
             # Extract components
             uuid, host, port, query_string = match.groups()
 
-            # Parse query parameters using urlsplit for robust fragment handling
+            # Parse query parameters using urlsplit on the full URI for robust
+            # fragment handling. Passing only the query string would cause
+            # fragments to be treated as part of the query, dropping parameters
+            # in edge cases such as encoded ``#`` values.
             params = {}
             if query_string:
-                split_result = urlsplit(query_string)
+                split_result = urlsplit(uri)
                 query_params = parse_qs(split_result.query)
                 params = {k: v[0] for k, v in query_params.items()}
 

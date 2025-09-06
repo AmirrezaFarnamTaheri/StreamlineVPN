@@ -76,7 +76,7 @@ class FakeRedis:
 
     async def get(self, key):
         exp = self.expiry.get(key)
-        if exp is not None and exp <= time.time():
+        if exp is not None and exp <= time.monotonic():
             self.store.pop(key, None)
             self.expiry.pop(key, None)
             return None
@@ -84,8 +84,22 @@ class FakeRedis:
 
     async def set(self, key, value, ttl=None):
         self.store[key] = value
-        if ttl:
-            self.expiry[key] = time.time() + ttl
+        if ttl is not None:
+            try:
+                ttl_val = float(ttl)
+            except (TypeError, ValueError):
+                # Treat invalid TTLs as no expiry to keep tests stable
+                self.expiry.pop(key, None)
+                return True
+            # Zero or negative TTLs expire immediately
+            if ttl_val <= 0:
+                self.store.pop(key, None)
+                self.expiry.pop(key, None)
+                return True
+            self.expiry[key] = time.monotonic() + ttl_val
+        else:
+            # Remove any existing expiry to mimic Redis behaviour
+            self.expiry.pop(key, None)
         return True
 
     async def delete(self, key):
