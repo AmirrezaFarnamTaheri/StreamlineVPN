@@ -56,6 +56,11 @@ class SourceMetadata:
     is_blacklisted: bool = False
     metadata: Dict[str, Any] = field(default_factory=dict)
     
+    @property
+    def enabled(self) -> bool:
+        """Return True if the source is not blacklisted."""
+        return not self.is_blacklisted
+
     def __post_init__(self):
         """Validate source metadata after initialization."""
         if not self.url:

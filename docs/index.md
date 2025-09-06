@@ -12,7 +12,7 @@ title: Home
       get the most out of our enterprise-grade VPN configuration management system.
     </p>
     <div class="cta">
-      <a href="quick-start.html" class="btn">Get Started in 5 Minutes</a>
+      <a href="quick-start/" class="btn">Get Started in 5 Minutes</a>
       <a href="api/" class="btn secondary">Explore the API</a>
     </div>
   </div>
@@ -49,26 +49,26 @@ title: Home
   <div>
     <h3>For Users</h3>
     <ul>
-      <li><a href="quick-start.md">Quick Start Guide</a></li>
-      <li><a href="web-interface.md">Using the Web Interface</a></li>
-      <li><a href="faq.md">Frequently Asked Questions</a></li>
+      <li><a href="quick-start/">Quick Start Guide</a></li>
+      <li><a href="web-interface/">Using the Web Interface</a></li>
+      <li><a href="faq/">Frequently Asked Questions</a></li>
     </ul>
   </div>
   <div>
     <h3>For Developers</h3>
     <ul>
-      <li><a href="sdk-python.md">Python SDK Guide</a></li>
+      <li><a href="sdk-python/">Python SDK Guide</a></li>
       <li><a href="api/">API Reference</a></li>
-      <li><a href="api/graphql.md">GraphQL API</a></li>
+      <li><a href="api/graphql/">GraphQL API</a></li>
     </ul>
   </div>
   <div>
     <h3>For Administrators</h3>
     <ul>
-      <li><a href="DEPLOYMENT.md">Deployment Guide</a></li>
+      <li><a href="DEPLOYMENT/">Deployment Guide</a></li>
       <li><a href="configuration/">Configuration Guide</a></li>
-      <li><a href="performance/tuning-guide.md">Performance Tuning</a></li>
-      <li><a href="troubleshooting.md">Troubleshooting</a></li>
+      <li><a href="performance/tuning-guide/">Performance Tuning</a></li>
+      <li><a href="troubleshooting/">Troubleshooting</a></li>
     </ul>
   </div>
 </div>
