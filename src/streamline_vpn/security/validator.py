@@ -265,10 +265,20 @@ class SecurityValidator:
             return False
 
         # Reject domains resolving to private/loopback/link-local/reserved IPs
+        exe = concurrent.futures.ThreadPoolExecutor(max_workers=1)
         try:
-            with concurrent.futures.ThreadPoolExecutor(max_workers=1) as exe:
-                future = exe.submit(socket.getaddrinfo, host, None)
-                infos = future.result(timeout=2)
+            future = exe.submit(socket.getaddrinfo, host, None)
+            infos = future.result(timeout=2)
+        except concurrent.futures.TimeoutError:
+            # Timeout - do not block waiting for resolver thread
+            exe.shutdown(wait=False, cancel_futures=True)
+            return False
+        except Exception:
+            # DNS resolution failed - reject for security
+            exe.shutdown(wait=True)
+            return False
+        else:
+            exe.shutdown(wait=True)
             for _, _, _, _, sockaddr in infos:
                 ip = sockaddr[0]
                 ip_obj = ipaddress.ip_address(ip)
@@ -281,9 +291,6 @@ class SecurityValidator:
                     or ip_obj.is_unspecified
                 ):
                     return False
-        except (concurrent.futures.TimeoutError, Exception):
-            # DNS resolution failed or timed out - reject for security
-            return False
 
         return True
 
