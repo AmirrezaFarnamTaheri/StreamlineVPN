@@ -176,8 +176,8 @@ class StreamlineVPNMerger(BaseMerger):
         
         return {
             "total_sources": len(all_sources),
-            "enabled_sources": len([s for s in all_sources if not s.is_blacklisted]),
-            "disabled_sources": len([s for s in all_sources if s.is_blacklisted]),
+            "enabled_sources": len([s for s in all_sources if s.enabled]),
+            "disabled_sources": len([s for s in all_sources if not s.enabled]),
             "source_types": self._get_source_type_counts(all_sources),
             "source_tiers": self._get_source_tier_counts(all_sources)
         }
@@ -185,9 +185,10 @@ class StreamlineVPNMerger(BaseMerger):
     def _get_source_type_counts(self, sources: List[Any]) -> Dict[str, int]:
         """Get counts by source type."""
         counts = {}
-        # The 'type' is not a direct attribute of SourceMetadata.
-        # This seems to be a design inconsistency.
-        # For now, we will return an empty dict to avoid errors.
+        for source in sources:
+            # Assuming 'kind' or 'type' exists on the source object
+            source_type = getattr(source, 'kind', 'unknown')
+            counts[source_type] = counts.get(source_type, 0) + 1
         return counts
 
     def _get_source_tier_counts(self, sources: List[Any]) -> Dict[str, int]:
