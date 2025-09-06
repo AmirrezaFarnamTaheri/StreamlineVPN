@@ -34,22 +34,25 @@ class DiscoveryManager:
             List of discovered source URLs
         """
         sources = []
-        
+
         # Discover from GitHub
         github_sources = await self._discover_github_sources()
         sources.extend(github_sources)
-        
+
         # Discover from other platforms (placeholder)
         # telegram_sources = await self._discover_telegram_sources()
         # sources.extend(telegram_sources)
-        
+
         # Filter and validate sources
         valid_sources = []
         for source in sources:
-            if self.validator.validate_url(source) and source not in self.discovered_sources:
+            if (
+                self.validator.validate_url(source)
+                and source not in self.discovered_sources
+            ):
                 valid_sources.append(source)
                 self.discovered_sources.add(source)
-        
+
         logger.info(f"Discovered {len(valid_sources)} new sources")
         return valid_sources
 
@@ -60,24 +63,24 @@ class DiscoveryManager:
             List of discovered GitHub source URLs
         """
         sources = []
-        
+
         try:
             # This is a simplified implementation
             # In a real implementation, you would use the GitHub API
             github_patterns = [
-                r'https://raw\.githubusercontent\.com/[^/]+/[^/]+/[^/]+/.*\.(txt|yaml|yml|json)',
-                r'https://github\.com/[^/]+/[^/]+/raw/[^/]+/.*\.(txt|yaml|yml|json)'
+                r"https://raw\.githubusercontent\.com/[^/]+/[^/]+/[^/]+/.*\.(txt|yaml|yml|json)",
+                r"https://github\.com/[^/]+/[^/]+/raw/[^/]+/.*\.(txt|yaml|yml|json)",
             ]
-            
+
             # Placeholder for actual GitHub API calls
             # You would search for repositories with VPN-related keywords
             # and extract raw file URLs
-            
+
             logger.debug("GitHub source discovery completed")
-            
+
         except Exception as e:
             logger.error(f"GitHub discovery failed: {e}")
-        
+
         return sources
 
     async def _discover_telegram_sources(self) -> List[str]:
@@ -87,15 +90,15 @@ class DiscoveryManager:
             List of discovered Telegram source URLs
         """
         sources = []
-        
+
         try:
             # This would require Telegram API integration
             # Placeholder implementation
             logger.debug("Telegram source discovery completed")
-            
+
         except Exception as e:
             logger.error(f"Telegram discovery failed: {e}")
-        
+
         return sources
 
     def should_discover(self) -> bool:
@@ -130,7 +133,8 @@ class DiscoveryManager:
             Statistics dictionary
         """
         return {
-            'discovered_sources_count': len(self.discovered_sources),
-            'last_discovery': self.last_discovery.isoformat(),
-            'discovery_interval_hours': self.discovery_interval.total_seconds() / 3600
+            "discovered_sources_count": len(self.discovered_sources),
+            "last_discovery": self.last_discovery.isoformat(),
+            "discovery_interval_hours": self.discovery_interval.total_seconds()
+            / 3600,
         }

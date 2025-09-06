@@ -21,6 +21,7 @@ logger = get_logger(__name__)
 @dataclass
 class QualityPrediction:
     """ML quality prediction result."""
+
     predicted_latency: float
     bandwidth_estimate: float
     reliability_score: float
@@ -31,13 +32,13 @@ class QualityPrediction:
 
 class LSTMModel:
     """Simplified LSTM model for quality prediction."""
-    
+
     def __init__(self, model_path: str = "data/ml_model.joblib"):
         """Initialize LSTM model."""
         self.model_path = Path(model_path)
         self.model = None
         self._load_model()
-    
+
     def _load_model(self):
         """Load the pre-trained model."""
         if self.model_path.exists():
@@ -64,10 +65,10 @@ class LSTMModel:
 
     async def predict(self, features: Dict[str, float]) -> QualityPrediction:
         """Predict connection quality from features.
-        
+
         Args:
             features: Extracted network features
-            
+
         Returns:
             Quality prediction result
         """
@@ -87,7 +88,9 @@ class LSTMModel:
 
             confidence = self._calculate_confidence(features)
             quality_grade = self._determine_quality_grade(reliability_score)
-            recommendations = self._generate_recommendations(features, reliability_score)
+            recommendations = self._generate_recommendations(
+                features, reliability_score
+            )
 
             return QualityPrediction(
                 predicted_latency=predicted_latency,
@@ -95,19 +98,25 @@ class LSTMModel:
                 reliability_score=reliability_score,
                 confidence=confidence,
                 quality_grade=quality_grade,
-                recommendations=recommendations
+                recommendations=recommendations,
             )
         except Exception as e:
             logger.error(f"ML prediction failed: {e}")
             return self._get_default_prediction()
-    
+
     def _prepare_features(self, features: Dict[str, float]) -> List[float]:
         """Prepare feature vector for prediction."""
         feature_keys = [
-            "packet_inter_arrival_time", "rtt_variance", "bandwidth_trend",
-            "packet_size_variance", "flow_bytes_per_second", "connection_duration_avg",
-            "latency_p95", "packet_loss_rate", "jitter_measurement",
-            "bandwidth_utilization"
+            "packet_inter_arrival_time",
+            "rtt_variance",
+            "bandwidth_trend",
+            "packet_size_variance",
+            "flow_bytes_per_second",
+            "connection_duration_avg",
+            "latency_p95",
+            "packet_loss_rate",
+            "jitter_measurement",
+            "bandwidth_utilization",
         ]
         return [features.get(key, 0.0) for key in feature_keys]
 
@@ -115,12 +124,12 @@ class LSTMModel:
         """Calculate prediction confidence (0-1)."""
         feature_count = sum(1 for v in features.values() if v > 0)
         completeness = feature_count / len(features)
-        
+
         variance_penalty = min(features.get("rtt_variance", 0) / 100, 0.3)
-        
+
         confidence = completeness - variance_penalty
         return max(0.1, min(1.0, confidence))
-    
+
     def _determine_quality_grade(self, reliability_score: float) -> str:
         """Determine quality grade from reliability score."""
         if reliability_score >= 0.9:
@@ -133,26 +142,36 @@ class LSTMModel:
             return "D"
         else:
             return "F"
-    
-    def _generate_recommendations(self, features: Dict[str, float], reliability_score: float) -> List[str]:
+
+    def _generate_recommendations(
+        self, features: Dict[str, float], reliability_score: float
+    ) -> List[str]:
         """Generate recommendations based on features and reliability."""
         recommendations = []
-        
+
         if features.get("packet_loss_rate", 0) > 0.05:
-            recommendations.append("High packet loss detected - consider switching servers")
-        
+            recommendations.append(
+                "High packet loss detected - consider switching servers"
+            )
+
         if features.get("latency_p95", 0) > 200:
-            recommendations.append("High latency detected - try a server closer to your location")
-        
+            recommendations.append(
+                "High latency detected - try a server closer to your location"
+            )
+
         if features.get("jitter_measurement", 0) > 50:
-            recommendations.append("High jitter detected - network may be unstable")
-        
+            recommendations.append(
+                "High jitter detected - network may be unstable"
+            )
+
         if reliability_score < 0.7:
-            recommendations.append("Low reliability score - consider premium servers")
-        
+            recommendations.append(
+                "Low reliability score - consider premium servers"
+            )
+
         if not recommendations:
             recommendations.append("Connection quality is good")
-        
+
         return recommendations
 
     def _get_default_prediction(self) -> QualityPrediction:
@@ -162,6 +181,8 @@ class LSTMModel:
             bandwidth_estimate=10.0,
             reliability_score=0.7,
             confidence=0.5,
-            quality_grade='C',
-            recommendations=['Unable to predict quality - using default values']
+            quality_grade="C",
+            recommendations=[
+                "Unable to predict quality - using default values"
+            ],
         )

@@ -62,3 +62,59 @@
       .catch(() => {});
   } catch (e) {}
 })();
+
+// Interactive pipeline runner
+(function () {
+  const form = document.getElementById('pipeline-form');
+  const logsEl = document.getElementById('logs');
+  const outputFilesEl = document.getElementById('output-files');
+
+  if (!form || !logsEl || !outputFilesEl) return;
+
+  form.addEventListener('submit', async (e) => {
+    e.preventDefault();
+
+    const configPath = form.elements['config-path'].value;
+    const outputDir = form.elements['output-dir'].value;
+    const formats = [...form.elements['formats']]
+      .filter(input => input.checked)
+      .map(input => input.value);
+
+    logsEl.textContent = 'Running pipeline...';
+    outputFilesEl.innerHTML = '<p>Waiting for results...</p>';
+
+    try {
+      const response = await fetch('/api/v1/pipeline/run', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          config_path: configPath,
+          output_dir: outputDir,
+          formats: formats,
+        }),
+      });
+
+      const result = await response.json();
+
+      if (response.ok) {
+        logsEl.textContent = `Pipeline completed successfully:\n${result.message}`;
+
+        let outputHTML = '<ul>';
+        for (const [fileName, content] of Object.entries(result.output_files)) {
+          const blob = new Blob([content], { type: 'text/plain' });
+          const url = URL.createObjectURL(blob);
+          outputHTML += `<li><a href="${url}" download="${fileName}">${fileName}</a></li>`;
+        }
+        outputHTML += '</ul>';
+        outputFilesEl.innerHTML = outputHTML;
+
+      } else {
+        logsEl.textContent = `Error:\n${result.detail}`;
+      }
+    } catch (error) {
+      logsEl.textContent = `An unexpected error occurred:\n${error.toString()}`;
+    }
+  });
+})();

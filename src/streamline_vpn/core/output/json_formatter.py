@@ -17,12 +17,18 @@ class JSONFormatter:
         """Return the file extension for JSON output."""
         return ".json"
 
-    def save_configurations(self, configs: List[VPNConfiguration], base_filename: str) -> Path:
+    def save_configurations(
+        self, configs: List[VPNConfiguration], base_filename: str
+    ) -> Path:
         """Serialize configurations to a JSON file."""
-        file_path = self.output_dir / f"{base_filename}{self.get_file_extension()}"
+        file_path = (
+            self.output_dir / f"{base_filename}{self.get_file_extension()}"
+        )
+        print(f"Saving JSON to {file_path}")
         f = open(file_path, "w", encoding="utf-8")
         try:
             json.dump([cfg.to_dict() for cfg in configs], f, indent=2)
         finally:
             f.close()
+        print(f"File exists after save: {file_path.exists()}")
         return file_path

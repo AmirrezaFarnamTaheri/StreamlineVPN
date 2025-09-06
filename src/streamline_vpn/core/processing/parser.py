@@ -33,12 +33,14 @@ class ConfigurationParser:
             "ssr": r"ssr://([A-Za-z0-9+/=]+)",
         }
 
-    def parse_configuration(self, config_string: str) -> Optional[VPNConfiguration]:
+    def parse_configuration(
+        self, config_string: str
+    ) -> Optional[VPNConfiguration]:
         """Parse a single configuration string.
-        
+
         Args:
             config_string: Configuration string to parse
-            
+
         Returns:
             Parsed VPN configuration or None if parsing fails
         """
@@ -59,14 +61,16 @@ class ConfigurationParser:
         logger.debug(f"Could not parse configuration: {config_string[:50]}...")
         return None
 
-    def _parse_protocol(self, config_string: str, protocol_name: str) -> Optional[VPNConfiguration]:
+    def _parse_protocol(
+        self, config_string: str, protocol_name: str
+    ) -> Optional[VPNConfiguration]:
         """Parse configuration for a specific protocol.
-        
+
         Args:
             config_string: Configuration string
             protocol_name: Protocol name
             pattern: Regex pattern for the protocol
-            
+
         Returns:
             Parsed configuration or None
         """

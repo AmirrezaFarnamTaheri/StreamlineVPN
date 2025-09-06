@@ -21,6 +21,7 @@ from ..settings import get_settings
 
 logger = get_logger(__name__)
 
+
 # Pydantic models for API
 class ProcessingRequest(BaseModel):
     config_path: Optional[str] = "config/sources.yaml"
@@ -28,11 +29,13 @@ class ProcessingRequest(BaseModel):
     formats: Optional[List[str]] = ["json", "clash"]
     max_concurrent: Optional[int] = 50
 
+
 class ProcessingResponse(BaseModel):
     success: bool
     message: str
     job_id: Optional[str] = None
     statistics: Optional[Dict[str, Any]] = None
+
 
 class HealthResponse(BaseModel):
     status: str
@@ -40,9 +43,11 @@ class HealthResponse(BaseModel):
     version: str
     uptime: float
 
+
 # Global merger instance
 merger: Optional[StreamlineVPNMerger] = None
 start_time = datetime.now()
+
 
 def get_merger() -> StreamlineVPNMerger:
     """Get or create merger instance."""
@@ -51,6 +56,7 @@ def get_merger() -> StreamlineVPNMerger:
         merger = StreamlineVPNMerger()
     return merger
 
+
 def create_app() -> FastAPI:
     """Create FastAPI application."""
     app = FastAPI(
@@ -58,9 +64,9 @@ def create_app() -> FastAPI:
         description="Enterprise VPN Configuration Aggregator API",
         version="2.0.0",
         docs_url="/docs",
-        redoc_url="/redoc"
+        redoc_url="/redoc",
     )
-    
+
     # Add CORS middleware
     app.add_middleware(
         CORSMiddleware,
@@ -69,16 +75,16 @@ def create_app() -> FastAPI:
         allow_methods=["*"],
         allow_headers=["*"],
     )
-    
+
     @app.get("/", response_model=Dict[str, str])
     async def root():
         """Root endpoint."""
         return {
             "message": "StreamlineVPN API",
             "version": "2.0.0",
-            "docs": "/docs"
+            "docs": "/docs",
         }
-    
+
     @app.get("/health", response_model=HealthResponse)
     async def health():
         """Health check endpoint."""
@@ -87,40 +93,38 @@ def create_app() -> FastAPI:
             status="healthy",
             timestamp=datetime.now().isoformat(),
             version="2.0.0",
-            uptime=uptime
+            uptime=uptime,
         )
-    
+
     @app.post("/process", response_model=ProcessingResponse)
     async def process_configurations(
-        request: ProcessingRequest,
-        background_tasks: BackgroundTasks
+        request: ProcessingRequest, background_tasks: BackgroundTasks
     ):
         """Process VPN configurations."""
         try:
             merger = get_merger()
-            
+
             # Process configurations
             results = await merger.process_all(
-                output_dir=request.output_dir,
-                formats=request.formats
+                output_dir=request.output_dir, formats=request.formats
             )
-            
+
             if results.get("success", False):
                 return ProcessingResponse(
                     success=True,
                     message="Processing completed successfully",
-                    statistics=results.get("statistics")
+                    statistics=results.get("statistics"),
                 )
             else:
                 return ProcessingResponse(
                     success=False,
-                    message=results.get("error", "Processing failed")
+                    message=results.get("error", "Processing failed"),
                 )
-                
+
         except Exception as e:
             logger.error(f"Processing error: {e}")
             raise HTTPException(status_code=500, detail=str(e))
-    
+
     @app.get("/statistics")
     async def get_statistics():
         """Get processing statistics."""
@@ -131,7 +135,7 @@ def create_app() -> FastAPI:
         except Exception as e:
             logger.error(f"Statistics error: {e}")
             raise HTTPException(status_code=500, detail=str(e))
-    
+
     @app.get("/configurations")
     async def get_configurations():
         """Get processed configurations."""
@@ -140,12 +144,12 @@ def create_app() -> FastAPI:
             configs = await merger.get_configurations()
             return {
                 "count": len(configs),
-                "configurations": [config.to_dict() for config in configs]
+                "configurations": [config.to_dict() for config in configs],
             }
         except Exception as e:
             logger.error(f"Configurations error: {e}")
             raise HTTPException(status_code=500, detail=str(e))
-    
+
     @app.get("/sources")
     async def get_sources():
         """Get source information."""
@@ -156,7 +160,7 @@ def create_app() -> FastAPI:
         except Exception as e:
             logger.error(f"Sources error: {e}")
             raise HTTPException(status_code=500, detail=str(e))
-    
+
     @app.post("/sources/{source_url}/blacklist")
     async def blacklist_source(source_url: str, reason: str = ""):
         """Blacklist a source."""
@@ -167,7 +171,7 @@ def create_app() -> FastAPI:
         except Exception as e:
             logger.error(f"Blacklist error: {e}")
             raise HTTPException(status_code=500, detail=str(e))
-    
+
     @app.post("/sources/{source_url}/whitelist")
     async def whitelist_source(source_url: str):
         """Remove source from blacklist."""
@@ -178,7 +182,7 @@ def create_app() -> FastAPI:
         except Exception as e:
             logger.error(f"Whitelist error: {e}")
             raise HTTPException(status_code=500, detail=str(e))
-    
+
     @app.post("/cache/clear")
     async def clear_cache():
         """Clear all caches."""
@@ -189,13 +193,15 @@ def create_app() -> FastAPI:
         except Exception as e:
             logger.error(f"Cache clear error: {e}")
             raise HTTPException(status_code=500, detail=str(e))
-    
+
     @app.get("/metrics")
     async def get_metrics():
         """Get Prometheus metrics."""
         try:
             # This would integrate with Prometheus client
-            return {"message": "Metrics endpoint - integrate with Prometheus client"}
+            return {
+                "message": "Metrics endpoint - integrate with Prometheus client"
+            }
         except Exception as e:
             logger.error(f"Metrics error: {e}")
             raise HTTPException(status_code=500, detail=str(e))
@@ -215,7 +221,9 @@ def create_app() -> FastAPI:
             raise HTTPException(status_code=500, detail=str(e))
 
     @app.post("/config/reload")
-    async def reload_runtime_configuration(overrides: Optional[Dict[str, Any]] = Body(None)):
+    async def reload_runtime_configuration(
+        overrides: Optional[Dict[str, Any]] = Body(None),
+    ):
         """Reload runtime configuration by re-reading environment variables."""
         global merger
         try:
@@ -253,5 +261,5 @@ def create_app() -> FastAPI:
         except Exception as e:
             logger.error(f"Reload settings error: {e}")
             raise HTTPException(status_code=500, detail=str(e))
-    
+
     return app

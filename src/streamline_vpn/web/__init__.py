@@ -14,8 +14,8 @@ from .static_server import StaticFileServer
 __all__ = [
     "APIServer",
     "create_app",
-    "create_graphql_app", 
+    "create_graphql_app",
     "VPNConfigGenerator",
     "IntegratedWebServer",
-    "StaticFileServer"
+    "StaticFileServer",
 ]

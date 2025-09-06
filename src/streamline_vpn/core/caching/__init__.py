@@ -14,10 +14,10 @@ from .service import VPNCacheService
 
 __all__ = [
     "CacheLevel",
-    "CacheEntry", 
+    "CacheEntry",
     "CacheStats",
     "L1ApplicationCache",
     "RedisClusterClient",
     "CacheInvalidationService",
-    "VPNCacheService"
+    "VPNCacheService",
 ]

@@ -30,4 +30,3 @@ def parse_vless(config_string: str) -> Optional[VPNConfiguration]:
     except Exception as e:
         logger.debug(f"Failed to parse VLESS: {e}")
         return None
-

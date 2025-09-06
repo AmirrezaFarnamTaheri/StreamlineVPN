@@ -17,11 +17,7 @@ from .lstm_model import QualityPrediction, LSTMModel
 from ..core.cache_manager import CacheManager
 
 # Re-export main classes for backward compatibility
-__all__ = [
-    'QualityPredictionService',
-    'NetworkMetrics',
-    'QualityPrediction'
-]
+__all__ = ["QualityPredictionService", "NetworkMetrics", "QualityPrediction"]
 
 # Global service instance
 _cache_manager = CacheManager()
@@ -31,20 +27,24 @@ _lstm_model = LSTMModel()
 _quality_prediction_service = QualityPredictionService(
     cache_manager=_cache_manager,
     feature_processor=_feature_processor,
-    lstm_model=_lstm_model
+    lstm_model=_lstm_model,
 )
 
 
-async def predict_connection_quality(server_metrics: Dict[str, Any]) -> Dict[str, Any]:
+async def predict_connection_quality(
+    server_metrics: Dict[str, Any],
+) -> Dict[str, Any]:
     """Predict connection quality for a server.
-    
+
     Args:
         server_metrics: Server performance metrics
-        
+
     Returns:
         Quality prediction result
     """
-    return await _quality_prediction_service.predict_connection_quality(server_metrics)
+    return await _quality_prediction_service.predict_connection_quality(
+        server_metrics
+    )
 
 
 def get_quality_prediction_stats() -> Dict[str, Any]:

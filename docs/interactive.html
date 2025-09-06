@@ -1,0 +1,68 @@
+---
+layout: default
+title: Interactive Pipeline Runner • StreamlineVPN
+---
+
+<div class="main-content">
+  <h1>Interactive Pipeline Runner</h1>
+  <p>Run the StreamlineVPN pipeline with custom settings and see the results in real-time.</p>
+
+  <div class="card">
+    <h2>Settings</h2>
+    <form id="pipeline-form">
+      <div class="form-group">
+        <label for="config-path">Configuration File Path</label>
+        <input type="text" id="config-path" name="config-path" value="config/sources.yaml" class="form-control">
+      </div>
+      <div class="form-group">
+        <label for="output-dir">Output Directory</label>
+        <input type="text" id="output-dir" name="output-dir" value="output" class="form-control">
+      </div>
+      <div class="form-group">
+        <label>Output Formats</label>
+        <div class="checkbox-group">
+          <label><input type="checkbox" name="formats" value="json" checked> JSON</label>
+          <label><input type="checkbox" name="formats" value="clash" checked> Clash</label>
+          <label><input type="checkbox" name="formats" value="singbox" checked> Sing-box</label>
+          <label><input type="checkbox" name="formats" value="raw"> Raw</label>
+        </div>
+      </div>
+      <button type="submit" class="btn">Run Pipeline</button>
+    </form>
+  </div>
+
+  <div class="card" style="margin-top: 2rem;">
+    <h2>Logs</h2>
+    <pre id="logs" style="height: 300px; overflow-y: scroll; background-color: #f6f8fa; border: 1px solid #e1e4e8;"></pre>
+  </div>
+
+  <div class="card" style="margin-top: 2rem;">
+    <h2>Output Files</h2>
+    <div id="output-files">
+      <p>Pipeline has not been run yet.</p>
+    </div>
+  </div>
+</div>
+
+<style>
+.form-group {
+  margin-bottom: 1rem;
+}
+.form-group label {
+  display: block;
+  font-weight: 600;
+  margin-bottom: 0.5rem;
+}
+.form-control {
+  width: 100%;
+  padding: 0.5rem;
+  border: 1px solid #e1e4e8;
+  border-radius: 6px;
+}
+.checkbox-group {
+  display: flex;
+  gap: 1rem;
+}
+</style>
+
+<script src="assets/site.js"></script>

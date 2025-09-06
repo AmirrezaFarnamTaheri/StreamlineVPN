@@ -13,6 +13,7 @@ from typing import Any, Dict, List, Optional
 
 class ThreatLevel(Enum):
     """Threat level classifications."""
+
     LOW = "low"
     MEDIUM = "medium"
     HIGH = "high"
@@ -21,6 +22,7 @@ class ThreatLevel(Enum):
 
 class DeviceStatus(Enum):
     """Device compliance status."""
+
     COMPLIANT = "compliant"
     NON_COMPLIANT = "non_compliant"
     UNKNOWN = "unknown"
@@ -29,6 +31,7 @@ class DeviceStatus(Enum):
 
 class PolicyAction(Enum):
     """Policy evaluation actions."""
+
     ALLOW = "allow"
     DENY = "deny"
     CHALLENGE = "challenge"
@@ -38,6 +41,7 @@ class PolicyAction(Enum):
 @dataclass
 class DeviceInfo:
     """Device information for posture validation."""
+
     device_id: str
     device_type: str
     os_version: str
@@ -55,18 +59,22 @@ class DeviceInfo:
 @dataclass
 class DevicePosture:
     """Device posture assessment result."""
+
     device_id: str
     status: DeviceStatus
     compliance_score: float
     risk_factors: List[str] = field(default_factory=list)
     recommendations: List[str] = field(default_factory=list)
     last_assessed: datetime = field(default_factory=datetime.now)
-    expires_at: datetime = field(default_factory=lambda: datetime.now() + timedelta(hours=1))
+    expires_at: datetime = field(
+        default_factory=lambda: datetime.now() + timedelta(hours=1)
+    )
 
 
 @dataclass
 class UserIdentity:
     """User identity information."""
+
     user_id: str
     username: str
     email: str
@@ -79,6 +87,7 @@ class UserIdentity:
 @dataclass
 class PolicyRule:
     """Zero Trust policy rule."""
+
     rule_id: str
     name: str
     description: str
@@ -92,6 +101,7 @@ class PolicyRule:
 @dataclass
 class PolicyEvaluation:
     """Policy evaluation result."""
+
     rule_id: str
     action: PolicyAction
     reason: str
@@ -102,6 +112,7 @@ class PolicyEvaluation:
 @dataclass
 class AuthResult:
     """Authentication result."""
+
     user_id: str
     session_id: str
     permissions: List[str]

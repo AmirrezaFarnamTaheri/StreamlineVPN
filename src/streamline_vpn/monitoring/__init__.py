@@ -12,7 +12,7 @@ from .alerting_rules import AlertingRules
 
 __all__ = [
     "MetricsService",
-    "MetricsCollector", 
+    "MetricsCollector",
     "MetricsExporter",
-    "AlertingRules"
+    "AlertingRules",
 ]
