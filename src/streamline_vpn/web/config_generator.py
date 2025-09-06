@@ -103,97 +103,13 @@ class VPNConfigGenerator:
 
     def _get_index_html(self) -> str:
         """Get main HTML page."""
-        return """
-        <!DOCTYPE html>
-        <html>
-        <head>
-            <title>StreamlineVPN Config Generator</title>
-            <style>
-                body { font-family: Arial, sans-serif; margin: 40px; }
-                .container { max-width: 800px; margin: 0 auto; }
-                .button { 
-                    background: #007bff; color: white; padding: 10px 20px; 
-                    border: none; border-radius: 5px; cursor: pointer; margin: 5px;
-                }
-                .button:hover { background: #0056b3; }
-                .config-list { margin: 20px 0; }
-                .config-item { 
-                    background: #f8f9fa; padding: 10px; margin: 5px 0; 
-                    border-radius: 5px; border-left: 4px solid #007bff;
-                }
-            </style>
-        </head>
-        <body>
-            <div class="container">
-                <h1>🚀 StreamlineVPN Config Generator</h1>
-                <p>Generate and download VPN configurations in multiple formats.</p>
-                
-                <div>
-                    <button class="button" onclick="loadConfigs()">Load Configurations</button>
-                    <button class="button" onclick="generateConfigs()">Generate New</button>
-                </div>
-                
-                <div class="config-list" id="configList">
-                    <p>Click "Load Configurations" to see available configurations.</p>
-                </div>
-                
-                <div>
-                    <h3>Download Formats:</h3>
-                    <button class="button" onclick="downloadConfigs('json')">JSON</button>
-                    <button class="button" onclick="downloadConfigs('clash')">Clash</button>
-                    <button class="button" onclick="downloadConfigs('singbox')">SingBox</button>
-                    <button class="button" onclick="downloadConfigs('raw')">Raw</button>
-                </div>
-            </div>
-            
-            <script>
-                async function loadConfigs() {
-                    try {
-                        const response = await fetch('/api/configs');
-                        const data = await response.json();
-                        
-                        const configList = document.getElementById('configList');
-                        configList.innerHTML = `
-                            <h3>Available Configurations (${data.count})</h3>
-                            ${data.configurations.map(config => `
-                                <div class="config-item">
-                                    <strong>${config.protocol}</strong> -
-                                    ${config.server}:${config.port}
-                                    <br><small>Quality: ${config.quality_score.toFixed(2)}</small>
-                                    <br><small>Network: ${config.network}</small>
-                                </div>
-                            `).join('')}
-                        `;
-                    } catch (error) {
-                        alert(
-                            'Error loading configurations: ' + error.message
-                        );
-                    }
-                }
-
-                async function generateConfigs() {
-                    try {
-                        const response = await fetch('/api/generate', { method: 'POST' });
-                        const data = await response.json();
-                        alert(data.message);
-                        loadConfigs();
-                    } catch (error) {
-                        alert(
-                            'Error generating configurations: ' +
-                                error.message
-                        );
-                    }
-                }
-
-                function downloadConfigs(format) {
-                    window.open(
-                        `/api/download/${format}`, '_blank'
-                    );
-                }
-            </script>
-        </body>
-        </html>
-        """
+        html_path = Path(__file__).parent / "config_generator.html"
+        try:
+            with open(html_path, "r") as f:
+                return f.read()
+        except FileNotFoundError:
+            logger.error(f"HTML file not found at {html_path}")
+            return "<h1>Error: HTML file not found</h1>"
 
     async def start(self):
         """Start the configuration generator."""
