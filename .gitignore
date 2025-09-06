@@ -141,6 +141,10 @@ config/secrets.yaml
 output/
 results/
 exports/
+# Allow output package in source
+!src/streamline_vpn/core/output/
+!src/streamline_vpn/core/output/**
+src/streamline_vpn/core/output/__pycache__/
 
 # Cache directories
 cache/
