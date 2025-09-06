@@ -18,6 +18,7 @@ from fastapi import (
     WebSocketDisconnect,
     status,
 )
+from fastapi.responses import PlainTextResponse
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 
 from ...utils.logging import get_logger
@@ -284,11 +285,18 @@ def setup_routes(
         try:
             while True:
                 data = await websocket.receive_text()
-                message_data = json.loads(data)
+                try:
+                    message_data = json.loads(data)
+                except Exception:
+                    await websocket.send_text('{"error":"invalid_json"}')
+                    continue
                 await websocket_manager.handle_message(
                     websocket, user_id, message_data
                 )
         except WebSocketDisconnect:
+            await websocket_manager.disconnect(user_id)
+        except Exception as e:
+            logger.error(f"WebSocket error for {user_id}: {e}", exc_info=True)
             await websocket_manager.disconnect(user_id)
 
     # Health check
@@ -304,8 +312,11 @@ def setup_routes(
     @app.get("/metrics")
     async def get_metrics():
         """Get Prometheus metrics."""
-        # This would return actual metrics in production
-        return "# StreamlineVPN Metrics\n# (metrics would be implemented here)"
+        body = "# StreamlineVPN Metrics\n# (metrics would be implemented here)"
+        return PlainTextResponse(
+            content=body,
+            media_type="text/plain; version=0.0.4; charset=utf-8",
+        )
 
     # Pipeline routes
     @app.post("/api/v1/pipeline/run")
