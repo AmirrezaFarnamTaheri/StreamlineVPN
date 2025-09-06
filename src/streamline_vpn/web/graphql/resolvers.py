@@ -1,15 +1,9 @@
+"""GraphQL resolvers placeholder.
+
+Resolvers are currently defined directly in :mod:`schema`.
+This module remains for future expansion.
 """
-GraphQL Resolvers
-=================
 
-GraphQL resolvers for StreamlineVPN.
-"""
+from .schema import Mutation, Query  # noqa: F401
 
-import asyncio
-from typing import List, Optional
-from datetime import datetime
-
-from .schema import Query, Mutation
-
-# Resolvers are defined in the schema file
-# This file is kept for future expansion
+# Resolvers are defined in schema; these imports re-export Query/Mutation

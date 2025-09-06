@@ -5,14 +5,12 @@ Integrated Web Server
 Integrated web server combining all StreamlineVPN web services.
 """
 
-import asyncio
-from typing import Optional
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
+from ..utils.logging import get_logger
 from .api import create_app as create_api_app
 from .graphql import create_graphql_app
-from ..utils.logging import get_logger
 
 logger = get_logger(__name__)
 

@@ -16,32 +16,40 @@
 })();
 
 // Add copy buttons to code blocks
-(function () {
-  const blocks = document.querySelectorAll('pre');
+function addCopyButtons(root = document) {
+  const blocks = root.querySelectorAll('pre');
   blocks.forEach(pre => {
     if (pre.querySelector('.copy-btn')) return;
     const btn = document.createElement('button');
     btn.className = 'copy-btn';
     btn.type = 'button';
+    btn.tabIndex = -1;
+    btn.setAttribute('aria-hidden', 'true');
     btn.textContent = 'Copy';
+    btn.addEventListener('mousedown', (e) => e.preventDefault());
     btn.addEventListener('click', async () => {
-      const text = pre.innerText;
+      const target = pre.querySelector('code') || pre;
+      const text = target.textContent;
       try {
         await navigator.clipboard.writeText(text);
         btn.textContent = 'Copied!';
         setTimeout(() => (btn.textContent = 'Copy'), 1200);
       } catch (_) {
         const range = document.createRange();
-        range.selectNodeContents(pre);
+        range.selectNodeContents(target);
         const sel = window.getSelection();
         sel.removeAllRanges(); sel.addRange(range);
         btn.textContent = 'Selected';
-        setTimeout(() => (btn.textContent = 'Copy'), 1200);
+        setTimeout(() => {
+          btn.textContent = 'Copy';
+          sel.removeAllRanges();
+        }, 1200);
       }
     });
     pre.appendChild(btn);
   });
-})();
+}
+addCopyButtons();
 
 // Optional homepage health check (only runs if elements exist)
 (function () {
@@ -80,6 +88,11 @@
       .filter(input => input.checked)
       .map(input => input.value);
 
+    // Clear previous results and revoke URLs
+    if (outputFilesEl._objectUrls) {
+      outputFilesEl._objectUrls.forEach(u => URL.revokeObjectURL(u));
+      delete outputFilesEl._objectUrls;
+    }
     logsEl.textContent = 'Running pipeline...';
     outputFilesEl.innerHTML = '<p>Waiting for results...</p>';
 
@@ -101,14 +114,50 @@
       if (response.ok) {
         logsEl.textContent = `Pipeline completed successfully:\n${result.message}`;
 
-        let outputHTML = '<ul>';
+        // Revoke any previously created URLs to avoid leaks
+        if (outputFilesEl._objectUrls) {
+          outputFilesEl._objectUrls.forEach(u => URL.revokeObjectURL(u));
+        }
+        outputFilesEl.innerHTML = '';
+        const objectUrls = [];
+
         for (const [fileName, content] of Object.entries(result.output_files)) {
           const blob = new Blob([content], { type: 'text/plain' });
           const url = URL.createObjectURL(blob);
-          outputHTML += `<li><a href="${url}" download="${fileName}">${fileName}</a></li>`;
+          objectUrls.push(url);
+
+          const details = document.createElement('details');
+          const summary = document.createElement('summary');
+          summary.textContent = fileName;
+          details.appendChild(summary);
+
+          const actions = document.createElement('div');
+          actions.className = 'output-actions';
+          const link = document.createElement('a');
+          link.href = url;
+          link.setAttribute('download', fileName);
+          link.className = 'btn secondary';
+          link.textContent = 'Download';
+          link.addEventListener('click', () => {
+            const href = link.getAttribute('href');
+            setTimeout(() => URL.revokeObjectURL(href), 2000);
+          }, { once: true });
+          actions.appendChild(link);
+          details.appendChild(actions);
+
+          const pre = document.createElement('pre');
+          pre.textContent = content;
+          details.appendChild(pre);
+
+          outputFilesEl.appendChild(details);
         }
-        outputHTML += '</ul>';
-        outputFilesEl.innerHTML = outputHTML;
+
+        if (!objectUrls.length) {
+          outputFilesEl.innerHTML = '<p>No output files produced.</p>';
+        }
+
+        outputFilesEl._objectUrls = objectUrls;
+        addCopyButtons(outputFilesEl);
 
       } else {
         logsEl.textContent = `Error:\n${result.detail}`;
