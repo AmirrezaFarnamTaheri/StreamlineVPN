@@ -23,7 +23,9 @@ class _FakeFormatter:
     def __init__(self, output_path):
         self.output_path = Path(output_path)
 
-    def get_file_extension(self):  # pragma: no cover - overridden in subclasses
+    def get_file_extension(
+        self,
+    ):  # pragma: no cover - overridden in subclasses
         return ""
 
     def save_configurations(self, configs, filename):
@@ -124,7 +126,9 @@ fakeredis_pkg.aioredis = fakeredis_module
 sys.modules["fakeredis"] = fakeredis_pkg
 
 from streamline_vpn.core.cache_manager import CacheManager  # noqa: E402
-from streamline_vpn.core.config_processor import ConfigurationProcessor  # noqa: E402
+from streamline_vpn.core.config_processor import (
+    ConfigurationProcessor,
+)  # noqa: E402
 from streamline_vpn.core.merger import StreamlineVPNMerger  # noqa: E402
 from streamline_vpn.core.output_manager import OutputManager  # noqa: E402
 from streamline_vpn.core.source_manager import SourceManager  # noqa: E402
@@ -146,7 +150,9 @@ class TestStreamlineVPNMerger:
             "streamline_vpn.security.manager.SecurityManager"
         ):
             merger = StreamlineVPNMerger()
-            merger.source_manager.get_active_sources = AsyncMock(return_value=[])
+            merger.source_manager.get_active_sources = AsyncMock(
+                return_value=[]
+            )
             return merger
 
     @pytest.mark.asyncio
@@ -160,7 +166,9 @@ class TestStreamlineVPNMerger:
     @pytest.mark.asyncio
     async def test_process_all_empty_sources(self, merger):
         """Test processing with no sources."""
-        with patch.object(merger.source_manager, "get_active_sources", return_value=[]):
+        with patch.object(
+            merger.source_manager, "get_active_sources", return_value=[]
+        ):
             result = await merger.process_all()
             assert result["success"] is False
             assert "No sources found" in result["error"]
@@ -266,7 +274,9 @@ class TestOutputManager:
             assert isinstance(result, Path)
 
     @pytest.mark.asyncio
-    async def test_save_configurations_sync_raises_in_event_loop(self, output_manager):
+    async def test_save_configurations_sync_raises_in_event_loop(
+        self, output_manager
+    ):
         """Ensure synchronous wrapper raises inside an event loop."""
         with patch.object(output_manager, "save_configurations", AsyncMock()):
             with pytest.raises(
@@ -275,7 +285,9 @@ class TestOutputManager:
             ):
                 output_manager.save_configurations_sync([], "test_output")
 
-    def test_save_configurations_sync_runs_outside_event_loop(self, output_manager):
+    def test_save_configurations_sync_runs_outside_event_loop(
+        self, output_manager
+    ):
         """Ensure synchronous wrapper works when no event loop is running."""
         with patch.object(
             output_manager, "save_configurations", AsyncMock(return_value="ok")

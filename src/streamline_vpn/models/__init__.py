@@ -11,7 +11,7 @@ from .processing_result import ProcessingResult
 
 __all__ = [
     "VPNConfiguration",
-    "SourceMetadata", 
+    "SourceMetadata",
     "SourceTier",
-    "ProcessingResult"
+    "ProcessingResult",
 ]

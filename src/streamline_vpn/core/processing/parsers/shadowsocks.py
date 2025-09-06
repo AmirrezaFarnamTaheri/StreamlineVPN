@@ -47,4 +47,3 @@ def parse_ss(config_string: str) -> Optional[VPNConfiguration]:
     except Exception as e:
         logger.debug(f"Failed to parse Shadowsocks: {e}")
         return None
-

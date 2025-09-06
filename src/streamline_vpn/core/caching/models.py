@@ -13,6 +13,7 @@ from typing import Any, Dict, List
 
 class CacheLevel(Enum):
     """Cache levels for multi-level caching."""
+
     L1_APPLICATION = "l1_application"
     L2_REDIS = "l2_redis"
     L3_DATABASE = "l3_database"
@@ -21,6 +22,7 @@ class CacheLevel(Enum):
 @dataclass
 class CacheEntry:
     """Cache entry with metadata."""
+
     key: str
     value: Any
     ttl: int
@@ -34,6 +36,7 @@ class CacheEntry:
 @dataclass
 class CacheStats:
     """Cache performance statistics."""
+
     hits: int = 0
     misses: int = 0
     evictions: int = 0

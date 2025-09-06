@@ -8,6 +8,7 @@ tenacity>=8.2.0
 pyyaml>=6.0
 numpy>=1.24.0
 pandas>=2.0.0
+apscheduler>=3.10.0
 
 # Database and caching
 redis>=5.0.0

@@ -11,7 +11,11 @@ import uuid
 
 from ..models.configuration import VPNConfiguration
 from ..utils.logging import get_logger
-from .processing import ConfigurationParser, ConfigurationValidator, ConfigurationDeduplicator
+from .processing import (
+    ConfigurationParser,
+    ConfigurationValidator,
+    ConfigurationDeduplicator,
+)
 
 logger = get_logger(__name__)
 
@@ -32,29 +36,27 @@ class ConfigurationProcessor:
         }
 
     def parse_configurations(
-        self, 
-        content: str, 
-        source_type: str = "mixed"
+        self, content: str, source_type: str = "mixed"
     ) -> List[Dict[str, Any]]:
         """Parse configurations from content.
-        
+
         Args:
             content: Raw configuration content
             source_type: Type of source content
-            
+
         Returns:
             List of parsed configuration dictionaries
         """
         configs = []
-        
+
         # Split content into lines
-        lines = content.strip().split('\n')
-        
+        lines = content.strip().split("\n")
+
         for line in lines:
             line = line.strip()
-            if not line or line.startswith('#'):
+            if not line or line.startswith("#"):
                 continue
-                
+
             try:
                 config = self.parser.parse_configuration(line)
                 if config:
@@ -62,61 +64,65 @@ class ConfigurationProcessor:
             except Exception as e:
                 logger.debug(f"Failed to parse line: {e}")
                 continue
-                
-        logger.info(f"Parsed {len(configs)} configurations from {source_type} source")
+
+        logger.info(
+            f"Parsed {len(configs)} configurations from {source_type} source"
+        )
         return configs
 
     def validate_configuration(
-        self, 
-        config_data: Dict[str, Any], 
-        rules: Optional[Dict[str, Any]] = None
+        self,
+        config_data: Dict[str, Any],
+        rules: Optional[Dict[str, Any]] = None,
     ) -> bool:
         """Validate a configuration.
-        
+
         Args:
             config_data: Configuration data to validate
             rules: Optional validation rules
-            
+
         Returns:
             True if valid
         """
         try:
             config = self._dict_to_config(config_data)
-            is_valid, errors = self.validator.validate_configuration(config, rules)
-            
+            is_valid, errors = self.validator.validate_configuration(
+                config, rules
+            )
+
             if not is_valid:
                 logger.debug(f"Invalid configuration: {', '.join(errors)}")
-                
+
             return is_valid
-            
+
         except Exception as e:
             logger.debug(f"Validation error: {e}")
             return False
 
     def deduplicate_configurations(
-        self, 
-        configs: List[VPNConfiguration],
-        strategy: str = "exact"
+        self, configs: List[VPNConfiguration], strategy: str = "exact"
     ) -> List[VPNConfiguration]:
         """Deduplicate configurations.
-        
+
         Args:
             configs: List of configurations to deduplicate
             strategy: Deduplication strategy
-            
+
         Returns:
             List of unique configurations
         """
-        unique = self.deduplicator.deduplicate_configurations(configs, strategy)
+        unique = self.deduplicator.deduplicate_configurations(
+            configs, strategy
+        )
         self._stats["deduplicated"] += max(0, len(configs) - len(unique))
         return unique
 
     def generate_config_id(self, config_data: Dict[str, Any]) -> str:
         """Generate a unique ID for a configuration.
-        
+
         Args:
             config_data: Configuration data
-            
+
         Returns:
             Unique configuration ID
         """
@@ -125,7 +131,9 @@ class ConfigurationProcessor:
         return hashlib.md5(content.encode()).hexdigest()[:8]
 
     # Backwards-compatibility: single-line async parse API expected by tests
-    async def parse_config(self, config_line: str) -> Optional[VPNConfiguration]:
+    async def parse_config(
+        self, config_line: str
+    ) -> Optional[VPNConfiguration]:
         """Parse a single configuration line to a VPNConfiguration or None.
 
         The test suite expects this to be an async method returning None for
@@ -153,26 +161,26 @@ class ConfigurationProcessor:
         return dict(self._stats)
 
     def process_configurations(
-        self, 
-        content: str, 
+        self,
+        content: str,
         source_type: str = "mixed",
         validation_rules: Optional[Dict[str, Any]] = None,
-        deduplication_strategy: str = "exact"
+        deduplication_strategy: str = "exact",
     ) -> List[VPNConfiguration]:
         """Process configurations from content.
-        
+
         Args:
             content: Raw configuration content
             source_type: Type of source content
             validation_rules: Optional validation rules
             deduplication_strategy: Deduplication strategy
-            
+
         Returns:
             List of processed configurations
         """
         # Parse configurations
         configs_data = self.parse_configurations(content, source_type)
-        
+
         # Convert to VPNConfiguration objects
         configs = []
         for config_data in configs_data:
@@ -182,23 +190,27 @@ class ConfigurationProcessor:
             except Exception as e:
                 logger.debug(f"Failed to create configuration: {e}")
                 continue
-                
+
         # Validate configurations
         if validation_rules:
-            configs = self.validator.validate_configurations(configs, validation_rules)
-            
+            configs = self.validator.validate_configurations(
+                configs, validation_rules
+            )
+
         # Deduplicate configurations
-        configs = self.deduplicate_configurations(configs, deduplication_strategy)
-        
+        configs = self.deduplicate_configurations(
+            configs, deduplication_strategy
+        )
+
         logger.info(f"Processed {len(configs)} valid configurations")
         return configs
 
     def _config_to_dict(self, config: VPNConfiguration) -> Dict[str, Any]:
         """Convert VPNConfiguration to dictionary.
-        
+
         Args:
             config: VPN configuration
-            
+
         Returns:
             Configuration dictionary
         """
@@ -216,22 +228,24 @@ class ConfigurationProcessor:
             "tls": config.tls,
             "quality_score": config.quality_score,
             "source_url": config.source_url,
-            "created_at": config.created_at.isoformat() if config.created_at else None,
-            "metadata": config.metadata
+            "created_at": (
+                config.created_at.isoformat() if config.created_at else None
+            ),
+            "metadata": config.metadata,
         }
 
     def _dict_to_config(self, config_data: Dict[str, Any]) -> VPNConfiguration:
         """Convert dictionary to VPNConfiguration.
-        
+
         Args:
             config_data: Configuration dictionary
-            
+
         Returns:
             VPN configuration
         """
         from ..models.configuration import Protocol
         from datetime import datetime
-        
+
         return VPNConfiguration(
             id=config_data.get("id", ""),
             protocol=Protocol(config_data.get("protocol", "unknown")),
@@ -246,6 +260,10 @@ class ConfigurationProcessor:
             tls=config_data.get("tls", False),
             quality_score=config_data.get("quality_score"),
             source_url=config_data.get("source_url", ""),
-            created_at=datetime.fromisoformat(config_data["created_at"]) if config_data.get("created_at") else None,
-            metadata=config_data.get("metadata", {})
+            created_at=(
+                datetime.fromisoformat(config_data["created_at"])
+                if config_data.get("created_at")
+                else None
+            ),
+            metadata=config_data.get("metadata", {}),
         )

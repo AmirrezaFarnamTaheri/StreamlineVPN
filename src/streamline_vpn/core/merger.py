@@ -46,7 +46,9 @@ class StreamlineVPNMerger(BaseMerger):
         self.security_manager = SecurityManager()
 
         # Initialize core managers
-        self.source_manager = SourceManager(self.config_path, self.security_manager)
+        self.source_manager = SourceManager(
+            self.config_path, self.security_manager
+        )
         self.config_processor = ConfigurationProcessor()
         self.output_manager = OutputManager()
 
@@ -56,12 +58,13 @@ class StreamlineVPNMerger(BaseMerger):
         # Loaded source URLs
         self.sources: List[str] = []
 
-        logger.info(f"StreamlineVPN merger initialized with config: {config_path}")
+        logger.info(
+            f"StreamlineVPN merger initialized with config: {config_path}"
+        )
 
     async def initialize(self):
         """Initialize the merger."""
-        # Nothing to do here for now
-        pass
+        await super().initialize()
 
     async def shutdown(self):
         """Shutdown the merger and save performance data."""
@@ -79,9 +82,7 @@ class StreamlineVPNMerger(BaseMerger):
         await self.shutdown()
 
     async def process_all(
-        self,
-        output_dir: str = "output",
-        formats: Optional[List[str]] = None
+        self, output_dir: str = "output", formats: Optional[List[str]] = None
     ) -> Dict[str, Any]:
         """Process all sources and generate outputs.
 
@@ -106,13 +107,17 @@ class StreamlineVPNMerger(BaseMerger):
 
             # Process sources using processor
             all_configs = await self.processor.process_sources(self.sources)
-            
+
             # Deduplicate configurations
-            unique_configs = await self.processor.deduplicate_configurations(all_configs)
-            
+            unique_configs = await self.processor.deduplicate_configurations(
+                all_configs
+            )
+
             # Apply enhancements
-            enhanced_configs = await self.processor.apply_enhancements(unique_configs)
-            
+            enhanced_configs = await self.processor.apply_enhancements(
+                unique_configs
+            )
+
             # Store results for downstream consumers (saving/statistics)
             self.results = enhanced_configs
 
@@ -120,7 +125,9 @@ class StreamlineVPNMerger(BaseMerger):
             self._update_statistics(
                 total_sources=len(self.sources),
                 total_configs=len(self.results),
-                processing_duration=(datetime.now() - start_time).total_seconds()
+                processing_duration=(
+                    datetime.now() - start_time
+                ).total_seconds(),
             )
 
             # Generate outputs
@@ -128,16 +135,19 @@ class StreamlineVPNMerger(BaseMerger):
 
             # Log performance
             duration = (datetime.now() - start_time).total_seconds()
-            log_performance("process_all", duration, 
-                          sources_processed=len(self.sources),
-                          configs_found=len(self.results))
+            log_performance(
+                "process_all",
+                duration,
+                sources_processed=len(self.sources),
+                configs_found=len(self.results),
+            )
 
             return {
                 "success": True,
                 "sources_processed": len(self.sources),
                 "configurations_found": len(self.results),
                 "processing_duration": duration,
-                "statistics": self.statistics.to_dict()
+                "statistics": self.statistics.to_dict(),
             }
 
         except Exception as e:
@@ -146,7 +156,9 @@ class StreamlineVPNMerger(BaseMerger):
                 "success": False,
                 "error": str(e),
                 "exception": e.__class__.__name__,
-                "sources_processed": int(len(self.sources) if self.sources else 0),
+                "sources_processed": int(
+                    len(self.sources) if self.sources else 0
+                ),
                 "configurations_found": 0,
             }
 
@@ -165,7 +177,7 @@ class StreamlineVPNMerger(BaseMerger):
 
     async def get_source_statistics(self) -> Dict[str, Any]:
         """Get source statistics.
-        
+
         Returns:
             Source statistics dictionary
         """
@@ -173,13 +185,13 @@ class StreamlineVPNMerger(BaseMerger):
             return {}
 
         all_sources = self.source_manager.sources.values()
-        
+
         return {
             "total_sources": len(all_sources),
             "enabled_sources": len([s for s in all_sources if s.enabled]),
             "disabled_sources": len([s for s in all_sources if not s.enabled]),
             "source_types": self._get_source_type_counts(all_sources),
-            "source_tiers": self._get_source_tier_counts(all_sources)
+            "source_tiers": self._get_source_tier_counts(all_sources),
         }
 
     def _get_source_type_counts(self, sources: List[Any]) -> Dict[str, int]:
@@ -187,7 +199,7 @@ class StreamlineVPNMerger(BaseMerger):
         counts = {}
         for source in sources:
             # Assuming 'kind' or 'type' exists on the source object
-            source_type = getattr(source, 'kind', 'unknown')
+            source_type = getattr(source, "kind", "unknown")
             counts[source_type] = counts.get(source_type, 0) + 1
         return counts
 
@@ -195,17 +207,23 @@ class StreamlineVPNMerger(BaseMerger):
         """Get counts by source tier."""
         counts = {}
         for source in sources:
-            tier_value = source.tier.value if hasattr(source, 'tier') and hasattr(source.tier, 'value') else 'unknown'
+            tier_value = (
+                source.tier.value
+                if hasattr(source, "tier") and hasattr(source.tier, "value")
+                else "unknown"
+            )
             counts[tier_value] = counts.get(tier_value, 0) + 1
         return counts
 
-    async def blacklist_source(self, source_url: str, reason: str = "") -> bool:
+    async def blacklist_source(
+        self, source_url: str, reason: str = ""
+    ) -> bool:
         """Blacklist a source.
-        
+
         Args:
             source_url: URL of source to blacklist
             reason: Reason for blacklisting
-            
+
         Returns:
             True if blacklisted successfully
         """
@@ -221,10 +239,10 @@ class StreamlineVPNMerger(BaseMerger):
 
     async def whitelist_source(self, source_url: str) -> bool:
         """Remove source from blacklist.
-        
+
         Args:
             source_url: URL of source to whitelist
-            
+
         Returns:
             True if whitelisted successfully
         """
@@ -240,7 +258,7 @@ class StreamlineVPNMerger(BaseMerger):
 
     def get_processing_summary(self) -> Dict[str, Any]:
         """Get processing summary.
-        
+
         Returns:
             Processing summary dictionary
         """
@@ -248,5 +266,5 @@ class StreamlineVPNMerger(BaseMerger):
             "total_sources": len(self.sources),
             "statistics": self.statistics.to_dict(),
             "cache_enabled": self.cache_enabled,
-            "max_concurrent": self.max_concurrent
+            "max_concurrent": self.max_concurrent,
         }

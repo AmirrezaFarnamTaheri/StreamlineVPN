@@ -11,8 +11,8 @@ from .helpers import format_bytes, format_duration
 
 __all__ = [
     "setup_logging",
-    "get_logger", 
+    "get_logger",
     "validate_config",
     "format_bytes",
-    "format_duration"
+    "format_duration",
 ]

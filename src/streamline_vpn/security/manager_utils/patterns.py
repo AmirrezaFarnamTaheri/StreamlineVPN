@@ -7,7 +7,9 @@ def _defaults() -> List[str]:
     return get_settings().security.suspicious_text_patterns
 
 
-def find_suspicious_patterns(text: str, patterns: List[str] | None = None) -> List[str]:
+def find_suspicious_patterns(
+    text: str, patterns: List[str] | None = None
+) -> List[str]:
     patterns = patterns or _defaults()
     found: List[str] = []
     for p in patterns:
