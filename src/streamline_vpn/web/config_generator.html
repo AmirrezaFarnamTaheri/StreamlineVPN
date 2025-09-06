@@ -2,22 +2,9 @@
 <html>
 <head>
     <title>StreamlineVPN Config Generator</title>
-    <style>
-        body { font-family: Arial, sans-serif; margin: 40px; }
-        .container { max-width: 800px; margin: 0 auto; }
-        .button {
-            background: #007bff; color: white; padding: 10px 20px;
-            border: none; border-radius: 5px; cursor: pointer; margin: 5px;
-        }
-        .button:hover { background: #0056b3; }
-        .config-list { margin: 20px 0; }
-        .config-item {
-            background: #f8f9fa; padding: 10px; margin: 5px 0;
-            border-radius: 5px; border-left: 4px solid #007bff;
-        }
-    </style>
+    <link rel="stylesheet" href="/assets/site.css" />
 </head>
-<body>
+<body class="config-generator">
     <div class="container">
         <h1>🚀 StreamlineVPN Config Generator</h1>
         <p>Generate and download VPN configurations in multiple formats.</p>
@@ -53,10 +40,12 @@
                         <strong>${config.protocol}</strong>
                         - ${config.server}:${config.port}
                         <br><small>Quality: ${
-                            config.quality_score.toFixed(2)
+                            (config.quality_score != null && !isNaN(config.quality_score))
+                              ? Number(config.quality_score).toFixed(2)
+                              : 'N/A'
                         }</small>
                         <br><small>Network: ${
-                            config.network
+                            config.network ?? 'N/A'
                         }</small>
                     </div>`
                 ).join('');

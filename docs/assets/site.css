@@ -160,6 +160,43 @@ a:hover {
   box-shadow: var(--shadow);
   transition: background-color var(--transition-speed), border-color var(--transition-speed), box-shadow var(--transition-speed);
 }
+
+/* Config generator page */
+.config-generator {
+  font-family: var(--font-family-sans);
+  margin: 40px;
+}
+
+.config-generator .container {
+  max-width: 800px;
+  margin: 0 auto;
+}
+
+.config-generator .button {
+  background: var(--light-btn-primary-bg);
+  color: var(--light-btn-primary-text);
+  padding: 10px 20px;
+  border: none;
+  border-radius: 5px;
+  cursor: pointer;
+  margin: 5px;
+}
+
+.config-generator .button:hover {
+  background: var(--light-btn-primary-hover);
+}
+
+.config-generator .config-list {
+  margin: 20px 0;
+}
+
+.config-generator .config-item {
+  background: #f8f9fa;
+  padding: 10px;
+  margin: 5px 0;
+  border-radius: 5px;
+  border-left: 4px solid var(--light-btn-primary-bg);
+}
 .card:hover {
   box-shadow: 0 10px 15px -3px rgba(0,0,0,0.1), 0 4px 6px -4px rgba(0,0,0,0.1);
 }

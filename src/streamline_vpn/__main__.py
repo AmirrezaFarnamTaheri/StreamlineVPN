@@ -33,23 +33,10 @@ logger = logging.getLogger(__name__)
 def cli(config: str, output: str, formats: Optional[tuple[str, ...]] = None):
     """StreamlineVPN runner"""
     formats_list = list(formats) if formats else None
-
-    try:
-        loop = asyncio.get_running_loop()
-    except RuntimeError:
-        loop = None
-
-    if loop and loop.is_running():
-        # Schedule and wait from running loop
-        # type: ignore[arg-type]
-        return loop.run_until_complete(
-            main(config, output, list(formats_list) if formats_list else None)
-        )
-    else:
-        # type: ignore[arg-type]
-        return asyncio.run(
-            main(config, output, list(formats_list) if formats_list else None)
-        )
+    # Always execute within a fresh event loop to avoid runtime errors
+    return asyncio.run(
+        main(config, output, list(formats_list) if formats_list else None)
+    )
 
 
 async def main(
