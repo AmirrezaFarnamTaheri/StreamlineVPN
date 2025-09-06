@@ -5,14 +5,15 @@ Security Validator
 Security validation utilities for StreamlineVPN.
 """
 
-import re
+import concurrent.futures
 import ipaddress
+import re
 import socket
+from typing import Any, Dict
 from urllib.parse import urlparse
-from typing import Dict, List, Any, Optional
 
-from ..utils.logging import get_logger
 from ..settings import get_settings
+from ..utils.logging import get_logger
 
 logger = get_logger(__name__)
 
@@ -261,7 +262,9 @@ class SecurityValidator:
 
         # Reject domains that resolve to private/loopback/link-local/reserved IPs
         try:
-            infos = socket.getaddrinfo(host, None)
+            with concurrent.futures.ThreadPoolExecutor(max_workers=1) as exe:
+                future = exe.submit(socket.getaddrinfo, host, None)
+                infos = future.result(timeout=2)
             for _, _, _, _, sockaddr in infos:
                 ip = sockaddr[0]
                 ip_obj = ipaddress.ip_address(ip)
@@ -274,6 +277,8 @@ class SecurityValidator:
                     or ip_obj.is_unspecified
                 ):
                     return False
+        except concurrent.futures.TimeoutError:
+            return False
         except Exception:
             # If resolution fails, keep previous syntactic decision
             pass

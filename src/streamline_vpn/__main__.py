@@ -8,13 +8,13 @@ Main entry point for the StreamlineVPN application.
 import asyncio
 import logging
 import sys
-from typing import Optional, List
+from typing import List, Optional
 
 import click
 
 from .core.merger import StreamlineVPNMerger
-from .utils.logging import setup_logging
 from .settings import get_settings
+from .utils.logging import setup_logging
 
 logger = logging.getLogger(__name__)
 
@@ -33,23 +33,10 @@ logger = logging.getLogger(__name__)
 def cli(config: str, output: str, formats: Optional[tuple[str, ...]] = None):
     """StreamlineVPN runner"""
     formats_list = list(formats) if formats else None
-
-    try:
-        loop = asyncio.get_running_loop()
-    except RuntimeError:
-        loop = None
-
-    if loop and loop.is_running():
-        # Schedule and wait from running loop
-        # type: ignore[arg-type]
-        return loop.run_until_complete(
-            main(config, output, list(formats_list) if formats_list else None)
-        )
-    else:
-        # type: ignore[arg-type]
-        return asyncio.run(
-            main(config, output, list(formats_list) if formats_list else None)
-        )
+    # Always create and use a fresh event loop for CLI execution
+    return asyncio.run(
+        main(config, output, list(formats_list) if formats_list else None)
+    )
 
 
 async def main(
