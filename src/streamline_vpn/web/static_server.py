@@ -62,7 +62,7 @@ class StaticFileServer:
             if full_path.exists() and full_path.is_file():
                 return FileResponse(str(full_path))
             else:
-                return {"error": "File not found"}
+                return {"error": "File not found"}, 404
 
         return app
 
