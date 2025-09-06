@@ -280,25 +280,44 @@ def retry_on_exception(
     return decorator
 
 
+import inspect
+
 def measure_time(func):
-    """Decorator to measure function execution time."""
+    """Decorator to measure function execution time (sync or async)."""
+
+    if inspect.iscoroutinefunction(func):
+
+        async def async_wrapper(*args, **kwargs):
+            start = time.time()
+            try:
+                return await func(*args, **kwargs)
+            finally:
+                duration = time.time() - start
+                try:
+                    from .logging import get_logger
+
+                    get_logger("performance").debug(
+                        f"{func.__name__} took {duration:.3f}s"
+                    )
+                except Exception:
+                    pass
+
+        return async_wrapper
 
     def wrapper(*args, **kwargs):
-        start_time = time.time()
-        result = func(*args, **kwargs)
-        end_time = time.time()
-        duration = end_time - start_time
-
-        # Log timing if logger is available
+        start = time.time()
         try:
-            from .logging import get_logger
+            return func(*args, **kwargs)
+        finally:
+            duration = time.time() - start
+            try:
+                from .logging import get_logger
 
-            logger = get_logger("performance")
-            logger.debug(f"{func.__name__} took {duration:.3f}s")
-        except (ImportError, Exception):
-            pass
-
-        return result
+                get_logger("performance").debug(
+                    f"{func.__name__} took {duration:.3f}s"
+                )
+            except Exception:
+                pass
 
     return wrapper
 

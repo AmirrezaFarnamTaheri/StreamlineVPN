@@ -241,26 +241,19 @@ class SecurityValidator:
             return False
 
     def _is_valid_domain(self, hostname: str) -> bool:
-        """Check if hostname is a valid domain.
-
-        Args:
-            hostname: Hostname to check
-
-        Returns:
-            True if valid domain, False otherwise
-        """
-        # Basic domain validation
-        domain_pattern = r"^[a-zA-Z0-9]([a-zA-Z0-9\-]{0,61}[a-zA-Z0-9])?(\.[a-zA-Z0-9]([a-zA-Z0-9\-]{0,61}[a-zA-Z0-9])?)*$"
-
-        if not re.match(domain_pattern, hostname):
+        """Check if hostname is a valid domain."""
+        if not hostname:
+            return False
+        host = hostname.strip().lower()
+        if "." not in host:
             return False
 
-        # Check for suspicious TLDs
+        domain_pattern = r"^[a-z0-9]([a-z0-9\-]{0,61}[a-z0-9])?(\.[a-z0-9]([a-z0-9\-]{0,61}[a-z0-9])?)+$"
+        if not re.match(domain_pattern, host):
+            return False
+
         settings = get_settings()
-        if any(
-            hostname.lower().endswith(tld)
-            for tld in settings.security.suspicious_tlds
-        ):
+        if any(host.endswith(tld) for tld in settings.security.suspicious_tlds):
             return False
 
         return True

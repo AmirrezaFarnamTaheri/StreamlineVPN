@@ -105,21 +105,18 @@ class SecurityManager:
             Validation results
         """
         try:
-            # Basic URL validation
             is_valid_url = self.validator.validate_url(source_url)
-
-            # Check if blocked
             is_blocked = self.blocklist_manager.is_domain_blocked(source_url)
 
-            # Check rate limiting
-            is_rate_limited = self.rate_limiter.check_rate_limit(source_url)
+            from urllib.parse import urlparse
 
-            # Domain analysis
+            host_key = urlparse(source_url).hostname or source_url
+            is_rate_limited = self.rate_limiter.check_rate_limit(host_key)
+
             domain_analysis = self.pattern_analyzer.analyze_domain(
                 source_url, self.blocklist_manager.blocked_domains
             )
 
-            # Overall validation
             is_safe = (
                 is_valid_url
                 and not is_blocked
@@ -140,7 +137,7 @@ class SecurityManager:
             logger.error(f"Source validation error: {e}")
             return {
                 "is_valid_url": False,
-                "is_blocked": True,
+                "is_blocked": False,
                 "is_rate_limited": False,
                 "domain_analysis": {},
                 "is_safe": False,

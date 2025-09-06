@@ -23,16 +23,20 @@ function addCopyButtons(root = document) {
     const btn = document.createElement('button');
     btn.className = 'copy-btn';
     btn.type = 'button';
+    btn.tabIndex = -1;
+    btn.setAttribute('aria-hidden', 'true');
     btn.textContent = 'Copy';
+    btn.addEventListener('mousedown', (e) => e.preventDefault());
     btn.addEventListener('click', async () => {
-      const text = pre.innerText;
+      const target = pre.querySelector('code') || pre;
+      const text = target.textContent;
       try {
         await navigator.clipboard.writeText(text);
         btn.textContent = 'Copied!';
         setTimeout(() => (btn.textContent = 'Copy'), 1200);
       } catch (_) {
         const range = document.createRange();
-        range.selectNodeContents(pre);
+        range.selectNodeContents(target);
         const sel = window.getSelection();
         sel.removeAllRanges(); sel.addRange(range);
         btn.textContent = 'Selected';
@@ -103,23 +107,42 @@ addCopyButtons();
         logsEl.textContent = `Pipeline completed successfully:\n${result.message}`;
 
         let outputHTML = '';
-        const escapeHtml = (str) => str
+        const objectUrls = [];
+        const escapeHtml = (str) => String(str)
           .replace(/&/g, "&amp;")
           .replace(/</g, "&lt;")
-          .replace(/>/g, "&gt;");
+          .replace(/>/g, "&gt;")
+          .replace(/"/g, "&quot;")
+          .replace(/'/g, "&#39;");
 
         for (const [fileName, content] of Object.entries(result.output_files)) {
           const blob = new Blob([content], { type: 'text/plain' });
           const url = URL.createObjectURL(blob);
-          outputHTML += `\n<details><summary>${fileName}</summary>`;
-          outputHTML += `<div class="output-actions"><a href="${url}" download="${fileName}" class="btn secondary">Download</a></div>`;
+          objectUrls.push(url);
+          const safeName = escapeHtml(fileName);
+          outputHTML += `\n<details><summary>${safeName}</summary>`;
+          outputHTML += `<div class="output-actions"><a href="${url}" download="${safeName}" class="btn secondary">Download</a></div>`;
           outputHTML += `<pre>${escapeHtml(content)}</pre></details>`;
         }
 
         if (!outputHTML) {
           outputHTML = '<p>No output files produced.</p>';
         }
+
+        // Revoke previously created URLs
+        if (outputFilesEl._objectUrls) {
+          outputFilesEl._objectUrls.forEach(u => URL.revokeObjectURL(u));
+        }
         outputFilesEl.innerHTML = outputHTML;
+        outputFilesEl._objectUrls = objectUrls;
+        // Revoke URLs after download click
+        outputFilesEl.querySelectorAll('a[download]').forEach(a => {
+          a.addEventListener('click', () => {
+            const href = a.getAttribute('href');
+            setTimeout(() => URL.revokeObjectURL(href), 2000);
+          }, { once: true });
+        });
+
         addCopyButtons(outputFilesEl);
 
       } else {

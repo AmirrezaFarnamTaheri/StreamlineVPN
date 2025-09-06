@@ -357,34 +357,27 @@ class MetricsCollector:
                 "timestamp": time.time(),
             }
 
-        # Update histogram buckets
-        buckets = self.metrics[metric_name].get("buckets", [])
+        entry = self.metrics[metric_name]["values"][label_key]
+        buckets = sorted(self.metrics[metric_name].get("buckets", []))
         for bucket in buckets:
             if value <= bucket:
                 bucket_key = f"le_{bucket}"
-                if (
-                    bucket_key
-                    not in self.metrics[metric_name]["values"][label_key][
-                        "buckets"
-                    ]
-                ):
-                    self.metrics[metric_name]["values"][label_key]["buckets"][
-                        bucket_key
-                    ] = 0
-                self.metrics[metric_name]["values"][label_key]["buckets"][
-                    bucket_key
-                ] += 1
+                entry["buckets"][bucket_key] = entry["buckets"].get(bucket_key, 0) + 1
+        # +Inf bucket
+        entry["buckets"]["le_+Inf"] = entry["buckets"].get("le_+Inf", 0) + 1
 
-        # Update count and sum
-        self.metrics[metric_name]["values"][label_key]["count"] += 1
-        self.metrics[metric_name]["values"][label_key]["sum"] += value
-        self.metrics[metric_name]["values"][label_key][
-            "timestamp"
-        ] = time.time()
+        entry["count"] += 1
+        entry["sum"] += value
+        entry["timestamp"] = time.time()
 
     def _create_label_key(self, labels: Dict[str, str]) -> str:
-        """Create unique key from labels."""
-        return "|".join(f"{k}={v}" for k, v in sorted(labels.items()))
+        """Create stable unique key from labels."""
+        if not isinstance(labels, dict):
+            labels = {}
+        norm_items = sorted(
+            ((str(k), str(v)) for k, v in labels.items()), key=lambda kv: kv[0]
+        )
+        return "|".join(f"{k}={v}" for k, v in norm_items)
 
     def get_metrics_summary(self) -> Dict[str, Any]:
         """Get metrics summary for monitoring dashboard."""

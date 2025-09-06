@@ -140,37 +140,35 @@ class ConfigurationDeduplicator:
         return unique_configs
 
     def _get_exact_key(self, config: VPNConfiguration) -> Tuple:
-        """Get exact match key for configuration.
-
-        Args:
-            config: Configuration to get key for
-
-        Returns:
-            Tuple representing the configuration
-        """
+        """Get exact match key for configuration without exposing secrets."""
+        safe_user = bool(config.user_id)
+        safe_pass = bool(config.password)
         return (
             config.protocol.value,
             config.server,
             config.port,
-            config.user_id,
-            config.password,
+            safe_user,
+            safe_pass,
             config.encryption,
             config.network,
             config.path,
             config.host,
-            config.tls,
+            bool(config.tls),
         )
 
     def _get_content_hash(self, config: VPNConfiguration) -> str:
-        """Get content hash for configuration.
-
-        Args:
-            config: Configuration to hash
-
-        Returns:
-            Hash string
-        """
-        content = f"{config.protocol.value}:{config.server}:{config.port}:{config.user_id}:{config.password}"
+        """Get content hash for configuration without sensitive fields."""
+        stable_parts = [
+            config.protocol.value,
+            config.server,
+            str(config.port),
+            config.encryption or "",
+            config.network or "",
+            config.path or "",
+            config.host or "",
+            str(bool(config.tls)),
+        ]
+        content = ":".join(stable_parts)
         return hashlib.md5(content.encode()).hexdigest()
 
     def find_duplicates(
