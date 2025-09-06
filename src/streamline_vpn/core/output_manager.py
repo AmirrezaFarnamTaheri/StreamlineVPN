@@ -10,8 +10,12 @@ from typing import List, Optional, Dict, Any, Union
 
 from ..models.configuration import VPNConfiguration
 from ..utils.logging import get_logger
-from .output import JSONFormatter, ClashFormatter, SingBoxFormatter
-from .output.raw_formatter import RawFormatter
+from .output import (
+    JSONFormatter,
+    ClashFormatter,
+    SingBoxFormatter,
+    RawFormatter,
+)
 
 logger = get_logger(__name__)
 
