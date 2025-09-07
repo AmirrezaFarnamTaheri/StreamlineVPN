@@ -5,15 +5,15 @@ Configuration Processor (Refactored)
 Refactored configuration processing system for StreamlineVPN.
 """
 
-from typing import List, Dict, Any, Optional
 import hashlib
+from typing import Any, Dict, List, Optional
 
 from ..models.configuration import VPNConfiguration
 from ..utils.logging import get_logger
 from .processing import (
+    ConfigurationDeduplicator,
     ConfigurationParser,
     ConfigurationValidator,
-    ConfigurationDeduplicator,
 )
 
 logger = get_logger(__name__)
@@ -89,7 +89,9 @@ class ConfigurationProcessor:
                 config, rules
             )
 
-            if not is_valid:
+            if is_valid:
+                self._stats["validated"] += 1
+            else:
                 logger.debug(f"Invalid configuration: {', '.join(errors)}")
 
             return is_valid
@@ -97,6 +99,15 @@ class ConfigurationProcessor:
         except Exception as e:
             logger.debug(f"Validation error: {e}")
             return False
+
+    # Backwards compatibility wrapper expected by some tests
+    def validate_config(self, config_data: Dict[str, Any]) -> bool:
+        """Validate configuration data using default rules.
+
+        This is a simple alias to :meth:`validate_configuration` kept for
+        historical reasons where the shorter method name was used.
+        """
+        return self.validate_configuration(config_data)
 
     def deduplicate_configurations(
         self, configs: List[VPNConfiguration], strategy: str = "exact"
@@ -236,8 +247,9 @@ class ConfigurationProcessor:
         Returns:
             VPN configuration
         """
-        from ..models.configuration import Protocol
         from datetime import datetime
+
+        from ..models.configuration import Protocol
 
         return VPNConfiguration(
             id=config_data.get("id", ""),

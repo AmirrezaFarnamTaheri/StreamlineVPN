@@ -7,15 +7,16 @@ Manages VPN configuration sources.
 
 import asyncio
 import json
-import yaml
-from pathlib import Path
-from typing import Dict, List, Any
 from datetime import datetime
+from pathlib import Path
+from typing import Any, Dict, List, Optional
 
-from ..models.source import SourceMetadata, SourceTier
+import yaml
+
 from ..models.processing_result import ProcessingResult
-from ..utils.logging import get_logger
+from ..models.source import SourceMetadata, SourceTier
 from ..security.manager import SecurityManager
+from ..utils.logging import get_logger
 
 logger = get_logger(__name__)
 
@@ -23,16 +24,21 @@ logger = get_logger(__name__)
 class SourceManager:
     """Manages VPN configuration sources with reputation tracking."""
 
-    def __init__(self, config_path: str, security_manager: SecurityManager):
+    def __init__(
+        self,
+        config_path: str,
+        security_manager: Optional[SecurityManager] = None,
+    ):
         """Initialize source manager.
 
         Args:
             config_path: Path to sources configuration file
+            security_manager: Optional security manager for validating sources
         """
         self.config_path = Path(config_path)
         self.sources: Dict[str, SourceMetadata] = {}
         self.performance_file = Path("data/source_performance.json")
-        self.security_manager = security_manager
+        self.security_manager = security_manager or SecurityManager()
 
         # Load sources and performance data
         self._load_sources()
