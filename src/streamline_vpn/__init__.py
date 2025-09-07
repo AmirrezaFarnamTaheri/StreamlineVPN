@@ -10,16 +10,33 @@ __author__ = "StreamlineVPN Team"
 __status__ = "Production Ready"
 __license__ = "MIT"
 
-from .core.caching import VPNCacheService
 from .core.config_processor import ConfigurationProcessor
 from .core.merger import StreamlineVPNMerger
 from .core.output_manager import OutputManager
 from .core.source_manager import SourceManager
-from .discovery.manager import DiscoveryManager
-from .geo.optimizer import GeographicOptimizer
-from .ml.quality_predictor import QualityPredictionService
 from .models.configuration import VPNConfiguration
 from .models.source import SourceMetadata
+
+
+try:
+    from .core.caching import VPNCacheService  # optional
+except ImportError:  # pragma: no cover
+    VPNCacheService = None  # type: ignore
+
+try:
+    from .ml.quality_predictor import QualityPredictionService  # optional
+except ImportError:  # pragma: no cover
+    QualityPredictionService = None  # type: ignore
+
+try:
+    from .geo.optimizer import GeographicOptimizer  # optional
+except ImportError:  # pragma: no cover
+    GeographicOptimizer = None  # type: ignore
+
+try:
+    from .discovery.manager import DiscoveryManager  # optional
+except ImportError:  # pragma: no cover
+    DiscoveryManager = None  # type: ignore
 
 try:
     from .web import (
@@ -84,10 +101,6 @@ __all__ = [
     "SourceManager",
     "ConfigurationProcessor",
     "OutputManager",
-    "VPNCacheService",
-    "QualityPredictionService",
-    "GeographicOptimizer",
-    "DiscoveryManager",
     "VPNConfiguration",
     "SourceMetadata",
     "create_merger",
@@ -99,6 +112,10 @@ __all__ = [
 ]
 
 for _name in [
+    "VPNCacheService",
+    "QualityPredictionService",
+    "GeographicOptimizer",
+    "DiscoveryManager",
     "APIServer",
     "VPNConfigGenerator",
     "IntegratedWebServer",
