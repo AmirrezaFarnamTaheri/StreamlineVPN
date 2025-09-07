@@ -6,13 +6,13 @@ Refactored job management system for StreamlineVPN.
 """
 
 import asyncio
-from typing import Dict, List, Optional, Any
-from datetime import datetime
+from typing import Any, Dict, List, Optional
 
+from ..utils.logging import get_logger
+from .cleanup import JobCleanupService, periodic_cleanup_task, startup_cleanup
+from .job_executor import JobExecutor
 from .models import Job, JobStatus, JobType
 from .persistence import JobPersistence
-from .job_executor import JobExecutor
-from ..utils.logging import get_logger
 
 logger = get_logger(__name__)
 
@@ -29,6 +29,9 @@ class JobManager:
         self.persistence = persistence or JobPersistence()
         self.running_jobs: Dict[str, asyncio.Task] = {}
         self.executor = JobExecutor(self)
+        self.cleanup_service = JobCleanupService()
+        self._cleanup_task: Optional[asyncio.Task] = None
+        asyncio.create_task(self._initial_cleanup())
 
     async def create_job(
         self,
@@ -54,6 +57,12 @@ class JobManager:
         logger.info(f"Created job {job.id} of type {job_type.value}")
 
         return job
+
+    async def _initial_cleanup(self) -> None:
+        """Run initial and periodic job cleanup tasks."""
+        await startup_cleanup()
+        if not self._cleanup_task:
+            self._cleanup_task = asyncio.create_task(periodic_cleanup_task())
 
     async def start_job(self, job_id: str) -> bool:
         """Start a job.
@@ -189,5 +198,7 @@ class JobManager:
         # Cancel all running jobs
         for job_id in list(self.running_jobs.keys()):
             await self.cancel_job(job_id)
+        if self._cleanup_task:
+            self._cleanup_task.cancel()
 
         logger.info("Job manager closed")
