@@ -6,10 +6,10 @@ Web interface components for StreamlineVPN including FastAPI, GraphQL, and stati
 """
 
 from .api import APIServer, create_app
-from .graphql import create_graphql_app
 from .config_generator import VPNConfigGenerator
+from .graphql import create_graphql_app
 from .integrated_server import IntegratedWebServer
-from .static_server import StaticFileServer
+from .static_server import EnhancedStaticServer
 
 __all__ = [
     "APIServer",
@@ -17,5 +17,5 @@ __all__ = [
     "create_graphql_app",
     "VPNConfigGenerator",
     "IntegratedWebServer",
-    "StaticFileServer",
+    "EnhancedStaticServer",
 ]
