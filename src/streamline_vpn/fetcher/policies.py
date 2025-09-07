@@ -10,7 +10,7 @@ from __future__ import annotations
 
 from typing import Dict, Tuple
 
-from .circuit_breaker import CircuitBreaker, CircuitBreakerOpenException
+from .circuit_breaker import CircuitBreaker
 from .rate_limiter import AdaptiveRateLimiter
 from ..settings import get_settings
 

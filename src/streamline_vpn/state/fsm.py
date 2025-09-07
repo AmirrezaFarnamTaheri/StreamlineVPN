@@ -5,9 +5,9 @@ Finite State Machine
 Finite state machine for source state management.
 """
 
-from enum import Enum
-from typing import Dict, List, Optional, Callable, Any
 from datetime import datetime
+from enum import Enum
+from typing import Any, Callable, Dict, List, Optional
 
 from ..utils.logging import get_logger
 
@@ -134,7 +134,8 @@ class SourceStateMachine:
         # Check if transition is valid
         if event not in self.transitions.get(self.current_state, {}):
             logger.warning(
-                f"Invalid transition from {self.current_state.value} on {event.value}"
+                f"Invalid transition from {self.current_state.value} "
+                f"on {event.value}"
             )
             return False
 
@@ -165,7 +166,8 @@ class SourceStateMachine:
             self.entry_actions[self.current_state](data)
 
         logger.info(
-            f"State transition: {old_state.value} -> {self.current_state.value} (event: {event.value})"
+            f"State transition: {old_state.value} -> "
+            f"{self.current_state.value} (event: {event.value})"
         )
         return True
 
@@ -270,7 +272,10 @@ class SourceStateMachine:
 
     def __str__(self) -> str:
         """String representation."""
-        return f"SourceStateMachine(state={self.current_state.value}, duration={self.get_state_duration():.1f}s)"
+        return (
+            f"SourceStateMachine(state={self.current_state.value}, "
+            f"duration={self.get_state_duration():.1f}s)"
+        )
 
     def __repr__(self) -> str:
         """Detailed representation."""

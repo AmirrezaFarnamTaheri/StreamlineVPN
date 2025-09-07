@@ -7,7 +7,7 @@ Identity provider for user authentication with device context.
 
 import hashlib
 from datetime import datetime, timedelta
-from typing import Dict, Optional
+from typing import Any, Dict, List, Optional
 
 from ...utils.logging import get_logger
 from .models import UserIdentity, DeviceInfo

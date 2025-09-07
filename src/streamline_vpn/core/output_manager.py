@@ -96,7 +96,7 @@ class OutputManager:
                     )
                     saved_files[format_name] = file_path
                     logger.info(
-                        f"Saved {len(configs)} configurations in {format_name} format"
+                        f"Saved {len(configs)} configs in {format_name} format"
                     )
                 except Exception as e:
                     # Gracefully degrade when file IO is mocked or fails

@@ -8,7 +8,7 @@ Data model for VPN configurations with validation and serialization.
 from dataclasses import dataclass, field
 from datetime import datetime
 from enum import Enum
-from typing import Dict, List, Optional, Any
+from typing import Dict, Optional, Any
 import json
 
 
@@ -71,7 +71,10 @@ class VPNConfiguration:
             # Generate a unique ID based on configuration content
             import hashlib
 
-            content = f"{self.protocol.value}:{self.server}:{self.port}:{self.user_id or ''}:{self.password or ''}"
+            content = (
+                f"{self.protocol.value}:{self.server}:{self.port}:"
+                f"{self.user_id or ''}:{self.password or ''}"
+            )
             self.id = hashlib.md5(content.encode()).hexdigest()[:8]
 
         if not self.server:

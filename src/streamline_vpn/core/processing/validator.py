@@ -5,11 +5,11 @@ Configuration Validator
 Handles validation of VPN configurations.
 """
 
-import re
 import ipaddress
-from typing import List, Dict, Any, Optional, Tuple
+import re
+from typing import Any, Dict, List, Optional, Tuple
 
-from ...models.configuration import VPNConfiguration, Protocol
+from ...models.configuration import Protocol, VPNConfiguration
 from ...utils.logging import get_logger
 
 logger = get_logger(__name__)
@@ -115,7 +115,9 @@ class ConfigurationValidator:
             Protocol.SHADOWSOCKSR,
         ]:
             if not config.password:
-                errors.append(f"{config.protocol.value} requires password")
+                errors.append(
+                    f"{config.protocol.value} requires password"
+                )
                 valid = False
 
         return valid
@@ -136,7 +138,8 @@ class ConfigurationValidator:
             and config.quality_score < min_quality
         ):
             errors.append(
-                f"Quality score {config.quality_score} below minimum {min_quality}"
+                f"Quality score {config.quality_score} "
+                f"below minimum {min_quality}"
             )
             valid = False
 
@@ -250,10 +253,12 @@ class ConfigurationValidator:
                 valid_configs.append(config)
             else:
                 logger.debug(
-                    f"Invalid configuration {config.id}: {', '.join(errors)}"
+                    f"Invalid configuration {config.id}: "
+                    f"{', '.join(errors)}"
                 )
 
         logger.info(
-            f"Validated {len(configs)} configurations, {len(valid_configs)} valid"
+            f"Validated {len(configs)} configurations, "
+            f"{len(valid_configs)} valid"
         )
         return valid_configs

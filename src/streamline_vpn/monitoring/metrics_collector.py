@@ -6,12 +6,10 @@ Core metrics collection functionality for VPN monitoring.
 """
 
 import time
-import asyncio
-from typing import Dict, List, Optional, Any
+from typing import Dict, Any
 from dataclasses import dataclass
 from datetime import datetime
 from enum import Enum
-import logging
 
 from ..utils.logging import get_logger
 

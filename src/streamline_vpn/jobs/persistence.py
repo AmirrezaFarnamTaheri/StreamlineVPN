@@ -7,12 +7,12 @@ Job persistence layer for storing and retrieving jobs.
 
 import json
 import sqlite3
-from pathlib import Path
-from typing import Dict, List, Optional, Any
 from datetime import datetime
+from pathlib import Path
+from typing import Any, Dict, List, Optional
 
-from .models import Job, JobStatus, JobType
 from ..utils.logging import get_logger
+from .models import Job, JobStatus, JobType
 
 logger = get_logger(__name__)
 
@@ -62,7 +62,8 @@ class JobPersistence:
                 "CREATE INDEX IF NOT EXISTS idx_jobs_type ON jobs(type)"
             )
             cursor.execute(
-                "CREATE INDEX IF NOT EXISTS idx_jobs_created_at ON jobs(created_at)"
+                "CREATE INDEX IF NOT EXISTS idx_jobs_created_at "
+                "ON jobs(created_at)"
             )
 
             conn.commit()
@@ -79,8 +80,8 @@ class JobPersistence:
 
                 cursor.execute(
                     """
-                    INSERT OR REPLACE INTO jobs 
-                    (id, type, status, parameters, result, error, created_at, 
+                    INSERT OR REPLACE INTO jobs
+                    (id, type, status, parameters, result, error, created_at,
                      started_at, completed_at, progress, metadata)
                     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                 """,
@@ -92,7 +93,9 @@ class JobPersistence:
                         json.dumps(job.result) if job.result else None,
                         job.error,
                         job.created_at.isoformat(),
-                        job.started_at.isoformat() if job.started_at else None,
+                        job.started_at.isoformat()
+                        if job.started_at
+                        else None,
                         (
                             job.completed_at.isoformat()
                             if job.completed_at
@@ -222,16 +225,16 @@ class JobPersistence:
 
                 cursor.execute(
                     """
-                    DELETE FROM jobs 
-                    WHERE status IN (?, ?, ?) 
+                    DELETE FROM jobs
+                    WHERE status IN (?, ?, ?)
                     AND created_at < ?
-                """,
+                    """,
                     (
                         JobStatus.COMPLETED.value,
                         JobStatus.FAILED.value,
                         JobStatus.CANCELLED.value,
+                        cutoff_iso,
                     ),
-                    cutoff_iso,
                 )
 
                 deleted = cursor.rowcount
@@ -262,8 +265,8 @@ class JobPersistence:
                 # Jobs by status
                 cursor.execute(
                     """
-                    SELECT status, COUNT(*) 
-                    FROM jobs 
+                    SELECT status, COUNT(*)
+                    FROM jobs
                     GROUP BY status
                 """
                 )
@@ -272,8 +275,8 @@ class JobPersistence:
                 # Jobs by type
                 cursor.execute(
                     """
-                    SELECT type, COUNT(*) 
-                    FROM jobs 
+                    SELECT type, COUNT(*)
+                    FROM jobs
                     GROUP BY type
                 """
                 )
@@ -282,8 +285,8 @@ class JobPersistence:
                 # Recent jobs (last 24 hours)
                 cursor.execute(
                     """
-                    SELECT COUNT(*) 
-                    FROM jobs 
+                    SELECT COUNT(*)
+                    FROM jobs
                     WHERE created_at > datetime('now', '-1 day')
                 """
                 )
@@ -318,7 +321,9 @@ class JobPersistence:
             "error": row[5],
             "created_at": datetime.fromisoformat(row[6]),
             "started_at": datetime.fromisoformat(row[7]) if row[7] else None,
-            "completed_at": datetime.fromisoformat(row[8]) if row[8] else None,
+            "completed_at": (
+                datetime.fromisoformat(row[8]) if row[8] else None
+            ),
             "progress": row[9],
             "metadata": json.loads(row[10]) if row[10] else {},
         }

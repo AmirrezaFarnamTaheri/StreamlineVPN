@@ -5,17 +5,16 @@ Quality Prediction Service
 Main quality prediction service with caching and ML integration.
 """
 
-import asyncio
+import hashlib
 import json
 import time
-import hashlib
-from typing import Dict, List, Optional, Any
 from datetime import datetime
+from typing import Any, Dict, List, Optional
 
+from ..core.cache_manager import CacheManager
 from ..utils.logging import get_logger
 from .feature_processor import NetworkFeatureProcessor, NetworkMetrics
-from .lstm_model import LSTMModel, QualityPrediction
-from ..core.cache_manager import CacheManager
+from .lstm_model import LSTMModel
 
 logger = get_logger(__name__)
 
@@ -97,7 +96,8 @@ class QualityPredictionService:
             self._update_performance_stats(prediction_time)
 
             logger.info(
-                f"Quality prediction completed in {prediction_time*1000:.2f}ms"
+                f"Quality prediction completed in "
+                f"{prediction_time*1000:.2f}ms"
             )
             return result
 
@@ -125,7 +125,9 @@ class QualityPredictionService:
                 bandwidth_down=data_point.get("bandwidth_down", 0.0),
                 packet_loss=data_point.get("packet_loss", 0.0),
                 jitter=data_point.get("jitter", 0.0),
-                connection_duration=data_point.get("connection_duration", 0),
+                connection_duration=data_point.get(
+                    "connection_duration", 0
+                ),
                 bytes_transferred=data_point.get("bytes_transferred", 0),
                 protocol=server_metrics.get("protocol", ""),
                 region=server_metrics.get("region", ""),
@@ -138,7 +140,10 @@ class QualityPredictionService:
         """Generate cache key from features."""
         # Create hash of normalized features
         feature_str = json.dumps(features, sort_keys=True)
-        return f"ml_prediction:{hashlib.md5(feature_str.encode()).hexdigest()}"
+        return (
+            f"ml_prediction:"
+            f"{hashlib.md5(feature_str.encode()).hexdigest()}"
+        )
 
     def _update_performance_stats(self, prediction_time: float) -> None:
         """Update performance statistics."""
@@ -172,8 +177,9 @@ class QualityPredictionService:
     async def clear_cache(self) -> None:
         """Clear prediction cache."""
         if self.cache_manager:
-            # This is not ideal as it would clear all caches, not just the ML cache.
-            # A better solution would be to use a separate Redis database or a key prefix for the ML cache.
+            # This is not ideal as it would clear all caches, not just
+            # the ML cache. A better solution would be to use a
+            # separate Redis database or a key prefix for the ML cache.
             # For now, we'll just clear the whole cache.
             await self.cache_manager.clear()
             logger.info("Quality prediction cache cleared")

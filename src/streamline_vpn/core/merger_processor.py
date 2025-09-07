@@ -5,11 +5,11 @@ Merger Processor
 Processing logic for VPN configuration merging.
 """
 
-from typing import List, Any
+from typing import Any, List
 
 from ..models.configuration import VPNConfiguration
-from ..utils.logging import get_logger
 from ..utils.helpers import run_concurrently
+from ..utils.logging import get_logger
 
 logger = get_logger(__name__)
 
@@ -92,11 +92,14 @@ class MergerProcessor:
             # Parse each configuration line
             parsed_configs: List[VPNConfiguration] = []
             for line in fetch_result.configs:
-                security_analysis = self.merger.security_manager.analyze_configuration(
-                    line)
+                security_analysis = (
+                    self.merger.security_manager.analyze_configuration(line)
+                )
                 if not security_analysis["is_safe"]:
-                    logger.warning("Skipping unsafe configuration from "
-                                   f"{source}: {line}")
+                    logger.warning(
+                        "Skipping unsafe configuration from "
+                        f"{source}: {line}"
+                    )
                     continue
 
                 parser = self.merger.config_processor.parser
@@ -116,7 +119,8 @@ class MergerProcessor:
 
         except Exception as e:
             logger.error(
-                f"Error processing source {getattr(source, 'name', source)}: {e}"
+                f"Error processing source "
+                f"{getattr(source, 'name', source)}: {e}"
             )
             try:
                 await self.merger.source_manager.update_source_performance(

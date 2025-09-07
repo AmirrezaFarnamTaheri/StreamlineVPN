@@ -6,7 +6,6 @@ Threat analysis and risk assessment service.
 """
 
 from datetime import datetime
-from typing import Dict
 
 from ...utils.logging import get_logger
 from .models import UserIdentity, DeviceInfo, DevicePosture, ThreatLevel

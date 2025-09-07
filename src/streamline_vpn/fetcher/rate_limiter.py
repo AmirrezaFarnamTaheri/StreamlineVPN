@@ -7,8 +7,7 @@ Rate limiting implementation for API calls.
 
 import asyncio
 import time
-from typing import Dict, List, Optional
-from datetime import datetime, timedelta
+from typing import Dict, Optional
 from collections import defaultdict, deque
 
 from ..utils.logging import get_logger

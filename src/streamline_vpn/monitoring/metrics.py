@@ -8,8 +8,6 @@ and distributed tracing as outlined in the technical implementation report.
 This module provides a unified interface to the modularized metrics system.
 """
 
-from typing import Optional
-
 from .metrics_service import (
     MetricsService,
     initialize_metrics,

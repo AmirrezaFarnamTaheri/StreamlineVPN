@@ -8,7 +8,7 @@ Data model for VPN source management with reputation tracking.
 from dataclasses import dataclass, field
 from datetime import datetime, timedelta
 from enum import Enum
-from typing import Dict, List, Optional, Any
+from typing import Dict, List, Any
 import json
 
 

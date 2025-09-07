@@ -39,7 +39,8 @@ class ConfigurationDeduplicator:
         unique_configs = deduplicator_func(configs)
 
         logger.info(
-            f"Deduplicated {len(configs)} configurations to {len(unique_configs)} using {strategy} strategy"
+            f"Deduplicated {len(configs)} to "
+            f"{len(unique_configs)} using {strategy} strategy"
         )
         return unique_configs
 

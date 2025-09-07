@@ -89,10 +89,8 @@ class SourceManager:
                                 f"Invalid or unsafe source URL: {url}"
                             )
                     elif isinstance(source_config, str):
-                        validation_result = (
-                            self.security_manager.validate_source(
-                                source_config
-                            )
+                        validation_result = self.security_manager.validate_source(
+                            source_config
                         )
                         if validation_result["is_safe"]:
                             metadata = SourceMetadata(
