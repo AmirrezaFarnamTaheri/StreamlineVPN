@@ -8,10 +8,9 @@ FastAPI route definitions for the StreamlineVPN API.
 import json
 import time
 from datetime import datetime
-from typing import Dict, List, Optional
+from typing import Optional
 
 from fastapi import (
-    APIRouter,
     HTTPException,
     Depends,
     WebSocket,
@@ -373,7 +372,8 @@ def setup_routes(
             else:
                 raise HTTPException(
                     status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-                    detail=f"Pipeline failed with exit code {exit_code}.",
+                    detail=f"Pipeline failed with exit code "
+                    f"{exit_code}.",
                 )
         except Exception as e:
             logger.error(f"Error running pipeline: {e}", exc_info=True)

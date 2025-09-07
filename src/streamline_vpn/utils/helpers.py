@@ -7,8 +7,8 @@ General helper functions for StreamlineVPN.
 
 import inspect
 import time
-from datetime import datetime, timedelta
-from typing import Any, Dict, List, Optional, Union
+from datetime import datetime
+from typing import Any, Dict, List, Union
 import hashlib
 import json
 
@@ -157,7 +157,7 @@ def chunk_list(lst: List[Any], chunk_size: int) -> List[List[Any]]:
     if chunk_size <= 0:
         raise ValueError("Chunk size must be positive")
 
-    return [lst[i : i + chunk_size] for i in range(0, len(lst), chunk_size)]
+    return [lst[i: i + chunk_size] for i in range(0, len(lst), chunk_size)]
 
 
 def flatten_dict(

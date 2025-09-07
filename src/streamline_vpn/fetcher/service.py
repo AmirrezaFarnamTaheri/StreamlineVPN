@@ -7,13 +7,11 @@ Advanced fetcher service with circuit breakers, rate limiting, and retry logic.
 
 import asyncio
 import aiohttp
-import time
-from typing import Dict, List, Optional, Any, Union
+from typing import Dict, List, Optional, Any
 from urllib.parse import urlparse
-from datetime import datetime, timedelta
 
 from .circuit_breaker import CircuitBreaker, CircuitBreakerOpenException
-from .rate_limiter import RateLimiter, AdaptiveRateLimiter
+from .rate_limiter import AdaptiveRateLimiter
 from .policies import ensure_policies, apply_rate_limit, call_with_breaker
 from ..utils.logging import get_logger
 from ..settings import get_settings

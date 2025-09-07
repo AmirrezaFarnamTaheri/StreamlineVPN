@@ -6,10 +6,9 @@ Handles job execution logic.
 """
 
 import asyncio
-from typing import Dict, List, Optional, Any, Callable
-from datetime import datetime
+from typing import Dict, Any, Callable
 
-from .models import Job, JobStatus, JobType
+from .models import Job, JobType
 from ..utils.logging import get_logger
 
 logger = get_logger(__name__)
@@ -35,7 +34,9 @@ class JobExecutor:
             JobType.DISCOVER_SOURCES: self._handle_discover_sources,
             JobType.UPDATE_SOURCES: self._handle_update_sources,
             JobType.CLEAR_CACHE: self._handle_clear_cache,
-            JobType.EXPORT_CONFIGURATIONS: self._handle_export_configurations,
+            JobType.EXPORT_CONFIGURATIONS: (
+                self._handle_export_configurations
+            ),
         }
 
     async def execute_job(self, job: Job) -> None:

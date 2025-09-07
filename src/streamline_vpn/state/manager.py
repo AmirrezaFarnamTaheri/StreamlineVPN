@@ -284,7 +284,8 @@ class StateManager:
         )
 
         logger.info(
-            f"Forced transition for source {source_id}: {old_state.value} -> {target_state.value} ({reason})"
+            f"Forced transition for source {source_id}: {old_state.value} -> "
+            f"{target_state.value} ({reason})"
         )
 
     def _count_recent_failures(self, source_id: str, minutes: int = 10) -> int:

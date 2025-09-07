@@ -5,11 +5,10 @@ Threat Analyzer
 Threat analysis system for VPN configurations.
 """
 
-import re
 import base64
-import json
-from typing import Dict, List, Any, Optional
+import re
 from datetime import datetime
+from typing import Any, Dict, List
 
 from ..utils.logging import get_logger
 
@@ -146,7 +145,9 @@ class ThreatAnalyzer:
 
         return threats
 
-    def _check_malicious_patterns(self, config: str) -> List[Dict[str, Any]]:
+    def _check_malicious_patterns(
+        self, config: str
+    ) -> List[Dict[str, Any]]:
         """Check for malicious patterns.
 
         Args:
@@ -169,7 +170,8 @@ class ThreatAnalyzer:
                         "pattern": pattern,
                         "match": match.group(),
                         "position": match.start(),
-                        "description": f"Malicious pattern detected: {pattern}",
+                        "description": "Malicious pattern detected: "
+                        f"{pattern}",
                         "timestamp": datetime.now().isoformat(),
                     }
                 )
@@ -200,8 +202,10 @@ class ThreatAnalyzer:
                             "type": "suspicious_url",
                             "severity": "high",
                             "url": url,
-                            "reason": f"Suspicious domain: {suspicious_domain}",
-                            "description": f"Suspicious URL detected: {url}",
+                            "reason": "Suspicious domain: "
+                            f"{suspicious_domain}",
+                            "description": "Suspicious URL detected: "
+                            f"{url}",
                             "timestamp": datetime.now().isoformat(),
                         }
                     )
@@ -216,7 +220,8 @@ class ThreatAnalyzer:
                             "severity": "medium",
                             "url": url,
                             "reason": f"Suspicious TLD: {tld}",
-                            "description": f"URL with suspicious TLD: {url}",
+                            "description": "URL with suspicious TLD: "
+                            f"{url}",
                             "timestamp": datetime.now().isoformat(),
                         }
                     )
@@ -248,7 +253,8 @@ class ThreatAnalyzer:
                             "severity": "medium",
                             "port": port,
                             "reason": f"Suspicious port: {port}",
-                            "description": f"Suspicious port detected: {port}",
+                            "description": "Suspicious port detected: "
+                            f"{port}",
                             "timestamp": datetime.now().isoformat(),
                         }
                     )
@@ -289,7 +295,9 @@ class ThreatAnalyzer:
                             "original": match,
                             "decoded": decoded,
                             "threats": decoded_threats,
-                            "description": f"Encoded threat detected in base64 content",
+                            "description": (
+                                "Encoded threat detected in base64 content"
+                            ),
                             "timestamp": datetime.now().isoformat(),
                         }
                     )
@@ -310,7 +318,9 @@ class ThreatAnalyzer:
 
         return threats
 
-    def _check_suspicious_protocols(self, config: str) -> List[Dict[str, Any]]:
+    def _check_suspicious_protocols(
+        self, config: str
+    ) -> List[Dict[str, Any]]:
         """Check for suspicious protocols.
 
         Args:
@@ -354,7 +364,9 @@ class ThreatAnalyzer:
             "malicious_patterns": len(self.malicious_patterns),
             "suspicious_domains": len(self.suspicious_domains),
             "suspicious_ports": len(self.suspicious_ports),
-            "total_patterns": len(self.malicious_patterns)
-            + len(self.suspicious_domains)
-            + len(self.suspicious_ports),
+            "total_patterns": (
+                len(self.malicious_patterns)
+                + len(self.suspicious_domains)
+                + len(self.suspicious_ports)
+            ),
         }

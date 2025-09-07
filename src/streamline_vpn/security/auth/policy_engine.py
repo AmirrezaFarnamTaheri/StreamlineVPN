@@ -160,7 +160,10 @@ class PolicyEngine:
         # Determine action
         if confidence >= 0.8:
             action = policy.action
-            reason = f"Policy '{policy.name}' matched with {confidence:.1%} confidence"
+            reason = (
+                f"Policy '{policy.name}' matched with "
+                f"{confidence:.1%} confidence"
+            )
         else:
             action = PolicyAction.DENY
             reason = f"Policy '{policy.name}' did not match conditions"

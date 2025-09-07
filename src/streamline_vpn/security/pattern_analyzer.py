@@ -7,7 +7,6 @@ Security pattern analysis and detection functionality.
 
 import re
 from typing import Dict, List, Any
-from datetime import datetime
 
 from ..utils.logging import get_logger
 

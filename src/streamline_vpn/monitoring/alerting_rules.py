@@ -5,7 +5,7 @@ Alerting Rules
 VPN alerting rules for Prometheus monitoring.
 """
 
-from typing import Dict, Any
+from typing import Any, Dict
 
 
 class AlertingRules:
@@ -19,38 +19,54 @@ class AlertingRules:
                 "duration": "5m",
                 "severity": "critical",
                 "summary": "VPN server {{ $labels.instance }} is down",
-                "description": "VPN server {{ $labels.instance }} has been down for more than 5 minutes",
+                "description": (
+                    "VPN server {{ $labels.instance }} has been "
+                    "down for more than 5 minutes"
+                ),
             },
             "high_vpn_latency": {
                 "condition": "vpn_connection_latency_seconds > 0.5",
                 "duration": "2m",
                 "severity": "warning",
                 "summary": "High VPN latency on {{ $labels.server }}",
-                "description": "VPN latency on {{ $labels.server }} is {{ $value }}s",
+                "description": (
+                    "VPN latency on {{ $labels.server }} is {{ $value }}s"
+                ),
             },
             "high_packet_loss": {
                 "condition": "vpn_packet_loss_rate > 0.05",
                 "duration": "1m",
                 "severity": "warning",
                 "summary": "High packet loss on {{ $labels.server }}",
-                "description": "Packet loss rate on {{ $labels.server }} is {{ $value }}%",
+                "description": (
+                    "Packet loss rate on {{ $labels.server }} is "
+                    "{{ $value }}%"
+                ),
             },
             "server_cpu_high": {
                 "condition": "vpn_server_cpu_usage > 80",
                 "duration": "5m",
                 "severity": "warning",
                 "summary": "High CPU usage on {{ $labels.server }}",
-                "description": "CPU usage on {{ $labels.server }} is {{ $value }}%",
+                "description": (
+                    "CPU usage on {{ $labels.server }} is {{ $value }}%"
+                ),
             },
             "server_memory_high": {
                 "condition": "vpn_server_memory_usage > 90",
                 "duration": "2m",
                 "severity": "critical",
                 "summary": "High memory usage on {{ $labels.server }}",
-                "description": "Memory usage on {{ $labels.server }} is {{ $value }}%",
+                "description": (
+                    "Memory usage on {{ $labels.server }} is {{ $value }}%"
+                ),
             },
             "cache_hit_rate_low": {
-                "condition": "rate(cache_hits_total[5m]) / rate(cache_hits_total[5m] + cache_misses_total[5m]) < 0.8",
+                "condition": (
+                    "rate(cache_hits_total[5m]) / "
+                    "(rate(cache_hits_total[5m]) + "
+                    "rate(cache_misses_total[5m])) < 0.8"
+                ),
                 "duration": "5m",
                 "severity": "warning",
                 "summary": "Low cache hit rate",

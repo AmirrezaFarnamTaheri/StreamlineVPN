@@ -9,9 +9,7 @@ implementation report.
 This module provides a unified interface to the modularized ML system.
 """
 
-from typing import Dict, Any
-
-from typing import Dict, Any
+from typing import Any, Dict
 
 from .quality_service import QualityPredictionService
 from .feature_processor import NetworkFeatureProcessor

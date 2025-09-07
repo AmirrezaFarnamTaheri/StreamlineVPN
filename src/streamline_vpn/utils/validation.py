@@ -6,8 +6,7 @@ Validation functions for URLs, configurations, and other data.
 """
 
 import re
-import urllib.parse
-from typing import Optional, List, Dict, Any
+from typing import Dict, Any
 from ..settings import get_settings
 from .logging import get_logger
 from ..security.validator import SecurityValidator
@@ -194,7 +193,10 @@ def validate_ip_address(ip: str) -> bool:
         return False
 
     # IPv4 pattern
-    ipv4_pattern = r"^(?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.){3}(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)$"
+    ipv4_pattern = (
+        r"^(?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.){3}"
+        r"(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)$"
+    )
 
     # IPv6 pattern (simplified)
     ipv6_pattern = r"^(?:[0-9a-fA-F]{1,4}:){7}[0-9a-fA-F]{1,4}$"

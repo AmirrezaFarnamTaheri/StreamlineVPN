@@ -5,19 +5,17 @@ FastAPI Web API
 FastAPI-based REST API for StreamlineVPN.
 """
 
-import asyncio
-from typing import Dict, List, Optional, Any
-from datetime import datetime
-
-from fastapi import FastAPI, HTTPException, BackgroundTasks, Depends, Body
 import os
+from datetime import datetime
+from typing import Any, Dict, List, Optional
+
+from fastapi import BackgroundTasks, Body, FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import JSONResponse
 from pydantic import BaseModel
 
 from ..core.merger import StreamlineVPNMerger
-from ..utils.logging import get_logger
 from ..settings import get_settings
+from ..utils.logging import get_logger
 
 logger = get_logger(__name__)
 
@@ -200,7 +198,8 @@ def create_app() -> FastAPI:
         try:
             # This would integrate with Prometheus client
             return {
-                "message": "Metrics endpoint - integrate with Prometheus client"
+                "message": "Metrics endpoint - integrate with "
+                "Prometheus client"
             }
         except Exception as e:
             logger.error(f"Metrics error: {e}")
@@ -214,7 +213,9 @@ def create_app() -> FastAPI:
             return {
                 "fetcher": settings.fetcher.model_dump(),
                 "security": settings.security.model_dump(),
-                "supported_protocol_prefixes": settings.supported_protocol_prefixes,
+                "supported_protocol_prefixes": (
+                    settings.supported_protocol_prefixes
+                ),
             }
         except Exception as e:
             logger.error(f"Runtime config error: {e}")
@@ -256,7 +257,9 @@ def create_app() -> FastAPI:
                 "message": "Runtime configuration reloaded",
                 "fetcher": settings.fetcher.model_dump(),
                 "security": settings.security.model_dump(),
-                "supported_protocol_prefixes": settings.supported_protocol_prefixes,
+                "supported_protocol_prefixes": (
+                    settings.supported_protocol_prefixes
+                ),
             }
         except Exception as e:
             logger.error(f"Reload settings error: {e}")

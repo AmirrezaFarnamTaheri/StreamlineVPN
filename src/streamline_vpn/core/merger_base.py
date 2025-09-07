@@ -72,7 +72,6 @@ class BaseMerger:
             except Exception as e:
                 logger.error(f"Failed to connect to cache manager: {e}")
                 # Continue without Redis if connection fails
-                pass
 
         logger.info("Merger components initialized")
 
@@ -83,7 +82,6 @@ class BaseMerger:
                 await self.cache_manager.disconnect()
             except Exception as e:
                 logger.error(f"Failed to disconnect from cache manager: {e}")
-                pass
         logger.info("Merger components shutdown")
 
     async def get_statistics(self) -> Dict[str, Any]:

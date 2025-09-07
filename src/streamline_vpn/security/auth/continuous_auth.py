@@ -6,8 +6,8 @@ Continuous authentication and monitoring service.
 """
 
 import time
-from datetime import datetime, timedelta
-from typing import Dict, List, Optional, Any
+from datetime import datetime
+from typing import Dict, Any
 
 from ...utils.logging import get_logger
 from .models import UserIdentity, DevicePosture, ThreatLevel
@@ -55,7 +55,8 @@ class ContinuousAuthenticator:
         await self._initialize_behavioral_profile(user_identity.user_id)
 
         logger.info(
-            f"Started continuous auth session {session_id} for user {user_identity.user_id}"
+            f"Started continuous auth session {session_id} for user "
+            f"{user_identity.user_id}"
         )
         return session_id
 

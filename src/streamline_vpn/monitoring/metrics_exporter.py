@@ -5,8 +5,6 @@ Metrics Exporter
 Prometheus metrics export functionality.
 """
 
-import time
-from typing import Dict, Any
 
 from .metrics_collector import MetricsCollector
 
@@ -43,20 +41,24 @@ class MetricsExporter:
                     # Export histogram buckets
                     for bucket_key, count in value_data["buckets"].items():
                         output.append(
-                            f"{metric_name}_bucket{{{label_str},{bucket_key}}} {count}"
+                            f"{metric_name}_bucket"
+                            f"{{{label_str},{bucket_key}}} {count}"
                         )
 
                     # Export count and sum
                     output.append(
-                        f"{metric_name}_count{{{label_str}}} {value_data['count']}"
+                        f"{metric_name}_count{{{label_str}}} "
+                        f"{value_data['count']}"
                     )
                     output.append(
-                        f"{metric_name}_sum{{{label_str}}} {value_data['sum']}"
+                        f"{metric_name}_sum{{{label_str}}} "
+                        f"{value_data['sum']}"
                     )
                 else:
                     # Export simple metric
                     output.append(
-                        f"{metric_name}{{{label_str}}} {value_data['value']}"
+                        f"{metric_name}{{{label_str}}} "
+                        f"{value_data['value']}"
                     )
 
             output.append("")  # Empty line between metrics

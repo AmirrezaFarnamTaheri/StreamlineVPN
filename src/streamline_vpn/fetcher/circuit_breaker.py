@@ -6,10 +6,9 @@ Circuit breaker pattern implementation for fault tolerance.
 """
 
 import asyncio
-import time
 from enum import Enum
 from typing import Callable, Any, Optional
-from datetime import datetime, timedelta
+from datetime import datetime
 
 from ..utils.logging import get_logger
 
@@ -119,7 +118,8 @@ class CircuitBreaker:
         if self.failure_count >= self.failure_threshold:
             self.state = CircuitState.OPEN
             logger.warning(
-                f"Circuit breaker {self.name} moved to OPEN after {self.failure_count} failures"
+                f"Circuit breaker {self.name} moved to OPEN after "
+                f"{self.failure_count} failures"
             )
 
     def get_state(self) -> CircuitState:
@@ -148,5 +148,3 @@ class CircuitBreaker:
 
 class CircuitBreakerOpenException(Exception):
     """Exception raised when circuit breaker is open."""
-
-    pass

@@ -8,7 +8,7 @@ Data models for job management system.
 from dataclasses import dataclass, field
 from datetime import datetime
 from enum import Enum
-from typing import Dict, List, Optional, Any
+from typing import Dict, Optional, Any
 import json
 import uuid
 

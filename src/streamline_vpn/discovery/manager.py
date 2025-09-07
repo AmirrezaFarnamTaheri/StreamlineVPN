@@ -128,20 +128,24 @@ class DiscoveryManager:
                             if response.status == 200:
                                 data = await response.json()
                                 for repo in data.get("items", []):
-                                    repo_sources = await self._scan_repository(
-                                        session, repo["full_name"], headers
+                                    repo_sources = (
+                                        await self._scan_repository(
+                                            session,
+                                            repo["full_name"],
+                                            headers,
+                                        )
                                     )
                                     sources.extend(repo_sources)
                             elif response.status == 403:
-                                logger.warning("GitHub API rate limit reached")
+                                logger.warning(
+                                    "GitHub API rate limit reached"
+                                )
                                 break
                     except asyncio.TimeoutError:
                         logger.warning(
                             f"GitHub search timeout for query: {query}"
                         )
-                    except (
-                        Exception
-                    ) as exc:  # pragma: no cover - network errors
+                    except Exception as exc:  # pragma: no cover
                         logger.error(
                             f"GitHub search error for query {query}: {exc}"
                         )
@@ -177,7 +181,9 @@ class DiscoveryManager:
         sources: List[str] = []
 
         try:
-            contents_url = f"{self.github_api_url}/repos/{repo_name}/contents"
+            contents_url = (
+                f"{self.github_api_url}/repos/{repo_name}/contents"
+            )
             async with session.get(
                 contents_url,
                 headers=headers,
@@ -192,7 +198,10 @@ class DiscoveryManager:
                                 pattern in filename
                                 for pattern in self.subscription_patterns
                             ):
-                                raw_url = f"https://raw.githubusercontent.com/{repo_name}/main/{item['name']}"
+                                raw_url = (
+                                    f"https://raw.githubusercontent.com/"
+                                    f"{repo_name}/main/{item['name']}"
+                                )
                                 if await self._validate_source_content(
                                     session, raw_url
                                 ):
@@ -240,7 +249,10 @@ class DiscoveryManager:
                         if item["type"] == "file" and item["name"].endswith(
                             (".txt", ".yaml", ".yml", ".json")
                         ):
-                            raw_url = f"https://raw.githubusercontent.com/{repo_name}/main/{item['path']}"
+                            raw_url = (
+                                f"https://raw.githubusercontent.com/"
+                                f"{repo_name}/main/{item['path']}"
+                            )
                             if await self._validate_source_content(
                                 session, raw_url
                             ):
@@ -281,7 +293,8 @@ class DiscoveryManager:
                                 for pattern in self.subscription_patterns:
                                     for branch in ["main", "master"]:
                                         url = (
-                                            f"https://gitlab.com/{project['path_with_namespace']}"
+                                            f"https://gitlab.com/"
+                                            f"{project['path_with_namespace']}"
                                             f"/-/raw/{branch}/{pattern}"
                                         )
                                         if await self._validate_source_exists(
@@ -327,7 +340,11 @@ class DiscoveryManager:
                             data = await response.json()
                             for repo in data:
                                 for pattern in self.subscription_patterns:
-                                    url = f"https://gitee.com/{repo['full_name']}/raw/master/{pattern}"
+                                    url = (
+                                        f"https://gitee.com/"
+                                        f"{repo['full_name']}/raw/master/"
+                                        f"{pattern}"
+                                    )
                                     if await self._validate_source_exists(
                                         session, url
                                     ):
@@ -397,7 +414,8 @@ class DiscoveryManager:
                         r"hysteria://",
                     ]
                     return any(
-                        re.search(pattern, content) for pattern in vpn_patterns
+                        re.search(pattern, content)
+                        for pattern in vpn_patterns
                     )
         except Exception:  # pragma: no cover - network errors
             pass
@@ -456,8 +474,9 @@ class DiscoveryManager:
         return {
             "discovered_sources_count": len(self.discovered_sources),
             "last_discovery": self.last_discovery.isoformat(),
-            "discovery_interval_hours": self.discovery_interval.total_seconds()
-            / 3600,
+            "discovery_interval_hours": (
+                self.discovery_interval.total_seconds() / 3600
+            ),
             "github_queries": len(self.github_search_queries),
             "rate_limit_remaining": self.rate_limit_remaining,
             "rate_limit_reset": self.rate_limit_reset.isoformat(),
