@@ -19,6 +19,13 @@ from .output import (
     SingBoxFormatter,
 )
 
+# Optional formatters that may not be present in minimal test patches
+try:  # pragma: no cover - exercised in tests when available
+    from .output import Base64Formatter, CSVFormatter
+except Exception:  # pragma: no cover - missing optional deps
+    Base64Formatter = None
+    CSVFormatter = None
+
 logger = get_logger(__name__)
 
 
@@ -33,6 +40,10 @@ class OutputManager:
             "clash": ClashFormatter,
             "singbox": SingBoxFormatter,
         }
+        if Base64Formatter:
+            self.formatters["base64"] = Base64Formatter
+        if CSVFormatter:
+            self.formatters["csv"] = CSVFormatter
 
     async def save_configurations(
         self,

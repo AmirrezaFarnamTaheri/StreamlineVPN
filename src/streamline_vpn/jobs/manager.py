@@ -31,7 +31,14 @@ class JobManager:
         self.executor = JobExecutor(self)
         self.cleanup_service = JobCleanupService()
         self._cleanup_task: Optional[asyncio.Task] = None
-        asyncio.create_task(self._initial_cleanup())
+        try:
+            loop = asyncio.get_running_loop()
+        except RuntimeError:
+            # No running event loop - tests may construct JobManager outside of
+            # async context. Cleanup will be started on first job operation.
+            self._cleanup_task = None
+        else:
+            self._cleanup_task = loop.create_task(self._initial_cleanup())
 
     async def create_job(
         self,
