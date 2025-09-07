@@ -348,7 +348,8 @@ def setup_routes(
                 if formats:
                     for format_name in formats:
                         # Construct file path based on format
-                        # This logic needs to be robust and match the output of the merger
+                        # This logic needs to be robust
+                        # and match the output of the merger
                         if format_name == "json":
                             file_name = "vpn_data.json"
                         elif format_name == "clash":

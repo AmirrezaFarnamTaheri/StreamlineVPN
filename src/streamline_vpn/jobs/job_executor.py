@@ -30,7 +30,9 @@ class JobExecutor:
     def _register_default_handlers(self) -> None:
         """Register default job handlers."""
         self.job_handlers = {
-            JobType.PROCESS_CONFIGURATIONS: self._handle_process_configurations,
+            JobType.PROCESS_CONFIGURATIONS: (
+                self._handle_process_configurations
+            ),
             JobType.DISCOVER_SOURCES: self._handle_discover_sources,
             JobType.UPDATE_SOURCES: self._handle_update_sources,
             JobType.CLEAR_CACHE: self._handle_clear_cache,
