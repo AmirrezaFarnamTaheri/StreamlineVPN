@@ -138,7 +138,8 @@ config/*.env
 config/secrets.yaml
 
 # Output directories
-output/
+output/*
+!output/.gitkeep
 results/
 exports/
 # Allow output package in source
@@ -152,7 +153,8 @@ cache/
 data/cache/
 
 # Log files
-logs/
+logs/*
+!logs/.gitkeep
 *.log
 
 # Database files

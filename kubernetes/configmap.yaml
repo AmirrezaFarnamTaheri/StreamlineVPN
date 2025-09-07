@@ -1,0 +1,32 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: streamline-config
+  namespace: streamline
+data:
+  sources.yaml: |
+    sources:
+      premium:
+        urls:
+          - url: "https://raw.githubusercontent.com/peasoft/NoMoreWalls/master/list.txt"
+            weight: 0.9
+            protocols: ["vmess", "vless", "trojan"]
+          - url: "https://raw.githubusercontent.com/mahdibland/V2RayAggregator/master/sub/sub_merge.txt"
+            weight: 0.85
+      reliable:
+        urls:
+          - url: "https://raw.githubusercontent.com/aiboboxx/v2rayfree/main/v2"
+            weight: 0.7
+      bulk:
+        urls:
+          - url: "https://raw.githubusercontent.com/ripaojiedian/freenode/main/sub"
+            weight: 0.6
+    processing:
+      max_concurrent: 100
+      timeout: 30
+      retry_attempts: 3
+    output:
+      formats: ["json", "clash", "singbox"]
+    cache:
+      enabled: true
+      ttl: 3600
