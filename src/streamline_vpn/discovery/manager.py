@@ -365,9 +365,18 @@ class DiscoveryManager:
         public_lists = [
             "https://raw.githubusercontent.com/freefq/free/master/v2",
             "https://raw.githubusercontent.com/Pawdroid/Free-servers/main/sub",
-            "https://raw.githubusercontent.com/ermaozi/get_subscribe/main/subscribe/v2ray.txt",
-            "https://raw.githubusercontent.com/vveg26/get_proxy/main/dist/v2ray.config.txt",
-            "https://raw.githubusercontent.com/mianfeifq/share/main/data2023087.txt",
+            (
+                "https://raw.githubusercontent.com/ermaozi/"
+                "get_subscribe/main/subscribe/v2ray.txt"
+            ),
+            (
+                "https://raw.githubusercontent.com/vveg26/"
+                "get_proxy/main/dist/v2ray.config.txt"
+            ),
+            (
+                "https://raw.githubusercontent.com/mianfeifq/"
+                "share/main/data2023087.txt"
+            ),
         ]
 
         async with aiohttp.ClientSession() as session:

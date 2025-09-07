@@ -144,7 +144,11 @@ class EnhancedStaticServer:
             if format == "text":
                 text_output = "\n".join(
                     [
-                        f"{c.get('protocol', 'unknown')}://{c.get('server', 'unknown')}:{c.get('port', 0)}"
+                        (
+                            f"{c.get('protocol', 'unknown')}://"
+                            f"{c.get('server', 'unknown')}:"
+                            f"{c.get('port', 0)}"
+                        )
                         for c in configs
                     ]
                 )
@@ -154,12 +158,15 @@ class EnhancedStaticServer:
                 )
             if format == "download":
                 file_content = json.dumps(configs, indent=2)
+                timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
                 return HTMLResponse(
                     content=file_content,
                     media_type="application/json",
                     headers={
-                        "Content-Disposition": "attachment; filename="
-                        f"vpn_configs_{datetime.now().strftime('%Y%m%d_%H%M%S')}.json",
+                        "Content-Disposition": (
+                            "attachment; filename="
+                            f"vpn_configs_{timestamp}.json"
+                        ),
                     },
                 )
             raise HTTPException(status_code=400, detail="Invalid format")
