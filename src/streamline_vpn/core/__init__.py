@@ -11,6 +11,11 @@ from .source_manager import SourceManager
 from .config_processor import ConfigurationProcessor
 from .output_manager import OutputManager
 from .caching import VPNCacheService
+from .config_validator import (
+    ConfigurationValidator,
+    validate_config_file,
+    validate_config_data,
+)
 
 __all__ = [
     "StreamlineVPNMerger",
@@ -18,4 +23,7 @@ __all__ = [
     "ConfigurationProcessor",
     "OutputManager",
     "VPNCacheService",
+    "ConfigurationValidator",
+    "validate_config_file",
+    "validate_config_data",
 ]
