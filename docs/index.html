@@ -1,73 +1,672 @@
----
-layout: default
-title: StreamlineVPN • Project Home
----
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>StreamlineVPN - Enterprise VPN Configuration Platform</title>
+    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&display=swap');
+        
+        :root {
+            --primary: #6366f1;
+            --secondary: #8b5cf6;
+            --accent: #ec4899;
+            --dark: #1e293b;
+            --light: #f8fafc;
+        }
+        
+        * {
+            font-family: 'Space Grotesk', system-ui, sans-serif;
+            scroll-behavior: smooth;
+        }
+        
+        body {
+            background: var(--dark);
+            overflow-x: hidden;
+        }
+        
+        /* Animated background */
+        .hero-bg {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            overflow: hidden;
+        }
+        
+        .hero-bg::before {
+            content: '';
+            position: absolute;
+            width: 200%;
+            height: 200%;
+            top: -50%;
+            left: -50%;
+            background: radial-gradient(circle, rgba(255,255,255,0.1) 1px, transparent 1px);
+            background-size: 50px 50px;
+            animation: move 20s linear infinite;
+        }
+        
+        @keyframes move {
+            0% { transform: translate(0, 0); }
+            100% { transform: translate(50px, 50px); }
+        }
+        
+        /* Glassmorphism */
+        .glass {
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+        
+        .glass-dark {
+            background: rgba(30, 41, 59, 0.8);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        
+        /* Neon effects */
+        .neon-text {
+            text-shadow: 0 0 10px currentColor, 0 0 20px currentColor, 0 0 30px currentColor;
+        }
+        
+        .neon-border {
+            box-shadow: 0 0 20px rgba(99, 102, 241, 0.5), inset 0 0 20px rgba(99, 102, 241, 0.1);
+        }
+        
+        /* Animations */
+        .float {
+            animation: float 6s ease-in-out infinite;
+        }
+        
+        @keyframes float {
+            0%, 100% { transform: translateY(0px); }
+            50% { transform: translateY(-20px); }
+        }
+        
+        .slide-up {
+            animation: slideUp 0.5s ease-out;
+        }
+        
+        @keyframes slideUp {
+            from {
+                transform: translateY(30px);
+                opacity: 0;
+            }
+            to {
+                transform: translateY(0);
+                opacity: 1;
+            }
+        }
+        
+        /* Code block styling */
+        .code-block {
+            background: #1e293b;
+            border-radius: 8px;
+            padding: 1rem;
+            overflow-x: auto;
+            border: 1px solid rgba(99, 102, 241, 0.3);
+        }
+        
+        .code-block code {
+            color: #e2e8f0;
+            font-family: 'Fira Code', monospace;
+            font-size: 14px;
+        }
+        
+        /* Feature cards */
+        .feature-card {
+            background: linear-gradient(135deg, rgba(99, 102, 241, 0.1), rgba(139, 92, 246, 0.1));
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .feature-card::before {
+            content: '';
+            position: absolute;
+            top: -2px;
+            left: -2px;
+            right: -2px;
+            bottom: -2px;
+            background: linear-gradient(45deg, var(--primary), var(--secondary), var(--accent));
+            opacity: 0;
+            transition: opacity 0.3s ease;
+            z-index: -1;
+            border-radius: inherit;
+        }
+        
+        .feature-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 30px rgba(99, 102, 241, 0.3);
+        }
+        
+        .feature-card:hover::before {
+            opacity: 1;
+        }
+        
+        /* Scrollbar */
+        ::-webkit-scrollbar {
+            width: 10px;
+            height: 10px;
+        }
+        
+        ::-webkit-scrollbar-track {
+            background: rgba(30, 41, 59, 0.5);
+        }
+        
+        ::-webkit-scrollbar-thumb {
+            background: linear-gradient(135deg, var(--primary), var(--secondary));
+            border-radius: 5px;
+        }
+        
+        /* Terminal animation */
+        .terminal-text {
+            font-family: 'Fira Code', monospace;
+            color: #10b981;
+        }
+        
+        .typing {
+            overflow: hidden;
+            white-space: nowrap;
+            border-right: 3px solid #10b981;
+            animation: typing 3s steps(40), blink 0.75s step-end infinite;
+        }
+        
+        @keyframes typing {
+            from { width: 0; }
+            to { width: 100%; }
+        }
+        
+        @keyframes blink {
+            50% { border-color: transparent; }
+        }
+        
+        /* Navigation */
+        .nav-link {
+            position: relative;
+            transition: color 0.3s ease;
+        }
+        
+        .nav-link::after {
+            content: '';
+            position: absolute;
+            bottom: -2px;
+            left: 0;
+            width: 0;
+            height: 2px;
+            background: linear-gradient(90deg, var(--primary), var(--secondary));
+            transition: width 0.3s ease;
+        }
+        
+        .nav-link:hover::after,
+        .nav-link.active::after {
+            width: 100%;
+        }
+        
+        /* Metric cards */
+        .metric-card {
+            background: linear-gradient(135deg, rgba(99, 102, 241, 0.2), rgba(236, 72, 153, 0.2));
+            animation: pulse 2s ease-in-out infinite;
+        }
+        
+        @keyframes pulse {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.02); }
+        }
+    </style>
+</head>
+<body class="bg-gray-900 text-white">
+    <!-- Navigation -->
+    <nav class="fixed top-0 w-full z-50 glass-dark">
+        <div class="container mx-auto px-6 py-4">
+            <div class="flex justify-between items-center">
+                <div class="flex items-center space-x-4">
+                    <div class="text-2xl font-bold bg-gradient-to-r from-indigo-500 to-purple-500 text-transparent bg-clip-text">
+                        StreamlineVPN
+                    </div>
+                    <span class="text-xs text-gray-400">v2.0</span>
+                </div>
+                <div class="hidden md:flex space-x-8">
+                    <a href="#features" class="nav-link">Features</a>
+                    <a href="#architecture" class="nav-link">Architecture</a>
+                    <a href="#api" class="nav-link">API</a>
+                    <a href="#quickstart" class="nav-link">Quick Start</a>
+                    <a href="#docs" class="nav-link">Documentation</a>
+                </div>
+                <div class="flex items-center space-x-4">
+                    <a href="https://github.com/streamlinevpn/streamlinevpn" class="hover:text-indigo-400 transition">
+                        <i class="fab fa-github text-xl"></i>
+                    </a>
+                    <button onclick="openControlPanel()" class="px-4 py-2 bg-gradient-to-r from-indigo-500 to-purple-500 rounded-lg hover:opacity-90 transition">
+                        Control Panel
+                    </button>
+                </div>
+            </div>
+        </div>
+    </nav>
 
-<section class="hero">
-  <div class="logo">
-    <img src="assets/logo.svg" alt="StreamlineVPN Logo">
-    <h1>StreamlineVPN</h1>
-  </div>
-  <p class="muted">Fetch, deduplicate, enhance, and export VPN configs in multiple formats with a single command or via a FastAPI backend.</p>
-  <div class="cta">
-    <a class="btn" href="quick-start.html">Get Started</a>
-    <a class="btn secondary" href="api/openapi.yaml">View API Specs</a>
-    <a class="btn secondary" href="interactive.html">Run in Browser</a>
-  </div>
-</section>
+    <!-- Hero Section -->
+    <section class="relative min-h-screen flex items-center justify-center">
+        <div class="hero-bg"></div>
+        <div class="container mx-auto px-6 relative z-10">
+            <div class="text-center">
+                <h1 class="text-6xl md:text-8xl font-bold mb-6 slide-up">
+                    <span class="bg-gradient-to-r from-indigo-400 via-purple-400 to-pink-400 text-transparent bg-clip-text neon-text">
+                        StreamlineVPN
+                    </span>
+                </h1>
+                <p class="text-xl md:text-2xl text-gray-300 mb-8 slide-up" style="animation-delay: 0.1s;">
+                    Enterprise-Grade VPN Configuration Aggregator
+                </p>
+                <div class="flex flex-wrap justify-center gap-4 slide-up" style="animation-delay: 0.2s;">
+                    <button onclick="scrollToSection('quickstart')" class="px-8 py-4 bg-gradient-to-r from-indigo-500 to-purple-500 rounded-lg font-semibold hover:opacity-90 transition transform hover:scale-105">
+                        Get Started
+                    </button>
+                    <button onclick="openDemo()" class="px-8 py-4 glass border border-indigo-500 rounded-lg font-semibold hover:bg-indigo-500 hover:bg-opacity-20 transition">
+                        Live Demo
+                    </button>
+                </div>
+                
+                <!-- Live Terminal -->
+                <div class="mt-12 max-w-2xl mx-auto slide-up" style="animation-delay: 0.3s;">
+                    <div class="glass-dark rounded-lg p-6">
+                        <div class="flex items-center mb-4">
+                            <div class="flex space-x-2">
+                                <div class="w-3 h-3 bg-red-500 rounded-full"></div>
+                                <div class="w-3 h-3 bg-yellow-500 rounded-full"></div>
+                                <div class="w-3 h-3 bg-green-500 rounded-full"></div>
+                            </div>
+                            <div class="ml-4 text-sm text-gray-400">terminal</div>
+                        </div>
+                        <div class="terminal-text">
+                            <div class="typing">$ streamline-vpn process --sources premium --output all</div>
+                            <div class="mt-2 text-green-400">✓ Processing 50 sources...</div>
+                            <div class="text-blue-400">✓ Validated 10,000+ configurations</div>
+                            <div class="text-purple-400">✓ Output generated in 3 formats</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Scroll indicator -->
+        <div class="absolute bottom-8 left-1/2 transform -translate-x-1/2 animate-bounce">
+            <i class="fas fa-chevron-down text-2xl text-gray-400"></i>
+        </div>
+    </section>
 
-<div class="main-content">
-  <section class="grid">
-    <div class="card">
-      <h3>Run via CLI</h3>
-      <p>Quickly process VPN configurations from the command line.</p>
-      <pre><code>pip install -r requirements.txt
-python -m streamline_vpn</code></pre>
-    </div>
-    <div class="card">
-      <h3>Start the API</h3>
-      <p>Run the FastAPI server for a more interactive experience.</p>
-      <pre><code>uvicorn streamline_vpn.web.api:create_app --factory</code></pre>
-    </div>
-    <div class="card">
-        <h3>Key Features</h3>
-        <ul>
-            <li>✅ Fetch from multiple sources</li>
-            <li>✅ Deduplicate and merge</li>
-            <li>✅ Geolocation-based filtering</li>
-            <li>✅ Multiple output formats</li>
-            <li>✅ Extensible plugin system</li>
-        </ul>
-    </div>
-  </section>
+    <!-- Metrics Section -->
+    <section class="py-20 relative">
+        <div class="container mx-auto px-6">
+            <div class="grid grid-cols-1 md:grid-cols-4 gap-6">
+                <div class="metric-card rounded-xl p-6 text-center">
+                    <div class="text-4xl font-bold text-indigo-400 mb-2">10K+</div>
+                    <div class="text-gray-300">Configs/Second</div>
+                </div>
+                <div class="metric-card rounded-xl p-6 text-center">
+                    <div class="text-4xl font-bold text-purple-400 mb-2">95%</div>
+                    <div class="text-gray-300">Success Rate</div>
+                </div>
+                <div class="metric-card rounded-xl p-6 text-center">
+                    <div class="text-4xl font-bold text-pink-400 mb-2">50+</div>
+                    <div class="text-gray-300">Active Sources</div>
+                </div>
+                <div class="metric-card rounded-xl p-6 text-center">
+                    <div class="text-4xl font-bold text-green-400 mb-2">&lt;100ms</div>
+                    <div class="text-gray-300">API Response</div>
+                </div>
+            </div>
+        </div>
+    </section>
 
-  <section style="margin-top: 3rem;">
-    <h2>Documentation</h2>
-    <div class="grid">
-      <div class="card links">
-        <h3>Getting Started</h3>
-        <ul>
-          <li><a href="quick-start.html">Quick Start</a></li>
-          <li><a href="installation/enhanced-features.html">Installation</a></li>
-          <li><a href="configuration/">Configuration</a></li>
-        </ul>
-      </div>
-      <div class="card links">
-        <h3>API</h3>
-        <ul>
-          <li><a href="api/">REST API Guide</a></li>
-          <li><a href="api/error-codes.html">Error Codes</a></li>
-          <li><a href="api/openapi.yaml">OpenAPI (YAML)</a></li>
-        </ul>
-      </div>
-      <div class="card links">
-        <h3>Development</h3>
-        <ul>
-          <li><a href="DEVELOPMENT.html">Development Guide</a></li>
-          <li><a href="architecture.html">Architecture</a></li>
-          <li><a href="sdk-python.html">Python SDK</a></li>
-        </ul>
-      </div>
-    </div>
-  </section>
-</div>
+    <!-- Features Section -->
+    <section id="features" class="py-20 relative">
+        <div class="container mx-auto px-6">
+            <h2 class="text-4xl font-bold text-center mb-12">
+                <span class="bg-gradient-to-r from-indigo-400 to-purple-400 text-transparent bg-clip-text">
+                    Powerful Features
+                </span>
+            </h2>
+            
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
+                <!-- Feature 1 -->
+                <div class="feature-card rounded-xl p-6">
+                    <div class="text-3xl mb-4 text-indigo-400">
+                        <i class="fas fa-rocket"></i>
+                    </div>
+                    <h3 class="text-xl font-semibold mb-3">High Performance</h3>
+                    <p class="text-gray-400">Process 10,000+ configurations per second with async architecture and intelligent caching.</p>
+                </div>
+                
+                <!-- Feature 2 -->
+                <div class="feature-card rounded-xl p-6">
+                    <div class="text-3xl mb-4 text-purple-400">
+                        <i class="fas fa-brain"></i>
+                    </div>
+                    <h3 class="text-xl font-semibold mb-3">ML-Powered Quality</h3>
+                    <p class="text-gray-400">Machine learning models predict configuration quality and optimize server selection.</p>
+                </div>
+                
+                <!-- Feature 3 -->
+                <div class="feature-card rounded-xl p-6">
+                    <div class="text-3xl mb-4 text-pink-400">
+                        <i class="fas fa-shield-alt"></i>
+                    </div>
+                    <h3 class="text-xl font-semibold mb-3">Enterprise Security</h3>
+                    <p class="text-gray-400">Zero-trust architecture with threat detection, validation, and comprehensive auditing.</p>
+                </div>
+                
+                <!-- Feature 4 -->
+                <div class="feature-card rounded-xl p-6">
+                    <div class="text-3xl mb-4 text-green-400">
+                        <i class="fas fa-globe"></i>
+                    </div>
+                    <h3 class="text-xl font-semibold mb-3">Geographic Optimization</h3>
+                    <p class="text-gray-400">Intelligent routing based on geographic location and network latency analysis.</p>
+                </div>
+                
+                <!-- Feature 5 -->
+                <div class="feature-card rounded-xl p-6">
+                    <div class="text-3xl mb-4 text-yellow-400">
+                        <i class="fas fa-plug"></i>
+                    </div>
+                    <h3 class="text-xl font-semibold mb-3">Multi-Protocol Support</h3>
+                    <p class="text-gray-400">Support for VMess, VLESS, Trojan, Shadowsocks, and more protocols.</p>
+                </div>
+                
+                <!-- Feature 6 -->
+                <div class="feature-card rounded-xl p-6">
+                    <div class="text-3xl mb-4 text-red-400">
+                        <i class="fas fa-chart-line"></i>
+                    </div>
+                    <h3 class="text-xl font-semibold mb-3">Real-time Analytics</h3>
+                    <p class="text-gray-400">Comprehensive monitoring with Prometheus metrics and Grafana dashboards.</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Architecture Section -->
+    <section id="architecture" class="py-20 relative">
+        <div class="container mx-auto px-6">
+            <h2 class="text-4xl font-bold text-center mb-12">
+                <span class="bg-gradient-to-r from-purple-400 to-pink-400 text-transparent bg-clip-text">
+                    System Architecture
+                </span>
+            </h2>
+            
+            <div class="glass-dark rounded-xl p-8">
+                <img src="assets/architecture-diagram.svg" alt="Architecture Diagram" class="w-full rounded-lg">
+                
+                <div class="mt-8 grid grid-cols-1 md:grid-cols-2 gap-8">
+                    <div>
+                        <h3 class="text-xl font-semibold mb-4 text-indigo-400">Core Components</h3>
+                        <ul class="space-y-2 text-gray-300">
+                            <li><i class="fas fa-check text-green-400 mr-2"></i>Async Source Manager</li>
+                            <li><i class="fas fa-check text-green-400 mr-2"></i>Protocol Parsers</li>
+                            <li><i class="fas fa-check text-green-400 mr-2"></i>Configuration Processor</li>
+                            <li><i class="fas fa-check text-green-400 mr-2"></i>Output Manager</li>
+                        </ul>
+                    </div>
+                    <div>
+                        <h3 class="text-xl font-semibold mb-4 text-purple-400">Advanced Features</h3>
+                        <ul class="space-y-2 text-gray-300">
+                            <li><i class="fas fa-check text-green-400 mr-2"></i>ML Quality Prediction</li>
+                            <li><i class="fas fa-check text-green-400 mr-2"></i>Geographic Optimization</li>
+                            <li><i class="fas fa-check text-green-400 mr-2"></i>Security Manager</li>
+                            <li><i class="fas fa-check text-green-400 mr-2"></i>Job Queue System</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- API Section -->
+    <section id="api" class="py-20 relative">
+        <div class="container mx-auto px-6">
+            <h2 class="text-4xl font-bold text-center mb-12">
+                <span class="bg-gradient-to-r from-pink-400 to-red-400 text-transparent bg-clip-text">
+                    Powerful APIs
+                </span>
+            </h2>
+            
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+                <!-- REST API -->
+                <div class="glass-dark rounded-xl p-6">
+                    <h3 class="text-2xl font-semibold mb-4 text-pink-400">REST API</h3>
+                    <div class="code-block">
+                        <code>
+POST /api/v1/process<br>
+{<br>
+&nbsp;&nbsp;"config_path": "sources.yaml",<br>
+&nbsp;&nbsp;"formats": ["json", "clash"],<br>
+&nbsp;&nbsp;"min_quality": 0.5<br>
+}<br><br>
+GET /api/v1/configurations<br>
+GET /api/v1/sources<br>
+GET /api/v1/statistics
+                        </code>
+                    </div>
+                </div>
+                
+                <!-- GraphQL API -->
+                <div class="glass-dark rounded-xl p-6">
+                    <h3 class="text-2xl font-semibold mb-4 text-red-400">GraphQL API</h3>
+                    <div class="code-block">
+                        <code>
+query {<br>
+&nbsp;&nbsp;configurations(limit: 10) {<br>
+&nbsp;&nbsp;&nbsp;&nbsp;id<br>
+&nbsp;&nbsp;&nbsp;&nbsp;protocol<br>
+&nbsp;&nbsp;&nbsp;&nbsp;server<br>
+&nbsp;&nbsp;&nbsp;&nbsp;quality_score<br>
+&nbsp;&nbsp;}<br>
+&nbsp;&nbsp;statistics {<br>
+&nbsp;&nbsp;&nbsp;&nbsp;total_configs<br>
+&nbsp;&nbsp;&nbsp;&nbsp;success_rate<br>
+&nbsp;&nbsp;}<br>
+}
+                        </code>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- WebSocket -->
+            <div class="mt-8 glass-dark rounded-xl p-6">
+                <h3 class="text-2xl font-semibold mb-4 text-yellow-400">WebSocket Real-time Updates</h3>
+                <div class="code-block">
+                    <code>
+const ws = new WebSocket('ws://localhost:8000/ws');<br>
+ws.onmessage = (event) => {<br>
+&nbsp;&nbsp;const data = JSON.parse(event.data);<br>
+&nbsp;&nbsp;console.log('Real-time update:', data);<br>
+};
+                    </code>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Quick Start Section -->
+    <section id="quickstart" class="py-20 relative">
+        <div class="container mx-auto px-6">
+            <h2 class="text-4xl font-bold text-center mb-12">
+                <span class="bg-gradient-to-r from-green-400 to-blue-400 text-transparent bg-clip-text">
+                    Quick Start
+                </span>
+            </h2>
+            
+            <div class="max-w-4xl mx-auto">
+                <!-- Step 1 -->
+                <div class="glass-dark rounded-xl p-6 mb-6">
+                    <div class="flex items-center mb-4">
+                        <div class="w-10 h-10 bg-gradient-to-r from-green-400 to-blue-400 rounded-full flex items-center justify-center font-bold mr-4">1</div>
+                        <h3 class="text-xl font-semibold">Installation</h3>
+                    </div>
+                    <div class="code-block">
+                        <code>
+# Clone the repository<br>
+git clone https://github.com/streamlinevpn/streamlinevpn.git<br>
+cd streamlinevpn<br><br>
+# Install dependencies<br>
+pip install -r requirements.txt
+                        </code>
+                    </div>
+                </div>
+                
+                <!-- Step 2 -->
+                <div class="glass-dark rounded-xl p-6 mb-6">
+                    <div class="flex items-center mb-4">
+                        <div class="w-10 h-10 bg-gradient-to-r from-green-400 to-blue-400 rounded-full flex items-center justify-center font-bold mr-4">2</div>
+                        <h3 class="text-xl font-semibold">Configuration</h3>
+                    </div>
+                    <div class="code-block">
+                        <code>
+# Configure sources<br>
+cp config/sources.example.yaml config/sources.yaml<br><br>
+# Set environment variables<br>
+export VPN_CONCURRENT_LIMIT=50<br>
+export VPN_LOG_LEVEL=INFO
+                        </code>
+                    </div>
+                </div>
+                
+                <!-- Step 3 -->
+                <div class="glass-dark rounded-xl p-6">
+                    <div class="flex items-center mb-4">
+                        <div class="w-10 h-10 bg-gradient-to-r from-green-400 to-blue-400 rounded-full flex items-center justify-center font-bold mr-4">3</div>
+                        <h3 class="text-xl font-semibold">Run</h3>
+                    </div>
+                    <div class="code-block">
+                        <code>
+# Start processing<br>
+python -m streamline_vpn<br><br>
+# Or start web interface<br>
+python -m streamline_vpn --web --port 8000
+                        </code>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Documentation Section -->
+    <section id="docs" class="py-20 relative">
+        <div class="container mx-auto px-6">
+            <h2 class="text-4xl font-bold text-center mb-12">
+                <span class="bg-gradient-to-r from-blue-400 to-indigo-400 text-transparent bg-clip-text">
+                    Documentation
+                </span>
+            </h2>
+            
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <a href="#" class="glass-dark rounded-xl p-6 hover:bg-indigo-500 hover:bg-opacity-20 transition">
+                    <i class="fas fa-book text-3xl text-blue-400 mb-4"></i>
+                    <h3 class="text-xl font-semibold mb-2">User Guide</h3>
+                    <p class="text-gray-400">Complete guide for using StreamlineVPN</p>
+                </a>
+                
+                <a href="#" class="glass-dark rounded-xl p-6 hover:bg-indigo-500 hover:bg-opacity-20 transition">
+                    <i class="fas fa-code text-3xl text-indigo-400 mb-4"></i>
+                    <h3 class="text-xl font-semibold mb-2">API Reference</h3>
+                    <p class="text-gray-400">Detailed API documentation and examples</p>
+                </a>
+                
+                <a href="#" class="glass-dark rounded-xl p-6 hover:bg-indigo-500 hover:bg-opacity-20 transition">
+                    <i class="fas fa-puzzle-piece text-3xl text-purple-400 mb-4"></i>
+                    <h3 class="text-xl font-semibold mb-2">Integration</h3>
+                    <p class="text-gray-400">Integrate StreamlineVPN with your systems</p>
+                </a>
+            </div>
+        </div>
+    </section>
+
+    <!-- Footer -->
+    <footer class="py-12 glass-dark">
+        <div class="container mx-auto px-6">
+            <div class="flex flex-col md:flex-row justify-between items-center">
+                <div class="mb-4 md:mb-0">
+                    <div class="text-2xl font-bold bg-gradient-to-r from-indigo-500 to-purple-500 text-transparent bg-clip-text">
+                        StreamlineVPN
+                    </div>
+                    <p class="text-gray-400 mt-2">Enterprise VPN Configuration Platform</p>
+                </div>
+                
+                <div class="flex space-x-6">
+                    <a href="https://github.com/streamlinevpn" class="text-gray-400 hover:text-white transition">
+                        <i class="fab fa-github text-2xl"></i>
+                    </a>
+                    <a href="https://twitter.com/streamlinevpn" class="text-gray-400 hover:text-white transition">
+                        <i class="fab fa-twitter text-2xl"></i>
+                    </a>
+                    <a href="https://discord.gg/streamlinevpn" class="text-gray-400 hover:text-white transition">
+                        <i class="fab fa-discord text-2xl"></i>
+                    </a>
+                </div>
+            </div>
+            
+            <div class="mt-8 pt-8 border-t border-gray-700 text-center text-gray-400">
+                <p>&copy; 2024 StreamlineVPN. All rights reserved. | MIT License</p>
+            </div>
+        </div>
+    </footer>
+
+    <script>
+        // Smooth scrolling
+        function scrollToSection(sectionId) {
+            document.getElementById(sectionId).scrollIntoView({ behavior: 'smooth' });
+        }
+        
+        // Open control panel
+        function openControlPanel() {
+            window.open('control-panel.html', '_blank');
+        }
+        
+        // Open demo
+        function openDemo() {
+            window.open('https://demo.streamlinevpn.io', '_blank');
+        }
+        
+        // Intersection Observer for animations
+        const observer = new IntersectionObserver((entries) => {
+            entries.forEach(entry => {
+                if (entry.isIntersecting) {
+                    entry.target.classList.add('slide-up');
+                }
+            });
+        }, { threshold: 0.1 });
+        
+        // Observe all feature cards
+        document.querySelectorAll('.feature-card').forEach(card => {
+            observer.observe(card);
+        });
+        
+        // Active nav link on scroll
+        window.addEventListener('scroll', () => {
+            const sections = document.querySelectorAll('section[id]');
+            const scrollY = window.pageYOffset;
+            
+            sections.forEach(section => {
+                const sectionHeight = section.offsetHeight;
+                const sectionTop = section.offsetTop - 100;
+                const sectionId = section.getAttribute('id');
+                
+                if (scrollY > sectionTop && scrollY <= sectionTop + sectionHeight) {
+                    document.querySelectorAll('.nav-link').forEach(link => {
+                        link.classList.remove('active');
+                        if (link.getAttribute('href') === `#${sectionId}`) {
+                            link.classList.add('active');
+                        }
+                    });
+                }
+            });
+        });
+    </script>
+</body>
+</html>
