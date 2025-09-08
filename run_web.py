@@ -6,6 +6,7 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).parent / "src"))
 
+from fastapi.middleware.cors import CORSMiddleware
 from streamline_vpn.utils.logging import get_logger
 from streamline_vpn.web.static_server import EnhancedStaticServer
 from streamline_vpn.web.settings import Settings
@@ -26,6 +27,13 @@ def main() -> None:
 
     server = EnhancedStaticServer(settings=settings)
 
+    server.app.add_middleware(
+        CORSMiddleware,
+        allow_origins=[f"http://localhost:{settings.PORT}"],
+        allow_methods=["*"],
+        allow_headers=["*"],
+    )
+
     @server.app.middleware("http")
     async def add_security_headers(request, call_next):  # noqa: ANN001
         response = await call_next(request)
@@ -35,9 +43,15 @@ def main() -> None:
         response.headers[
             "Strict-Transport-Security"
         ] = "max-age=31536000; includeSubDomains"
+        api_host = settings.API_BASE.replace("http://", "").replace("https://", "")
         response.headers[
             "Content-Security-Policy"
-        ] = "default-src 'self'; script-src 'self' 'unsafe-inline' cdn.jsdelivr.net; style-src 'self' 'unsafe-inline' cdn.jsdelivr.net"
+        ] = (
+            "default-src 'self'; "
+            "script-src 'self' 'unsafe-inline' cdn.jsdelivr.net; "
+            "style-src 'self' 'unsafe-inline' cdn.jsdelivr.net; "
+            f"connect-src 'self' {settings.API_BASE} ws://{api_host} wss://{api_host};"
+        )
         return response
 
     logger.info(

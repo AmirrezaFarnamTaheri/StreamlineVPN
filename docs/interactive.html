@@ -427,7 +427,7 @@
         let performanceChart = null;
         
         // Correct API Base URL
-        const API_BASE = 'http://localhost:8000';
+        const API_BASE = `${window.location.protocol}//${window.location.host}`;
         
         // Initialize
         document.addEventListener('DOMContentLoaded', function() {

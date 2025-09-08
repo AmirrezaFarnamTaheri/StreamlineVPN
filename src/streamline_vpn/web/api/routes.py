@@ -5,6 +5,7 @@ API Routes
 FastAPI route definitions for the StreamlineVPN API.
 """
 
+import asyncio
 import json
 import time
 import threading
@@ -48,6 +49,10 @@ _websocket_manager: Optional[WebSocketManager] = None
 _vpn_status_cache: Optional[VPNStatusResponse] = None
 _vpn_status_cache_time: float = 0.0
 _vpn_status_cache_lock = threading.Lock()
+
+# Store job status and tasks
+job_status = {}
+job_tasks = {}
 
 
 def set_auth_service(auth_service: AuthenticationService) -> None:
@@ -154,6 +159,11 @@ def setup_routes(
     ):
         """Get available VPN servers with filtering and pagination."""
         try:
+            if limit <= 0 or limit > 500 or offset < 0:
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail="Invalid pagination parameters",
+                )
             servers = [
                 {
                     "id": f"server-{i}",
@@ -176,6 +186,8 @@ def setup_routes(
             servers = servers[offset : offset + limit]
 
             return {"total": total, "limit": limit, "offset": offset, "servers": servers}
+        except HTTPException:
+            raise
         except Exception as e:  # noqa: BLE001
             logger.error(f"Error fetching servers: {e}")
             raise HTTPException(
@@ -359,6 +371,12 @@ def setup_routes(
     ):
         """Run the VPN configuration pipeline."""
         try:
+            allowed_formats = {"json", "clash", "singbox"}
+            if not formats or any(f not in allowed_formats for f in formats):
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail=f"Invalid formats. Allowed: {', '.join(sorted(allowed_formats))}",
+                )
             if not Path(config_path).exists():
                 raise HTTPException(
                     status_code=status.HTTP_400_BAD_REQUEST,
@@ -367,19 +385,22 @@ def setup_routes(
 
             Path(output_dir).mkdir(parents=True, exist_ok=True)
 
-            import asyncio
             import uuid
 
             job_id = str(uuid.uuid4())
 
             async def run_async():
+                job_status[job_id] = {"status": "running", "progress": 0}
                 try:
                     await run_pipeline_main(config_path, output_dir, formats)
+                    job_status[job_id] = {"status": "completed", "progress": 100}
                     logger.info(f"Pipeline job {job_id} completed successfully")
                 except Exception as e:  # noqa: BLE001
+                    job_status[job_id] = {"status": "failed", "error": str(e)}
                     logger.error(f"Pipeline job {job_id} failed: {e}")
 
-            asyncio.create_task(run_async())
+            task = asyncio.create_task(run_async())
+            job_tasks[job_id] = task
 
             return {
                 "status": "success",
@@ -398,9 +419,10 @@ def setup_routes(
     @app.get("/api/v1/pipeline/status/{job_id}")
     async def get_pipeline_status(job_id: str):
         """Get pipeline job status."""
-        return {
-            "job_id": job_id,
-            "status": "completed",
-            "progress": 100,
-            "message": "Pipeline completed successfully",
-        }
+        status_info = job_status.get(job_id)
+        if not status_info:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Job not found",
+            )
+        return {"job_id": job_id, **status_info}
