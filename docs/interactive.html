@@ -208,8 +208,8 @@
                 <div id="totalConfigs" class="text-3xl font-bold text-white">0</div>
             </div>
             <div class="glass-morphism rounded-xl p-6 hover-lift">
-                <div class="text-white opacity-75 text-sm mb-2">Active Sources</div>
-                <div id="activeSources" class="text-3xl font-bold text-white">0</div>
+                <div class="text-white opacity-75 text-sm mb-2">Successful Sources</div>
+                <div id="successfulSources" class="text-3xl font-bold text-white">0</div>
             </div>
             <div class="glass-morphism rounded-xl p-6 hover-lift">
                 <div class="text-white opacity-75 text-sm mb-2">Success Rate</div>
@@ -510,7 +510,7 @@
         
         function updateStatistics(stats) {
             document.getElementById('totalConfigs').textContent = stats.total_configs || 0;
-            document.getElementById('activeSources').textContent = stats.active_sources || 0;
+            document.getElementById('successfulSources').textContent = stats.successful_sources || 0;
             document.getElementById('successRate').textContent = `${Math.round((stats.success_rate || 0) * 100)}%`;
             document.getElementById('avgQuality').textContent = (stats.avg_quality || 0).toFixed(2);
 
@@ -523,7 +523,7 @@
         function updateWithMockData() {
             const mockStats = {
                 total_configs: 1250,
-                active_sources: 15,
+                successful_sources: 15,
                 success_rate: 0.92,
                 avg_quality: 0.78
             };
