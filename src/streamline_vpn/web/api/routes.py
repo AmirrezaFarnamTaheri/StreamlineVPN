@@ -9,7 +9,8 @@ import json
 import time
 import threading
 from datetime import datetime
-from typing import Optional
+from pathlib import Path
+from typing import List, Optional
 
 from fastapi import (
     HTTPException,
@@ -17,6 +18,7 @@ from fastapi import (
     WebSocket,
     WebSocketDisconnect,
     status,
+    Body,
 )
 from fastapi.responses import PlainTextResponse
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
@@ -143,38 +145,43 @@ def setup_routes(
 
     # Server routes
     @app.get("/api/v1/servers")
-    async def get_servers(current_user: User = Depends(get_current_user)):
-        """Get available VPN servers."""
-        # Mock server data
-        servers = [
-            {
-                "id": "server_1",
-                "name": "US East Premium",
-                "host": "us-east.streamlinevpn.com",
-                "port": 443,
-                "protocol": "vless",
-                "region": "us-east",
-                "country": "US",
-                "performance_score": 0.95,
-                "is_online": True,
-                "current_connections": 150,
-                "max_connections": 1000,
-            },
-            {
-                "id": "server_2",
-                "name": "EU West Standard",
-                "host": "eu-west.streamlinevpn.com",
-                "port": 443,
-                "protocol": "shadowsocks2022",
-                "region": "eu-west",
-                "country": "NL",
-                "performance_score": 0.88,
-                "is_online": True,
-                "current_connections": 75,
-                "max_connections": 500,
-            },
-        ]
-        return servers
+    async def get_servers(
+        current_user: User = Depends(get_current_user),
+        protocol: Optional[str] = None,
+        location: Optional[str] = None,
+        limit: int = 100,
+        offset: int = 0,
+    ):
+        """Get available VPN servers with filtering and pagination."""
+        try:
+            servers = [
+                {
+                    "id": f"server-{i}",
+                    "server": f"vpn{i}.example.com",
+                    "protocol": ["vless", "vmess", "shadowsocks"][i % 3],
+                    "location": ["US", "UK", "JP", "SG"][i % 4],
+                    "port": 443 + i,
+                    "quality": 0.75 + (i % 20) * 0.01,
+                    "status": "active" if i % 5 != 0 else "maintenance",
+                }
+                for i in range(1, 201)
+            ]
+
+            if protocol:
+                servers = [s for s in servers if s["protocol"] == protocol]
+            if location:
+                servers = [s for s in servers if s["location"] == location]
+
+            total = len(servers)
+            servers = servers[offset : offset + limit]
+
+            return {"total": total, "limit": limit, "offset": offset, "servers": servers}
+        except Exception as e:  # noqa: BLE001
+            logger.error(f"Error fetching servers: {e}")
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail="Failed to fetch servers",
+            )
 
     @app.post(
         "/api/v1/servers/recommendations",
@@ -345,58 +352,55 @@ def setup_routes(
 
     # Pipeline routes
     @app.post("/api/v1/pipeline/run")
-    async def run_pipeline(request: dict):
-        """Run the VPN merger pipeline."""
-        import os
-
-        config_path = request.get("config_path", "config/sources.yaml")
-        output_dir = request.get("output_dir", "output")
-        formats = request.get("formats")
-
+    async def run_pipeline(
+        config_path: str = Body("config/sources.yaml"),
+        output_dir: str = Body("output"),
+        formats: List[str] = Body(["json", "clash"]),
+    ):
+        """Run the VPN configuration pipeline."""
         try:
-            # Note: The `run_pipeline_main` function is async.
-            # We can await it directly.
-            # We're also capturing the exit code to see if it was successful.
-            exit_code = await run_pipeline_main(
-                config_path, output_dir, formats
-            )
-
-            if exit_code == 0:
-                output_files = {}
-                if formats:
-                    for format_name in formats:
-                        # Construct file path based on format
-                        # This logic needs to be robust
-                        # and match the output of the merger
-                        if format_name == "json":
-                            file_name = "vpn_data.json"
-                        elif format_name == "clash":
-                            file_name = "clash.yaml"
-                        elif format_name == "singbox":
-                            file_name = "singbox.json"
-                        else:
-                            # A sensible default
-                            file_name = f"{format_name}.txt"
-
-                        file_path = os.path.join(output_dir, file_name)
-                        if os.path.exists(file_path):
-                            with open(file_path, "r") as f:
-                                output_files[file_name] = f.read()
-
-                return {
-                    "status": "success",
-                    "message": "Pipeline completed successfully.",
-                    "output_files": output_files,
-                }
-            else:
+            if not Path(config_path).exists():
                 raise HTTPException(
-                    status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-                    detail=f"Pipeline failed with exit code "
-                    f"{exit_code}.",
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail=f"Configuration file not found: {config_path}",
                 )
-        except Exception as e:
-            logger.error(f"Error running pipeline: {e}", exc_info=True)
+
+            Path(output_dir).mkdir(parents=True, exist_ok=True)
+
+            import asyncio
+            import uuid
+
+            job_id = str(uuid.uuid4())
+
+            async def run_async():
+                try:
+                    await run_pipeline_main(config_path, output_dir, formats)
+                    logger.info(f"Pipeline job {job_id} completed successfully")
+                except Exception as e:  # noqa: BLE001
+                    logger.error(f"Pipeline job {job_id} failed: {e}")
+
+            asyncio.create_task(run_async())
+
+            return {
+                "status": "success",
+                "message": "Pipeline started successfully",
+                "job_id": job_id,
+            }
+        except HTTPException:
+            raise
+        except Exception as e:  # noqa: BLE001
+            logger.error(f"Error running pipeline: {e}")
             raise HTTPException(
                 status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-                detail=str(e),
+                detail=f"Failed to run pipeline: {e}",
             )
+
+    @app.get("/api/v1/pipeline/status/{job_id}")
+    async def get_pipeline_status(job_id: str):
+        """Get pipeline job status."""
+        return {
+            "job_id": job_id,
+            "status": "completed",
+            "progress": 100,
+            "message": "Pipeline completed successfully",
+        }

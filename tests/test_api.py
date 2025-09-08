@@ -29,12 +29,17 @@ def test_run_pipeline_endpoint(client):
     with patch('streamline_vpn.web.api.routes.run_pipeline_main') as mock_run_pipeline:
         mock_run_pipeline.return_value = 0 # Simulate a successful run
 
-        response = client.post("/api/v1/pipeline/run", json={
-            "config_path": "tests/fixtures/test_sources.yaml",
-            "output_dir": "output",
-            "formats": ["json"]
-        })
+        response = client.post(
+            "/api/v1/pipeline/run",
+            json={
+                "config_path": "tests/fixtures/test_sources.yaml",
+                "output_dir": "output",
+                "formats": ["json"],
+            },
+        )
 
         assert response.status_code == 200
-        assert response.json()["status"] == "success"
-        assert "Pipeline completed successfully" in response.json()["message"]
+        data = response.json()
+        assert data["status"] == "success"
+        assert data["message"] == "Pipeline started successfully"
+        assert "job_id" in data
