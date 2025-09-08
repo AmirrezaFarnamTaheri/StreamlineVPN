@@ -13,7 +13,7 @@ from typing import Any, Dict, Optional
 
 import aiofiles
 import httpx
-from fastapi import BackgroundTasks, FastAPI, HTTPException
+from fastapi import BackgroundTasks, FastAPI, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import HTMLResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
@@ -44,6 +44,7 @@ class EnhancedStaticServer:
         self.last_update: Optional[datetime] = None
         self.cached_data: Dict[str, Any] = {}
         self.update_task: Optional[asyncio.Task] = None
+        self.backend_client = httpx.AsyncClient(timeout=30.0)
 
     def _create_app(self) -> FastAPI:
         """Create enhanced FastAPI application."""
@@ -65,7 +66,19 @@ class EnhancedStaticServer:
 
         @app.on_event("startup")
         async def startup_event() -> None:
-            logger.info("Starting auto-update task...")
+            """Initialize backend connection and start auto-update."""
+            logger.info("Starting enhanced static server...")
+            try:
+                resp = await self.backend_client.get(f"{self.api_base}/health")
+                if resp.status_code == 200:
+                    logger.info("Backend connection successful")
+                else:
+                    logger.warning(
+                        "Backend health returned status %s", resp.status_code
+                    )
+            except Exception as exc:  # pragma: no cover
+                logger.warning("Backend not available: %s", exc)
+
             self.update_task = asyncio.create_task(self._auto_update_loop())
             await self._perform_update()
 
@@ -73,31 +86,40 @@ class EnhancedStaticServer:
         async def shutdown_event() -> None:
             if self.update_task:
                 self.update_task.cancel()
+            await self.backend_client.aclose()
 
         @app.get("/api/status")
         async def get_status() -> JSONResponse:
-            return JSONResponse(
-                {
-                    "status": "online",
-                    "last_update": (
-                        self.last_update.isoformat()
-                        if self.last_update
-                        else None
-                    ),
-                    "next_update": (
-                        (
-                            self.last_update
+            try:
+                stats_response = await self.backend_client.get(
+                    f"{self.api_base}/api/v1/statistics"
+                )
+                stats = (
+                    stats_response.json()
+                    if stats_response.status_code == 200
+                    else {}
+                )
+                return JSONResponse(
+                    {
+                        "status": "online",
+                        "backend_status": "connected" if stats else "disconnected",
+                        "last_update": self.cached_data.get("last_update"),
+                        "next_update": (
+                            datetime.now()
                             + timedelta(seconds=self.update_interval)
-                        ).isoformat()
-                        if self.last_update
-                        else None
-                    ),
-                    "cached_configs": len(
-                        self.cached_data.get("configurations", [])
-                    ),
-                    "auto_update_enabled": self.update_task is not None,
-                }
-            )
+                        ).isoformat(),
+                        "statistics": stats,
+                        "cached_configs": len(
+                            self.cached_data.get("configurations", [])
+                        ),
+                        "auto_update_enabled": self.update_task is not None,
+                    }
+                )
+            except Exception as exc:  # pragma: no cover
+                logger.error("Error getting status: %s", exc)
+                return JSONResponse(
+                    {"status": "error", "error": str(exc)}, status_code=503
+                )
 
         @app.get("/api/configurations")
         async def get_configurations() -> JSONResponse:
@@ -171,6 +193,45 @@ class EnhancedStaticServer:
                 )
             raise HTTPException(status_code=400, detail="Invalid format")
 
+        @app.api_route("/api/{path:path}", methods=["GET", "POST", "PUT", "DELETE", "PATCH"])
+        async def proxy_api(path: str, request: Request):
+            """Proxy unknown API requests to the backend service."""
+            try:
+                backend_url = f"{self.api_base}/api/{path}"
+                body = (
+                    await request.body()
+                    if request.method in {"POST", "PUT", "PATCH"}
+                    else None
+                )
+                response = await self.backend_client.request(
+                    method=request.method,
+                    url=backend_url,
+                    headers={
+                        k: v
+                        for k, v in request.headers.items()
+                        if k.lower() != "host"
+                    },
+                    params=dict(request.query_params),
+                    content=body,
+                )
+                content_type = response.headers.get("content-type", "")
+                if content_type.startswith("application/json"):
+                    return JSONResponse(
+                        response.json(),
+                        status_code=response.status_code,
+                        headers=dict(response.headers),
+                    )
+                return HTMLResponse(
+                    response.text,
+                    status_code=response.status_code,
+                    headers=dict(response.headers),
+                )
+            except httpx.RequestError as exc:  # pragma: no cover - network
+                logger.error("Proxy request failed: %s", exc)
+                raise HTTPException(
+                    status_code=503, detail="Backend service unavailable"
+                )
+
         app.mount(
             "/",
             StaticFiles(directory=str(self.static_dir), html=True),
@@ -179,32 +240,54 @@ class EnhancedStaticServer:
         return app
 
     async def _perform_update(self) -> None:
-        """Perform data update from backend services."""
+        """Trigger backend pipeline run and refresh cached data."""
         try:
-            async with httpx.AsyncClient(timeout=30) as client:
-                try:
-                    configs_response = await client.get(
-                        f"{self.api_base}/api/configs"
-                    )
-                    configs_response.raise_for_status()
-                    self.cached_data["configurations"] = (
-                        configs_response.json()
-                    )
-                except (httpx.RequestError, json.JSONDecodeError) as exc:
-                    logger.error("Failed to fetch configurations: %s", exc)
+            logger.info("Starting auto-update...")
+            response = await self.backend_client.post(
+                f"{self.api_base}/api/v1/pipeline/run",
+                json={
+                    "config_path": "config/sources.unified.yaml",
+                    "output_dir": "output",
+                    "formats": ["json", "clash", "singbox", "base64"],
+                },
+            )
 
-                try:
-                    stats_response = await client.get(
-                        f"{self.api_base}/api/statistics"
+            if response.status_code == 200:
+                job_id = response.json().get("job_id")
+                for _ in range(60):
+                    await asyncio.sleep(5)
+                    status_resp = await self.backend_client.get(
+                        f"{self.api_base}/api/v1/pipeline/status/{job_id}"
                     )
-                    stats_response.raise_for_status()
-                    self.cached_data["statistics"] = stats_response.json()
-                except (httpx.RequestError, json.JSONDecodeError) as exc:
-                    logger.error("Failed to fetch statistics: %s", exc)
+                    if status_resp.status_code != 200:
+                        continue
+                    status_data = status_resp.json()
+                    if status_data.get("status") == "completed":
+                        configs_resp = await self.backend_client.get(
+                            f"{self.api_base}/api/v1/configurations"
+                        )
+                        if configs_resp.status_code == 200:
+                            self.cached_data["configurations"] = (
+                                configs_resp.json().get("configurations", [])
+                            )
+                        stats_resp = await self.backend_client.get(
+                            f"{self.api_base}/api/v1/statistics"
+                        )
+                        if stats_resp.status_code == 200:
+                            self.cached_data["statistics"] = stats_resp.json()
+                        self.cached_data["last_update"] = datetime.now().isoformat()
+                        break
+                    if status_data.get("status") == "failed":
+                        logger.error(
+                            "Auto-update failed: %s", status_data.get("error")
+                        )
+                        break
+            else:
+                logger.error(
+                    "Failed to start auto-update: %s", response.status_code
+                )
 
             self.last_update = datetime.now()
-            logger.info("Data updated successfully at %s", self.last_update)
-
             cache_file = self.static_dir / "cache.json"
             async with aiofiles.open(cache_file, "w") as f:
                 await f.write(
@@ -216,7 +299,7 @@ class EnhancedStaticServer:
                         indent=2,
                     )
                 )
-        except Exception as exc:
+        except Exception as exc:  # pragma: no cover
             logger.error("Update failed: %s", exc)
 
     async def _auto_update_loop(self) -> None:

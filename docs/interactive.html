@@ -493,17 +493,15 @@
             });
         }
         
-        // Load statistics with mock data fallback
+        // Load statistics with backend data
         async function loadStatistics() {
             try {
-                const response = await fetch(`${API_BASE}/api/v1/status`);
-                if (response.ok) {
-                    const stats = await response.json();
-                    updateStatistics(stats);
-                } else {
-                    // Use mock data if API is not available
-                    updateWithMockData();
+                const response = await fetch(`${API_BASE}/api/v1/statistics`);
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
                 }
+                const stats = await response.json();
+                updateStatistics(stats);
             } catch (error) {
                 console.error('Failed to load statistics:', error);
                 updateWithMockData();
@@ -649,15 +647,19 @@
             loadStatistics();
         }
         
-        // Load configurations with mock data
+        // Load configurations from backend
         async function loadConfigurations() {
-            // Mock configuration data
-            configurations = [
-                { id: '1', protocol: 'vless', server: 'server1.example.com', port: 443, quality_score: 0.95, network: 'ws', tls: true },
-                { id: '2', protocol: 'vmess', server: 'server2.example.com', port: 443, quality_score: 0.82, network: 'tcp', tls: true },
-                { id: '3', protocol: 'trojan', server: 'server3.example.com', port: 443, quality_score: 0.68, network: 'ws', tls: true },
-                { id: '4', protocol: 'shadowsocks', server: 'server4.example.com', port: 8388, quality_score: 0.45, network: 'tcp', tls: false }
-            ];
+            try {
+                const response = await fetch(`${API_BASE}/api/v1/configurations?limit=1000`);
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                const data = await response.json();
+                configurations = data.configurations || [];
+            } catch (error) {
+                console.error('Failed to load configurations:', error);
+                configurations = [];
+            }
             renderConfigurations();
         }
         
@@ -705,7 +707,7 @@
         // Load sources with mock data
 async function loadSources() {
     try {
-        const response = await fetch(`${API_BASE}/api/sources`);
+        const response = await fetch(`${API_BASE}/api/v1/sources`);
         if (response.ok) {
             const data = await response.json();
             sources = data.sources || [];
