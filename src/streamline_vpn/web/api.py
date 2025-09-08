@@ -98,9 +98,9 @@ def create_app() -> FastAPI:
     async def validation_exception_handler(
         request, exc: RequestValidationError
     ) -> JSONResponse:
-        """Return HTTP 400 instead of 422 for validation errors with clearer messages."""
+        """Return HTTP 400 for validation errors with clearer messages."""
         unsupported: List[str] = []
-        for err in exc.errors():
+        for err in exc.errors()[:20]:
             loc = err.get("loc", [])
             if "formats" in loc:
                 val = err.get("ctx", {}).get("enum_values") or err.get("input")
@@ -109,12 +109,16 @@ def create_app() -> FastAPI:
                 elif val is not None:
                     unsupported.append(str(val))
         if unsupported:
-            detail = f"Unsupported formats: {', '.join(unsupported)}"
+            detail = f"Unsupported formats: {', '.join(unsupported[:10])}"
         else:
-            detail = "; ".join(
-                f"{'.'.join(map(str, e.get('loc', [])))}: {e.get('msg')}"
-                for e in exc.errors()
-            )
+            parts = []
+            for e in exc.errors()[:20]:
+                loc_str = ".".join(map(str, e.get("loc", [])))
+                msg = e.get("msg", "invalid")
+                parts.append(f"{loc_str}: {msg}")
+            detail = "; ".join(parts)
+            if len(detail) > 1024:
+                detail = detail[:1021] + "..."
         return JSONResponse(status_code=400, content={"detail": detail})
 
     @app.on_event("startup")
@@ -129,7 +133,7 @@ def create_app() -> FastAPI:
         if task:
             task.cancel()
             try:
-                await asyncio.wait_for(task, timeout=2)
+                await asyncio.wait_for(asyncio.shield(task), timeout=2)
             except asyncio.TimeoutError:  # pragma: no cover - timeout guard
                 pass
             except BaseException:  # pragma: no cover - cancellation only
@@ -388,7 +392,9 @@ def create_app() -> FastAPI:
             if not config_file.exists():
                 raise HTTPException(
                     status_code=status.HTTP_404_NOT_FOUND,
-                    detail=f"Configuration file not found: {request.config_path}",
+                    detail=(
+                        f"Configuration file not found: {request.config_path}"
+                    ),
                 )
 
             Path(request.output_dir).mkdir(parents=True, exist_ok=True)
@@ -515,7 +521,7 @@ def create_app() -> FastAPI:
         if min_quality > 0:
             configs = [c for c in configs if c.quality_score >= min_quality]
         total = len(configs)
-        configs = configs[offset : offset + limit]
+        configs = configs[offset:offset + limit]
         return {
             "total": total,
             "limit": limit,

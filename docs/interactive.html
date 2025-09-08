@@ -570,12 +570,15 @@
         // Start processing
         async function startProcessing() {
             const configPath = document.getElementById('configPath').value;
-            const selected = Array.from(document.querySelectorAll('.output-format:checked')).map(cb => OutputFormat[cb.value]);
-            const formats = selected.filter(v => typeof v === 'string');
-            if (formats.length !== selected.length) {
+            const selected = Array.from(
+                document.querySelectorAll('.output-format:checked')
+            ).map(cb => OutputFormat[cb.value]);
+            const formatsRaw = selected.filter(v => typeof v === 'string');
+            if (formatsRaw.length !== selected.length) {
                 addTerminalLine('One or more selected formats are not supported', 'error');
                 return;
             }
+            const formats = Array.from(new Set(formatsRaw));
             if (formats.length === 0) {
                 addTerminalLine('Please select at least one output format', 'warning');
                 return;
@@ -676,6 +679,7 @@
                     if (!resp.ok) throw new Error(`HTTP error! status: ${resp.status}`);
                     const data = await resp.json();
                     const configs = (data && Array.isArray(data.configurations)) ? data.configurations : [];
+                    if (configs.length === 0) break;
                     all = all.concat(configs);
                     if (total === null && typeof data.total === 'number') total = data.total;
                     offset += configs.length;

@@ -88,8 +88,10 @@ class EnhancedStaticServer:
             if self.update_task:
                 self.update_task.cancel()
                 try:
-                    await self.update_task
-                except asyncio.CancelledError:
+                    await asyncio.wait_for(
+                        asyncio.shield(self.update_task), timeout=2
+                    )
+                except (asyncio.TimeoutError, asyncio.CancelledError):
                     pass
             await self.backend_client.aclose()
 
@@ -241,8 +243,6 @@ class EnhancedStaticServer:
                 fwd_headers.setdefault("x-forwarded-proto", request.url.scheme)
                 orig_host = request.headers.get("host", "")
                 fwd_headers.setdefault("x-forwarded-host", orig_host)
-                if orig_host:
-                    fwd_headers.setdefault("host", orig_host)
 
                 response = await self.backend_client.request(
                     method=request.method,
