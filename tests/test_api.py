@@ -43,3 +43,27 @@ def test_run_pipeline_endpoint(client):
         assert data["status"] == "success"
         assert data["message"] == "Pipeline started successfully"
         assert "job_id" in data
+
+
+def test_process_unknown_formats_rejected(client):
+    """Unknown output formats should return a 400 error."""
+    response = client.post(
+        "/api/process",
+        json={"formats": ["json", "invalid"]},
+    )
+    assert response.status_code == 400
+    data = response.json()
+    assert "Unknown formats" in data["detail"]
+
+
+def test_get_sources_invalid_yaml(client, tmp_path, monkeypatch, caplog):
+    """Malformed YAML should be logged and return a generic error."""
+    bad_config = tmp_path / "sources.yaml"
+    bad_config.write_text(":\n- bad")
+    monkeypatch.setenv("APP_CONFIG_PATH", str(bad_config))
+    with caplog.at_level("ERROR"):
+        response = client.get("/api/sources")
+    assert response.status_code == 400
+    assert response.json()["detail"] == "Invalid YAML format in sources configuration"
+    assert "Failed to parse sources.yaml" in caplog.text
+
