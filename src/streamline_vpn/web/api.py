@@ -408,7 +408,7 @@ def create_app() -> FastAPI:
         )
         return {
             "total_configs": stats.get("total_configs", 0),
-            "active_sources": stats.get("successful_sources", 0),
+            "successful_sources": stats.get("successful_sources", 0),
             "success_rate": stats.get("success_rate", 0.0),
             "avg_quality": avg_quality,
             "last_update": stats.get("end_time"),
