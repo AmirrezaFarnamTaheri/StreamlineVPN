@@ -538,7 +538,7 @@
             document.getElementById('processingResults').classList.add('hidden');
             
             try {
-                const response = await fetch(`${API_BASE}/api/v1/process`, {
+                const response = await fetch(`${API_BASE}/api/v1/pipeline/run`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
@@ -743,10 +743,18 @@
         async function testConnection() {
             addTerminalLine('Testing API connection...', 'info');
             try {
-                const response = await fetch(`${API_BASE}/api/v1/health`);
+                const response = await fetch(`${API_BASE}/health`);
                 if (response.ok) {
-                    const data = await response.json();
-                    addTerminalLine(`Connection successful! API Version: ${data.version || '2.0.0'}`, 'success');
+                    let version = '2.0.0';
+                    const contentType = response.headers.get('content-type') || '';
+                    if (contentType.includes('application/json')) {
+                        const data = await response.json();
+                        version = data.version || version;
+                    } else {
+                        // consume body to avoid unhandled promise and ignore plain-text
+                        await response.text();
+                    }
+                    addTerminalLine(`Connection successful! API Version: ${version}`, 'success');
                     document.getElementById('connectionStatus').innerHTML = `
                         <span class="status-indicator status-running"></span>
                         <span class="text-white">Connected</span>

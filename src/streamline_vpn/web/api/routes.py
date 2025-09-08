@@ -259,8 +259,8 @@ def setup_routes(
 
     # Status routes
     @app.get("/api/v1/status", response_model=VPNStatusResponse)
-    async def get_vpn_status(current_user: User = Depends(get_current_user)):
-        """Get VPN status."""
+    async def get_vpn_status():
+        """Get VPN status without authentication."""
         return VPNStatusResponse(
             connected=True,
             server={
