@@ -617,10 +617,15 @@
                 const result = await response.json();
 
                 if (result.status === 'success') {
-                    addTerminalLine('Processing completed successfully!', 'success');
-                    addTerminalLine(`Job ID: ${result.job_id || 'N/A'}`, 'info');
-                    await loadStatistics();
-                    showNotification('Processing completed successfully!', 'success');
+                    const jobId = result.job_id || null;
+                    addTerminalLine('Pipeline started successfully!', 'success');
+                    if (jobId) {
+                        addTerminalLine(`Job ID: ${jobId}`, 'info');
+                        await monitorJobProgress(jobId);
+                    } else {
+                        addTerminalLine('No job id returned. Fetching statistics...', 'warning');
+                        await loadStatistics();
+                    }
                 } else {
                     throw new Error(result.message || 'Processing failed');
                 }
@@ -632,6 +637,64 @@
                 processBtn.disabled = false;
                 processBtn.innerHTML = originalText;
             }
+        }
+
+        // Monitor job progress with polling
+        async function monitorJobProgress(jobId) {
+            const maxAttempts = 120; // ~10 minutes
+            let attempts = 0;
+            showProgressContainer();
+
+            return new Promise((resolve) => {
+                const timer = setInterval(async () => {
+                    attempts += 1;
+                    try {
+                        const resp = await fetch(`${API_BASE}/api/v1/pipeline/status/${jobId}`);
+                        if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+                        const data = await resp.json();
+                        const progress = typeof data.progress === 'number' ? data.progress : 0;
+                        const message = data.message || data.status || '';
+                        updateProgressDisplay(progress, message);
+
+                        if (data.status === 'completed') {
+                            clearInterval(timer);
+                            addTerminalLine('Processing completed successfully!', 'success');
+                            showNotification('Processing completed!', 'success');
+                            loadStatistics();
+                            resolve();
+                        } else if (data.status === 'failed') {
+                            clearInterval(timer);
+                            const errText = data.error || 'Unknown error';
+                            addTerminalLine(`Processing failed: ${errText}`, 'error');
+                            showNotification('Processing failed', 'error');
+                            resolve();
+                        } else if (attempts >= maxAttempts) {
+                            clearInterval(timer);
+                            addTerminalLine('Processing timeout - job may still be running', 'warning');
+                            showNotification('Processing timeout', 'warning');
+                            resolve();
+                        }
+                    } catch (e) {
+                        if (attempts % 3 === 0) {
+                            addTerminalLine(`Progress check error: ${e.message}`, 'warning');
+                        }
+                    }
+                }, 5000);
+            });
+        }
+
+        function showProgressContainer() {
+            const status = document.getElementById('processingStatus');
+            if (status) status.classList.remove('hidden');
+            updateProgressDisplay(0, 'Starting...');
+        }
+
+        function updateProgressDisplay(progress, message) {
+            const progressEl = document.getElementById('processingProgress');
+            const barEl = document.getElementById('progressBar');
+            if (progressEl) progressEl.textContent = `${Math.max(0, Math.min(100, progress))}%`;
+            if (barEl) barEl.style.width = `${Math.max(0, Math.min(100, progress))}%`;
+            if (message) addTerminalLine(message, 'info');
         }
 
         function showNotification(message, type = 'info') {

@@ -4,49 +4,85 @@
 version: '3.8'
 
 services:
-  vpn-merger:
-    build: 
+  api:
+    build:
       context: .
       dockerfile: Dockerfile
-    container_name: vpn-merger
+    container_name: streamline-api
     ports:
-      - "8000:8000"  # Main API endpoint
-      - "8001:8001"  # Metrics and monitoring endpoint
-    volumes:
-      - ./output:/app/output:rw      # Output files
-      - ./config:/app/config:ro      # Configuration files (read-only)
-      - ./logs:/app/logs:rw          # Log files
+      - "8080:8080"
     environment:
-      # Monitoring configuration
-      - VPN_MERGER_MONITORING__ENABLE_DASHBOARD=true
-      - VPN_MERGER_MONITORING__ENABLE_METRICS=true
-      - VPN_MERGER_MONITORING__ENABLE_TRACING=true
-      
-      # Dashboard security
-      - DASHBOARD_TOKEN=${DASHBOARD_TOKEN:-default_token}
-      
-      # Application settings
-      - PYTHONUNBUFFERED=1
-      - VPN_MERGER_ENVIRONMENT=production
-      - VPN_MERGER_LOG_LEVEL=INFO
-      
-      # Network settings
-      - VPN_MERGER_MAX_CONCURRENT=50
-      - VPN_MERGER_TIMEOUT=30
+      - HOST=0.0.0.0
+      - API_PORT=8080
+      - REDIS_URL=redis://redis:6379/0
+      - DATABASE_URL=postgresql://streamline:password@postgres:5432/streamline
+    volumes:
+      - ./config:/app/config:ro
+      - ./output:/app/output
+      - ./logs:/app/logs
+    command: python run_server.py
+    depends_on:
+      - redis
+      - postgres
     restart: unless-stopped
-    healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:${API_PORT:-8000}/api/v1/health"]
-      interval: 30s
-      timeout: 5s
-      retries: 3
-      start_period: 10s
     networks:
-      - vpn-merger-network
-    depends_on: []
+      - streamline-network
+
+  web:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: streamline-web
+    ports:
+      - "8000:8000"
+    environment:
+      - HOST=0.0.0.0
+      - WEB_PORT=8000
+      - API_PORT=8080
+      - API_BASE=http://api:8080
+    volumes:
+      - ./docs:/app/docs:ro
+      - ./output:/app/output:ro
+    command: python run_web.py
+    depends_on:
+      - api
+    restart: unless-stopped
+    networks:
+      - streamline-network
+
+  redis:
+    image: redis:7-alpine
+    container_name: streamline-redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis-data:/data
+    restart: unless-stopped
+    networks:
+      - streamline-network
+
+  postgres:
+    image: postgres:15-alpine
+    container_name: streamline-postgres
+    environment:
+      - POSTGRES_DB=streamline
+      - POSTGRES_USER=streamline
+      - POSTGRES_PASSWORD=password
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+      - ./scripts/init.sql:/docker-entrypoint-initdb.d/init.sql:ro
+    restart: unless-stopped
+    networks:
+      - streamline-network
+
+volumes:
+  redis-data:
+  postgres-data:
 
 networks:
-  vpn-merger-network:
+  streamline-network:
     driver: bridge
-    name: vpn-merger-network
 
 

@@ -14,7 +14,7 @@ import yaml
 import ipaddress
 from datetime import datetime
 from pathlib import Path
-from typing import List, Optional
+from typing import List, Optional, Dict, Any
 from urllib.parse import urlsplit, urlunsplit
 
 from fastapi import (
@@ -29,6 +29,8 @@ from fastapi.responses import PlainTextResponse
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 
 from ...__main__ import main as run_pipeline_main
+from ...core.source_manager import SourceManager
+from ...core.merger import StreamlineVPNMerger
 from ...utils.logging import get_logger
 from .auth import AuthenticationService
 from .models import (
@@ -55,8 +57,12 @@ _vpn_status_cache_time: float = 0.0
 _vpn_status_cache_lock = threading.Lock()
 
 # Store job status and tasks
-job_status = {}
-job_tasks = {}
+job_status: Dict[str, Dict[str, Any]] = {}
+job_tasks: Dict[str, Any] = {}
+
+# Lazy-initialized managers
+_source_manager: Optional[SourceManager] = None
+_merger_for_stats: Optional[StreamlineVPNMerger] = None
 
 
 def find_config_path() -> Path | None:
@@ -76,6 +82,22 @@ def find_config_path() -> Path | None:
     if package_path.is_file():
         return package_path
     return None
+
+
+def _get_source_manager() -> SourceManager:
+    global _source_manager
+    if _source_manager is None:
+        cfg = find_config_path() or Path("config/sources.yaml")
+        _source_manager = SourceManager(str(cfg))
+    return _source_manager
+
+
+def _get_merger_for_stats() -> StreamlineVPNMerger:
+    global _merger_for_stats
+    if _merger_for_stats is None:
+        cfg = find_config_path() or Path("config/sources.yaml")
+        _merger_for_stats = StreamlineVPNMerger(config_path=str(cfg))
+    return _merger_for_stats
 
 
 def is_ipv6_address(host: str) -> bool:
@@ -204,18 +226,45 @@ def setup_routes(
     @app.get("/api/statistics")
     async def get_statistics():
         """Get processing statistics."""
-        return {
-            "sources_processed": 100,
-            "configurations_found": 5000,
-            "success_rate": 0.95,
-            "avg_response_time": 2.5,
-        }
+        try:
+            sm = _get_source_manager()
+            source_stats = sm.get_source_statistics()
+            return {
+                "total_configs": 0,
+                "successful_sources": source_stats.get("active_sources", 0),
+                "success_rate": min(
+                    1.0,
+                    max(0.0, source_stats.get("average_reputation", 0.0)),
+                ),
+                "avg_quality": source_stats.get("average_reputation", 0.0),
+            }
+        except Exception as e:  # noqa: BLE001
+            logger.error("Failed to provide statistics: %s", e)
+            return {
+                "total_configs": 0,
+                "successful_sources": 0,
+                "success_rate": 0.0,
+                "avg_quality": 0.0,
+            }
+
+    # Mirror statistics on v1 namespace
+    @app.get("/api/v1/statistics")
+    async def get_statistics_v1():
+        return await get_statistics()
 
     @app.get("/api/configurations")
     async def get_configurations():
         """Get processed configurations."""
         # Return actual configurations from database or cache
         return []
+
+    # v1 configurations endpoint with simple pagination contract
+    @app.get("/api/v1/configurations")
+    async def get_configurations_v1(limit: int = 100, offset: int = 0):
+        if limit < 1 or limit > 1000 or offset < 0:
+            raise HTTPException(status_code=400, detail="Invalid pagination")
+        # TODO: integrate with storage when available
+        return {"total": 0, "limit": limit, "offset": offset, "configurations": []}
 
     @app.get("/api/sources")
     async def get_sources():
@@ -701,3 +750,93 @@ def setup_routes(
                 detail="Job not found",
             )
         return {"job_id": job_id, **status_info}
+
+    # Expanded pipeline.run to support more formats and job progress messages
+    @app.post("/api/v1/pipeline/run")
+    async def run_pipeline_v1(
+        config_path: str = Body("config/sources.yaml"),
+        output_dir: str = Body("output"),
+        formats: List[str] = Body(["json", "clash", "singbox", "base64", "raw", "csv"]),
+    ):
+        """Run the VPN configuration pipeline (v1)."""
+        try:
+            allowed_formats = {"json", "clash", "singbox", "base64", "raw", "csv"}
+            norm_formats = [str(f).strip().lower() for f in formats or []]
+            invalid = [f for f in norm_formats if f not in allowed_formats]
+            if not norm_formats or invalid:
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail=(
+                        ("Invalid formats: " + ", ".join(sorted(set(invalid))) + ". ") if invalid else ""
+                    )
+                    + "Allowed: "
+                    + ", ".join(sorted(allowed_formats)),
+                )
+            if not Path(config_path).exists():
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail=f"Configuration file not found: {config_path}",
+                )
+
+            Path(output_dir).mkdir(parents=True, exist_ok=True)
+
+            import uuid
+
+            job_id = str(uuid.uuid4())
+            job_status[job_id] = {"status": "queued", "progress": 0, "message": "Job queued"}
+
+            async def run_async():
+                job_status[job_id] = {"status": "running", "progress": 5, "message": "Starting pipeline"}
+                try:
+                    # Delegate to main pipeline entry
+                    await run_pipeline_main(config_path, output_dir, norm_formats)
+                    job_status[job_id] = {
+                        "status": "completed",
+                        "progress": 100,
+                        "message": "Pipeline completed",
+                    }
+                    logger.info("Pipeline job %s completed successfully", job_id)
+                except Exception as e:  # noqa: BLE001
+                    job_status[job_id] = {
+                        "status": "failed",
+                        "error": str(e),
+                        "message": "Pipeline failed",
+                    }
+                    logger.error("Pipeline job %s failed: %s", job_id, e)
+
+            task = asyncio.create_task(run_async())
+            job_tasks[job_id] = task
+
+            return {
+                "status": "success",
+                "message": "Pipeline started successfully",
+                "job_id": job_id,
+            }
+        except HTTPException:
+            raise
+        except Exception as e:  # noqa: BLE001
+            logger.error(f"Error running pipeline (v1): {e}")
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail=f"Failed to run pipeline: {e}",
+            )
+
+    # Sources v1 endpoints
+    @app.post("/api/v1/sources/add")
+    async def add_source(request: Dict[str, Any] = Body(...)):
+        try:
+            url = (request.get("url") or "").strip()
+            if not url:
+                raise HTTPException(status_code=400, detail="'url' is required")
+            sm = _get_source_manager()
+            metadata = await sm.add_source(url)
+            return {
+                "message": "Source added",
+                "url": metadata.url,
+                "tier": metadata.tier.value,
+            }
+        except ValueError as ve:
+            raise HTTPException(status_code=400, detail=str(ve))
+        except Exception as e:  # noqa: BLE001
+            logger.error("Failed to add source: %s", e)
+            raise HTTPException(status_code=500, detail="Failed to add source")
