@@ -151,7 +151,15 @@ VAULT_URL=https://vault.example.com
 # Monitoring
 PROMETHEUS_PORT=9090
 GRAFANA_PORT=3000
+
+# CORS
+ALLOWED_ORIGINS=https://example.com,https://dashboard.example.com
+ALLOWED_METHODS=GET,POST
+ALLOWED_HEADERS=Content-Type
+ALLOW_CREDENTIALS=false
 ```
+
+The CORS variables allow restricting which origins can interact with the API and static server.
 
 ### Configuration Files
 

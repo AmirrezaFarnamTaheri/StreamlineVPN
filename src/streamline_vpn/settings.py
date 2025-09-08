@@ -7,11 +7,11 @@ overrides at runtime without code changes.
 """
 
 from __future__ import annotations
-from pydantic import Field
 
 from functools import lru_cache
 from typing import Dict, List
 
+from pydantic import Field
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -116,6 +116,12 @@ class Settings(BaseSettings):
         "hysteria2://",
         "tuic://",
     ]
+
+    # CORS settings
+    allowed_origins: List[str] = ["*"]
+    allowed_methods: List[str] = ["GET", "POST"]
+    allowed_headers: List[str] = ["Content-Type"]
+    allow_credentials: bool = False
 
     model_config = SettingsConfigDict(
         env_file=".env", env_nested_delimiter="__"

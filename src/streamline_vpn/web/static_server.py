@@ -56,10 +56,10 @@ class EnhancedStaticServer:
 
         app.add_middleware(
             CORSMiddleware,
-            allow_origins=["*"],
-            allow_credentials=False,
-            allow_methods=["*"],
-            allow_headers=["*"],
+            allow_origins=self.settings.ALLOWED_ORIGINS,
+            allow_credentials=self.settings.ALLOW_CREDENTIALS,
+            allow_methods=self.settings.ALLOWED_METHODS,
+            allow_headers=self.settings.ALLOWED_HEADERS,
         )
 
         self.static_dir.mkdir(parents=True, exist_ok=True)
@@ -102,7 +102,9 @@ class EnhancedStaticServer:
                 return JSONResponse(
                     {
                         "status": "online",
-                        "backend_status": "connected" if stats else "disconnected",
+                        "backend_status": (
+                            "connected" if stats else "disconnected"
+                        ),
                         "last_update": self.cached_data.get("last_update"),
                         "next_update": (
                             datetime.now()
@@ -193,7 +195,10 @@ class EnhancedStaticServer:
                 )
             raise HTTPException(status_code=400, detail="Invalid format")
 
-        @app.api_route("/api/{path:path}", methods=["GET", "POST", "PUT", "DELETE", "PATCH"])
+        @app.api_route(
+            "/api/{path:path}",
+            methods=["GET", "POST", "PUT", "DELETE", "PATCH"],
+        )
         async def proxy_api(path: str, request: Request):
             """Proxy unknown API requests to the backend service."""
             try:
@@ -224,10 +229,14 @@ class EnhancedStaticServer:
                 if client_host:
                     existing_xff = fwd_headers.get("x-forwarded-for", "")
                     fwd_headers["x-forwarded-for"] = (
-                        f"{existing_xff}, {client_host}" if existing_xff else client_host
+                        f"{existing_xff}, {client_host}"
+                        if existing_xff
+                        else client_host
                     )
                 fwd_headers.setdefault("x-forwarded-proto", request.url.scheme)
-                fwd_headers.setdefault("x-forwarded-host", request.headers.get("host", ""))
+                fwd_headers.setdefault(
+                    "x-forwarded-host", request.headers.get("host", "")
+                )
 
                 response = await self.backend_client.request(
                     method=request.method,
@@ -303,7 +312,9 @@ class EnhancedStaticServer:
                         )
                         if stats_resp.status_code == 200:
                             self.cached_data["statistics"] = stats_resp.json()
-                        self.cached_data["last_update"] = datetime.now().isoformat()
+                        self.cached_data["last_update"] = (
+                            datetime.now().isoformat()
+                        )
                         break
                     if status_data.get("status") == "failed":
                         logger.error(
@@ -345,6 +356,7 @@ class EnhancedStaticServer:
 
 if __name__ == "__main__":  # pragma: no cover - manual run only
     import uvicorn
+
     from .settings import settings
 
     server = EnhancedStaticServer(settings)

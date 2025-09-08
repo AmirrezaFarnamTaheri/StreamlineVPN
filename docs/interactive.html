@@ -296,19 +296,19 @@
                         <label class="text-white text-sm font-medium mb-2 block">Output Formats</label>
                         <div class="flex flex-wrap gap-3">
                             <label class="flex items-center text-white">
-                                <input type="checkbox" value="json" checked class="mr-2 output-format">
+                                <input type="checkbox" value="JSON" checked class="mr-2 output-format">
                                 JSON
                             </label>
                             <label class="flex items-center text-white">
-                                <input type="checkbox" value="clash" checked class="mr-2 output-format">
+                                <input type="checkbox" value="CLASH" checked class="mr-2 output-format">
                                 Clash
                             </label>
                             <label class="flex items-center text-white">
-                                <input type="checkbox" value="singbox" checked class="mr-2 output-format">
+                                <input type="checkbox" value="SINGBOX" checked class="mr-2 output-format">
                                 Singbox
                             </label>
                             <label class="flex items-center text-white">
-                                <input type="checkbox" value="base64" class="mr-2 output-format">
+                                <input type="checkbox" value="BASE64" class="mr-2 output-format">
                                 Base64
                             </label>
                         </div>
@@ -412,6 +412,16 @@
         // Dynamic API base URL configuration
         const API_BASE = window.API_BASE ||
             `${window.location.protocol}//${window.location.hostname}:${window.location.port === '8000' ? '8080' : (window.location.port || (window.location.protocol === 'https:' ? '443' : '80'))}`;
+
+        // Enum mirroring backend OutputFormat values
+        const OutputFormat = Object.freeze({
+            RAW: 'raw',
+            BASE64: 'base64',
+            JSON: 'json',
+            CSV: 'csv',
+            CLASH: 'clash',
+            SINGBOX: 'singbox'
+        });
         
         // Initialize
         document.addEventListener('DOMContentLoaded', function() {
@@ -557,7 +567,7 @@
         // Start processing
         async function startProcessing() {
             const configPath = document.getElementById('configPath').value;
-            const formats = Array.from(document.querySelectorAll('.output-format:checked')).map(cb => cb.value);
+            const formats = Array.from(document.querySelectorAll('.output-format:checked')).map(cb => OutputFormat[cb.value]);
 
             if (formats.length === 0) {
                 addTerminalLine('Please select at least one output format', 'warning');
