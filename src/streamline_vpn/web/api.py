@@ -7,8 +7,9 @@ FastAPI-based REST API for StreamlineVPN.
 
 import os
 import uuid
+import asyncio
 from pathlib import Path
-from datetime import datetime
+from datetime import datetime, timedelta
 from typing import Any, Dict, List, Optional
 
 from fastapi import APIRouter, BackgroundTasks, Body, FastAPI, HTTPException, status
@@ -54,6 +55,50 @@ start_time = datetime.now()
 # Track background processing jobs
 processing_jobs: Dict[str, Any] = {}
 
+# Retention period for completed/failed jobs
+JOB_RETENTION_PERIOD = timedelta(hours=1)
+
+
+def cleanup_processing_jobs(retention: timedelta = JOB_RETENTION_PERIOD) -> int:
+    """Remove completed or failed jobs older than the retention period.
+
+    Args:
+        retention: Duration to keep completed/failed jobs around.
+
+    Returns:
+        Number of jobs removed.
+    """
+
+    now = datetime.now()
+    to_remove: List[str] = []
+    for job_id, data in processing_jobs.items():
+        status = data.get("status")
+        if status not in {"completed", "failed"}:
+            continue
+        ts_str = data.get("completed_at") or data.get("started_at")
+        if not ts_str:
+            continue
+        try:
+            ts = datetime.fromisoformat(ts_str)
+        except Exception:  # pragma: no cover - invalid timestamp
+            continue
+        if ts < now - retention:
+            to_remove.append(job_id)
+
+    for job_id in to_remove:
+        processing_jobs.pop(job_id, None)
+    return len(to_remove)
+
+
+async def _cleanup_processing_jobs_periodically() -> None:
+    """Background task that periodically cleans up old jobs."""
+    while True:
+        await asyncio.sleep(60)
+        try:
+            cleanup_processing_jobs()
+        except Exception:  # pragma: no cover - logging only
+            logger.exception("Background job cleanup failed")
+
 
 def get_merger() -> StreamlineVPNMerger:
     """Get or create merger instance."""
@@ -81,6 +126,22 @@ def create_app() -> FastAPI:
         allow_methods=["*"],
         allow_headers=["*"],
     )
+
+    @app.on_event("startup")
+    async def _startup_cleanup() -> None:
+        app.state.cleanup_task = asyncio.create_task(
+            _cleanup_processing_jobs_periodically()
+        )
+
+    @app.on_event("shutdown")
+    async def _shutdown_cleanup() -> None:
+        task = getattr(app.state, "cleanup_task", None)
+        if task:
+            task.cancel()
+            try:
+                await task
+            except BaseException:  # pragma: no cover - cancellation only
+                pass
 
     @app.get("/", response_model=Dict[str, str])
     async def root():
@@ -364,6 +425,7 @@ def create_app() -> FastAPI:
                     logger.error("Pipeline job %s failed: %s", job_id, exc)
                     processing_jobs[job_id]["status"] = "failed"
                     processing_jobs[job_id]["error"] = str(exc)
+                    processing_jobs[job_id]["completed_at"] = datetime.now().isoformat()
                     update_job_progress(job_id, 100, str(exc))
 
             background_tasks.add_task(process_async)
@@ -390,6 +452,12 @@ def create_app() -> FastAPI:
                 detail=f"Job not found: {job_id}",
             )
         return processing_jobs[job_id]
+
+    @router.post("/pipeline/cleanup")
+    async def manual_pipeline_cleanup() -> Dict[str, Any]:
+        """Trigger cleanup of old pipeline jobs manually."""
+        removed = cleanup_processing_jobs()
+        return {"removed": removed, "remaining": len(processing_jobs)}
 
     @router.get("/statistics")
     async def api_v1_statistics() -> Dict[str, Any]:
