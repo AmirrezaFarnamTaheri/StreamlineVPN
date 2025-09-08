@@ -1,0 +1,52 @@
+<!-- docs/_includes/header.html -->
+<nav class="glass-dark fixed w-full top-0 z-50 px-6 py-4">
+    <div class="container mx-auto flex justify-between items-center">
+        <div class="flex items-center space-x-2">
+            <div class="w-10 h-10 bg-gradient-to-br from-purple-500 to-pink-500 rounded-lg flex items-center justify-center">
+                <span class="text-white font-bold text-xl">S</span>
+            </div>
+            <span class="text-xl font-bold text-white">StreamlineVPN</span>
+        </div>
+
+        <div class="hidden md:flex items-center space-x-8">
+            <a href="index.html" class="nav-link">Home</a>
+            <a href="interactive.html" class="nav-link">Control Panel</a>
+            <a href="troubleshooting.html" class="nav-link">Docs</a>
+            <a href="api/index.html" class="nav-link">API</a>
+        </div>
+
+        <div class="flex items-center space-x-4">
+            <button onclick="window.location.href='interactive.html'" class="btn-primary">
+                Launch App
+            </button>
+        </div>
+    </div>
+</nav>
+
+<style>
+    .glass-dark {
+        background: rgba(15, 15, 30, 0.95);
+        backdrop-filter: blur(10px);
+        border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    }
+    .nav-link {
+        color: rgba(255, 255, 255, 0.8);
+        transition: color 0.3s ease;
+        text-decoration: none;
+    }
+    .nav-link:hover {
+        color: #ffffff;
+    }
+    .btn-primary {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        padding: 8px 20px;
+        border-radius: 8px;
+        border: none;
+        cursor: pointer;
+        transition: transform 0.3s ease;
+    }
+    .btn-primary:hover {
+        transform: translateY(-2px);
+    }
+</style>

@@ -2,10 +2,10 @@
 # ===================================
 
 sources:
-  premium:
+  tier_1_premium:
     description: "High-quality, reliable sources with excellent uptime"
     urls:
-      - url: "https://raw.githubusercontent.com/peasoft/NoMoreWalls/master/list.txt"
+      - url: "https://raw.githubusercontent.com/mahdibland/V2RayAggregator/master/sub/sub_merge_yaml.txt"
         weight: 0.9
         protocols: ["vmess", "vless", "trojan"]
         update: "1h"
@@ -13,7 +13,7 @@ sources:
           description: "Premium source with high-quality configurations"
           region: "global"
       
-      - url: "https://raw.githubusercontent.com/mahdibland/V2RayAggregator/master/sub/sub_merge.txt"
+      - url: "https://raw.githubusercontent.com/awesome-vpn/awesome-vpn/master/all.txt"
         weight: 0.85
         protocols: ["vmess", "vless"]
         update: "2h"
@@ -21,10 +21,10 @@ sources:
           description: "Reliable aggregator with good performance"
           region: "global"
 
-  reliable:
+  tier_2_reliable:
     description: "Trusted sources with good performance"
     urls:
-      - url: "https://raw.githubusercontent.com/aiboboxx/v2rayfree/main/v2"
+      - url: "https://raw.githubusercontent.com/freefq/free/master/v2"
         weight: 0.7
         protocols: ["vmess", "vless", "trojan", "ss"]
         update: "4h"
@@ -32,7 +32,7 @@ sources:
           description: "Free VPN configurations"
           region: "global"
       
-      - url: "https://raw.githubusercontent.com/Leon406/SubCrawler/main/sub/sub_merge.txt"
+      - url: "https://raw.githubusercontent.com/Pawdroid/Free-servers/main/sub"
         weight: 0.75
         protocols: ["vmess", "vless", "trojan"]
         update: "6h"
@@ -40,26 +40,22 @@ sources:
           description: "SubCrawler aggregated sources"
           region: "global"
 
-  bulk:
+  tier_3_bulk:
     description: "Bulk sources with many configurations"
     urls:
-      - url: "https://raw.githubusercontent.com/ripaojiedian/freenode/main/sub"
+      - url: "https://raw.githubusercontent.com/mfuu/v2ray/master/v2ray"
         weight: 0.6
         protocols: ["vmess", "vless", "trojan", "ss", "ssr"]
         update: "12h"
         metadata:
           description: "Large collection of free nodes"
           region: "global"
-
-  experimental:
-    description: "Experimental sources for testing"
-    urls:
-      - url: "https://raw.githubusercontent.com/colatiger/v2ray-nodes/master/sub"
-        weight: 0.3
-        protocols: ["vmess", "vless"]
-        update: "24h"
+      - url: "https://raw.githubusercontent.com/peasoft/NoMoreWalls/master/list.txt"
+        weight: 0.5
+        protocols: ["vmess", "vless", "trojan", "ss", "ssr"]
+        update: "12h"
         metadata:
-          description: "Experimental source"
+          description: "Large collection of free nodes"
           region: "global"
 
 # Processing configuration

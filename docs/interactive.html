@@ -197,24 +197,7 @@
     </style>
 </head>
 <body>
-    <!-- Header -->
-    <div class="glass-morphism fixed top-0 left-0 right-0 z-50 px-6 py-4">
-        <div class="container mx-auto flex justify-between items-center">
-            <div class="flex items-center space-x-4">
-                <div class="text-2xl font-bold text-white">StreamlineVPN</div>
-                <span class="text-sm text-white opacity-75">Control Center v2.0</span>
-            </div>
-            <div class="flex items-center space-x-4">
-                <div id="connectionStatus" class="flex items-center">
-                    <span class="status-indicator status-running"></span>
-                    <span class="text-white">Connected</span>
-                </div>
-                <button onclick="location.href='index.html'" class="px-4 py-2 rounded-lg bg-white bg-opacity-20 text-white hover:bg-opacity-30 transition">
-                    Back to Home
-                </button>
-            </div>
-        </div>
-    </div>
+    <script src="assets/js/main.js"></script>
 
     <!-- Main Content -->
     <div class="container mx-auto px-6 pt-24 pb-12">
@@ -426,8 +409,9 @@
         let processingJobId = null;
         let performanceChart = null;
         
-        // Correct API Base URL
-        const API_BASE = "http://localhost:8080";
+        // Dynamic API base URL configuration
+        const API_BASE = window.API_BASE ||
+            `${window.location.protocol}//${window.location.hostname}:${window.location.port === '8000' ? '8080' : '8080'}`;
         
         // Initialize
         document.addEventListener('DOMContentLoaded', function() {
@@ -719,14 +703,29 @@
         }
         
         // Load sources with mock data
-        async function loadSources() {
+async function loadSources() {
+    try {
+        const response = await fetch(`${API_BASE}/api/sources`);
+        if (response.ok) {
+            const data = await response.json();
+            sources = data.sources || [];
+        } else {
+            // Fallback to loading from config file
             sources = [
-                { url: 'https://source1.example.com', status: 'active', configs: 250 },
-                { url: 'https://source2.example.com', status: 'active', configs: 180 },
-                { url: 'https://source3.example.com', status: 'inactive', configs: 0 }
+                { url: 'https://raw.githubusercontent.com/mahdibland/V2RayAggregator/master/sub/sub_merge_yaml.txt', status: 'active', configs: 0, tier: 'tier_1_premium' },
+                { url: 'https://raw.githubusercontent.com/awesome-vpn/awesome-vpn/master/all.txt', status: 'active', configs: 0, tier: 'tier_1_premium' },
+                { url: 'https://raw.githubusercontent.com/freefq/free/master/v2', status: 'active', configs: 0, tier: 'tier_2_reliable' },
+                { url: 'https://raw.githubusercontent.com/Pawdroid/Free-servers/main/sub', status: 'active', configs: 0, tier: 'tier_2_reliable' },
+                { url: 'https://raw.githubusercontent.com/mfuu/v2ray/master/v2ray', status: 'active', configs: 0, tier: 'tier_3_bulk' },
+                { url: 'https://raw.githubusercontent.com/peasoft/NoMoreWalls/master/list.txt', status: 'active', configs: 0, tier: 'tier_3_bulk' }
             ];
-            renderSources();
         }
+    } catch (error) {
+        console.error('Failed to load sources:', error);
+        sources = [];
+    }
+    renderSources();
+}
         
         // Render sources
         function renderSources() {
