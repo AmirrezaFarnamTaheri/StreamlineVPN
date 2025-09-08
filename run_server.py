@@ -22,7 +22,7 @@ def main():
     # Add CORS middleware with dynamic origins
     host = os.getenv("HOST", "0.0.0.0")
     web_port = int(os.getenv("WEB_PORT", "8000"))
-    api_port = int(os.getenv("PORT", "8080"))
+    api_port = int(os.getenv("API_PORT", "8080"))
 
     api_server.app.add_middleware(
         CORSMiddleware,
@@ -33,7 +33,6 @@ def main():
             f"http://{host}:{api_port}",
             "http://localhost:8000",
             "http://localhost:8080",
-            "*"  # For development - remove in production
         ],
         allow_credentials=True,
         allow_methods=["*"],

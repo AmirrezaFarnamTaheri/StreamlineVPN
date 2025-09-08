@@ -1,7 +1,7 @@
 # StreamlineVPN - VPN Configuration Platform
 
 [![Version](https://img.shields.io/badge/version-2.0.0-blue.svg)](https://github.com/streamlinevpn/streamlinevpn)
-[![License](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
+[![License](https://img.shields.io/badge/License-GPLv3-blue.svg)](https://www.gnu.org/licenses/gpl-3.0)
 [![Python](https://img.shields.io/badge/python-3.8+-blue.svg)](https://python.org)
 [![Status](https://img.shields.io/badge/status-production%20ready-brightgreen.svg)](https://github.com/streamlinevpn/streamlinevpn)
 
@@ -261,7 +261,7 @@ pre-commit run --all-files
 
 ## 📄 License
 
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+This project is licensed under the GPL-3.0 License - see the [LICENSE](LICENSE) file for details.
 
 ## 🆘 Support
 
