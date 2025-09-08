@@ -7,11 +7,11 @@ overrides at runtime without code changes.
 """
 
 from __future__ import annotations
-from pydantic import Field
 
 from functools import lru_cache
 from typing import Dict, List
 
+from pydantic import Field
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -106,6 +106,7 @@ class Settings(BaseSettings):
     fetcher: FetcherSettings = Field(default_factory=FetcherSettings)
     security: SecuritySettings = Field(default_factory=SecuritySettings)
     redis: RedisSettings = Field(default_factory=RedisSettings)
+    allowed_origins: List[str] = ["*"]
     supported_protocol_prefixes: List[str] = [
         "vmess://",
         "vless://",

@@ -7,15 +7,21 @@ FastAPI-based REST API for StreamlineVPN.
 
 import os
 import uuid
-from pathlib import Path
+from collections import Counter
 from datetime import datetime
+from pathlib import Path
 from typing import Any, Dict, List, Optional
 
-from fastapi import APIRouter, BackgroundTasks, Body, FastAPI, HTTPException, status
+from fastapi import (
+    APIRouter,
+    BackgroundTasks,
+    Body,
+    FastAPI,
+    HTTPException,
+    status,
+)
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
-
-from collections import Counter
 
 from ..core.merger import StreamlineVPNMerger
 from ..models.source import SourceMetadata, SourceTier
@@ -73,13 +79,14 @@ def create_app() -> FastAPI:
         redoc_url="/redoc",
     )
 
-    # Add CORS middleware
+    settings = get_settings()
+
     app.add_middleware(
         CORSMiddleware,
-        allow_origins=["*"],
-        allow_credentials=True,
-        allow_methods=["*"],
-        allow_headers=["*"],
+        allow_origins=settings.allowed_origins,
+        allow_credentials=False,
+        allow_methods=["GET", "POST"],
+        allow_headers=["Content-Type"],
     )
 
     @app.get("/", response_model=Dict[str, str])
@@ -349,17 +356,25 @@ def create_app() -> FastAPI:
                 global merger
                 try:
                     update_job_progress(job_id, 10, "Initializing merger...")
-                    local_merger = StreamlineVPNMerger(config_path=str(config_file))
+                    local_merger = StreamlineVPNMerger(
+                        config_path=str(config_file)
+                    )
                     await local_merger.initialize()
-                    update_job_progress(job_id, 50, "Processing configurations...")
+                    update_job_progress(
+                        job_id, 50, "Processing configurations..."
+                    )
                     result = await local_merger.process_all(
                         output_dir=request.output_dir, formats=request.formats
                     )
                     merger = local_merger
                     processing_jobs[job_id]["status"] = "completed"
-                    update_job_progress(job_id, 100, "Pipeline completed successfully")
+                    update_job_progress(
+                        job_id, 100, "Pipeline completed successfully"
+                    )
                     processing_jobs[job_id]["result"] = result
-                    processing_jobs[job_id]["completed_at"] = datetime.now().isoformat()
+                    processing_jobs[job_id][
+                        "completed_at"
+                    ] = datetime.now().isoformat()
                 except Exception as exc:  # pragma: no cover - logging path
                     logger.error("Pipeline job %s failed: %s", job_id, exc)
                     processing_jobs[job_id]["status"] = "failed"
@@ -452,7 +467,11 @@ def create_app() -> FastAPI:
         for src in merger.source_manager.sources.values():
             enabled = getattr(src, "enabled", True)
             last_check = getattr(src, "last_check", None)
-            last_update = last_check.isoformat() if isinstance(last_check, datetime) else None
+            last_update = (
+                last_check.isoformat()
+                if isinstance(last_check, datetime)
+                else None
+            )
             source_infos.append(
                 {
                     "url": getattr(src, "url", None),

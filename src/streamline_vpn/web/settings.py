@@ -1,3 +1,5 @@
+from typing import List
+
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -11,6 +13,7 @@ class Settings(BaseSettings):
     STATIC_DIR: str = "docs"
     API_BASE: str = "http://localhost:8080"
     UPDATE_INTERVAL: int = 28800  # 8 hours in seconds
+    ALLOWED_ORIGINS: List[str] = ["*"]
 
 
 settings = Settings()

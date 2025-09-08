@@ -259,6 +259,21 @@ pytest tests/
 pre-commit run --all-files
 ```
 
+## ⚙️ Configuration
+
+### CORS
+
+The API and static server restrict cross-origin requests to a configurable list
+of origins. Set the `ALLOWED_ORIGINS` environment variable with a
+comma-separated list of allowed origins:
+
+```bash
+export ALLOWED_ORIGINS='["https://example.com","https://app.example.com"]'
+```
+
+By default only required methods and headers are exposed and credentials are
+not enabled.
+
 ## 📄 License
 
 This project is licensed under the GPL-3.0 License - see the [LICENSE](LICENSE) file for details.
