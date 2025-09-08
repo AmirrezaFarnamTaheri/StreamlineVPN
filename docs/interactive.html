@@ -24,10 +24,55 @@
         }
 
         .glass-morphism {
-            background: rgba(255, 255, 255, 0.1);
-            backdrop-filter: blur(10px);
-            border: 1px solid rgba(255, 255, 255, 0.2);
+            background: linear-gradient(135deg, rgba(255, 255, 255, 0.1) 0%, rgba(255, 255, 255, 0.05) 100%);
+            backdrop-filter: blur(10px) saturate(180%);
+            -webkit-backdrop-filter: blur(10px) saturate(180%);
+            border: 1px solid rgba(255, 255, 255, 0.18);
             box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.37);
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        .glass-morphism:hover {
+            background: linear-gradient(135deg, rgba(255, 255, 255, 0.15) 0%, rgba(255, 255, 255, 0.08) 100%);
+            box-shadow: 0 12px 40px 0 rgba(31, 38, 135, 0.45);
+            transform: translateY(-2px);
+        }
+
+        html {
+            scroll-behavior: smooth;
+        }
+
+        @keyframes shimmer {
+            0% { background-position: -1000px 0; }
+            100% { background-position: 1000px 0; }
+        }
+
+        .loading-skeleton {
+            background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%);
+            background-size: 1000px 100%;
+            animation: shimmer 2s infinite;
+        }
+
+        button:focus-visible,
+        input:focus-visible,
+        select:focus-visible {
+            outline: 2px solid #6366f1;
+            outline-offset: 2px;
+        }
+
+        .error-state {
+            animation: shake 0.5s;
+        }
+
+        @keyframes shake {
+            0%, 100% { transform: translateX(0); }
+            10%, 30%, 50%, 70%, 90% { transform: translateX(-5px); }
+            20%, 40%, 60%, 80% { transform: translateX(5px); }
+        }
+
+        .fade-out {
+            opacity: 0;
+            transition: opacity 0.3s ease;
         }
 
         .animated-gradient {
@@ -287,7 +332,7 @@
                     </div>
                     
                     <!-- Process Button -->
-                    <button onclick="startProcessing()" class="w-full py-4 rounded-lg animated-gradient text-white font-bold text-lg hover:opacity-90 transition">
+                    <button id="processBtn" onclick="startProcessing()" class="w-full py-4 rounded-lg animated-gradient text-white font-bold text-lg hover:opacity-90 transition">
                         Start Processing
                     </button>
                     
@@ -382,7 +427,7 @@
         let performanceChart = null;
         
         // Correct API Base URL
-        const API_BASE = 'http://localhost:8080';
+        const API_BASE = 'http://localhost:8000';
         
         // Initialize
         document.addEventListener('DOMContentLoaded', function() {
@@ -533,52 +578,76 @@
             const formats = Array.from(document.querySelectorAll('.output-format:checked')).map(cb => cb.value);
 
             if (formats.length === 0) {
-                addTerminalLine('Please select at least one output format', 'error');
+                addTerminalLine('Please select at least one output format', 'warning');
                 return;
             }
-            
-            document.getElementById('processingStatus').classList.remove('hidden');
-            document.getElementById('processingResults').classList.add('hidden');
-            
-            const controller = new AbortController();
-            const timeoutId = setTimeout(() => controller.abort(), 15000);
+
+            const processBtn = document.getElementById('processBtn');
+            const originalText = processBtn.innerHTML;
 
             try {
+                processBtn.disabled = true;
+                processBtn.innerHTML = `
+                    <svg class="animate-spin h-5 w-5 mr-2 inline" viewBox="0 0 24 24">
+                        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4" fill="none"></circle>
+                        <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                    </svg>
+                    Processing...
+                `;
+
+                addTerminalLine(`Starting processing with config: ${configPath}`, 'info');
+                addTerminalLine(`Output formats: ${formats.join(', ')}`, 'info');
+
                 const response = await fetch(`${API_BASE}/api/v1/pipeline/run`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
                         config_path: configPath,
+                        output_dir: 'output',
                         formats: formats
-                    }),
-                    signal: controller.signal
+                    })
                 });
 
-                if (response.ok) {
-                    const result = await response.json();
-                    showProcessingResults(result);
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+
+                const result = await response.json();
+
+                if (result.status === 'success') {
+                    addTerminalLine('Processing completed successfully!', 'success');
+                    addTerminalLine(`Job ID: ${result.job_id || 'N/A'}`, 'info');
+                    await loadStatistics();
+                    showNotification('Processing completed successfully!', 'success');
                 } else {
-                    let message = '';
-                    const contentType = response.headers.get('content-type') || '';
-                    if (contentType.includes('application/json')) {
-                        const data = await response.json();
-                        message = data.message || JSON.stringify(data);
-                    } else {
-                        message = await response.text();
-                    }
-                    addTerminalLine(`Processing failed: ${message}`, 'error');
-                    testConnection();
+                    throw new Error(result.message || 'Processing failed');
                 }
             } catch (error) {
-                const message = error.name === 'AbortError'
-                    ? 'Processing request timed out'
-                    : `Processing error: ${error.message}`;
-                addTerminalLine(message, 'error');
-                testConnection();
+                console.error('Processing error:', error);
+                addTerminalLine(`Processing failed: ${error.message}`, 'error');
+                showNotification('Processing failed. Please check the terminal for details.', 'error');
             } finally {
-                clearTimeout(timeoutId);
-                document.getElementById('processingStatus').classList.add('hidden');
+                processBtn.disabled = false;
+                processBtn.innerHTML = originalText;
             }
+        }
+
+        function showNotification(message, type = 'info') {
+            const notification = document.createElement('div');
+            notification.className = `fixed top-4 right-4 px-6 py-4 rounded-lg text-white z-50 ${
+                type === 'success' ? 'bg-green-500' :
+                type === 'error' ? 'bg-red-500' :
+                type === 'warning' ? 'bg-yellow-500' :
+                'bg-blue-500'
+            } slide-in`;
+            notification.textContent = message;
+
+            document.body.appendChild(notification);
+
+            setTimeout(() => {
+                notification.classList.add('fade-out');
+                setTimeout(() => notification.remove(), 300);
+            }, 3000);
         }
         
         function showProcessingResults(result) {
@@ -609,27 +678,31 @@
         }
         
         // Render configurations
-        function renderConfigurations() {
+        function renderConfigurations(configs = configurations) {
             const list = document.getElementById('configList');
+            if (!list) return;
             list.innerHTML = '';
-            
-            configurations.forEach(config => {
-                const quality = getQualityLevel(config.quality_score);
+
+            configs.forEach(config => {
+                const quality = getQualityClass(config.quality_score);
                 const card = `
                     <div class="config-card rounded-lg p-4 slide-in">
                         <div class="flex justify-between items-start mb-2">
                             <div>
-                                <span class="text-white font-semibold">${config.protocol.toUpperCase()}</span>
-                                <span class="quality-badge quality-${quality} ml-2">${quality}</span>
+                                <h4 class="text-white font-semibold">${config.server}</h4>
+                                <p class="text-sm text-gray-300">Protocol: ${config.protocol}</p>
+                                <p class="text-sm text-gray-300">Port: ${config.port}</p>
                             </div>
-                            <button onclick="copyConfig('${config.id}')" class="text-white hover:text-gray-300">
-                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"></path>
-                                </svg>
-                            </button>
+                            <div class="flex items-center space-x-2">
+                                <span class="quality-badge quality-${quality}">${(config.quality_score * 100).toFixed(0)}%</span>
+                                <button onclick="copyConfig('${config.id}')" class="text-white hover:text-gray-300">
+                                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"></path>
+                                    </svg>
+                                </button>
+                            </div>
                         </div>
                         <div class="text-white text-sm opacity-75">
-                            <div>${config.server}:${config.port}</div>
                             <div>Network: ${config.network} | TLS: ${config.tls ? 'Yes' : 'No'}</div>
                         </div>
                     </div>
@@ -637,11 +710,11 @@
                 list.innerHTML += card;
             });
         }
-        
-        function getQualityLevel(score) {
-            if (score >= 0.8) return 'excellent';
-            if (score >= 0.6) return 'good';
-            if (score >= 0.4) return 'fair';
+
+        function getQualityClass(score) {
+            if (score >= 0.9) return 'excellent';
+            if (score >= 0.7) return 'good';
+            if (score >= 0.5) return 'fair';
             return 'poor';
         }
         
@@ -848,49 +921,31 @@
         }
         
         function filterConfigs() {
-            const protocol = document.getElementById('protocolFilter').value;
-            const search = document.getElementById('searchFilter').value.toLowerCase();
-            
-            let filtered = configurations;
-            
-            if (protocol) {
-                filtered = filtered.filter(c => c.protocol === protocol);
+            try {
+                const protocol = document.getElementById('protocolFilter').value;
+                const search = document.getElementById('searchFilter').value.toLowerCase();
+
+                let filtered = [...configurations];
+
+                if (protocol && protocol !== 'all') {
+                    filtered = filtered.filter(c => c.protocol === protocol);
+                }
+
+                if (search) {
+                    filtered = filtered.filter(c =>
+                        c.server.toLowerCase().includes(search) ||
+                        c.protocol.toLowerCase().includes(search) ||
+                        (c.location || '').toLowerCase().includes(search) ||
+                        c.id.toLowerCase().includes(search)
+                    );
+                }
+
+                renderConfigurations(filtered);
+                addTerminalLine(`Filtered ${filtered.length} configurations`, 'info');
+            } catch (error) {
+                console.error('Filter error:', error);
+                addTerminalLine(`Filter error: ${error.message}`, 'error');
             }
-
-            if (search) {
-                filtered = filtered.filter(c =>
-                    c.server.toLowerCase().includes(search) ||
-                    c.protocol.toLowerCase().includes(search)
-                );
-            }
-
-            // Re-render with filtered configs
-            const list = document.getElementById('configList');
-            list.innerHTML = '';
-
-            filtered.forEach(config => {
-                const quality = getQualityLevel(config.quality_score);
-                const card = `
-                    <div class="config-card rounded-lg p-4 slide-in">
-                        <div class="flex justify-between items-start mb-2">
-                            <div>
-                                <span class="text-white font-semibold">${config.protocol.toUpperCase()}</span>
-                                <span class="quality-badge quality-${quality} ml-2">${quality}</span>
-                            </div>
-                            <button onclick="copyConfig('${config.id}')" class="text-white hover:text-gray-300">
-                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"></path>
-                                </svg>
-                            </button>
-                        </div>
-                        <div class="text-white text-sm opacity-75">
-                            <div>${config.server}:${config.port}</div>
-                            <div>Network: ${config.network} | TLS: ${config.tls ? 'Yes' : 'No'}</div>
-                        </div>
-                    </div>
-                `;
-                list.innerHTML += card;
-            });
         }
         
         // Polling for live updates
