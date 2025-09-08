@@ -538,7 +538,7 @@
             document.getElementById('processingResults').classList.add('hidden');
             
             try {
-                const response = await fetch(`${API_BASE}/api/v1/process`, {
+                const response = await fetch(`${API_BASE}/api/v1/pipeline/run`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
@@ -743,7 +743,7 @@
         async function testConnection() {
             addTerminalLine('Testing API connection...', 'info');
             try {
-                const response = await fetch(`${API_BASE}/api/v1/health`);
+                const response = await fetch(`${API_BASE}/health`);
                 if (response.ok) {
                     const data = await response.json();
                     addTerminalLine(`Connection successful! API Version: ${data.version || '2.0.0'}`, 'success');
