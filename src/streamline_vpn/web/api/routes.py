@@ -397,6 +397,10 @@ def setup_routes(
             return {"sources": sources_list}
         except HTTPException:
             raise
+    # v1 alias for sources endpoint used by frontend
+    @app.get("/api/v1/sources")
+    async def get_sources_v1():
+        return await get_sources()
         except yaml.YAMLError as e:
             logger.error(f"Failed to parse sources: {e}")
             raise HTTPException(

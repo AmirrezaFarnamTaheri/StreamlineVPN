@@ -19,17 +19,17 @@ def setup_scheduler():
 
     scheduler = AsyncIOScheduler()
 
-    # Schedule processing every 12 hours
+    # Schedule processing every 8 hours
     scheduler.add_job(
         run_processing,
         'interval',
-        hours=12,
+        hours=8,
         id='process_sources',
         replace_existing=True
     )
 
     scheduler.start()
-    logger.info("Scheduler started - processing will run every 12 hours")
+    logger.info("Scheduler started - processing will run every 8 hours")
     return scheduler
 
 
