@@ -7,6 +7,7 @@ FastAPI route definitions for the StreamlineVPN API.
 
 import json
 import time
+import threading
 from datetime import datetime
 from typing import Optional
 
@@ -44,6 +45,7 @@ _websocket_manager: Optional[WebSocketManager] = None
 # Simple cache for VPN status
 _vpn_status_cache: Optional[VPNStatusResponse] = None
 _vpn_status_cache_time: float = 0.0
+_vpn_status_cache_lock = threading.Lock()
 
 
 def set_auth_service(auth_service: AuthenticationService) -> None:
@@ -268,8 +270,9 @@ def setup_routes(
         global _vpn_status_cache, _vpn_status_cache_time
 
         now = time.time()
-        if _vpn_status_cache and now - _vpn_status_cache_time < 5:
-            return _vpn_status_cache
+        with _vpn_status_cache_lock:
+            if _vpn_status_cache and now - _vpn_status_cache_time < 5:
+                return _vpn_status_cache
 
         result = VPNStatusResponse(
             connected=True,
@@ -285,8 +288,9 @@ def setup_routes(
             bytes_transferred={"upload": 1024000, "download": 2048000},
         )
 
-        _vpn_status_cache = result
-        _vpn_status_cache_time = now
+        with _vpn_status_cache_lock:
+            _vpn_status_cache = result
+            _vpn_status_cache_time = now
         return result
 
     # WebSocket route
