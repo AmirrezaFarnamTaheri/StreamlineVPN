@@ -160,19 +160,24 @@ def setup_routes(
 
             sources_list = []
             for tier_name, tier_data in sources_data.get("sources", {}).items():
-                for source_config in tier_data.get("urls", []):
+
+                if isinstance(tier_data, list):
+                    url_list = tier_data
+                elif isinstance(tier_data, dict):
+                    url_list = tier_data.get("urls", [])
+                else:
+                    url_list = []
+
+                for source_config in url_list:
+                    url = None
                     if isinstance(source_config, dict):
                         url = source_config.get("url")
-                        if url:
-                            sources_list.append({
-                                "url": url,
-                                "status": "active",  # Placeholder
-                                "configs": 0,  # Placeholder
-                                "tier": tier_name
-                            })
                     elif isinstance(source_config, str):
+                        url = source_config
+
+                    if url:
                         sources_list.append({
-                            "url": source_config,
+                            "url": url,
                             "status": "active",  # Placeholder
                             "configs": 0,  # Placeholder
                             "tier": tier_name

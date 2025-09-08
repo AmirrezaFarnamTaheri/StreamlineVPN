@@ -40,7 +40,7 @@ RUN mkdir -p /app/output /app/logs && \
 
 # Health check against REST API endpoint
 HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
-    CMD curl -f http://localhost:${API_PORT}/health || exit 1
+    CMD curl -sf http://localhost:${API_PORT:-8080}/health || curl -sf http://localhost:${API_PORT:-8080}/api/v1/health || exit 1
 
 # Expose all necessary ports
 EXPOSE 8080 8000
