@@ -9,7 +9,7 @@ import asyncio
 import os
 import uuid
 from collections import Counter
-from datetime import datetime, timedelta
+from datetime import datetime
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 
@@ -27,6 +27,11 @@ from fastapi.responses import JSONResponse
 from pydantic import BaseModel
 
 from ..core.merger import StreamlineVPNMerger
+from ..jobs.pipeline_cleanup import (
+    cleanup_processing_jobs,
+    cleanup_processing_jobs_periodically,
+    processing_jobs,
+)
 from ..models import OutputFormat
 from ..settings import get_settings
 from ..utils.logging import get_logger
@@ -59,55 +64,6 @@ class HealthResponse(BaseModel):
 # Global merger instance
 merger: Optional[StreamlineVPNMerger] = None
 start_time = datetime.now()
-
-# Track background processing jobs
-processing_jobs: Dict[str, Any] = {}
-
-# Retention period for completed/failed jobs
-JOB_RETENTION_PERIOD = timedelta(hours=1)
-
-
-def cleanup_processing_jobs(
-    retention: timedelta = JOB_RETENTION_PERIOD,
-) -> int:
-    """Remove completed or failed jobs older than the retention period.
-
-    Args:
-        retention: Duration to keep completed/failed jobs around.
-
-    Returns:
-        Number of jobs removed.
-    """
-
-    now = datetime.now()
-    to_remove: List[str] = []
-    for job_id, data in processing_jobs.items():
-        status = data.get("status")
-        if status not in {"completed", "failed"}:
-            continue
-        ts_str = data.get("completed_at") or data.get("started_at")
-        if not ts_str:
-            continue
-        try:
-            ts = datetime.fromisoformat(ts_str)
-        except Exception:  # pragma: no cover - invalid timestamp
-            continue
-        if ts < now - retention:
-            to_remove.append(job_id)
-
-    for job_id in to_remove:
-        processing_jobs.pop(job_id, None)
-    return len(to_remove)
-
-
-async def _cleanup_processing_jobs_periodically() -> None:
-    """Background task that periodically cleans up old jobs."""
-    while True:
-        await asyncio.sleep(60)
-        try:
-            cleanup_processing_jobs()
-        except Exception:  # pragma: no cover - logging only
-            logger.exception("Background job cleanup failed")
 
 
 def get_merger() -> StreamlineVPNMerger:
@@ -142,23 +98,29 @@ def create_app() -> FastAPI:
     async def validation_exception_handler(
         request, exc: RequestValidationError
     ) -> JSONResponse:
-        """Return HTTP 400 instead of 422 for validation errors."""
+        """Return HTTP 400 instead of 422 for validation errors with clearer messages."""
         unsupported: List[str] = []
         for err in exc.errors():
-            if err.get("loc", []) and "formats" in err.get("loc", []):
-                val = err.get("input")
-                if val is not None:
+            loc = err.get("loc", [])
+            if "formats" in loc:
+                val = err.get("ctx", {}).get("enum_values") or err.get("input")
+                if isinstance(val, list):
+                    unsupported.extend(map(str, val))
+                elif val is not None:
                     unsupported.append(str(val))
         if unsupported:
             detail = f"Unsupported formats: {', '.join(unsupported)}"
         else:
-            detail = exc.errors()
+            detail = "; ".join(
+                f"{'.'.join(map(str, e.get('loc', [])))}: {e.get('msg')}"
+                for e in exc.errors()
+            )
         return JSONResponse(status_code=400, content={"detail": detail})
 
     @app.on_event("startup")
     async def _startup_cleanup() -> None:
         app.state.cleanup_task = asyncio.create_task(
-            _cleanup_processing_jobs_periodically()
+            cleanup_processing_jobs_periodically()
         )
 
     @app.on_event("shutdown")
@@ -167,7 +129,9 @@ def create_app() -> FastAPI:
         if task:
             task.cancel()
             try:
-                await task
+                await asyncio.wait_for(task, timeout=2)
+            except asyncio.TimeoutError:  # pragma: no cover - timeout guard
+                pass
             except BaseException:  # pragma: no cover - cancellation only
                 pass
 
@@ -449,13 +413,6 @@ def create_app() -> FastAPI:
                         job_id, 50, "Processing configurations..."
                     )
                     formats = [fmt.value for fmt in request.formats]
-                    supported = {f.value for f in OutputFormat}
-                    invalid = [f for f in formats if f not in supported]
-                    if invalid:
-                        raise HTTPException(
-                            status_code=status.HTTP_400_BAD_REQUEST,
-                            detail=f"Unsupported formats: {', '.join(invalid)}",
-                        )
                     result = await local_merger.process_all(
                         output_dir=request.output_dir, formats=formats
                     )
@@ -523,12 +480,17 @@ def create_app() -> FastAPI:
         location_counts = Counter(
             c.metadata.get("location", "unknown") for c in configs
         )
+        successful_sources_count = stats.get("successful_sources", 0)
+        last_update = stats.get("end_time")
+        if isinstance(last_update, datetime):
+            last_update = last_update.isoformat()
         return {
             "total_configs": stats.get("total_configs", 0),
-            "successful_sources": stats.get("successful_sources", 0),
+            "successful_sources": successful_sources_count,
+            "active_sources": successful_sources_count,
             "success_rate": stats.get("success_rate", 0.0),
             "avg_quality": avg_quality,
-            "last_update": stats.get("end_time"),
+            "last_update": last_update if last_update is not None else None,
             "protocols": dict(protocol_counts),
             "locations": dict(location_counts),
         }
