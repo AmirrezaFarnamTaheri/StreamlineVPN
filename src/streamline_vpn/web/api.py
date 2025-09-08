@@ -6,14 +6,19 @@ FastAPI-based REST API for StreamlineVPN.
 """
 
 import os
+import uuid
+from pathlib import Path
 from datetime import datetime
 from typing import Any, Dict, List, Optional
 
-from fastapi import BackgroundTasks, Body, FastAPI, HTTPException, status
+from fastapi import APIRouter, BackgroundTasks, Body, FastAPI, HTTPException, status
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 
+from collections import Counter
+
 from ..core.merger import StreamlineVPNMerger
+from ..models.source import SourceMetadata, SourceTier
 from ..settings import get_settings
 from ..utils.logging import get_logger
 
@@ -45,6 +50,9 @@ class HealthResponse(BaseModel):
 # Global merger instance
 merger: Optional[StreamlineVPNMerger] = None
 start_time = datetime.now()
+
+# Track background processing jobs
+processing_jobs: Dict[str, Any] = {}
 
 
 def get_merger() -> StreamlineVPNMerger:
@@ -297,5 +305,187 @@ def create_app() -> FastAPI:
                 status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
                 detail="Internal server error",
             )
+
+    # ------------------------------------------------------------------
+    # Enhanced pipeline endpoints (versioned API)
+    # ------------------------------------------------------------------
+
+    router = APIRouter(prefix="/api/v1")
+
+    def update_job_progress(job_id: str, progress: int, message: str) -> None:
+        if job_id in processing_jobs:
+            processing_jobs[job_id]["progress"] = progress
+            processing_jobs[job_id]["message"] = message
+
+    class PipelineRequest(BaseModel):
+        config_path: str = "config/sources.yaml"
+        output_dir: str = "output"
+        formats: List[str] = ["json", "clash"]
+
+    @router.post("/pipeline/run", status_code=status.HTTP_200_OK)
+    async def run_pipeline(
+        background_tasks: BackgroundTasks, request: PipelineRequest
+    ) -> Dict[str, Any]:
+        """Run the VPN configuration pipeline in the background."""
+        try:
+            config_file = Path(request.config_path)
+            if not config_file.exists():
+                raise HTTPException(
+                    status_code=status.HTTP_404_NOT_FOUND,
+                    detail=f"Configuration file not found: {request.config_path}",
+                )
+
+            Path(request.output_dir).mkdir(parents=True, exist_ok=True)
+
+            job_id = str(uuid.uuid4())
+            processing_jobs[job_id] = {
+                "status": "running",
+                "progress": 0,
+                "message": "Starting pipeline...",
+                "started_at": datetime.now().isoformat(),
+            }
+
+            async def process_async() -> None:
+                global merger
+                try:
+                    update_job_progress(job_id, 10, "Initializing merger...")
+                    local_merger = StreamlineVPNMerger(config_path=str(config_file))
+                    await local_merger.initialize()
+                    update_job_progress(job_id, 50, "Processing configurations...")
+                    result = await local_merger.process_all(
+                        output_dir=request.output_dir, formats=request.formats
+                    )
+                    merger = local_merger
+                    processing_jobs[job_id]["status"] = "completed"
+                    update_job_progress(job_id, 100, "Pipeline completed successfully")
+                    processing_jobs[job_id]["result"] = result
+                    processing_jobs[job_id]["completed_at"] = datetime.now().isoformat()
+                except Exception as exc:  # pragma: no cover - logging path
+                    logger.error("Pipeline job %s failed: %s", job_id, exc)
+                    processing_jobs[job_id]["status"] = "failed"
+                    processing_jobs[job_id]["error"] = str(exc)
+                    update_job_progress(job_id, 100, str(exc))
+
+            background_tasks.add_task(process_async)
+            return {
+                "status": "success",
+                "message": "Pipeline started successfully",
+                "job_id": job_id,
+            }
+        except HTTPException:
+            raise
+        except Exception as exc:  # pragma: no cover - unexpected
+            logger.error("Error starting pipeline: %s", exc)
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail=f"Failed to start pipeline: {exc}",
+            )
+
+    @router.get("/pipeline/status/{job_id}")
+    async def get_pipeline_status(job_id: str) -> Dict[str, Any]:
+        """Return status of a background pipeline job."""
+        if job_id not in processing_jobs:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail=f"Job not found: {job_id}",
+            )
+        return processing_jobs[job_id]
+
+    @router.get("/statistics")
+    async def api_v1_statistics() -> Dict[str, Any]:
+        """Expose statistics with /api/v1 prefix."""
+        merger = get_merger()
+        stats = await merger.get_statistics()
+        configs = await merger.get_configurations()
+        avg_quality = (
+            sum(c.quality_score for c in configs) / len(configs)
+            if configs
+            else 0.0
+        )
+        protocol_counts = Counter(c.protocol.value for c in configs)
+        location_counts = Counter(
+            c.metadata.get("location", "unknown") for c in configs
+        )
+        return {
+            "total_configs": stats.get("total_configs", 0),
+            "active_sources": stats.get("successful_sources", 0),
+            "success_rate": stats.get("success_rate", 0.0),
+            "avg_quality": avg_quality,
+            "last_update": stats.get("end_time"),
+            "protocols": dict(protocol_counts),
+            "locations": dict(location_counts),
+        }
+
+    @router.get("/configurations")
+    async def api_v1_configurations(
+        protocol: Optional[str] = None,
+        location: Optional[str] = None,
+        min_quality: float = 0.0,
+        limit: int = 100,
+        offset: int = 0,
+    ) -> Dict[str, Any]:
+        """Return processed configurations with filtering and pagination."""
+        merger = get_merger()
+        configs = await merger.get_configurations()
+        if protocol:
+            configs = [c for c in configs if c.protocol.value == protocol]
+        if location:
+            configs = [
+                c for c in configs if c.metadata.get("location") == location
+            ]
+        if min_quality > 0:
+            configs = [c for c in configs if c.quality_score >= min_quality]
+        total = len(configs)
+        configs = configs[offset : offset + limit]
+        return {
+            "total": total,
+            "limit": limit,
+            "offset": offset,
+            "configurations": [c.to_dict() for c in configs],
+        }
+
+    @router.get("/sources")
+    async def api_v1_sources() -> Dict[str, Any]:
+        """Return information about configured sources."""
+        merger = get_merger()
+        source_infos = []
+        for src in merger.source_manager.sources.values():
+            enabled = getattr(src, "enabled", True)
+            last_check = getattr(src, "last_check", None)
+            last_update = last_check.isoformat() if isinstance(last_check, datetime) else None
+            source_infos.append(
+                {
+                    "url": getattr(src, "url", None),
+                    "status": "active" if enabled else "disabled",
+                    "configs": getattr(src, "avg_config_count", 0),
+                    "last_update": last_update,
+                    "success_rate": getattr(src, "reputation_score", 0.0),
+                }
+            )
+        return {"sources": source_infos}
+
+    class AddSourceRequest(BaseModel):
+        url: str
+
+    @router.post("/sources/add")
+    async def api_v1_add_source(request: AddSourceRequest) -> Dict[str, Any]:
+        """Add a new source to the manager."""
+        merger = get_merger()
+        url = request.url.strip()
+        if url in merger.source_manager.sources:
+            return {
+                "status": "success",
+                "message": f"Source already exists: {url}",
+            }
+        try:
+            merger.source_manager.sources[url] = SourceMetadata(
+                url=url, tier=SourceTier.RELIABLE
+            )
+            return {"status": "success", "message": f"Source added: {url}"}
+        except Exception as exc:  # pragma: no cover
+            logger.error("Error adding source: %s", exc)
+            raise HTTPException(status_code=400, detail=str(exc))
+
+    app.include_router(router)
 
     return app
