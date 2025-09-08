@@ -203,7 +203,7 @@ class Query:
                 continue
             filtered_configs.append(cfg)
 
-        paginated = filtered_configs[offset : offset + limit]
+        paginated = filtered_configs[offset:offset + limit]
 
         return [
             VPNConfiguration(

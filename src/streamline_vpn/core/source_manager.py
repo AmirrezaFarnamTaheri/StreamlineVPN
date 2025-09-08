@@ -168,9 +168,9 @@ class SourceManager:
 
             parsed = urlparse(raw_url)
             netloc = (parsed.hostname or "").lower()
-            if parsed.port and (
-                (parsed.scheme == "http" and parsed.port != 80)
-                or (parsed.scheme == "https" and parsed.port != 443)
+            if parsed.port and not (
+                (parsed.scheme == "http" and parsed.port == 80)
+                or (parsed.scheme == "https" and parsed.port == 443)
             ):
                 netloc = f"{netloc}:{parsed.port}"
             norm_path = parsed.path.rstrip("/") or "/"
@@ -195,14 +195,18 @@ class SourceManager:
                 raise ValueError("Invalid or unsafe source URL")
 
             metadata = SourceMetadata(url=normalized_url, tier=tier)
-            await self._persist_new_source_atomically(metadata)
             self.sources[normalized_url] = metadata
+            try:
+                await self._persist_new_source_atomically(metadata)
+            except Exception:
+                self.sources.pop(normalized_url, None)
+                raise
             return metadata
 
     async def _persist_new_source_atomically(
         self, metadata: SourceMetadata
     ) -> None:
-        """Persist a newly added source to the configuration file atomically."""
+        """Persist new source to config file atomically."""
         try:
             config_data: Dict[str, Any] = {}
             if self.config_path.exists():
