@@ -41,6 +41,10 @@ logger = get_logger(__name__)
 _auth_service: Optional[AuthenticationService] = None
 _websocket_manager: Optional[WebSocketManager] = None
 
+# Simple cache for VPN status
+_vpn_status_cache: Optional[VPNStatusResponse] = None
+_vpn_status_cache_time: float = 0.0
+
 
 def set_auth_service(auth_service: AuthenticationService) -> None:
     """Set global authentication service."""
@@ -261,11 +265,17 @@ def setup_routes(
     @app.get("/api/v1/status", response_model=VPNStatusResponse)
     async def get_vpn_status():
         """Get VPN status without authentication."""
-        return VPNStatusResponse(
+        global _vpn_status_cache, _vpn_status_cache_time
+
+        now = time.time()
+        if _vpn_status_cache and now - _vpn_status_cache_time < 5:
+            return _vpn_status_cache
+
+        result = VPNStatusResponse(
             connected=True,
             server={
-                "id": "server_1",
-                "name": "US East Premium",
+                "id": "server",
+                "name": "Generic Server",
                 "region": "us-east",
                 "protocol": "vless",
             },
@@ -274,6 +284,10 @@ def setup_routes(
             session_duration=3600,
             bytes_transferred={"upload": 1024000, "download": 2048000},
         )
+
+        _vpn_status_cache = result
+        _vpn_status_cache_time = now
+        return result
 
     # WebSocket route
     @app.websocket("/ws/{user_id}")
