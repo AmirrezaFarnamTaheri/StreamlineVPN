@@ -1,6 +1,6 @@
 import re
 from typing import List
-from ...settings import get_settings
+from ....settings import get_settings
 
 
 def _defaults() -> List[str]:

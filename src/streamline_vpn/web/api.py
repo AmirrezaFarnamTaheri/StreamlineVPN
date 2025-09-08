@@ -34,7 +34,7 @@ from ..jobs.pipeline_cleanup import (
     cleanup_processing_jobs_periodically,
     processing_jobs,
 )
-from ..models import OutputFormat
+from ..models.formats import OutputFormat
 from ..settings import get_settings
 from ..utils.logging import get_logger
 

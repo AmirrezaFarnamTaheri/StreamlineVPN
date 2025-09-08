@@ -57,7 +57,7 @@ def validate_config_line(config_line: str) -> bool:
             return False
 
     # Check for valid VPN protocol prefixes
-    prefixes = get_settings().supported_protocol_prefixes
+    prefixes = ["vmess://", "vless://", "trojan://", "ss://", "ssr://", "hysteria://"]
     line = config_line.strip().lower()
     return any(line.startswith(protocol.lower()) for protocol in prefixes)
 

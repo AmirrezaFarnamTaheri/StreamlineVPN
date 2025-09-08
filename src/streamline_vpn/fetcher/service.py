@@ -12,7 +12,8 @@ from urllib.parse import urlparse
 
 from .circuit_breaker import CircuitBreaker, CircuitBreakerOpenException
 from .rate_limiter import AdaptiveRateLimiter
-from .policies import ensure_policies, apply_rate_limit, call_with_breaker
+# Import moved to avoid circular dependencies
+# from .policies import ensure_policies, apply_rate_limit, call_with_breaker
 from ..utils.logging import get_logger
 from ..settings import get_settings
 from ..utils.helpers import measure_time
@@ -131,6 +132,8 @@ class FetcherService:
         domain = self._get_domain(url)
 
         # Ensure per-domain policies
+        from .policies import ensure_policies, apply_rate_limit, call_with_breaker
+        
         circuit_breaker, rate_limiter = ensure_policies(
             domain, self.circuit_breakers, self.rate_limiters
         )

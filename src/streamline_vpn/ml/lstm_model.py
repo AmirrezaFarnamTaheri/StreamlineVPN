@@ -53,15 +53,26 @@ class LSTMModel:
             self.model = self._create_dummy_model()
 
     def _create_dummy_model(self):
-        """Create and train a dummy model for placeholder purposes."""
-        # This is not a real training process, just a placeholder
-        # to create a model file with the correct structure.
-        model = MLPRegressor(hidden_layer_sizes=(10,), max_iter=1)
-        # Create some dummy data to fit the model
-        X = np.random.rand(10, 10)
-        y = np.random.rand(10, 3)
-        model.fit(X, y)
-        return model
+        """Create and train a dummy model for testing and fallback purposes."""
+        # This creates a minimal model structure for testing
+        # when the actual trained model is not available.
+        try:
+            model = MLPRegressor(hidden_layer_sizes=(10,), max_iter=1, random_state=42)
+            # Create some dummy data to fit the model
+            X = np.random.rand(10, 10)
+            y = np.random.rand(10, 3)
+            model.fit(X, y)
+            logger.info("Dummy ML model created and trained successfully")
+            return model
+        except Exception as e:
+            logger.error(f"Failed to create dummy model: {e}")
+            # Return a simple linear model as fallback
+            from sklearn.linear_model import LinearRegression
+            model = LinearRegression()
+            X = np.random.rand(10, 10)
+            y = np.random.rand(10, 3)
+            model.fit(X, y)
+            return model
 
     async def predict(self, features: Dict[str, float]) -> QualityPrediction:
         """Predict connection quality from features.

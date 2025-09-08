@@ -9,7 +9,7 @@ import hashlib
 from datetime import datetime, timedelta
 from typing import Any, Dict, List, Optional
 
-from ...utils.logging import get_logger
+from ....utils.logging import get_logger
 from .models import UserIdentity, DeviceInfo
 
 logger = get_logger(__name__)

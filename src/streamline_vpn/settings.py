@@ -64,8 +64,6 @@ class SecuritySettings(BaseSettings):
         995,
         587,
         465,
-        993,
-        995,
     ]
     suspicious_text_patterns: List[str] = [
         r"<script",
@@ -101,7 +99,7 @@ class RedisSettings(BaseSettings):
 
 
 class Settings(BaseSettings):
-    secret_key: str = "a_default_secret_key"
+    secret_key: str = "CHANGE_THIS_IN_PRODUCTION_USE_ENVIRONMENT_VARIABLE"  # WARNING: Change in production!
     redis_nodes: List[Dict[str, str]] = [{"host": "localhost", "port": "6379"}]
     fetcher: FetcherSettings = Field(default_factory=FetcherSettings)
     security: SecuritySettings = Field(default_factory=SecuritySettings)
@@ -118,10 +116,10 @@ class Settings(BaseSettings):
     ]
 
     # CORS settings
-    allowed_origins: List[str] = ["*"]
-    allowed_methods: List[str] = ["GET", "POST"]
-    allowed_headers: List[str] = ["Content-Type"]
-    allow_credentials: bool = False
+    allowed_origins: List[str] = ["http://localhost:3000", "http://localhost:8000", "http://localhost:8080"]  # WARNING: Restrict in production!
+    allowed_methods: List[str] = ["GET", "POST", "PUT", "DELETE", "OPTIONS"]
+    allowed_headers: List[str] = ["Content-Type", "Authorization", "X-Requested-With"]
+    allow_credentials: bool = True
 
     model_config = SettingsConfigDict(
         env_file=".env", env_nested_delimiter="__"

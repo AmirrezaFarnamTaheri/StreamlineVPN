@@ -125,7 +125,11 @@ class StreamlineVPNMerger(BaseMerger):
             )
 
             # Generate outputs
-            await self.save_results(output_dir, formats)
+            try:
+                await self.save_results(output_dir, formats)
+            except Exception as save_error:
+                logger.error(f"Failed to save results: {save_error}")
+                # Continue without failing the entire process
 
             # Log performance
             duration = (datetime.now() - start_time).total_seconds()
@@ -161,12 +165,13 @@ class StreamlineVPNMerger(BaseMerger):
         try:
             # Get active source URLs from source manager
             if self.source_manager is None:
+                logger.warning("Source manager not initialized")
                 self.sources = []
                 return
             self.sources = await self.source_manager.get_active_sources()
             logger.info(f"Loaded {len(self.sources)} active sources")
         except Exception as e:
-            logger.error(f"Error loading sources: {e}")
+            logger.error(f"Error loading sources: {e}", exc_info=True)
             self.sources = []
 
     async def get_source_statistics(self) -> Dict[str, Any]:
@@ -262,3 +267,55 @@ class StreamlineVPNMerger(BaseMerger):
             "cache_enabled": self.cache_enabled,
             "max_concurrent": self.max_concurrent,
         }
+
+    async def get_all_configurations(self) -> List[Dict[str, Any]]:
+        """Get all configurations as dictionaries.
+        
+        Returns:
+            List of configuration dictionaries
+        """
+        try:
+            configs = await self.get_configurations()
+            return [config.to_dict() if hasattr(config, 'to_dict') else config for config in configs]
+        except Exception as e:
+            logger.error(f"Failed to get all configurations: {e}", exc_info=True)
+            return []
+
+    async def check_source_status(self, source_url: str) -> str:
+        """Check the status of a specific source.
+        
+        Args:
+            source_url: URL of the source to check
+            
+        Returns:
+            Status string ('active', 'inactive', 'error', 'unknown')
+        """
+        try:
+            # Check if source is in our sources list
+            for source in self.sources:
+                if hasattr(source, 'url') and source.url == source_url:
+                    return "active"
+            return "unknown"
+        except Exception as e:
+            logger.error(f"Failed to check source status for {source_url}: {e}", exc_info=True)
+            return "error"
+
+    async def count_source_configurations(self, source_url: str) -> int:
+        """Count configurations from a specific source.
+        
+        Args:
+            source_url: URL of the source to count
+            
+        Returns:
+            Number of configurations from the source
+        """
+        try:
+            configs = await self.get_configurations()
+            count = 0
+            for config in configs:
+                if hasattr(config, 'source_url') and config.source_url == source_url:
+                    count += 1
+            return count
+        except Exception as e:
+            logger.error(f"Failed to count configurations for {source_url}: {e}", exc_info=True)
+            return 0

@@ -5,13 +5,17 @@ from pathlib import Path
 from typing import List
 
 from ...models.configuration import VPNConfiguration
+from ...utils.logging import get_logger
+from .base_formatter import BaseFormatter
+
+logger = get_logger(__name__)
 
 
-class SingBoxFormatter:
+class SingBoxFormatter(BaseFormatter):
     """Formatter for Sing-box JSON output."""
 
     def __init__(self, output_dir: Path) -> None:
-        self.output_dir = output_dir
+        super().__init__(output_dir)
 
     def get_file_extension(self) -> str:
         """Return the file extension for Sing-box output."""
@@ -24,10 +28,13 @@ class SingBoxFormatter:
         file_path = (
             self.output_dir / f"{base_filename}{self.get_file_extension()}"
         )
-        f = open(file_path, "w", encoding="utf-8")
+        
         try:
-            data = {"outbounds": [cfg.to_dict() for cfg in configs]}
-            json.dump(data, f, indent=2)
-        finally:
-            f.close()
+            with open(file_path, "w", encoding="utf-8") as f:
+                data = {"outbounds": [self._safe_config_to_dict(cfg) for cfg in configs]}
+                json.dump(data, f, indent=2)
+        except Exception as e:
+            logger.error(f"Failed to save SingBox configurations: {e}")
+            raise
+        
         return file_path

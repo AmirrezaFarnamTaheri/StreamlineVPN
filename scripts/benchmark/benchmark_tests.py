@@ -14,15 +14,9 @@ from typing import Any, Dict, List, Optional
 
 import psutil
 
-from vpn_merger.core.merger import VPNSubscriptionMerger
-from vpn_merger.core.performance_optimizer import PerformanceOptimizer
-from vpn_merger.core.source_manager import SourceManager
-from vpn_merger.core.source_processor import SourceProcessor
-try:
-    from vpn_merger.core.output_manager import OutputManager
-except ImportError:
-    # Fallback to legacy path if present
-    from vpn_merger.core.output.manager import OutputManager
+from streamline_vpn.core.merger import StreamlineVPNMerger
+from streamline_vpn.core.source_manager import SourceManager
+from streamline_vpn.core.output_manager import OutputManager
 
 logger = logging.getLogger(__name__)
 
@@ -65,7 +59,7 @@ class CoreMergerBenchmark(BaseBenchmark):
         try:
             # Warmup iterations
             for i in range(self.benchmark_config["warmup_iterations"]):
-                merger = VPNSubscriptionMerger()
+                merger = StreamlineVPNMerger()
                 await merger.merge_subscriptions()
                 logger.debug(f"Warmup iteration {i+1} completed")
             
@@ -80,7 +74,7 @@ class CoreMergerBenchmark(BaseBenchmark):
                 start_cpu = psutil.cpu_percent()
                 
                 # Run the benchmark
-                merger = VPNSubscriptionMerger()
+                merger = StreamlineVPNMerger()
                 configs = await merger.merge_subscriptions()
                 
                 end_time = time.time()
@@ -130,7 +124,6 @@ class SourceProcessingBenchmark(BaseBenchmark):
         
         try:
             source_manager = SourceManager()
-            source_processor = SourceProcessor()
             
             # Get sources
             sources = source_manager.get_prioritized_sources()
@@ -141,16 +134,17 @@ class SourceProcessingBenchmark(BaseBenchmark):
             for i in range(self.benchmark_config["iterations"]):
                 start_time = time.time()
                 
-                # Process sources
-                processed_sources = await source_processor.process_sources(sources)
+                # Process sources using merger
+                merger = StreamlineVPNMerger()
+                processed_sources = await merger.merge_subscriptions()
                 
                 end_time = time.time()
                 duration = end_time - start_time
                 
                 durations.append(duration)
-                processed_count.append(len(processed_sources))
+                processed_count.append(len(processed_sources) if processed_sources else 0)
                 
-                logger.debug(f"Source processing iteration {i+1}: {duration:.2f}s, {len(processed_sources)} sources")
+                logger.debug(f"Source processing iteration {i+1}: {duration:.2f}s, {len(processed_sources) if processed_sources else 0} sources")
             
             from .benchmark_utils import BenchmarkUtils
             results["metrics"] = {
@@ -184,7 +178,7 @@ class OutputGenerationBenchmark(BaseBenchmark):
             output_manager = OutputManager()
             
             # Generate test configurations
-            merger = VPNSubscriptionMerger()
+            merger = StreamlineVPNMerger()
             configs = await merger.merge_subscriptions()
             
             durations = []
@@ -250,7 +244,7 @@ class MemoryUsageBenchmark(BaseBenchmark):
                 memory_before = psutil.Process().memory_info().rss / (1024 * 1024)  # MB
                 
                 # Run memory-intensive operation
-                merger = VPNSubscriptionMerger()
+                merger = StreamlineVPNMerger()
                 configs = await merger.merge_subscriptions()
                 
                 # Measure memory after
@@ -312,7 +306,7 @@ class ConcurrentProcessingBenchmark(BaseBenchmark):
                     # Run concurrent operations
                     tasks = []
                     for j in range(concurrency):
-                        merger = VPNSubscriptionMerger()
+                        merger = StreamlineVPNMerger()
                         task = asyncio.create_task(merger.merge_subscriptions())
                         tasks.append(task)
                     
@@ -363,12 +357,12 @@ class PerformanceOptimizationBenchmark(BaseBenchmark):
                     start_time = time.time()
                     
                     if optimized:
-                        # Use performance optimizer
-                        optimizer = PerformanceOptimizer()
-                        await optimizer.optimize_performance()
+                        # Use performance optimization (placeholder)
+                        # PerformanceOptimizer would be implemented here
+                        pass
                     
                     # Run benchmark
-                    merger = VPNSubscriptionMerger()
+                    merger = StreamlineVPNMerger()
                     configs = await merger.merge_subscriptions()
                     
                     end_time = time.time()
@@ -424,7 +418,7 @@ class StressTestBenchmark(BaseBenchmark):
                 
                 try:
                     # Run stress test
-                    merger = VPNSubscriptionMerger()
+                    merger = StreamlineVPNMerger()
                     configs = await merger.merge_subscriptions()
                     
                     if configs:

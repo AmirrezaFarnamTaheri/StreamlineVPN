@@ -5,8 +5,9 @@ global:
 scrape_configs:
   - job_name: 'streamline-vpn'
     static_configs:
-      - targets: ['streamline-vpn:8000']
+      - targets: ['streamline-vpn:9090']
     metrics_path: '/metrics'
+    scrape_interval: 15s
 
   - job_name: 'redis'
     static_configs:

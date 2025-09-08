@@ -9,12 +9,13 @@ from datetime import datetime, timedelta
 from typing import Dict, List, Optional
 
 from ...utils.logging import get_logger
-from .models import DeviceInfo, AuthResult, PolicyAction, ThreatLevel
-from .identity_provider import IdentityProvider
-from .device_validator import DeviceValidator
-from .policy_engine import PolicyEngine
-from .continuous_auth import ContinuousAuthenticator
-from .threat_analyzer import ThreatAnalyzer
+# Import moved to avoid circular dependencies
+# from .models import DeviceInfo, AuthResult, PolicyAction, ThreatLevel
+# from .identity_provider import IdentityProvider
+# from .device_validator import DeviceValidator
+# from .policy_engine import PolicyEngine
+# from .continuous_auth import ContinuousAuthenticator
+# from .threat_analyzer import ThreatAnalyzer
 
 logger = get_logger(__name__)
 
@@ -24,6 +25,13 @@ class ZeroTrustVPN:
 
     def __init__(self):
         """Initialize Zero Trust VPN system."""
+        # Lazy imports to avoid circular dependencies
+        from .identity_provider import IdentityProvider
+        from .device_validator import DeviceValidator
+        from .policy_engine import PolicyEngine
+        from .continuous_auth import ContinuousAuthenticator
+        from .threat_analyzer import ThreatAnalyzer
+        
         self.identity_provider = IdentityProvider()
         self.device_validator = DeviceValidator()
         self.policy_engine = PolicyEngine()
@@ -33,9 +41,9 @@ class ZeroTrustVPN:
     async def authenticate_connection(
         self,
         credentials: Dict[str, str],
-        device_info: DeviceInfo,
+        device_info,
         resource: str = "vpn_access",
-    ) -> AuthResult:
+    ):
         """Authenticate VPN connection with Zero Trust principles.
 
         Args:
@@ -85,9 +93,11 @@ class ZeroTrustVPN:
 
         # Step 8: Set session expiration
         expires_at = datetime.now() + timedelta(hours=8)
+        from .models import ThreatLevel
         if threat_level in [ThreatLevel.HIGH, ThreatLevel.CRITICAL]:
             expires_at = datetime.now() + timedelta(hours=1)
 
+        from .models import AuthResult
         return AuthResult(
             user_id=user_identity.user_id,
             session_id=session_id,
@@ -102,8 +112,10 @@ class ZeroTrustVPN:
 
     def _determine_final_action(
         self, policy_evaluations: List
-    ) -> PolicyAction:
+    ):
         """Determine final action from policy evaluations."""
+        from .models import PolicyAction
+        
         # Prioritize DENY and QUARANTINE actions
         for evaluation in policy_evaluations:
             if evaluation.action in [
@@ -121,9 +133,11 @@ class ZeroTrustVPN:
         return PolicyAction.DENY
 
     def _generate_permissions(
-        self, user_identity, device_posture, threat_level: ThreatLevel
+        self, user_identity, device_posture, threat_level
     ) -> List[str]:
         """Generate permissions based on user, device, and threat level."""
+        from .models import ThreatLevel
+        
         permissions = ["vpn_connect"]
 
         # Add role-based permissions
@@ -154,13 +168,13 @@ class ZeroTrustVPN:
 _zero_trust_vpn: Optional[ZeroTrustVPN] = None
 
 
-def initialize_zero_trust() -> ZeroTrustVPN:
+def initialize_zero_trust():
     """Initialize global Zero Trust VPN system."""
     global _zero_trust_vpn
     _zero_trust_vpn = ZeroTrustVPN()
     return _zero_trust_vpn
 
 
-def get_zero_trust() -> Optional[ZeroTrustVPN]:
+def get_zero_trust():
     """Get global Zero Trust VPN instance."""
     return _zero_trust_vpn

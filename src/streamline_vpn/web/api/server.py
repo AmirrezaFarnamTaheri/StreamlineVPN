@@ -7,10 +7,11 @@ Main API server implementation.
 from typing import Dict, List
 
 import uvicorn
-from fastapi import FastAPI
+from fastapi import FastAPI, Request, HTTPException
 from fastapi.middleware.trustedhost import TrustedHostMiddleware
+from fastapi.responses import JSONResponse
+from fastapi.exceptions import RequestValidationError
 
-from ...scheduler import setup_scheduler
 from ...utils.logging import get_logger
 from .auth import AuthenticationService
 from .routes import setup_routes
@@ -45,10 +46,11 @@ class APIServer:
 
         # Setup middleware and routes
         self._setup_middleware()
+        self._setup_exception_handlers()
         setup_routes(self.app, self.auth_service, self.websocket_manager)
 
         # Schedule the pipeline to run every 12 hours
-        self.app.add_event_handler("startup", self.start_scheduler)
+        # self.app.add_event_handler("startup", self.start_scheduler)
 
         logger.info("API server initialized")
 
@@ -56,6 +58,7 @@ class APIServer:
         """
         Starts the background scheduler.
         """
+        from ...scheduler import setup_scheduler
         setup_scheduler()
 
     def _setup_middleware(self) -> None:
@@ -66,15 +69,69 @@ class APIServer:
             allowed_hosts=["*"],  # Configure appropriately for production
         )
 
+    def _setup_exception_handlers(self) -> None:
+        """Setup global exception handlers for comprehensive error handling."""
+        
+        @self.app.exception_handler(HTTPException)
+        async def http_exception_handler(request: Request, exc: HTTPException):
+            """Handle HTTP exceptions with proper logging."""
+            logger.warning(f"HTTP {exc.status_code}: {exc.detail} - {request.url}")
+            return JSONResponse(
+                status_code=exc.status_code,
+                content={
+                    "error": exc.detail,
+                    "status_code": exc.status_code,
+                    "path": str(request.url.path)
+                }
+            )
+
+        @self.app.exception_handler(RequestValidationError)
+        async def validation_exception_handler(request: Request, exc: RequestValidationError):
+            """Handle validation errors with detailed information."""
+            logger.warning(f"Validation error: {exc.errors()} - {request.url}")
+            return JSONResponse(
+                status_code=422,
+                content={
+                    "error": "Validation failed",
+                    "details": exc.errors(),
+                    "path": str(request.url.path)
+                }
+            )
+
+        @self.app.exception_handler(Exception)
+        async def general_exception_handler(request: Request, exc: Exception):
+            """Handle unexpected exceptions with proper logging."""
+            logger.error(f"Unexpected error: {exc} - {request.url}", exc_info=True)
+            return JSONResponse(
+                status_code=500,
+                content={
+                    "error": "Internal server error",
+                    "message": "An unexpected error occurred. Please try again later.",
+                    "path": str(request.url.path)
+                }
+            )
+
     def run(self, host: str = "0.0.0.0", port: int = 8080) -> None:
-        """Run the API server.
+        """Run the API server with comprehensive error handling.
 
         Args:
             host: Host to bind to
             port: Port to bind to
         """
-        logger.info(f"Starting API server on {host}:{port}")
-        uvicorn.run(self.app, host=host, port=port)
+        try:
+            logger.info(f"Starting API server on {host}:{port}")
+            uvicorn.run(
+                self.app, 
+                host=host, 
+                port=port,
+                log_level="info",
+                access_log=True,
+                server_header=False,
+                date_header=False
+            )
+        except Exception as e:
+            logger.error(f"Failed to start API server: {e}", exc_info=True)
+            raise
 
     def get_app(self) -> FastAPI:
         """Get FastAPI application instance.

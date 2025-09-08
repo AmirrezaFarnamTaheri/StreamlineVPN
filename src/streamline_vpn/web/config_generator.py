@@ -127,8 +127,12 @@ class VPNConfigGenerator:
         logger.info(
             f"Starting VPN Config Generator on {self.host}:{self.port}"
         )
-        # Note: In a real implementation, you would use uvicorn to run the app
-        # uvicorn.run(self.app, host=self.host, port=self.port)
+        try:
+            import uvicorn
+            uvicorn.run(self.app, host=self.host, port=self.port, log_level="info")
+        except ImportError:
+            logger.warning("uvicorn not available, server not started")
+            logger.info("Install uvicorn to run the server: pip install uvicorn")
 
     async def stop(self):
         """Stop the configuration generator."""

@@ -7,7 +7,7 @@ Device posture validation service for Zero Trust security.
 
 from typing import Any, Dict
 
-from ...utils.logging import get_logger
+from ....utils.logging import get_logger
 from .models import DeviceInfo, DevicePosture, DeviceStatus
 
 logger = get_logger(__name__)

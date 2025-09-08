@@ -8,11 +8,12 @@ Security management system for StreamlineVPN.
 from typing import Dict, List, Optional, Any
 from datetime import datetime
 
-from .threat_analyzer import ThreatAnalyzer
-from .validator import SecurityValidator
-from .pattern_analyzer import PatternAnalyzer
-from .rate_limiter import RateLimiter
-from .blocklist_manager import BlocklistManager
+# Import moved to avoid circular dependencies
+# from .threat_analyzer import ThreatAnalyzer
+# from .validator import SecurityValidator
+# from .pattern_analyzer import PatternAnalyzer
+# from .rate_limiter import RateLimiter
+# from .blocklist_manager import BlocklistManager
 from ..utils.logging import get_logger
 
 logger = get_logger(__name__)
@@ -23,18 +24,35 @@ class SecurityManager:
 
     def __init__(
         self,
-        threat_analyzer: Optional[ThreatAnalyzer] = None,
-        validator: Optional[SecurityValidator] = None,
-        pattern_analyzer: Optional[PatternAnalyzer] = None,
-        rate_limiter: Optional[RateLimiter] = None,
-        blocklist_manager: Optional[BlocklistManager] = None,
+        threat_analyzer=None,
+        validator=None,
+        pattern_analyzer=None,
+        rate_limiter=None,
+        blocklist_manager=None,
     ):
         """Initialize security manager."""
-        self.threat_analyzer = threat_analyzer or ThreatAnalyzer()
-        self.validator = validator or SecurityValidator()
-        self.pattern_analyzer = pattern_analyzer or PatternAnalyzer()
-        self.rate_limiter = rate_limiter or RateLimiter()
-        self.blocklist_manager = blocklist_manager or BlocklistManager()
+        # Lazy imports to avoid circular dependencies
+        if threat_analyzer is None:
+            from .threat_analyzer import ThreatAnalyzer
+            threat_analyzer = ThreatAnalyzer()
+        if validator is None:
+            from .validator import SecurityValidator
+            validator = SecurityValidator()
+        if pattern_analyzer is None:
+            from .pattern_analyzer import PatternAnalyzer
+            pattern_analyzer = PatternAnalyzer()
+        if rate_limiter is None:
+            from .rate_limiter import RateLimiter
+            rate_limiter = RateLimiter()
+        if blocklist_manager is None:
+            from .blocklist_manager import BlocklistManager
+            blocklist_manager = BlocklistManager()
+            
+        self.threat_analyzer = threat_analyzer
+        self.validator = validator
+        self.pattern_analyzer = pattern_analyzer
+        self.rate_limiter = rate_limiter
+        self.blocklist_manager = blocklist_manager
 
     def analyze_configuration(self, config: str) -> Dict[str, Any]:
         """Analyze configuration for security threats.

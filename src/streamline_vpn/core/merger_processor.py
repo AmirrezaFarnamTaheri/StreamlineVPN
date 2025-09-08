@@ -79,41 +79,51 @@ class MergerProcessor:
                     "Failed to fetch or no content from source " f"{source}"
                 )
                 # Update performance as failed
-                await self.merger.source_manager.update_source_performance(
-                    source_url=source,
-                    success=False,
-                    config_count=0,
-                    response_time=(
-                        fetch_result.response_time if fetch_result else 0.0
-                    ),
-                )
+                try:
+                    await self.merger.source_manager.update_source_performance(
+                        source_url=source,
+                        success=False,
+                        config_count=0,
+                        response_time=(
+                            fetch_result.response_time if fetch_result else 0.0
+                        ),
+                    )
+                except Exception as perf_error:
+                    logger.error(f"Failed to update source performance: {perf_error}")
                 return []
 
             # Parse each configuration line
             parsed_configs: List[VPNConfiguration] = []
             for line in fetch_result.configs:
-                security_analysis = (
-                    self.merger.security_manager.analyze_configuration(line)
-                )
-                if not security_analysis["is_safe"]:
-                    logger.warning(
-                        "Skipping unsafe configuration from "
-                        f"{source}: {line}"
+                try:
+                    security_analysis = (
+                        self.merger.security_manager.analyze_configuration(line)
                     )
+                    if not security_analysis["is_safe"]:
+                        logger.warning(
+                            "Skipping unsafe configuration from "
+                            f"{source}: {line}"
+                        )
+                        continue
+
+                    parser = self.merger.config_processor.parser
+                    cfg = parser.parse_configuration(line)
+                    if cfg:
+                        parsed_configs.append(cfg)
+                except Exception as parse_error:
+                    logger.debug(f"Failed to parse configuration line: {parse_error}")
                     continue
 
-                parser = self.merger.config_processor.parser
-                cfg = parser.parse_configuration(line)
-                if cfg:
-                    parsed_configs.append(cfg)
-
             # Update source performance
-            await self.merger.source_manager.update_source_performance(
-                source_url=source,
-                success=True,
-                config_count=len(parsed_configs),
-                response_time=fetch_result.response_time,
-            )
+            try:
+                await self.merger.source_manager.update_source_performance(
+                    source_url=source,
+                    success=True,
+                    config_count=len(parsed_configs),
+                    response_time=fetch_result.response_time,
+                )
+            except Exception as perf_error:
+                logger.error(f"Failed to update source performance: {perf_error}")
 
             return parsed_configs
 
@@ -129,8 +139,8 @@ class MergerProcessor:
                     config_count=0,
                     response_time=0.0,
                 )
-            except Exception:
-                pass
+            except Exception as perf_error:
+                logger.error(f"Failed to update source performance: {perf_error}")
             return []
 
     async def deduplicate_configurations(

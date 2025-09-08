@@ -13,11 +13,19 @@ mkdir -p "$BACKUP_DIR"
 
 # Backup database
 echo "Backing up database..."
-pg_dump postgresql://streamline@localhost/streamline | gzip > "$BACKUP_DIR/db_$(date +%Y%m%d_%H%M%S).sql.gz"
+if [ -n "$DATABASE_URL" ]; then
+    pg_dump "$DATABASE_URL" | gzip > "$BACKUP_DIR/db_$(date +%Y%m%d_%H%M%S).sql.gz"
+else
+    pg_dump postgresql://streamline@localhost/streamline | gzip > "$BACKUP_DIR/db_$(date +%Y%m%d_%H%M%S).sql.gz"
+fi
 
 # Backup Redis
 echo "Backing up Redis..."
-redis-cli --rdb "$BACKUP_DIR/redis_$(date +%Y%m%d_%H%M%S).rdb"
+if [ -n "$REDIS_URL" ]; then
+    redis-cli -u "$REDIS_URL" --rdb "$BACKUP_DIR/redis_$(date +%Y%m%d_%H%M%S).rdb"
+else
+    redis-cli --rdb "$BACKUP_DIR/redis_$(date +%Y%m%d_%H%M%S).rdb"
+fi
 
 # Backup configuration
 echo "Backing up configuration..."

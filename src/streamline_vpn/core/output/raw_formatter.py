@@ -4,13 +4,17 @@ from pathlib import Path
 from typing import List
 
 from ...models.configuration import VPNConfiguration
+from ...utils.logging import get_logger
+from .base_formatter import BaseFormatter
+
+logger = get_logger(__name__)
 
 
-class RawFormatter:
+class RawFormatter(BaseFormatter):
     """Formatter that writes configurations as raw strings."""
 
     def __init__(self, output_dir: Path) -> None:
-        self.output_dir = output_dir
+        super().__init__(output_dir)
 
     def get_file_extension(self) -> str:
         """Return the file extension for raw output."""
@@ -23,10 +27,13 @@ class RawFormatter:
         file_path = (
             self.output_dir / f"{base_filename}{self.get_file_extension()}"
         )
-        f = open(file_path, "w", encoding="utf-8")
+        
         try:
-            for config in configs:
-                f.write(str(config) + "\n")
-        finally:
-            f.close()
+            with open(file_path, "w", encoding="utf-8") as f:
+                for config in configs:
+                    f.write(str(config) + "\n")
+        except Exception as e:
+            logger.error(f"Failed to save raw configurations: {e}")
+            raise
+        
         return file_path

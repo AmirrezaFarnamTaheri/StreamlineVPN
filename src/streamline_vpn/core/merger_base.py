@@ -124,25 +124,32 @@ class BaseMerger:
         if not self.output_manager:
             raise RuntimeError("Output manager not initialized")
 
-        output_path = Path(output_dir)
-        output_path.mkdir(parents=True, exist_ok=True)
+        try:
+            output_path = Path(output_dir)
+            output_path.mkdir(parents=True, exist_ok=True)
 
-        if formats is None:
-            formats = ["json", "clash", "singbox"]
+            if formats is None:
+                formats = ["json", "clash", "singbox"]
 
-        # Save configurations via async output manager API
-        await self.output_manager.save_configurations(
-            self.results,
-            str(output_path),
-            formats,
-        )
+            # Save configurations via async output manager API
+            await self.output_manager.save_configurations(
+                self.results,
+                str(output_path),
+                formats,
+            )
 
-        # Save statistics
-        stats_file = output_path / "statistics.json"
-        with open(stats_file, "w") as f:
-            f.write(self.statistics.to_json())
+            # Save statistics
+            stats_file = output_path / "statistics.json"
+            try:
+                with open(stats_file, "w") as f:
+                    f.write(self.statistics.to_json())
+            except Exception as e:
+                logger.error(f"Failed to save statistics: {e}")
 
-        logger.info(f"Results saved to {output_dir}")
+            logger.info(f"Results saved to {output_dir}")
+        except Exception as e:
+            logger.error(f"Failed to save results: {e}", exc_info=True)
+            raise
 
     def save_results_sync(
         self, output_dir: str, formats: Optional[List[str]] = None
@@ -153,9 +160,13 @@ class BaseMerger:
             return
         if not self.output_manager:
             raise RuntimeError("Output manager not initialized")
-        self.output_manager.save_configurations_sync(
-            self.results, output_dir, formats
-        )
+        try:
+            self.output_manager.save_configurations_sync(
+                self.results, output_dir, formats
+            )
+        except Exception as e:
+            logger.error(f"Failed to save results synchronously: {e}", exc_info=True)
+            raise
 
     def _update_statistics(self, **kwargs) -> None:
         """Update statistics with new values.

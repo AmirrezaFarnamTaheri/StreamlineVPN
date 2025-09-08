@@ -5,13 +5,17 @@ from pathlib import Path
 from typing import List
 
 from ...models.configuration import VPNConfiguration
+from ...utils.logging import get_logger
+from .base_formatter import BaseFormatter
+
+logger = get_logger(__name__)
 
 
-class JSONFormatter:
+class JSONFormatter(BaseFormatter):
     """Formatter that outputs configurations in JSON format."""
 
     def __init__(self, output_dir: Path) -> None:
-        self.output_dir = output_dir
+        super().__init__(output_dir)
 
     def get_file_extension(self) -> str:
         """Return the file extension for JSON output."""
@@ -24,11 +28,13 @@ class JSONFormatter:
         file_path = (
             self.output_dir / f"{base_filename}{self.get_file_extension()}"
         )
-        print(f"Saving JSON to {file_path}")
-        f = open(file_path, "w", encoding="utf-8")
+        
         try:
-            json.dump([cfg.to_dict() for cfg in configs], f, indent=2)
-        finally:
-            f.close()
-        print(f"File exists after save: {file_path.exists()}")
+            with open(file_path, "w", encoding="utf-8") as f:
+                data = [self._safe_config_to_dict(cfg) for cfg in configs]
+                json.dump(data, f, indent=2)
+        except Exception as e:
+            logger.error(f"Failed to save JSON configurations: {e}")
+            raise
+        
         return file_path

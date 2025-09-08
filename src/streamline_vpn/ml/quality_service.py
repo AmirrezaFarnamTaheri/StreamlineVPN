@@ -11,8 +11,8 @@ import time
 from datetime import datetime
 from typing import Any, Dict, List, Optional
 
-from ..core.cache_manager import CacheManager
-from ..utils.logging import get_logger
+from ...core.cache_manager import CacheManager
+from ...utils.logging import get_logger
 from .feature_processor import NetworkFeatureProcessor, NetworkMetrics
 from .lstm_model import LSTMModel
 
@@ -177,9 +177,18 @@ class QualityPredictionService:
     async def clear_cache(self) -> None:
         """Clear prediction cache."""
         if self.cache_manager:
-            # This is not ideal as it would clear all caches, not just
-            # the ML cache. A better solution would be to use a
-            # separate Redis database or a key prefix for the ML cache.
-            # For now, we'll just clear the whole cache.
-            await self.cache_manager.clear()
-            logger.info("Quality prediction cache cleared")
+            # Clear ML-specific cache keys
+            try:
+                # Get all ML prediction keys
+                keys = await self.cache_manager.redis_client.scan("ml_prediction:*")
+                for key in keys:
+                    await self.cache_manager.delete(key)
+                logger.info(f"Cleared {len(keys)} ML prediction cache entries")
+            except Exception as e:
+                logger.error(f"Failed to clear ML cache: {e}")
+                # Fallback: clear all caches
+                try:
+                    await self.cache_manager.clear()
+                    logger.info("Quality prediction cache cleared (fallback)")
+                except Exception as fallback_error:
+                    logger.error(f"Failed to clear cache (fallback): {fallback_error}")

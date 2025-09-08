@@ -268,6 +268,7 @@ class TestDiscoveryManager:
                 else:
                     resp.json = AsyncMock(return_value=[])
                 cm.__aenter__.return_value = resp
+                cm.__aexit__.return_value = None
                 return cm
 
             session.get = AsyncMock(side_effect=lambda url, *a, **k: make_get_cm(url, *a, **k))
@@ -277,6 +278,7 @@ class TestDiscoveryManager:
                 resp = AsyncMock()
                 resp.status = 200
                 cm.__aenter__.return_value = resp
+                cm.__aexit__.return_value = None
                 return cm
 
             session.head = AsyncMock(side_effect=make_head_cm)

@@ -5,7 +5,7 @@ from unittest.mock import patch
 
 from fastapi.testclient import TestClient
 
-from streamline_vpn.models import OutputFormat
+from streamline_vpn.models.formats import OutputFormat
 
 
 def load_api_app():

@@ -182,32 +182,44 @@ class ConfigurationProcessor:
         Returns:
             List of processed configurations
         """
-        # Parse configurations
-        configs_data = self.parse_configurations(content, source_type)
+        try:
+            # Parse configurations
+            configs_data = self.parse_configurations(content, source_type)
 
-        # Convert to VPNConfiguration objects
-        configs = []
-        for config_data in configs_data:
+            # Convert to VPNConfiguration objects
+            configs = []
+            for config_data in configs_data:
+                try:
+                    config = self._dict_to_config(config_data)
+                    configs.append(config)
+                except Exception as e:
+                    logger.debug(f"Failed to create configuration: {e}")
+                    continue
+
+            # Validate configurations
+            if validation_rules:
+                try:
+                    configs = self.validator.validate_configurations(
+                        configs, validation_rules
+                    )
+                except Exception as e:
+                    logger.error(f"Configuration validation failed: {e}")
+                    # Continue with unvalidated configs
+
+            # Deduplicate configurations
             try:
-                config = self._dict_to_config(config_data)
-                configs.append(config)
+                configs = self.deduplicate_configurations(
+                    configs, deduplication_strategy
+                )
             except Exception as e:
-                logger.debug(f"Failed to create configuration: {e}")
-                continue
+                logger.error(f"Configuration deduplication failed: {e}")
+                # Continue with duplicated configs
 
-        # Validate configurations
-        if validation_rules:
-            configs = self.validator.validate_configurations(
-                configs, validation_rules
-            )
-
-        # Deduplicate configurations
-        configs = self.deduplicate_configurations(
-            configs, deduplication_strategy
-        )
-
-        logger.info(f"Processed {len(configs)} valid configurations")
-        return configs
+            logger.info(f"Processed {len(configs)} valid configurations")
+            return configs
+        except Exception as e:
+            logger.error(f"Failed to process configurations: {e}", exc_info=True)
+            return []
 
     def _config_to_dict(self, config: VPNConfiguration) -> Dict[str, Any]:
         """Convert VPNConfiguration to dictionary.
@@ -251,24 +263,40 @@ class ConfigurationProcessor:
 
         from ..models.configuration import Protocol
 
-        return VPNConfiguration(
-            id=config_data.get("id", ""),
-            protocol=Protocol(config_data.get("protocol", "unknown")),
-            server=config_data.get("server", ""),
-            port=config_data.get("port", 0),
-            user_id=config_data.get("user_id", ""),
-            password=config_data.get("password", ""),
-            encryption=config_data.get("encryption", ""),
-            network=config_data.get("network", ""),
-            path=config_data.get("path", ""),
-            host=config_data.get("host", ""),
-            tls=config_data.get("tls", False),
-            quality_score=config_data.get("quality_score"),
-            source_url=config_data.get("source_url", ""),
-            created_at=(
-                datetime.fromisoformat(config_data["created_at"])
-                if config_data.get("created_at")
-                else None
-            ),
-            metadata=config_data.get("metadata", {}),
-        )
+        try:
+            # Handle protocol conversion safely
+            protocol_value = config_data.get("protocol", "unknown")
+            try:
+                protocol = Protocol(protocol_value)
+            except ValueError:
+                logger.warning(f"Unknown protocol: {protocol_value}, using vmess")
+                protocol = Protocol.VMESS
+
+            # Handle created_at conversion safely
+            created_at = None
+            if config_data.get("created_at"):
+                try:
+                    created_at = datetime.fromisoformat(config_data["created_at"])
+                except (ValueError, TypeError):
+                    logger.warning(f"Invalid created_at format: {config_data.get('created_at')}")
+
+            return VPNConfiguration(
+                id=config_data.get("id", ""),
+                protocol=protocol,
+                server=config_data.get("server", ""),
+                port=config_data.get("port", 0),
+                user_id=config_data.get("user_id", ""),
+                password=config_data.get("password", ""),
+                encryption=config_data.get("encryption", ""),
+                network=config_data.get("network", ""),
+                path=config_data.get("path", ""),
+                host=config_data.get("host", ""),
+                tls=config_data.get("tls", False),
+                quality_score=config_data.get("quality_score", 0.0),
+                source_url=config_data.get("source_url", ""),
+                created_at=created_at,
+                metadata=config_data.get("metadata", {}),
+            )
+        except Exception as e:
+            logger.error(f"Failed to convert dict to config: {e}")
+            raise ValueError(f"Invalid configuration data: {e}")

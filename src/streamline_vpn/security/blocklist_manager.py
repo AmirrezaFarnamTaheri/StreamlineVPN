@@ -7,7 +7,7 @@ Blocklist management functionality for security.
 
 from typing import Set, Dict, Any
 
-from ..utils.logging import get_logger
+from ...utils.logging import get_logger
 
 logger = get_logger(__name__)
 

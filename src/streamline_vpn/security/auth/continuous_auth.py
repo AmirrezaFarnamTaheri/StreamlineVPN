@@ -9,7 +9,7 @@ import time
 from datetime import datetime
 from typing import Dict, Any
 
-from ...utils.logging import get_logger
+from ....utils.logging import get_logger
 from .models import UserIdentity, DevicePosture, ThreatLevel
 
 logger = get_logger(__name__)

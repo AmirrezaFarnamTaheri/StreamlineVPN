@@ -18,7 +18,6 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import HTMLResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 
-from ..models import OutputFormat
 from ..utils.logging import get_logger
 from .settings import Settings
 
@@ -124,11 +123,11 @@ class EnhancedStaticServer:
                         "auto_update_enabled": self.update_task is not None,
                     }
                 )
-            except Exception as exc:  # pragma: no cover
-                logger.error("Error getting status: %s", exc)
-                return JSONResponse(
-                    {"status": "error", "error": str(exc)}, status_code=503
-                )
+        except Exception as exc:  # pragma: no cover
+            logger.error("Error getting status: %s", exc, exc_info=True)
+            return JSONResponse(
+                {"status": "error", "error": str(exc)}, status_code=503
+            )
 
         @app.get("/api/configurations")
         async def get_configurations() -> JSONResponse:
@@ -278,91 +277,97 @@ class EnhancedStaticServer:
         return app
 
     async def _perform_update(self) -> None:
-        """Perform update with health check and backoff; refresh cached data."""
+        """Perform actual update from sources with proper error handling."""
         try:
-            logger.info("Starting auto-update...")
-
-            # Health check
+            logger.info("Starting auto-update cycle...")
+            
+            # Check if backend is available
             try:
-                health = await self.backend_client.get(f"{self.api_base}/health", timeout=5.0)
-                if health.status_code != 200:
-                    logger.warning("Backend health returned %s", health.status_code)
+                health_response = await self.backend_client.get(
+                    f"{self.api_base}/health",
+                    timeout=5.0
+                )
+                if health_response.status_code != 200:
+                    logger.warning(f"Backend health check failed: {health_response.status_code}")
                     return
-            except Exception as exc:  # pragma: no cover
-                logger.warning("Backend not available: %s", exc)
+            except Exception as e:
+                logger.error(f"Backend not available for auto-update: {e}")
                 return
-
-            # Trigger pipeline
+            
+            # Trigger pipeline run
+            logger.info("Triggering pipeline run...")
             response = await self.backend_client.post(
                 f"{self.api_base}/api/v1/pipeline/run",
                 json={
                     "config_path": "config/sources.unified.yaml",
                     "output_dir": "output",
-                    "formats": [
-                        OutputFormat.JSON.value,
-                        OutputFormat.CLASH.value,
-                        OutputFormat.SINGBOX.value,
-                        OutputFormat.BASE64.value,
-                        OutputFormat.RAW.value if hasattr(OutputFormat, "RAW") else "raw",
-                        OutputFormat.CSV.value if hasattr(OutputFormat, "CSV") else "csv",
-                    ],
+                    "formats": ["json", "clash", "singbox", "base64", "raw", "csv"]
                 },
-                timeout=30.0,
+                timeout=30.0
             )
-
+            
             if response.status_code != 200:
-                logger.error("Failed to start auto-update: %s", response.status_code)
+                logger.error(f"Failed to start pipeline: {response.status_code}")
                 return
-
-            job_id = response.json().get("job_id")
+            
+            result = response.json()
+            job_id = result.get("job_id")
+            
             if not job_id:
-                logger.error("No job id returned from backend")
+                logger.error("No job ID returned from pipeline run")
                 return
-
-            # Poll with exponential backoff
-            attempts = 0
-            max_attempts = 120  # ~10 minutes
-            delay = 2.0
-            while attempts < max_attempts:
-                await asyncio.sleep(min(delay, 30.0))
-                attempts += 1
+            
+            logger.info(f"Pipeline job started: {job_id}")
+            
+            # Poll for completion with exponential backoff
+            max_attempts = 120  # 10 minutes max
+            attempt = 0
+            base_delay = 2  # Start with 2 seconds
+            
+            while attempt < max_attempts:
+                await asyncio.sleep(min(base_delay * (1.5 ** min(attempt, 10)), 30))  # Cap at 30 seconds
+                attempt += 1
+                
                 try:
-                    status_resp = await self.backend_client.get(
+                    status_response = await self.backend_client.get(
                         f"{self.api_base}/api/v1/pipeline/status/{job_id}",
-                        timeout=10.0,
+                        timeout=10.0
                     )
-                    if status_resp.status_code != 200:
-                        delay = min(delay * 1.5, 30.0)
+                    
+                    if status_response.status_code != 200:
+                        logger.warning(f"Failed to get job status: {status_response.status_code}")
                         continue
-                    status_data = status_resp.json()
-                    state = status_data.get("status")
-                    if state == "completed":
-                        # Refresh caches
+                    
+                    status = status_response.json()
+                    job_status = status.get("status")
+                    
+                    logger.debug(f"Job {job_id} status: {job_status} ({status.get('progress', 0)}%)")
+                    
+                    if job_status == "completed":
+                        logger.info(f"Pipeline job {job_id} completed successfully")
+                        
+                        # Fetch updated data
                         await self._refresh_cached_data()
+                        
                         self.cached_data["last_update"] = datetime.now().isoformat()
+                        self.last_update = datetime.now()
+                        
+                        logger.info("Auto-update completed successfully")
                         break
-                    if state == "failed":
-                        logger.error("Auto-update failed: %s", status_data.get("error"))
+                        
+                    elif job_status == "failed":
+                        error_msg = status.get("error", "Unknown error")
+                        logger.error(f"Pipeline job {job_id} failed: {error_msg}")
                         break
-                    delay = min(delay * 1.2, 30.0)
-                except Exception as exc:  # pragma: no cover
-                    logger.error("Error polling job status: %s", exc)
-                    delay = min(delay * 1.5, 30.0)
-
-            self.last_update = datetime.now()
-            cache_file = self.static_dir / "cache.json"
-            async with aiofiles.open(cache_file, "w") as f:
-                await f.write(
-                    json.dumps(
-                        {
-                            "last_update": self.last_update.isoformat(),
-                            "data": self.cached_data,
-                        },
-                        indent=2,
-                    )
-                )
-        except Exception as exc:  # pragma: no cover
-            logger.error("Update failed: %s", exc)
+                        
+                except Exception as e:
+                    logger.error(f"Error checking job status: {e}")
+                    
+            else:
+                logger.warning(f"Pipeline job {job_id} timed out after {max_attempts} attempts")
+                
+        except Exception as e:
+            logger.error(f"Auto-update error: {e}", exc_info=True)
 
     async def _auto_update_loop(self) -> None:
         """Auto-update loop that runs every update interval."""
@@ -377,26 +382,37 @@ class EnhancedStaticServer:
                 logger.error("Auto-update error: %s", exc)
 
     async def _refresh_cached_data(self) -> None:
-        """Refresh cached data from backend endpoints."""
+        """Refresh cached data from backend."""
         try:
-            cfg_resp = await self.backend_client.get(
-                f"{self.api_base}/api/v1/configurations?limit=1000", timeout=30.0
+            # Fetch configurations
+            configs_response = await self.backend_client.get(
+                f"{self.api_base}/api/v1/configurations?limit=1000",
+                timeout=30.0
             )
-            if cfg_resp.status_code == 200:
-                self.cached_data["configurations"] = cfg_resp.json().get("configurations", [])
-            stats_resp = await self.backend_client.get(
-                f"{self.api_base}/api/v1/statistics", timeout=15.0
+            if configs_response.status_code == 200:
+                self.cached_data["configurations"] = configs_response.json().get("configurations", [])
+                logger.info(f"Cached {len(self.cached_data['configurations'])} configurations")
+            
+            # Fetch statistics
+            stats_response = await self.backend_client.get(
+                f"{self.api_base}/api/v1/statistics",
+                timeout=10.0
             )
-            if stats_resp.status_code == 200:
-                self.cached_data["statistics"] = stats_resp.json()
-            src_resp = await self.backend_client.get(
-                f"{self.api_base}/api/v1/sources", timeout=15.0
+            if stats_response.status_code == 200:
+                self.cached_data["statistics"] = stats_response.json()
+                logger.info("Updated statistics cache")
+            
+            # Fetch sources
+            sources_response = await self.backend_client.get(
+                f"{self.api_base}/api/v1/sources",
+                timeout=10.0
             )
-            if src_resp.status_code == 200:
-                body = src_resp.json()
-                self.cached_data["sources"] = body.get("sources", body)
-        except Exception as exc:  # pragma: no cover
-            logger.error("Error refreshing cached data: %s", exc)
+            if sources_response.status_code == 200:
+                self.cached_data["sources"] = sources_response.json().get("sources", [])
+                logger.info(f"Cached {len(self.cached_data['sources'])} sources")
+                
+        except Exception as e:
+            logger.error(f"Error refreshing cached data: {e}", exc_info=True)
 
 
 if __name__ == "__main__":  # pragma: no cover - manual run only

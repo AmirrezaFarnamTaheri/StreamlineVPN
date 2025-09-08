@@ -10,7 +10,6 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from ..utils.logging import get_logger
 from .api import create_app as create_api_app
-from .graphql import create_graphql_app
 
 logger = get_logger(__name__)
 
@@ -50,9 +49,13 @@ class IntegratedWebServer:
         api_app = create_api_app()
         app.mount("/api", api_app)
 
-        # Include GraphQL routes
-        graphql_app = create_graphql_app()
-        app.mount("/graphql", graphql_app)
+        # Include GraphQL routes (if available)
+        try:
+            from .graphql import create_graphql_app
+            graphql_app = create_graphql_app()
+            app.mount("/graphql", graphql_app)
+        except ImportError:
+            logger.warning("GraphQL not available, skipping GraphQL routes")
 
         # Root endpoint
         @app.get("/")
@@ -74,8 +77,12 @@ class IntegratedWebServer:
         logger.info(
             f"Starting Integrated Web Server on {self.host}:{self.port}"
         )
-        # Note: In a real implementation, you would use uvicorn to run the app
-        # uvicorn.run(self.app, host=self.host, port=self.port)
+        try:
+            import uvicorn
+            uvicorn.run(self.app, host=self.host, port=self.port, log_level="info")
+        except ImportError:
+            logger.warning("uvicorn not available, server not started")
+            logger.info("Install uvicorn to run the server: pip install uvicorn")
 
     async def stop(self):
         """Stop the integrated server."""

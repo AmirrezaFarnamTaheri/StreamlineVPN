@@ -11,11 +11,12 @@ This module provides a unified interface to the modularized ML system.
 
 from typing import Any, Dict
 
-from .quality_service import QualityPredictionService
-from .feature_processor import NetworkFeatureProcessor
-from .lstm_model import QualityPrediction, LSTMModel
-from ..core.cache_manager import CacheManager
-from ..settings import get_settings
+# Import moved to avoid circular dependencies
+# from .quality_service import QualityPredictionService
+# from .feature_processor import NetworkFeatureProcessor
+# from .lstm_model import QualityPrediction, LSTMModel
+# from ..core.cache_manager import CacheManager
+# from ..settings import get_settings
 
 # Re-export main classes for backward compatibility
 __all__ = [
@@ -27,10 +28,17 @@ __all__ = [
 _quality_prediction_service_instance = None
 
 
-def create_quality_prediction_service() -> QualityPredictionService:
+def create_quality_prediction_service():
     """Factory function to create a quality prediction service."""
     global _quality_prediction_service_instance
     if _quality_prediction_service_instance is None:
+        # Lazy imports to avoid circular dependencies
+        from ..settings import get_settings
+        from ..core.cache_manager import CacheManager
+        from .quality_service import QualityPredictionService
+        from .feature_processor import NetworkFeatureProcessor
+        from .lstm_model import LSTMModel
+        
         settings = get_settings()
         cache_manager = CacheManager(redis_nodes=settings.redis.nodes)
         feature_processor = NetworkFeatureProcessor()

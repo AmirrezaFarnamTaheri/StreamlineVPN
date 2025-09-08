@@ -104,7 +104,7 @@ class OutputManager:
                     saved_files[format_name] = target_path
 
             except Exception as e:
-                logger.error(f"Formatter error for {format_name}: {e}")
+                logger.error(f"Formatter error for {format_name}: {e}", exc_info=True)
 
         # If caller provided a single format string, return its Path
         if single_format:
@@ -127,9 +127,13 @@ class OutputManager:
             asyncio.get_running_loop()
         except RuntimeError:
             # No running loop
-            return asyncio.run(
-                self.save_configurations(configs, output_dir, formats)
-            )
+            try:
+                return asyncio.run(
+                    self.save_configurations(configs, output_dir, formats)
+                )
+            except Exception as e:
+                logger.error(f"Failed to save configurations synchronously: {e}", exc_info=True)
+                return None
         else:
             # Running in an event loop; avoid deadlock
             raise RuntimeError(

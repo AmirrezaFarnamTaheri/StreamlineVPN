@@ -58,7 +58,7 @@ def test_process_unknown_formats_rejected(client):
     )
     assert response.status_code == 400
     data = response.json()
-    assert "Unknown formats" in data["detail"]
+    assert "Unknown formats" in data["error"]
 
 
 def test_process_internal_error_returns_500(client, monkeypatch):
@@ -77,7 +77,7 @@ def test_process_internal_error_returns_500(client, monkeypatch):
 
     response = client.post("/api/process", json={"formats": ["json"]})
     assert response.status_code == 500
-    assert response.json()["detail"] == "Processing failed"
+    assert response.json()["error"] == "Processing failed"
 
 
 def test_get_sources_invalid_yaml(client, tmp_path, monkeypatch, caplog):
@@ -89,7 +89,7 @@ def test_get_sources_invalid_yaml(client, tmp_path, monkeypatch, caplog):
         response = client.get("/api/sources")
     assert response.status_code == 400
     assert (
-        response.json()["detail"]
+        response.json()["error"]
         == "Invalid YAML format in sources configuration"
     )
     assert "Failed to parse sources.yaml" in caplog.text

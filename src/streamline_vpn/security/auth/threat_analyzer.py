@@ -7,7 +7,7 @@ Threat analysis and risk assessment service.
 
 from datetime import datetime
 
-from ...utils.logging import get_logger
+from ....utils.logging import get_logger
 from .models import UserIdentity, DeviceInfo, DevicePosture, ThreatLevel
 
 logger = get_logger(__name__)

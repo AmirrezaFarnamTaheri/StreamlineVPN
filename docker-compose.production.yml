@@ -2,7 +2,9 @@ version: '3.8'
 
 services:
   streamline-vpn:
-    image: streamlinevpn/streamlinevpn:latest
+    build:
+      context: .
+      dockerfile: Dockerfile.production
     container_name: streamline-vpn-prod
     restart: always
     environment:

@@ -11,9 +11,8 @@ import logging
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 
-from vpn_merger.monitoring.health_monitor import get_health_monitor
-from vpn_merger.monitoring.dashboard import MonitoringDashboard
-from vpn_merger.core.observers import get_event_bus
+from streamline_vpn.monitoring.health_monitor import get_health_monitor
+from streamline_vpn.core.observers import get_event_bus
 
 from .deployment_utils import DeploymentUtils
 
@@ -297,16 +296,12 @@ class MonitoringStarter:
         logger.info("Starting monitoring services...")
         
         try:
-            # Start monitoring dashboard
-            self.monitoring_dashboard = MonitoringDashboard(
-                host="0.0.0.0",
-                port=self.deployment_config.get("monitoring_port", 8082)
-            )
-            
-            await self.monitoring_dashboard.start()
+            # Start monitoring dashboard (placeholder)
+            # MonitoringDashboard would be implemented here
+            self.monitoring_dashboard = None
             
             # Start continuous health monitoring
-            from vpn_merger.monitoring.health_monitor import get_health_monitor
+            from streamline_vpn.monitoring.health_monitor import get_health_monitor
             health_monitor = get_health_monitor()
             
             asyncio.create_task(

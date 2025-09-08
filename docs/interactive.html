@@ -431,59 +431,213 @@
             startPolling();
         });
 
-        // WebSocket client for real-time updates
-        let ws;
-        let wsClientId = 'client_' + Math.random().toString(36).slice(2, 11);
-        let wsReconnectAttempts = 0;
-        let wsPingTimer = null;
-
-        function wsUrl() {
-            const proto = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-            const host = window.location.hostname;
-            const apiUrl = new URL(API_BASE);
-            const port = apiUrl.port || (apiUrl.protocol === 'https:' ? '443' : '80');
-            return `${proto}//${host}:${port}/ws/${wsClientId}`;
+        // Enhanced WebSocket client for real-time updates
+        class WebSocketClient {
+            constructor() {
+                this.ws = null;
+                this.clientId = this.generateClientId();
+                this.reconnectAttempts = 0;
+                this.maxReconnectAttempts = 5;
+                this.reconnectDelay = 1000;
+                this.messageHandlers = new Map();
+            }
+            
+            generateClientId() {
+                return 'client_' + Math.random().toString(36).substr(2, 9);
+            }
+            
+            connect() {
+                const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+                const host = window.location.hostname;
+                const port = host === 'localhost' || host === '127.0.0.1' ? '8080' : window.location.port;
+                const wsUrl = `${protocol}//${host}:${port}/ws/${this.clientId}`;
+                
+                console.log(`Connecting to WebSocket: ${wsUrl}`);
+                
+                try {
+                    this.ws = new WebSocket(wsUrl);
+                    
+                    this.ws.onopen = () => {
+                        console.log('WebSocket connected');
+                        this.reconnectAttempts = 0;
+                        updateConnectionStatus('connected');
+                        
+                        // Send initial ping
+                        this.send({ type: 'ping' });
+                        
+                        // Setup ping interval
+                        this.pingInterval = setInterval(() => {
+                            if (this.ws.readyState === WebSocket.OPEN) {
+                                this.send({ type: 'ping' });
+                            }
+                        }, 30000); // Ping every 30 seconds
+                    };
+                    
+                    this.ws.onmessage = (event) => {
+                        try {
+                            const message = JSON.parse(event.data);
+                            this.handleMessage(message);
+                        } catch (error) {
+                            console.error('Failed to parse WebSocket message:', error);
+                        }
+                    };
+                    
+                    this.ws.onerror = (error) => {
+                        console.error('WebSocket error:', error);
+                        updateConnectionStatus('error');
+                    };
+                    
+                    this.ws.onclose = () => {
+                        console.log('WebSocket disconnected');
+                        updateConnectionStatus('disconnected');
+                        
+                        // Clear ping interval
+                        if (this.pingInterval) {
+                            clearInterval(this.pingInterval);
+                        }
+                        
+                        // Attempt reconnection
+                        this.reconnect();
+                    };
+                    
+                } catch (error) {
+                    console.error('Failed to create WebSocket:', error);
+                    this.reconnect();
+                }
+            }
+            
+            reconnect() {
+                if (this.reconnectAttempts >= this.maxReconnectAttempts) {
+                    console.error('Max reconnection attempts reached');
+                    showNotification('Connection lost. Please refresh the page.', 'error');
+                    return;
+                }
+                
+                this.reconnectAttempts++;
+                const delay = this.reconnectDelay * Math.pow(2, this.reconnectAttempts - 1);
+                
+                console.log(`Reconnecting in ${delay}ms (attempt ${this.reconnectAttempts}/${this.maxReconnectAttempts})`);
+                
+                setTimeout(() => {
+                    this.connect();
+                }, delay);
+            }
+            
+            send(message) {
+                if (this.ws && this.ws.readyState === WebSocket.OPEN) {
+                    this.ws.send(JSON.stringify(message));
+                } else {
+                    console.warn('WebSocket not connected, queuing message');
+                }
+            }
+            
+            handleMessage(message) {
+                console.log('WebSocket message received:', message);
+                
+                switch (message.type) {
+                    case 'connection':
+                        addTerminalLine('WebSocket connected successfully', 'success');
+                        break;
+                        
+                    case 'pong':
+                        // Heartbeat response
+                        break;
+                        
+                    case 'job_update':
+                        this.handleJobUpdate(message);
+                        break;
+                        
+                    case 'job_status':
+                        this.handleJobStatus(message);
+                        break;
+                        
+                    case 'statistics':
+                        updateStatistics(message.data);
+                        break;
+                        
+                    case 'error':
+                        addTerminalLine(`WebSocket error: ${message.message}`, 'error');
+                        break;
+                        
+                    default:
+                        console.log('Unknown message type:', message.type);
+                }
+            }
+            
+            handleJobUpdate(message) {
+                const { job_id, status, progress, message: statusMessage } = message;
+                
+                // Update progress display
+                updateProgressDisplay(progress || 0, statusMessage || '');
+                
+                // Update terminal
+                if (statusMessage) {
+                    addTerminalLine(`[Job ${job_id.substr(0, 8)}] ${statusMessage}`, 
+                        status === 'failed' ? 'error' : 
+                        status === 'completed' ? 'success' : 'info');
+                }
+                
+                // Handle completion
+                if (status === 'completed') {
+                    showNotification('Processing completed successfully!', 'success');
+                    loadStatistics();
+                    loadConfigurations();
+                } else if (status === 'failed') {
+                    showNotification('Processing failed. Check terminal for details.', 'error');
+                }
+            }
+            
+            handleJobStatus(message) {
+                // Similar to handleJobUpdate but for subscribed jobs
+                this.handleJobUpdate(message);
+            }
+            
+            subscribeToJob(jobId) {
+                this.send({
+                    type: 'subscribe',
+                    job_id: jobId
+                });
+            }
+            
+            requestStatistics() {
+                this.send({
+                    type: 'get_statistics'
+                });
+            }
+            
+            disconnect() {
+                if (this.ws) {
+                    this.ws.close();
+                }
+            }
         }
 
+        // Initialize WebSocket client
+        let wsClient = null;
+
+        // Legacy functions for backward compatibility
         function initWebSocket() {
-            const url = wsUrl();
-            try { ws = new WebSocket(url); } catch (e) { scheduleReconnect(); return; }
-            ws.onopen = () => {
-                wsReconnectAttempts = 0;
-                addTerminalLine('WebSocket connected', 'success');
-                tryPing();
-                wsPingTimer = setInterval(tryPing, 30000);
-            };
-            ws.onmessage = (event) => {
-                try { handleWsMessage(JSON.parse(event.data)); } catch {}
-            };
-            ws.onclose = () => {
-                addTerminalLine('WebSocket disconnected', 'warning');
-                if (wsPingTimer) { clearInterval(wsPingTimer); wsPingTimer = null; }
-                scheduleReconnect();
-            };
-            ws.onerror = () => {};
-        }
-
-        function tryPing() {
-            try { if (ws && ws.readyState === WebSocket.OPEN) ws.send(JSON.stringify({ type: 'ping' })); } catch {}
-        }
-
-        function scheduleReconnect() {
-            if (wsReconnectAttempts >= 5) return;
-            wsReconnectAttempts += 1;
-            const delay = Math.min(1000 * Math.pow(2, wsReconnectAttempts - 1), 15000);
-            setTimeout(initWebSocket, delay);
+            if (!wsClient) {
+                wsClient = new WebSocketClient();
+                wsClient.connect();
+            }
         }
 
         function handleWsMessage(message) {
-            if (!message || !message.type) return;
-            if (message.type === 'pong') return;
-            if (message.type === 'job_update') {
-                const d = message.data || {};
-                updateProgressDisplay(d.progress || 0, d.message || d.status || '');
-                if (d.status === 'completed') { showNotification('Processing completed!', 'success'); loadStatistics(); if (currentTab === 'configurations') loadConfigurations(); }
-                if (d.status === 'failed') { showNotification('Processing failed', 'error'); }
+            if (wsClient) {
+                wsClient.handleMessage(message);
+            }
+        }
+
+        function updateConnectionStatus(status) {
+            const statusElement = document.getElementById('connectionStatus');
+            if (statusElement) {
+                statusElement.textContent = status;
+                statusElement.className = `px-2 py-1 rounded text-xs ${
+                    status === 'connected' ? 'bg-green-500' :
+                    status === 'disconnected' ? 'bg-red-500' :
+                    status === 'error' ? 'bg-yellow-500' : 'bg-gray-500'
+                }`;
             }
         }
         
@@ -674,16 +828,17 @@
                 const result = await response.json();
 
                 if (result.status === 'success') {
-                    const jobId = result.job_id || null;
-                    addTerminalLine('Pipeline started successfully!', 'success');
-                    if (jobId) {
-                        addTerminalLine(`Job ID: ${jobId}`, 'info');
-                        if (!(ws && ws.readyState === WebSocket.OPEN)) {
-                            await monitorJobProgress(jobId);
-                        }
+                    const jobId = result.job_id;
+                    addTerminalLine(`Job started successfully! ID: ${jobId}`, 'success');
+                    
+                    // Subscribe to job updates via WebSocket
+                    if (wsClient && wsClient.ws && wsClient.ws.readyState === WebSocket.OPEN) {
+                        wsClient.subscribeToJob(jobId);
+                        addTerminalLine('Subscribed to real-time job updates', 'info');
                     } else {
-                        addTerminalLine('No job id returned. Fetching statistics...', 'warning');
-                        await loadStatistics();
+                        // Fall back to polling if WebSocket not available
+                        addTerminalLine('WebSocket not available, using polling', 'warning');
+                        await monitorJobProgress(jobId);
                     }
                 } else {
                     throw new Error(result.message || 'Processing failed');
@@ -817,36 +972,123 @@
         
         // Render configurations
         function renderConfigurations(configs = configurations) {
-            const list = document.getElementById('configList');
-            if (!list) return;
-            list.innerHTML = '';
-
-            configs.forEach(config => {
-                const quality = getQualityClass(config.quality_score);
-                const card = `
-                    <div class="config-card rounded-lg p-4 slide-in">
-                        <div class="flex justify-between items-start mb-2">
-                            <div>
-                                <h4 class="text-white font-semibold">${config.server}</h4>
-                                <p class="text-sm text-gray-300">Protocol: ${config.protocol}</p>
-                                <p class="text-sm text-gray-300">Port: ${config.port}</p>
+            const container = document.getElementById('configList');
+            if (!container) return;
+            
+            if (!configs || configs.length === 0) {
+                container.innerHTML = `
+                    <div class="text-center text-gray-400 py-8">
+                        <svg class="w-16 h-16 mx-auto mb-4 opacity-50" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4"></path>
+                        </svg>
+                        <p class="text-lg mb-2">No configurations available</p>
+                        <p class="text-sm">Start processing to load configurations</p>
+                    </div>
+                `;
+                return;
+            }
+            
+            // Group configurations by protocol
+            const groupedConfigs = configs.reduce((acc, config) => {
+                const protocol = config.protocol || 'unknown';
+                if (!acc[protocol]) acc[protocol] = [];
+                acc[protocol].push(config);
+                return acc;
+            }, {});
+            
+            let html = '';
+            
+            // Render each protocol group
+            Object.entries(groupedConfigs).forEach(([protocol, protocolConfigs]) => {
+                html += `
+                    <div class="mb-6">
+                        <h3 class="text-lg font-semibold text-white mb-3 flex items-center">
+                            <span class="w-2 h-2 bg-green-500 rounded-full mr-2"></span>
+                            ${protocol.toUpperCase()} (${protocolConfigs.length})
+                        </h3>
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                `;
+                
+                protocolConfigs.forEach(config => {
+                    const quality = config.quality_score || config.quality || 0;
+                    const qualityClass = getQualityClass(quality);
+                    const qualityPercent = Math.round(quality * 100);
+                    
+                    // Parse additional metadata
+                    const location = config.location || config.metadata?.location || 'Unknown';
+                    const network = config.network || config.metadata?.network || 'tcp';
+                    const tls = config.tls !== undefined ? config.tls : config.metadata?.tls;
+                    
+                    html += `
+                        <div class="config-card glass-morphism rounded-lg p-4 hover-lift cursor-pointer" 
+                             onclick="showConfigDetails('${config.id || config.server}')">
+                            <div class="flex justify-between items-start mb-3">
+                                <div class="flex-1">
+                                    <h4 class="font-bold text-white text-sm mb-1">
+                                        ${config.server || config.host || 'Unknown Server'}
+                                    </h4>
+                                    <div class="flex items-center space-x-2 text-xs text-gray-400">
+                                        <span>Port: ${config.port || 'N/A'}</span>
+                                        <span>•</span>
+                                        <span>${location}</span>
+                                    </div>
+                                </div>
+                                <div class="flex items-center space-x-2">
+                                    <span class="quality-badge quality-${qualityClass} text-xs px-2 py-1 rounded">
+                                        ${qualityPercent}%
+                                    </span>
+                                </div>
                             </div>
-                            <div class="flex items-center space-x-2">
-                                <span class="quality-badge quality-${quality}">${(config.quality_score * 100).toFixed(0)}%</span>
-                                <button onclick="copyConfig('${config.id}')" class="text-white hover:text-gray-300">
-                                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"></path>
+                            
+                            <div class="grid grid-cols-2 gap-2 text-xs text-gray-400">
+                                <div>
+                                    <span class="text-gray-500">Network:</span> ${network}
+                                </div>
+                                <div>
+                                    <span class="text-gray-500">TLS:</span> ${tls ? 'Yes' : 'No'}
+                                </div>
+                                ${config.uuid ? `
+                                <div class="col-span-2">
+                                    <span class="text-gray-500">UUID:</span> 
+                                    <span class="font-mono">${config.uuid.substring(0, 8)}...</span>
+                                </div>
+                                ` : ''}
+                            </div>
+                            
+                            <div class="mt-3 flex justify-between items-center">
+                                <span class="text-xs text-gray-500">
+                                    ${config.source_url ? 'Source: ' + new URL(config.source_url).hostname : ''}
+                                </span>
+                                <button onclick="event.stopPropagation(); copyConfig('${config.id || config.server}')" 
+                                        class="p-1 rounded hover:bg-white hover:bg-opacity-10 transition">
+                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
+                                              d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"></path>
                                     </svg>
                                 </button>
                             </div>
                         </div>
-                        <div class="text-white text-sm opacity-75">
-                            <div>Network: ${config.network} | TLS: ${config.tls ? 'Yes' : 'No'}</div>
+                    `;
+                });
+                
+                html += `
                         </div>
                     </div>
                 `;
-                list.innerHTML += card;
             });
+            
+            container.innerHTML = html;
+            
+            // Add summary
+            const summary = document.createElement('div');
+            summary.className = 'mt-6 p-4 glass-morphism rounded-lg text-sm text-gray-400';
+            summary.innerHTML = `
+                <div class="flex justify-between items-center">
+                    <span>Total Configurations: ${configs.length}</span>
+                    <span>Protocols: ${Object.keys(groupedConfigs).join(', ')}</span>
+                </div>
+            `;
+            container.appendChild(summary);
         }
 
         function getQualityClass(score) {
@@ -854,6 +1096,98 @@
             if (score >= 0.7) return 'good';
             if (score >= 0.5) return 'fair';
             return 'poor';
+        }
+
+        // Show configuration details modal
+        function showConfigDetails(configId) {
+            const config = configurations.find(c => c.id === configId || c.server === configId);
+            if (!config) return;
+            
+            // Create modal
+            const modal = document.createElement('div');
+            modal.className = 'fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4';
+            modal.onclick = (e) => {
+                if (e.target === modal) modal.remove();
+            };
+            
+            modal.innerHTML = `
+                <div class="glass-morphism rounded-xl p-6 max-w-2xl w-full max-h-[80vh] overflow-auto">
+                    <div class="flex justify-between items-start mb-4">
+                        <h2 class="text-xl font-bold text-white">Configuration Details</h2>
+                        <button onclick="this.closest('.fixed').remove()" class="text-gray-400 hover:text-white">
+                            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                            </svg>
+                        </button>
+                    </div>
+                    
+                    <div class="space-y-4">
+                        <div class="grid grid-cols-2 gap-4 text-sm">
+                            <div>
+                                <span class="text-gray-400">Protocol:</span>
+                                <span class="text-white ml-2">${config.protocol}</span>
+                            </div>
+                            <div>
+                                <span class="text-gray-400">Server:</span>
+                                <span class="text-white ml-2">${config.server || config.host}</span>
+                            </div>
+                            <div>
+                                <span class="text-gray-400">Port:</span>
+                                <span class="text-white ml-2">${config.port}</span>
+                            </div>
+                            <div>
+                                <span class="text-gray-400">Quality:</span>
+                                <span class="text-white ml-2">${Math.round((config.quality_score || 0) * 100)}%</span>
+                            </div>
+                        </div>
+                        
+                        <div class="pt-4 border-t border-gray-700">
+                            <h3 class="text-sm font-semibold text-gray-400 mb-2">Raw Configuration</h3>
+                            <pre class="bg-black bg-opacity-50 rounded p-3 text-xs text-green-400 overflow-x-auto">
+${JSON.stringify(config, null, 2)}
+                            </pre>
+                        </div>
+                        
+                        <div class="flex justify-end space-x-3 pt-4">
+                            <button onclick="copyToClipboard('${JSON.stringify(config).replace(/'/g, "\\'")}')" 
+                                    class="px-4 py-2 bg-blue-500 hover:bg-blue-600 rounded text-white text-sm transition">
+                                Copy JSON
+                            </button>
+                            <button onclick="exportConfig('${configId}')" 
+                                    class="px-4 py-2 bg-green-500 hover:bg-green-600 rounded text-white text-sm transition">
+                                Export
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            `;
+            
+            document.body.appendChild(modal);
+        }
+
+        // Helper function to copy to clipboard
+        function copyToClipboard(text) {
+            navigator.clipboard.writeText(text).then(() => {
+                showNotification('Copied to clipboard!', 'success');
+            }).catch(() => {
+                showNotification('Failed to copy', 'error');
+            });
+        }
+
+        // Export configuration
+        function exportConfig(configId) {
+            const config = configurations.find(c => c.id === configId || c.server === configId);
+            if (!config) return;
+            
+            const blob = new Blob([JSON.stringify(config, null, 2)], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `vpn-config-${config.protocol}-${Date.now()}.json`;
+            a.click();
+            URL.revokeObjectURL(url);
+            
+            showNotification('Configuration exported!', 'success');
         }
         
         // Load sources from API

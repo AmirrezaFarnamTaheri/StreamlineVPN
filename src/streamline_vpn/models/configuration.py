@@ -48,6 +48,7 @@ class VPNConfiguration:
         source_url: Source URL where this config was found
         created_at: Creation timestamp
         metadata: Additional metadata
+        id: Unique configuration identifier
     """
 
     protocol: Protocol
@@ -64,10 +65,11 @@ class VPNConfiguration:
     source_url: Optional[str] = None
     created_at: datetime = field(default_factory=datetime.now)
     metadata: Dict[str, Any] = field(default_factory=dict)
+    id: str = ""
 
     def __post_init__(self):
         """Generate ID and validate configuration after initialization."""
-        if not hasattr(self, "id") or not self.id:
+        if not self.id:
             # Generate a unique ID based on configuration content
             import hashlib
 
@@ -120,7 +122,7 @@ class VPNConfiguration:
     def from_dict(cls, data: Dict[str, Any]) -> "VPNConfiguration":
         """Create from dictionary."""
         data = data.copy()
-        data["protocol"] = ProtocolType(data["protocol"])
+        data["protocol"] = Protocol(data["protocol"])
         if "created_at" in data and isinstance(data["created_at"], str):
             data["created_at"] = datetime.fromisoformat(data["created_at"])
         return cls(**data)

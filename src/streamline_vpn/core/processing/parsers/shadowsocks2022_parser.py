@@ -49,21 +49,18 @@ class Shadowsocks2022Parser:
 
             # Create configuration
             config = VPNConfiguration(
-                id=f"ss2022_{method}_{host}_{port}",
-                name=f"SS2022 {host}",
                 server=host,
                 port=int(port),
                 protocol=Protocol.SHADOWSOCKS,
-                method=method,
                 password=password,
                 encryption=method,
-                security_level=self._get_security_level(method),
                 metadata={
                     "parser": "optimized_ss2022",
                     "version": "1.0",
                     "performance_optimized": True,
                     "security_level": self._get_security_level(method),
                     "aead_support": self._supports_aead(method),
+                    "method": method,
                 },
             )
 

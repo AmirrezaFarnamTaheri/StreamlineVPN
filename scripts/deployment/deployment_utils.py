@@ -128,9 +128,9 @@ class DeploymentUtils:
         """Verify that services are functioning correctly."""
         try:
             # Test core functionality
-            from vpn_merger.core.merger import VPNSubscriptionMerger
+            from streamline_vpn.core.merger import StreamlineVPNMerger
             
-            merger = VPNSubscriptionMerger()
+            merger = StreamlineVPNMerger()
             # Run a quick test merge
             test_results = await merger.merge_subscriptions()
             

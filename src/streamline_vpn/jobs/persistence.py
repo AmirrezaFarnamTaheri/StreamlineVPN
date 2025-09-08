@@ -11,7 +11,7 @@ from datetime import datetime
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 
-from ..utils.logging import get_logger
+from ...utils.logging import get_logger
 from .models import Job, JobStatus, JobType
 
 logger = get_logger(__name__)

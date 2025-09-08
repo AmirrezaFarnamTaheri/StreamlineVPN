@@ -8,10 +8,10 @@ Main deployment manager that orchestrates all deployment steps.
 
 import asyncio
 import logging
+from pathlib import Path
 from typing import Any, Dict, List, Optional
 
-from vpn_merger.core.observers import get_event_bus
-from vpn_merger.monitoring.health_monitor import get_health_monitor
+from streamline_vpn.core.observers import get_event_bus
 
 from .deployment_steps import (
     PreDeploymentChecks,
@@ -36,7 +36,6 @@ class DeploymentManager:
             config: Deployment configuration
         """
         self.config = config or {}
-        self.health_monitor = get_health_monitor()
         self.event_bus = get_event_bus()
         self.deployment_status = "not_started"
         self.deployment_log: List[Dict[str, Any]] = []
@@ -52,10 +51,10 @@ class DeploymentManager:
         })
         
         # Initialize deployment steps
-        self.pre_deployment_checks = PreDeploymentChecks(self.health_monitor)
+        self.pre_deployment_checks = PreDeploymentChecks()
         self.backup_manager = BackupManager()
         self.version_deployer = VersionDeployer(self.config)
-        self.post_deployment_verification = PostDeploymentVerification(self.health_monitor)
+        self.post_deployment_verification = PostDeploymentVerification()
         self.monitoring_starter = MonitoringStarter(self.deployment_config)
         self.rollback_manager = RollbackManager(self.backup_manager)
         

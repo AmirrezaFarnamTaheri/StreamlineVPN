@@ -51,13 +51,13 @@ USER merger
 
 # Health check
 HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
-    CMD curl -f http://localhost:${API_PORT:-8000}/health || exit 1
+    CMD curl -f http://localhost:${API_PORT:-8000}/health || curl -f http://localhost:${API_PORT:-8000}/api/v1/health || exit 1
 
 # Environment variables
 ENV PYTHONUNBUFFERED=1
 ENV STREAMLINE_ENV=production
 ENV API_PORT=8000
 
-EXPOSE 8000 8001 9090
+EXPOSE 8000 8080
 
 CMD ["python", "-m", "streamline_vpn"]

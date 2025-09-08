@@ -7,7 +7,7 @@ import pytest_asyncio
 from unittest.mock import patch, AsyncMock
 
 from streamline_vpn.core.merger import StreamlineVPNMerger
-from streamline_vpn.models.configuration import VPNConfiguration, ProtocolType
+from streamline_vpn.models.configuration import VPNConfiguration, Protocol
 
 
 @pytest_asyncio.fixture
@@ -62,7 +62,7 @@ async def test_end_to_end_processing(
     ), patch(
         "streamline_vpn.core.processing.parser.ConfigurationParser.parse_configuration",
         return_value=VPNConfiguration(
-            protocol=ProtocolType.VMESS,
+            protocol=Protocol.VMESS,
             server="example.com",
             port=443,
             user_id="test",

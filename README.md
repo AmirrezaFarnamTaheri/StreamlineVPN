@@ -61,6 +61,9 @@ pip install -r requirements.txt
 
 # Run the application
 python -m streamline_vpn --config config/sources.yaml --output output
+
+# Or run the web interface
+python run_web.py
 ```
 
 ### Production Deployment
@@ -74,6 +77,9 @@ docker-compose -f docker-compose.production.yml up -d
 
 # Initialize services
 python -m streamline_vpn --config config/sources.yaml --output output
+
+# Or run the production deployment script
+python scripts/deploy_production.py
 ```
 
 ## 📖 Usage
@@ -81,7 +87,7 @@ python -m streamline_vpn --config config/sources.yaml --output output
 ### Basic Usage
 
 ```python
-from streamline_vpn import StreamlineVPNMerger
+from streamline_vpn.core.merger import StreamlineVPNMerger
 
 # Create merger instance
 merger = StreamlineVPNMerger()
@@ -99,12 +105,10 @@ recommendations = await merger.get_server_recommendations(
 ### Advanced Usage
 
 ```python
-from streamline_vpn import (
-    StreamlineVPNMerger,
-    ZeroTrustVPN,
-    QualityPredictionService,
-    VPNCacheService
-)
+from streamline_vpn.core.merger import StreamlineVPNMerger
+from streamline_vpn.security.zero_trust import ZeroTrustVPN
+from streamline_vpn.ml.quality_predictor import QualityPredictionService
+from streamline_vpn.core.cache_manager import VPNCacheService
 
 # Initialize services
 merger = StreamlineVPNMerger()

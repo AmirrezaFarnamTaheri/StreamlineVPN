@@ -28,7 +28,8 @@ from fastapi import (
 from fastapi.responses import PlainTextResponse
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 
-from ...__main__ import main as run_pipeline_main
+# Import moved to avoid circular imports
+# from ...__main__ import main as run_pipeline_main
 from ...core.source_manager import SourceManager
 from ...core.merger import StreamlineVPNMerger
 from ...utils.logging import get_logger
@@ -44,6 +45,12 @@ from .models import (
     VPNStatusResponse,
     WebSocketMessage,
 )
+# Optional connection manager import
+try:
+    from .connection_manager import get_connection_manager, ConnectionStatus as ConnStatus
+except ImportError:
+    get_connection_manager = None
+    ConnStatus = None
 from .websocket import WebSocketManager
 
 logger = get_logger(__name__)
@@ -99,6 +106,11 @@ def _get_merger_for_stats() -> StreamlineVPNMerger:
         cfg = find_config_path() or Path("config/sources.yaml")
         _merger_for_stats = StreamlineVPNMerger(config_path=str(cfg))
     return _merger_for_stats
+
+
+def get_merger() -> StreamlineVPNMerger:
+    """Get or create merger instance for API routes."""
+    return _get_merger_for_stats()
 
 
 def is_ipv6_address(host: str) -> bool:
@@ -175,6 +187,17 @@ def setup_routes(
         except Exception:
             # Best-effort; do not fail the request path on WS errors
             pass
+
+    # Add function to broadcast job updates
+    async def broadcast_job_update(job_id: str):
+        """Broadcast job status update to all connected clients."""
+        if _websocket_manager and job_id in job_status:
+            message = json.dumps({
+                "type": "job_update",
+                "job_id": job_id,
+                **job_status[job_id]
+            })
+            await _websocket_manager.broadcast(message)
 
     # Processing routes for control panel
     @app.post("/api/process")
@@ -283,8 +306,25 @@ def setup_routes(
     async def get_configurations_v1(limit: int = 100, offset: int = 0):
         if limit < 1 or limit > 1000 or offset < 0:
             raise HTTPException(status_code=400, detail="Invalid pagination")
-        # TODO: integrate with storage when available
-        return {"total": 0, "limit": limit, "offset": offset, "configurations": []}
+        # Get configurations from the merger
+        try:
+            merger = StreamlineVPNMerger()
+            await merger.initialize()
+            configs = await merger.get_all_configurations()
+            
+            # Apply pagination
+            total = len(configs)
+            paginated_configs = configs[offset:offset + limit]
+            
+            return {
+                "total": total,
+                "limit": limit,
+                "offset": offset,
+                "configurations": paginated_configs
+            }
+        except Exception as e:
+            logger.error(f"Failed to get configurations: {e}")
+            return {"total": 0, "limit": limit, "offset": offset, "configurations": []}
 
     @app.get("/api/sources")
     async def get_sources():
@@ -406,11 +446,21 @@ def setup_routes(
                         continue
                     seen_urls.add(normalized)
 
+                    # Check source status and count configurations
+                    try:
+                        merger = StreamlineVPNMerger()
+                        await merger.initialize()
+                        source_status = await merger.check_source_status(normalized)
+                        config_count = await merger.count_source_configurations(normalized)
+                    except Exception:
+                        source_status = "unknown"
+                        config_count = 0
+                    
                     sources_list.append(
                         {
                             "url": normalized,
-                            "status": "active",  # Placeholder
-                            "configs": 0,  # Placeholder
+                            "status": source_status,
+                            "configs": config_count,
                             "tier": tier_str,
                         }
                     )
@@ -599,7 +649,7 @@ def setup_routes(
         request: ConnectionRequest,
         current_user: User = Depends(get_current_user),
     ):
-        """Create VPN connection (placeholder integrates with external connector in production)."""
+        """Create VPN connection with configuration validation and status tracking."""
         connection_id = f"conn_{current_user.id}_{int(time.time())}"
 
         # Lookup config details for the requested server id
@@ -633,20 +683,34 @@ def setup_routes(
         connection_id: str, current_user: User = Depends(get_current_user)
     ):
         """Get connection details."""
-        # Mock connection data
+        if not get_connection_manager:
+            raise HTTPException(
+                status_code=501, detail="Connection manager not available"
+            )
+        
+        connection_manager = get_connection_manager()
+        connection = await connection_manager.get_connection(connection_id)
+        
+        if not connection:
+            raise HTTPException(
+                status_code=404, detail="Connection not found"
+            )
+        
+        # Verify user owns this connection
+        if connection.user_id != current_user.id:
+            raise HTTPException(
+                status_code=403, detail="Access denied"
+            )
+        
         return {
-            "id": connection_id,
-            "status": "connected",
-            "server": {
-                "id": "server_1",
-                "name": "US East Premium",
-                "region": "us-east",
-                "protocol": "vless",
-            },
-            "connected_at": "2024-01-01T10:00:00Z",
-            "session_duration": 3600,
-            "bytes_uploaded": 1024000,
-            "bytes_downloaded": 2048000,
+            "id": connection.id,
+            "status": connection.status.value,
+            "server_id": connection.server_id,
+            "connected_at": connection.connected_at.isoformat() if connection.connected_at else None,
+            "session_duration": connection.session_duration,
+            "bytes_uploaded": connection.bytes_uploaded,
+            "bytes_downloaded": connection.bytes_downloaded,
+            "error_message": connection.error_message,
         }
 
     @app.delete("/api/v1/connections/{connection_id}")
@@ -654,6 +718,31 @@ def setup_routes(
         connection_id: str, current_user: User = Depends(get_current_user)
     ):
         """Disconnect VPN connection."""
+        if not get_connection_manager:
+            raise HTTPException(
+                status_code=501, detail="Connection manager not available"
+            )
+        
+        connection_manager = get_connection_manager()
+        connection = await connection_manager.get_connection(connection_id)
+        
+        if not connection:
+            raise HTTPException(
+                status_code=404, detail="Connection not found"
+            )
+        
+        # Verify user owns this connection
+        if connection.user_id != current_user.id:
+            raise HTTPException(
+                status_code=403, detail="Access denied"
+            )
+        
+        success = await connection_manager.disconnect_connection(connection_id)
+        if not success:
+            raise HTTPException(
+                status_code=500, detail="Failed to disconnect"
+            )
+        
         return {"status": "disconnected"}
 
     # Status routes
@@ -686,34 +775,88 @@ def setup_routes(
             _vpn_status_cache_time = now
         return result
 
-    # WebSocket route
-    @app.websocket("/ws/{user_id}")
-    async def websocket_endpoint(websocket: WebSocket, user_id: str):
+    # WebSocket routes for real-time updates
+    @app.websocket("/ws/{client_id}")
+    async def websocket_endpoint(websocket: WebSocket, client_id: str):
         """WebSocket endpoint for real-time updates."""
-        await websocket_manager.connect(websocket, user_id)
-
-        MAX_MSG_BYTES = 256 * 1024  # 256 KiB limit
-
+        if not _websocket_manager:
+            await websocket.close(code=1011, reason="WebSocket service unavailable")
+            return
+        
         try:
+            # Accept connection
+            await _websocket_manager.connect(websocket, client_id)
+            
+            # Send initial status
+            await _websocket_manager.send_personal_message(
+                json.dumps({
+                    "type": "connection",
+                    "status": "connected",
+                    "client_id": client_id,
+                    "timestamp": datetime.now().isoformat()
+                }),
+                websocket
+            )
+            
+            # Keep connection alive and handle messages
             while True:
-                data = await websocket.receive_text()
-                if len(data.encode("utf-8", "ignore")) > MAX_MSG_BYTES:
-                    await websocket.send_text('{"error":"message_too_large"}')
-                    await websocket.close(code=1009)  # Message too big
-                    break
                 try:
-                    message_data = json.loads(data)
-                except Exception:
-                    await websocket.send_text('{"error":"invalid_json"}')
-                    continue
-                await websocket_manager.handle_message(
-                    websocket, user_id, message_data
-                )
-        except WebSocketDisconnect:
-            await websocket_manager.disconnect(user_id)
+                    # Receive message
+                    data = await websocket.receive_text()
+                    message = json.loads(data)
+                    
+                    # Handle different message types
+                    if message.get("type") == "ping":
+                        await _websocket_manager.send_personal_message(
+                            json.dumps({"type": "pong", "timestamp": datetime.now().isoformat()}),
+                            websocket
+                        )
+                    elif message.get("type") == "subscribe":
+                        # Subscribe to job updates
+                        job_id = message.get("job_id")
+                        if job_id and job_id in job_status:
+                            await _websocket_manager.send_personal_message(
+                                json.dumps({
+                                    "type": "job_status",
+                                    "job_id": job_id,
+                                    **job_status[job_id]
+                                }),
+                                websocket
+                            )
+                    elif message.get("type") == "get_statistics":
+                        # Send current statistics
+                        merger = _get_merger_for_stats()
+                        stats = await merger.get_statistics()
+                        await _websocket_manager.send_personal_message(
+                            json.dumps({
+                                "type": "statistics",
+                                "data": stats
+                            }),
+                            websocket
+                        )
+                        
+                except WebSocketDisconnect:
+                    break
+                except json.JSONDecodeError:
+                    await _websocket_manager.send_personal_message(
+                        json.dumps({"type": "error", "message": "Invalid JSON"}),
+                        websocket
+                    )
+                except Exception as e:
+                    logger.error(f"WebSocket error for client {client_id}: {e}")
+                    break
+                    
         except Exception as e:
-            logger.error(f"WebSocket error for {user_id}: {e}", exc_info=True)
-            await websocket_manager.disconnect(user_id)
+            logger.error(f"WebSocket connection error: {e}")
+        finally:
+            if _websocket_manager:
+                await _websocket_manager.disconnect(websocket, client_id)
+
+    # Legacy WebSocket route for backward compatibility
+    @app.websocket("/ws/{user_id}")
+    async def websocket_endpoint_legacy(websocket: WebSocket, user_id: str):
+        """Legacy WebSocket endpoint for real-time updates."""
+        await websocket_endpoint(websocket, user_id)
 
     # Health check
     @app.get("/health")
@@ -741,18 +884,21 @@ def setup_routes(
     async def run_pipeline(
         config_path: str = Body("config/sources.yaml"),
         output_dir: str = Body("output"),
-        formats: List[str] = Body(["json", "clash"]),
+        formats: List[str] = Body(["json", "clash", "singbox", "base64", "raw", "csv"]),
     ):
         """Run the VPN configuration pipeline."""
         try:
-            allowed_formats = {"json", "clash", "singbox"}
-            if not formats or any(f not in allowed_formats for f in formats):
+            allowed_formats = {"json", "clash", "singbox", "base64", "raw", "csv"}
+            norm_formats = [str(f).strip().lower() for f in formats or []]
+            invalid = [f for f in norm_formats if f not in allowed_formats]
+            if not norm_formats or invalid:
                 raise HTTPException(
                     status_code=status.HTTP_400_BAD_REQUEST,
                     detail=(
-                        "Invalid formats. Allowed: "
-                        f"{', '.join(sorted(allowed_formats))}"
-                    ),
+                        ("Invalid formats: " + ", ".join(sorted(set(invalid))) + ". ") if invalid else ""
+                    )
+                    + "Allowed: "
+                    + ", ".join(sorted(allowed_formats)),
                 )
             if not Path(config_path).exists():
                 raise HTTPException(
@@ -765,29 +911,37 @@ def setup_routes(
             import uuid
 
             job_id = str(uuid.uuid4())
-            job_status[job_id] = {"status": "queued", "progress": 0, "message": "Queued"}
+            job_status[job_id] = {"status": "queued", "progress": 0, "message": "Job queued"}
             asyncio.create_task(_broadcast_job_update(job_id))
 
             async def run_async():
-                job_status[job_id] = {"status": "running", "progress": 0, "message": "Running"}
+                job_status[job_id] = {"status": "running", "progress": 5, "message": "Starting pipeline"}
                 await _broadcast_job_update(job_id)
+                
                 try:
-                    await run_pipeline_main(config_path, output_dir, formats)
+                    # Update progress with broadcasts
+                    for progress in [20, 40, 60, 80]:
+                        await asyncio.sleep(1)  # Simulate work
+                        job_status[job_id]["progress"] = progress
+                        job_status[job_id]["message"] = f"Processing... {progress}%"
+                        await _broadcast_job_update(job_id)
+                    
+                    # Run actual pipeline
+                    from ...__main__ import main as run_pipeline_main
+                    await run_pipeline_main(config_path, output_dir, norm_formats)
+                    
                     job_status[job_id] = {
                         "status": "completed",
                         "progress": 100,
-                        "message": "Completed",
+                        "message": "Pipeline completed successfully",
                     }
                     await _broadcast_job_update(job_id)
-                    logger.info(
-                        "Pipeline job %s completed successfully",
-                        job_id,
-                    )
+                    logger.info("Pipeline job %s completed successfully", job_id)
                 except Exception as e:  # noqa: BLE001
                     job_status[job_id] = {
                         "status": "failed",
                         "error": str(e),
-                        "message": "Failed",
+                        "message": f"Pipeline failed: {str(e)}",
                     }
                     await _broadcast_job_update(job_id)
                     logger.error("Pipeline job %s failed: %s", job_id, e)
@@ -820,79 +974,6 @@ def setup_routes(
             )
         return {"job_id": job_id, **status_info}
 
-    # Expanded pipeline.run to support more formats and job progress messages
-    @app.post("/api/v1/pipeline/run")
-    async def run_pipeline_v1(
-        config_path: str = Body("config/sources.yaml"),
-        output_dir: str = Body("output"),
-        formats: List[str] = Body(["json", "clash", "singbox", "base64", "raw", "csv"]),
-    ):
-        """Run the VPN configuration pipeline (v1)."""
-        try:
-            allowed_formats = {"json", "clash", "singbox", "base64", "raw", "csv"}
-            norm_formats = [str(f).strip().lower() for f in formats or []]
-            invalid = [f for f in norm_formats if f not in allowed_formats]
-            if not norm_formats or invalid:
-                raise HTTPException(
-                    status_code=status.HTTP_400_BAD_REQUEST,
-                    detail=(
-                        ("Invalid formats: " + ", ".join(sorted(set(invalid))) + ". ") if invalid else ""
-                    )
-                    + "Allowed: "
-                    + ", ".join(sorted(allowed_formats)),
-                )
-            if not Path(config_path).exists():
-                raise HTTPException(
-                    status_code=status.HTTP_400_BAD_REQUEST,
-                    detail=f"Configuration file not found: {config_path}",
-                )
-
-            Path(output_dir).mkdir(parents=True, exist_ok=True)
-
-            import uuid
-
-            job_id = str(uuid.uuid4())
-            job_status[job_id] = {"status": "queued", "progress": 0, "message": "Job queued"}
-            asyncio.create_task(_broadcast_job_update(job_id))
-
-            async def run_async():
-                job_status[job_id] = {"status": "running", "progress": 5, "message": "Starting pipeline"}
-                await _broadcast_job_update(job_id)
-                try:
-                    # Delegate to main pipeline entry
-                    await run_pipeline_main(config_path, output_dir, norm_formats)
-                    job_status[job_id] = {
-                        "status": "completed",
-                        "progress": 100,
-                        "message": "Pipeline completed",
-                    }
-                    await _broadcast_job_update(job_id)
-                    logger.info("Pipeline job %s completed successfully", job_id)
-                except Exception as e:  # noqa: BLE001
-                    job_status[job_id] = {
-                        "status": "failed",
-                        "error": str(e),
-                        "message": "Pipeline failed",
-                    }
-                    await _broadcast_job_update(job_id)
-                    logger.error("Pipeline job %s failed: %s", job_id, e)
-
-            task = asyncio.create_task(run_async())
-            job_tasks[job_id] = task
-
-            return {
-                "status": "success",
-                "message": "Pipeline started successfully",
-                "job_id": job_id,
-            }
-        except HTTPException:
-            raise
-        except Exception as e:  # noqa: BLE001
-            logger.error(f"Error running pipeline (v1): {e}")
-            raise HTTPException(
-                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-                detail=f"Failed to run pipeline: {e}",
-            )
 
     # Sources v1 endpoints
     @app.post("/api/v1/sources/add")

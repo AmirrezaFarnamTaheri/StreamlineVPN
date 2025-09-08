@@ -166,7 +166,7 @@ class DiscoveryManager:
 
             logger.info(f"Discovered {len(sources)} GitHub sources")
         except Exception as exc:  # pragma: no cover - network errors
-            logger.error(f"GitHub discovery failed: {exc}")
+            logger.error(f"GitHub discovery failed: {exc}", exc_info=True)
 
         return sources
 
@@ -219,7 +219,7 @@ class DiscoveryManager:
                             )
                             sources.extend(dir_sources)
         except Exception as exc:  # pragma: no cover - network errors
-            logger.debug(f"Error scanning repository {repo_name}: {exc}")
+            logger.debug(f"Error scanning repository {repo_name}: {exc}", exc_info=True)
 
         return sources
 
@@ -258,7 +258,7 @@ class DiscoveryManager:
                             ):
                                 sources.append(raw_url)
         except Exception as exc:  # pragma: no cover - network errors
-            logger.debug(f"Error scanning directory {path}: {exc}")
+            logger.debug(f"Error scanning directory {path}: {exc}", exc_info=True)
 
         return sources
 
@@ -305,7 +305,7 @@ class DiscoveryManager:
                                                 f"Found GitLab source: {url}"
                                             )
         except Exception as exc:  # pragma: no cover - network errors
-            logger.error(f"GitLab discovery failed: {exc}")
+            logger.error(f"GitLab discovery failed: {exc}", exc_info=True)
 
         logger.info(f"Discovered {len(sources)} GitLab sources")
         return sources
@@ -353,7 +353,7 @@ class DiscoveryManager:
                                             f"Found Gitee source: {url}"
                                         )
         except Exception as exc:  # pragma: no cover - network errors
-            logger.error(f"Gitee discovery failed: {exc}")
+            logger.error(f"Gitee discovery failed: {exc}", exc_info=True)
 
         logger.info(f"Discovered {len(sources)} Gitee sources")
         return sources

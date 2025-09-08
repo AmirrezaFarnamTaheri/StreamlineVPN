@@ -9,7 +9,7 @@ import asyncio
 from typing import Dict, Any, Callable
 
 from .models import Job, JobType
-from ..utils.logging import get_logger
+from ...utils.logging import get_logger
 
 logger = get_logger(__name__)
 
@@ -72,7 +72,7 @@ class JobExecutor:
             # Job failed
             job.fail(str(e))
             self.job_manager.persistence.save_job(job)
-            logger.error(f"Job {job.id} failed: {e}")
+            logger.error(f"Job {job.id} failed: {e}", exc_info=True)
 
     async def _handle_process_configurations(self, job: Job) -> Dict[str, Any]:
         """Handle process configurations job."""

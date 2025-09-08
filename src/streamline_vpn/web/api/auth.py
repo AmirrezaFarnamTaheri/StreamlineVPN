@@ -7,6 +7,7 @@ JWT-based authentication service for the API.
 
 import hashlib
 import jwt
+import bcrypt
 from datetime import datetime, timedelta
 from typing import Dict, Optional
 
@@ -31,6 +32,8 @@ class AuthenticationService:
 
     def _initialize_demo_users(self) -> None:
         """Initialize demo users."""
+        # In production, these should be loaded from a secure database
+        # with properly hashed passwords
         self.users["user_admin"] = User(
             id="user_admin",
             username="admin",
@@ -61,22 +64,21 @@ class AuthenticationService:
         Returns:
             User if authentication successful, None otherwise
         """
-        # In production, use proper password hashing and database lookup
-        password_hash = hashlib.sha256(password.encode()).hexdigest()
-
-        # Simple hardcoded users for demo
+        # WARNING: This is for demo purposes only!
+        # In production, use proper password hashing (bcrypt, scrypt, etc.)
+        # and store credentials in a secure database
         demo_users = {
             "admin": {
-                "password_hash": hashlib.sha256(
-                    "admin123".encode()
-                ).hexdigest(),
+                "password_hash": bcrypt.hashpw(
+                    "admin123".encode('utf-8'), bcrypt.gensalt()
+                ).decode('utf-8'),
                 "email": "admin@streamlinevpn.com",
                 "tier": UserTier.ENTERPRISE,
             },
             "user": {
-                "password_hash": hashlib.sha256(
-                    "user123".encode()
-                ).hexdigest(),
+                "password_hash": bcrypt.hashpw(
+                    "user123".encode('utf-8'), bcrypt.gensalt()
+                ).decode('utf-8'),
                 "email": "user@streamlinevpn.com",
                 "tier": UserTier.PREMIUM,
             },
@@ -84,7 +86,8 @@ class AuthenticationService:
 
         if username in demo_users:
             user_data = demo_users[username]
-            if user_data["password_hash"] == password_hash:
+            stored_hash = user_data["password_hash"].encode('utf-8')
+            if bcrypt.checkpw(password.encode('utf-8'), stored_hash):
                 return User(
                     id=f"user_{username}",
                     username=username,

@@ -55,7 +55,7 @@ sources:
         protocols: ["vmess", "vless", "trojan", "ss", "ssr"]
         update: "12h"
         metadata:
-          description: "Large collection of free nodes"
+          description: "NoMoreWalls aggregated sources"
           region: "global"
 
 # Processing configuration

@@ -76,23 +76,27 @@ class StateManager:
         data["source_id"] = source_id
 
         # Perform transition
-        success = state_machine.transition(event, data)
+        try:
+            success = state_machine.transition(event, data)
 
-        if success:
-            # Record in history
-            self.state_history[source_id].append(
-                {
-                    "timestamp": datetime.now().isoformat(),
-                    "event": event.value,
-                    "state": state_machine.current_state.value,
-                    "data": data,
-                }
-            )
+            if success:
+                # Record in history
+                self.state_history[source_id].append(
+                    {
+                        "timestamp": datetime.now().isoformat(),
+                        "event": event.value,
+                        "state": state_machine.current_state.value,
+                        "data": data,
+                    }
+                )
 
-            # Check for auto-transitions
-            self._check_auto_transitions(source_id)
+                # Check for auto-transitions
+                self._check_auto_transitions(source_id)
 
-        return success
+            return success
+        except Exception as e:
+            logger.error(f"Error transitioning source {source_id}: {e}", exc_info=True)
+            return False
 
     def get_source_state(self, source_id: str) -> Optional[SourceState]:
         """Get current state of source.

@@ -11,11 +11,13 @@ import sys
 import time
 from datetime import datetime
 from pathlib import Path
+from typing import Any
 
 # Add parent directory to path
 sys.path.append(str(Path(__file__).parent.parent))
 
-from vpn_merger import SourceManager, VPNSubscriptionMerger
+from streamline_vpn.core.source_manager import SourceManager
+from streamline_vpn.core.merger import StreamlineVPNMerger
 
 # Configure logging
 logging.basicConfig(
@@ -33,7 +35,7 @@ class ProductionDeployment:
     """Production deployment manager with monitoring and health checks."""
 
     def __init__(self):
-        self.merger = VPNSubscriptionMerger()
+        self.merger = StreamlineVPNMerger()
         self.sources = SourceManager()
         self.metrics = {
             "start_time": datetime.now(),
@@ -46,7 +48,7 @@ class ProductionDeployment:
             "health_status": "healthy",
         }
 
-    async def health_check(self) -> dict[str, any]:
+    async def health_check(self) -> dict[str, Any]:
         """Perform comprehensive health check."""
         logger.info("🔍 Performing health check...")
 
@@ -108,7 +110,7 @@ class ProductionDeployment:
         logger.info(f"Health check completed: {health_status['status']}")
         return health_status
 
-    async def run_production_merge(self, max_sources: int = 50) -> dict[str, any]:
+    async def run_production_merge(self, max_sources: int = 50) -> dict[str, Any]:
         """Run production merge with monitoring."""
         logger.info(f"🚀 Starting production merge with max {max_sources} sources...")
 
@@ -121,7 +123,7 @@ class ProductionDeployment:
             logger.info(f"Processing {len(sources)} sources...")
 
             # Run comprehensive merge
-            results = await self.merger.run_comprehensive_merge()
+            results = await self.merger.merge_subscriptions()
 
             # Save results
             if results:
@@ -163,7 +165,7 @@ class ProductionDeployment:
 
         except Exception as e:
             self.metrics["failed_runs"] += 1
-            logger.error(f"❌ Production merge failed: {e}")
+            logger.error(f"❌ Production merge failed: {e}", exc_info=True)
 
             return {
                 "status": "failed",
@@ -219,10 +221,10 @@ class ProductionDeployment:
                 logger.info("🛑 Continuous monitoring stopped by user")
                 break
             except Exception as e:
-                logger.error(f"❌ Monitoring error: {e}")
+                logger.error(f"❌ Monitoring error: {e}", exc_info=True)
                 await asyncio.sleep(60)  # Wait 1 minute before retrying
 
-    def get_system_metrics(self) -> dict[str, any]:
+    def get_system_metrics(self) -> dict[str, Any]:
         """Get comprehensive system metrics."""
         uptime = datetime.now() - self.metrics["start_time"]
 

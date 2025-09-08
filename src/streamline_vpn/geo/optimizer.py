@@ -177,7 +177,7 @@ class GeographicOptimizer:
 
         return country_servers
 
-    def get_statistics(self) -> Dict[str, any]:
+    def get_statistics(self) -> Dict[str, Any]:
         """Get geographic optimization statistics.
 
         Returns:

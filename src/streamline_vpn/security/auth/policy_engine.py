@@ -7,7 +7,7 @@ Zero Trust policy evaluation engine.
 
 from typing import Dict, List
 
-from ...utils.logging import get_logger
+from ....utils.logging import get_logger
 from .models import (
     PolicyRule,
     PolicyEvaluation,

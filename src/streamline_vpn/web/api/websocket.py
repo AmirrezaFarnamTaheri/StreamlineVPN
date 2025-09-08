@@ -24,15 +24,19 @@ class WebSocketManager:
         self.connections: Dict[str, WebSocket] = {}
 
     async def connect(self, websocket: WebSocket, user_id: str) -> None:
-        """Accept WebSocket connection.
+        """Accept WebSocket connection with error handling.
 
         Args:
             websocket: WebSocket connection
             user_id: User ID
         """
-        await websocket.accept()
-        self.connections[user_id] = websocket
-        logger.info(f"WebSocket connected for user {user_id}")
+        try:
+            await websocket.accept()
+            self.connections[user_id] = websocket
+            logger.info(f"WebSocket connected for user {user_id}")
+        except Exception as e:
+            logger.error(f"Failed to connect WebSocket for user {user_id}: {e}")
+            raise
 
     async def disconnect(self, user_id: str) -> None:
         """Disconnect WebSocket connection.
@@ -106,6 +110,76 @@ class WebSocketManager:
         )
         return await self.send_message(user_id, message)
 
+    async def broadcast_message(self, message: WebSocketMessage) -> int:
+        """Broadcast message to all connected users with retry logic.
+
+        Args:
+            message: WebSocket message to broadcast
+
+        Returns:
+            Number of successful sends
+        """
+        successful_sends = 0
+        failed_connections = []
+
+        for user_id, websocket in list(self.connections.items()):
+            try:
+                await websocket.send_text(message.json())
+                successful_sends += 1
+            except Exception as e:
+                logger.warning(f"Failed to broadcast to user {user_id}: {e}")
+                failed_connections.append(user_id)
+
+        # Clean up failed connections
+        for user_id in failed_connections:
+            await self.disconnect(user_id)
+
+        logger.info(f"Broadcast completed: {successful_sends} successful, {len(failed_connections)} failed")
+        return successful_sends
+
+    async def broadcast(self, message: str) -> int:
+        """Broadcast raw message to all connected users.
+
+        Args:
+            message: Raw message string to broadcast
+
+        Returns:
+            Number of successful sends
+        """
+        successful_sends = 0
+        failed_connections = []
+
+        for user_id, websocket in list(self.connections.items()):
+            try:
+                await websocket.send_text(message)
+                successful_sends += 1
+            except Exception as e:
+                logger.warning(f"Failed to broadcast to user {user_id}: {e}")
+                failed_connections.append(user_id)
+
+        # Clean up failed connections
+        for user_id in failed_connections:
+            await self.disconnect(user_id)
+
+        return successful_sends
+
+    async def send_personal_message(self, message: str, websocket: WebSocket) -> bool:
+        """Send personal message to a specific WebSocket connection.
+
+        Args:
+            message: Message to send
+            websocket: WebSocket connection
+
+        Returns:
+            True if successful, False otherwise
+        """
+        try:
+            await websocket.send_text(message)
+            return True
+        except Exception as e:
+            logger.error(f"Failed to send personal message: {e}")
+            return False
+
     async def handle_message(
         self, websocket: WebSocket, user_id: str, message_data: Dict
     ) -> None:
@@ -127,22 +201,6 @@ class WebSocketManager:
         elif message_type == "request_status":
             # This would trigger a status update
             logger.info(f"Status requested by user {user_id}")
-
-    async def broadcast_message(self, message: WebSocketMessage) -> int:
-        """Broadcast message to all connected users.
-
-        Args:
-            message: WebSocket message
-
-        Returns:
-            Number of users message was sent to
-        """
-        sent_count = 0
-        for user_id in list(self.connections.keys()):
-            if await self.send_message(user_id, message):
-                sent_count += 1
-
-        return sent_count
 
     def get_connection_count(self) -> int:
         """Get number of active WebSocket connections.

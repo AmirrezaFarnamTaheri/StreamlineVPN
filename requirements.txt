@@ -37,6 +37,7 @@ opentelemetry-exporter-jaeger>=1.21.0
 cryptography>=41.0.0
 bcrypt>=4.1.0
 pyjwt>=2.8.0
+passlib[bcrypt]>=1.7.4
 hvac>=1.2.0  # HashiCorp Vault client
 
 # Machine learning and AI

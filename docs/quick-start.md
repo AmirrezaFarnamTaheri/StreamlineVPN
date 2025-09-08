@@ -19,7 +19,14 @@ description: Get up and running in minutes.
 
 3.  **Run the application:**
     ```bash
+    # Command line interface
     python -m streamline_vpn --config config/sources.yaml --output output
+    
+    # Web interface
+    python run_web.py
+    
+    # Production deployment
+    python scripts/deploy_production.py
     ```
 
 ## Production Deployment

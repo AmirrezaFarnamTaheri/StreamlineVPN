@@ -1,7 +1,7 @@
 import re
 from typing import Dict, Any, List, Set
 from urllib.parse import urlparse
-from ...settings import get_settings
+from ....settings import get_settings
 
 
 def analyze_domain_info(url: str, blocked_domains: Set[str]) -> Dict[str, Any]:

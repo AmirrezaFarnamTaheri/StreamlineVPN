@@ -133,7 +133,7 @@ from streamline_vpn.core.merger import StreamlineVPNMerger  # noqa: E402
 from streamline_vpn.core.output_manager import OutputManager  # noqa: E402
 from streamline_vpn.core.source_manager import SourceManager  # noqa: E402
 from streamline_vpn.models.configuration import (  # noqa: E402
-    ProtocolType,
+    Protocol,
     VPNConfiguration,
 )
 
@@ -260,7 +260,7 @@ class TestOutputManager:
         """Test saving configurations."""
         configs = [
             VPNConfiguration(
-                protocol=ProtocolType.VMESS,
+                protocol=Protocol.VMESS,
                 server="test.com",
                 port=443,
                 user_id="test-id",

@@ -393,7 +393,7 @@ class ConfigurationValidator:
         """Validate security section."""
         if not isinstance(security, dict):
             return
-        # Placeholder for future security checks
+        # Security validation will be implemented based on requirements
 
     def _validate_monitoring(
         self, monitoring: Any, config: Dict[str, Any]
@@ -401,7 +401,7 @@ class ConfigurationValidator:
         """Validate monitoring section."""
         if not isinstance(monitoring, dict):
             return
-        # Placeholder for future monitoring checks
+        # Monitoring validation will be implemented based on requirements
 
     def _check_deprecated_fields(self, config: Dict[str, Any]) -> None:
         """Check for deprecated fields."""
@@ -486,7 +486,7 @@ class ConfigurationValidator:
 
     def _fix_invalid_urls(self, config: Dict[str, Any]) -> None:
         """Fix invalid URLs where possible."""
-        # Implementation placeholder
+        # URL validation and fixing will be implemented as needed
 
     def _fix_out_of_range_values(self, config: Dict[str, Any]) -> None:
         """Fix out-of-range values."""
