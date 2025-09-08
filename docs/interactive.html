@@ -196,19 +196,19 @@
         <!-- Tab Navigation -->
         <div class="glass-morphism rounded-xl p-2 mb-8">
             <div class="flex space-x-2">
-                <button onclick="switchTab('dashboard')" class="tab-btn px-6 py-3 rounded-lg text-white font-medium transition hover:bg-white hover:bg-opacity-20 bg-white bg-opacity-20">
+                <button onclick="switchTab('dashboard', event)" class="tab-btn px-6 py-3 rounded-lg text-white font-medium transition hover:bg-white hover:bg-opacity-20 bg-white bg-opacity-20">
                     Dashboard
                 </button>
-                <button onclick="switchTab('process')" class="tab-btn px-6 py-3 rounded-lg text-white font-medium transition hover:bg-white hover:bg-opacity-20">
+                <button onclick="switchTab('process', event)" class="tab-btn px-6 py-3 rounded-lg text-white font-medium transition hover:bg-white hover:bg-opacity-20">
                     Process
                 </button>
-                <button onclick="switchTab('configurations')" class="tab-btn px-6 py-3 rounded-lg text-white font-medium transition hover:bg-white hover:bg-opacity-20">
+                <button onclick="switchTab('configurations', event)" class="tab-btn px-6 py-3 rounded-lg text-white font-medium transition hover:bg-white hover:bg-opacity-20">
                     Configurations
                 </button>
-                <button onclick="switchTab('sources')" class="tab-btn px-6 py-3 rounded-lg text-white font-medium transition hover:bg-white hover:bg-opacity-20">
+                <button onclick="switchTab('sources', event)" class="tab-btn px-6 py-3 rounded-lg text-white font-medium transition hover:bg-white hover:bg-opacity-20">
                     Sources
                 </button>
-                <button onclick="switchTab('terminal')" class="tab-btn px-6 py-3 rounded-lg text-white font-medium transition hover:bg-white hover:bg-opacity-20">
+                <button onclick="switchTab('terminal', event)" class="tab-btn px-6 py-3 rounded-lg text-white font-medium transition hover:bg-white hover:bg-opacity-20">
                     Terminal
                 </button>
             </div>
@@ -392,7 +392,7 @@
         });
         
         // Tab switching
-        function switchTab(tabName) {
+        function switchTab(tabName, event) {
             // Hide all tabs
             document.querySelectorAll('.tab-content').forEach(tab => {
                 tab.classList.remove('active');
