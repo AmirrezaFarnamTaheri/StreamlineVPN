@@ -13,6 +13,7 @@ import yaml
 from datetime import datetime
 from pathlib import Path
 from typing import List, Optional
+from urllib.parse import urlsplit, urlunsplit
 
 from fastapi import (
     Body,
@@ -54,6 +55,14 @@ _vpn_status_cache_lock = threading.Lock()
 # Store job status and tasks
 job_status = {}
 job_tasks = {}
+
+
+def find_project_root(start: Path) -> Path:
+    """Locate the project root using common markers."""
+    for parent in [start] + list(start.parents):
+        if (parent / ".git").exists() or (parent / "pyproject.toml").is_file():
+            return parent
+    return start.parent
 
 
 def set_auth_service(auth_service: AuthenticationService) -> None:
@@ -118,15 +127,20 @@ def setup_routes(
             if not isinstance(output_formats, list) or not all(
                 isinstance(f, str) for f in output_formats
             ):
-                output_formats = ["json", "clash", "singbox"]
-            else:
-                output_formats = [
-                    f
-                    for f in (fmt.strip().lower() for fmt in output_formats)
-                    if f in allowed_formats
-                ]
-                if not output_formats:
-                    output_formats = ["json", "clash", "singbox"]
+                raise HTTPException(
+                    status_code=400, detail="formats must be a list of strings"
+                )
+            normalized_formats = [
+                fmt.strip().lower() for fmt in output_formats
+            ]
+            output_formats = [
+                f for f in normalized_formats if f in allowed_formats
+            ]
+            if not output_formats:
+                raise HTTPException(
+                    status_code=400,
+                    detail=f"formats must include one of: {', '.join(sorted(allowed_formats))}",
+                )
 
             merger = StreamlineVPNMerger(config_path=config_path)
             await merger.initialize()
@@ -164,22 +178,23 @@ def setup_routes(
     async def get_sources():
         """Get configured sources."""
         try:
-            # Resolve sources.yaml from multiple possible locations
-            _here = Path(__file__).resolve()
-            _candidates = [
-                p / "config" / "sources.yaml" for p in (_here.parents)
-            ]
-            _candidates.append(Path.cwd() / "config" / "sources.yaml")
-            config_path = next((p for p in _candidates if p.is_file()), None)
+            project_root = find_project_root(Path(__file__).resolve())
+            config_path = project_root / "config" / "sources.yaml"
 
-            if config_path is None:
+            if not config_path.is_file():
                 logger.warning("Sources config file not found")
                 raise HTTPException(
                     status_code=404, detail="Sources config file not found"
                 )
 
             with config_path.open("r", encoding="utf-8") as f:
-                loaded = yaml.safe_load(f)
+                try:
+                    loaded = yaml.safe_load(f)
+                except yaml.YAMLError as e:
+                    raise HTTPException(
+                        status_code=400,
+                        detail=f"Invalid YAML format: {str(e)}",
+                    )
                 if loaded is None:
                     raise HTTPException(
                         status_code=400, detail="Sources config is empty"
@@ -237,19 +252,30 @@ def setup_routes(
                     ):
                         continue
 
+                    try:
+                        parts = urlsplit(url)
+                        if parts.username or parts.password:
+                            continue
+                    except Exception:
+                        continue
+
                     norm_url = url.strip()
                     # Normalize scheme and host for deduplication
                     try:
-                        from urllib.parse import urlsplit, urlunsplit
-
                         parts = urlsplit(norm_url)
                         norm_host = (
                             parts.hostname.lower() if parts.hostname else ""
                         )
                         norm_scheme = (parts.scheme or "").lower()
-                        norm_netloc = norm_host
+                        is_ipv6 = (
+                            ":" in norm_host and not norm_host.startswith("[")
+                        )
+                        host_for_netloc = (
+                            f"[{norm_host}]" if is_ipv6 else norm_host
+                        )
+                        norm_netloc = host_for_netloc
                         if parts.port:
-                            norm_netloc = f"{norm_host}:{parts.port}"
+                            norm_netloc = f"{host_for_netloc}:{parts.port}"
                         normalized = urlunsplit(
                             (
                                 norm_scheme,
@@ -267,7 +293,7 @@ def setup_routes(
 
                     sources_list.append(
                         {
-                            "url": norm_url,
+                            "url": normalized,
                             "status": "active",  # Placeholder
                             "configs": 0,  # Placeholder
                             "tier": tier_str,
