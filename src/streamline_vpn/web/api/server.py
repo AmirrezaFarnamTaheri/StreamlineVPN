@@ -1,5 +1,4 @@
-"""
-API Server
+"""API Server
 ==========
 
 Main API server implementation.
@@ -7,16 +6,15 @@ Main API server implementation.
 
 from typing import Dict, List
 
-from fastapi import FastAPI
-from fastapi.middleware.cors import CORSMiddleware
-from fastapi.middleware.trustedhost import TrustedHostMiddleware
 import uvicorn
+from fastapi import FastAPI
+from fastapi.middleware.trustedhost import TrustedHostMiddleware
 
+from ...scheduler import setup_scheduler
 from ...utils.logging import get_logger
 from .auth import AuthenticationService
-from .websocket import WebSocketManager
 from .routes import setup_routes
-from ...scheduler import setup_scheduler
+from .websocket import WebSocketManager
 
 logger = get_logger(__name__)
 
@@ -62,15 +60,6 @@ class APIServer:
 
     def _setup_middleware(self) -> None:
         """Setup API middleware."""
-        # CORS middleware
-        self.app.add_middleware(
-            CORSMiddleware,
-            allow_origins=["*"],  # Configure appropriately for production
-            allow_credentials=True,
-            allow_methods=["*"],
-            allow_headers=["*"],
-        )
-
         # Trusted host middleware
         self.app.add_middleware(
             TrustedHostMiddleware,

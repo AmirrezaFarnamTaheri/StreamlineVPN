@@ -1,5 +1,5 @@
-"""
-API Routes
+# isort: skip_file
+"""API Routes
 ==========
 
 FastAPI route definitions for the StreamlineVPN API.
@@ -7,36 +7,36 @@ FastAPI route definitions for the StreamlineVPN API.
 
 import asyncio
 import json
-import time
 import threading
+import time
 from datetime import datetime
 from pathlib import Path
 from typing import List, Optional
 
 from fastapi import (
-    HTTPException,
+    Body,
     Depends,
+    HTTPException,
     WebSocket,
     WebSocketDisconnect,
     status,
-    Body,
 )
 from fastapi.responses import PlainTextResponse
-from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
+from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 
-from ...utils.logging import get_logger
 from ...__main__ import main as run_pipeline_main
+from ...utils.logging import get_logger
+from .auth import AuthenticationService
 from .models import (
+    ConnectionRequest,
+    ConnectionResponse,
     LoginRequest,
     LoginResponse,
     ServerRecommendationRequest,
     ServerRecommendationResponse,
-    ConnectionRequest,
-    ConnectionResponse,
-    VPNStatusResponse,
     User,
+    VPNStatusResponse,
 )
-from .auth import AuthenticationService
 from .websocket import WebSocketManager
 
 logger = get_logger(__name__)
@@ -183,9 +183,14 @@ def setup_routes(
                 servers = [s for s in servers if s["location"] == location]
 
             total = len(servers)
-            servers = servers[offset : offset + limit]
+            servers = servers[slice(offset, offset + limit)]
 
-            return {"total": total, "limit": limit, "offset": offset, "servers": servers}
+            return {
+                "total": total,
+                "limit": limit,
+                "offset": offset,
+                "servers": servers,
+            }
         except HTTPException:
             raise
         except Exception as e:  # noqa: BLE001
@@ -375,7 +380,10 @@ def setup_routes(
             if not formats or any(f not in allowed_formats for f in formats):
                 raise HTTPException(
                     status_code=status.HTTP_400_BAD_REQUEST,
-                    detail=f"Invalid formats. Allowed: {', '.join(sorted(allowed_formats))}",
+                    detail=(
+                        "Invalid formats. Allowed: "
+                        f"{', '.join(sorted(allowed_formats))}"
+                    ),
                 )
             if not Path(config_path).exists():
                 raise HTTPException(
@@ -388,16 +396,26 @@ def setup_routes(
             import uuid
 
             job_id = str(uuid.uuid4())
+            job_status[job_id] = {"status": "queued", "progress": 0}
 
             async def run_async():
                 job_status[job_id] = {"status": "running", "progress": 0}
                 try:
                     await run_pipeline_main(config_path, output_dir, formats)
-                    job_status[job_id] = {"status": "completed", "progress": 100}
-                    logger.info(f"Pipeline job {job_id} completed successfully")
+                    job_status[job_id] = {
+                        "status": "completed",
+                        "progress": 100,
+                    }
+                    logger.info(
+                        "Pipeline job %s completed successfully",
+                        job_id,
+                    )
                 except Exception as e:  # noqa: BLE001
-                    job_status[job_id] = {"status": "failed", "error": str(e)}
-                    logger.error(f"Pipeline job {job_id} failed: {e}")
+                    job_status[job_id] = {
+                        "status": "failed",
+                        "error": str(e),
+                    }
+                    logger.error("Pipeline job %s failed: %s", job_id, e)
 
             task = asyncio.create_task(run_async())
             job_tasks[job_id] = task
