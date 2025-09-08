@@ -108,9 +108,13 @@ def create_app() -> FastAPI:
             )
 
             if not results.get("success", False):
+                logger.error(
+                    "Processing failed: %s",
+                    results.get("error", "unknown error"),
+                )
                 raise HTTPException(
                     status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-                    detail=results.get("error", "Processing failed"),
+                    detail="Processing failed",
                 )
             return ProcessingResponse(
                 success=True,
@@ -119,8 +123,11 @@ def create_app() -> FastAPI:
             )
 
         except Exception as e:
-            logger.error(f"Processing error: {e}")
-            raise HTTPException(status_code=500, detail=str(e))
+            logger.error("Processing error: %s", e)
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail="Processing failed",
+            )
 
     @app.get("/statistics")
     async def get_statistics():
@@ -130,8 +137,11 @@ def create_app() -> FastAPI:
             stats = await merger.get_statistics()
             return stats
         except Exception as e:
-            logger.error(f"Statistics error: {e}")
-            raise HTTPException(status_code=500, detail=str(e))
+            logger.error("Statistics error: %s", e)
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail="Internal server error",
+            )
 
     @app.get("/configurations")
     async def get_configurations():
@@ -144,8 +154,11 @@ def create_app() -> FastAPI:
                 "configurations": [config.to_dict() for config in configs],
             }
         except Exception as e:
-            logger.error(f"Configurations error: {e}")
-            raise HTTPException(status_code=500, detail=str(e))
+            logger.error("Configurations error: %s", e)
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail="Internal server error",
+            )
 
     @app.get("/sources")
     async def get_sources():
@@ -155,8 +168,11 @@ def create_app() -> FastAPI:
             source_stats = merger.source_manager.get_source_statistics()
             return source_stats
         except Exception as e:
-            logger.error(f"Sources error: {e}")
-            raise HTTPException(status_code=500, detail=str(e))
+            logger.error("Sources error: %s", e)
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail="Internal server error",
+            )
 
     @app.post("/sources/{source_url}/blacklist")
     async def blacklist_source(source_url: str, reason: str = ""):
@@ -166,8 +182,11 @@ def create_app() -> FastAPI:
             merger.source_manager.blacklist_source(source_url, reason)
             return {"message": f"Source {source_url} blacklisted"}
         except Exception as e:
-            logger.error(f"Blacklist error: {e}")
-            raise HTTPException(status_code=500, detail=str(e))
+            logger.error("Blacklist error: %s", e)
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail="Internal server error",
+            )
 
     @app.post("/sources/{source_url}/whitelist")
     async def whitelist_source(source_url: str):
@@ -177,8 +196,11 @@ def create_app() -> FastAPI:
             merger.source_manager.whitelist_source(source_url)
             return {"message": f"Source {source_url} whitelisted"}
         except Exception as e:
-            logger.error(f"Whitelist error: {e}")
-            raise HTTPException(status_code=500, detail=str(e))
+            logger.error("Whitelist error: %s", e)
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail="Internal server error",
+            )
 
     @app.post("/cache/clear")
     async def clear_cache():
@@ -188,8 +210,11 @@ def create_app() -> FastAPI:
             await merger.clear_cache()
             return {"message": "Cache cleared successfully"}
         except Exception as e:
-            logger.error(f"Cache clear error: {e}")
-            raise HTTPException(status_code=500, detail=str(e))
+            logger.error("Cache clear error: %s", e)
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail="Internal server error",
+            )
 
     @app.get("/metrics")
     async def get_metrics():
@@ -201,8 +226,11 @@ def create_app() -> FastAPI:
                 "Prometheus client"
             }
         except Exception as e:
-            logger.error(f"Metrics error: {e}")
-            raise HTTPException(status_code=500, detail=str(e))
+            logger.error("Metrics error: %s", e)
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail="Internal server error",
+            )
 
     @app.get("/config/runtime")
     async def get_runtime_configuration():
@@ -217,8 +245,11 @@ def create_app() -> FastAPI:
                 ),
             }
         except Exception as e:
-            logger.error(f"Runtime config error: {e}")
-            raise HTTPException(status_code=500, detail=str(e))
+            logger.error("Runtime config error: %s", e)
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail="Internal server error",
+            )
 
     @app.post("/config/reload")
     async def reload_runtime_configuration(
@@ -261,7 +292,10 @@ def create_app() -> FastAPI:
                 ),
             }
         except Exception as e:
-            logger.error(f"Reload settings error: {e}")
-            raise HTTPException(status_code=500, detail=str(e))
+            logger.error("Reload settings error: %s", e)
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail="Internal server error",
+            )
 
     return app
