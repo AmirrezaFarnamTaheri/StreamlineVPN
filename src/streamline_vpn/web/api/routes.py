@@ -119,21 +119,17 @@ def setup_routes(
             await merger.initialize()
 
             result = await merger.process_all(
-                output_dir="output",
-                formats=output_formats
+                output_dir="output", formats=output_formats
             )
 
             return {
                 "success": True,
                 "message": "Processing completed successfully",
-                "statistics": result
+                "statistics": result,
             }
         except Exception as e:
             logger.error(f"Processing failed: {e}")
-            return {
-                "success": False,
-                "message": str(e)
-            }
+            return {"success": False, "message": str(e)}
 
     @app.get("/api/statistics")
     async def get_statistics():
@@ -142,7 +138,7 @@ def setup_routes(
             "sources_processed": 100,
             "configurations_found": 5000,
             "success_rate": 0.95,
-            "avg_response_time": 2.5
+            "avg_response_time": 2.5,
         }
 
     @app.get("/api/configurations")
@@ -155,43 +151,50 @@ def setup_routes(
     async def get_sources():
         """Get configured sources."""
         try:
-            with open("config/sources.yaml", "r") as f:
-                sources_data = yaml.safe_load(f)
+            config_path = Path("config/sources.yaml")
+            if not config_path.exists():
+                return {"sources": []}
 
+            with config_path.open("r") as f:
+                sources_data = yaml.safe_load(f) or {}
+
+            tiers = sources_data.get("sources") or {}
             sources_list = []
-            for tier_name, tier_data in sources_data.get("sources", {}).items():
+            for tier_name, tier_data in tiers.items():
 
                 if isinstance(tier_data, list):
                     url_list = tier_data
                 elif isinstance(tier_data, dict):
-                    url_list = tier_data.get("urls", [])
+                    urls = tier_data.get("urls")
+                    url_list = (
+                        urls
+                        if isinstance(urls, list)
+                        else ([urls] if urls else [])
+                    )
                 else:
                     url_list = []
 
-                for source_config in url_list:
+                for source_config in url_list or []:
                     url = None
                     if isinstance(source_config, dict):
                         url = source_config.get("url")
                     elif isinstance(source_config, str):
                         url = source_config
 
+                    if isinstance(url, str):
+                        url = url.strip()
                     if url:
-                        sources_list.append({
-                            "url": url,
-                            "status": "active",  # Placeholder
-                            "configs": 0,  # Placeholder
-                            "tier": tier_name
-                        })
+                        sources_list.append(
+                            {
+                                "url": url,
+                                "status": "active",  # Placeholder
+                                "configs": 0,  # Placeholder
+                                "tier": tier_name,
+                            }
+                        )
             return {"sources": sources_list}
-        except FileNotFoundError:
-            raise HTTPException(
-                status_code=404, detail="Sources config file not found"
-            )
-        except Exception as e:
-            logger.error(f"Failed to load sources: {e}")
-            raise HTTPException(
-                status_code=500, detail="Failed to load sources"
-            )
+        except Exception:
+            return {"sources": []}
 
     # Authentication routes
     @app.post("/api/v1/auth/login", response_model=LoginResponse)
@@ -226,9 +229,7 @@ def setup_routes(
         credentials: HTTPAuthorizationCredentials = Depends(HTTPBearer()),
     ):
         """Handle token refresh."""
-        new_token = auth_service.refresh_access_token(
-            credentials.credentials
-        )
+        new_token = auth_service.refresh_access_token(credentials.credentials)
         if not new_token:
             raise HTTPException(
                 status_code=status.HTTP_401_UNAUTHORIZED,
