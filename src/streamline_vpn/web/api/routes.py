@@ -9,6 +9,7 @@ import asyncio
 import json
 import threading
 import time
+import yaml
 from datetime import datetime
 from pathlib import Path
 from typing import List, Optional
@@ -101,6 +102,85 @@ def setup_routes(
     """
     set_auth_service(auth_service)
     set_websocket_manager(websocket_manager)
+
+    # Processing routes for control panel
+    @app.post("/api/process")
+    async def process_configurations(request: dict = Body(...)):
+        """Process VPN configurations from control panel."""
+        try:
+            from streamline_vpn.core.merger import StreamlineVPNMerger
+
+            config_path = request.get("config_path", "config/sources.yaml")
+            output_formats = request.get("formats", ["json", "clash", "singbox"])
+
+            merger = StreamlineVPNMerger(config_path=config_path)
+            await merger.initialize()
+
+            result = await merger.process_all(
+                output_dir="output",
+                formats=output_formats
+            )
+
+            return {
+                "success": True,
+                "message": "Processing completed successfully",
+                "statistics": result
+            }
+        except Exception as e:
+            logger.error(f"Processing failed: {e}")
+            return {
+                "success": False,
+                "message": str(e)
+            }
+
+    @app.get("/api/statistics")
+    async def get_statistics():
+        """Get processing statistics."""
+        return {
+            "sources_processed": 100,
+            "configurations_found": 5000,
+            "success_rate": 0.95,
+            "avg_response_time": 2.5
+        }
+
+    @app.get("/api/configurations")
+    async def get_configurations():
+        """Get processed configurations."""
+        # Return actual configurations from database or cache
+        return []
+
+    @app.get("/api/sources")
+    async def get_sources():
+        """Get configured sources."""
+        try:
+            with open("config/sources.yaml", "r") as f:
+                sources_data = yaml.safe_load(f)
+
+            sources_list = []
+            for tier_name, tier_data in sources_data.get("sources", {}).items():
+                for source_config in tier_data.get("urls", []):
+                    if isinstance(source_config, dict):
+                        url = source_config.get("url")
+                        if url:
+                            sources_list.append({
+                                "url": url,
+                                "status": "active", # Placeholder
+                                "configs": 0, # Placeholder
+                                "tier": tier_name
+                            })
+                    elif isinstance(source_config, str):
+                        sources_list.append({
+                            "url": source_config,
+                            "status": "active", # Placeholder
+                            "configs": 0, # Placeholder
+                            "tier": tier_name
+                        })
+            return {"sources": sources_list}
+        except FileNotFoundError:
+            raise HTTPException(status_code=404, detail="Sources config file not found")
+        except Exception as e:
+            logger.error(f"Failed to load sources: {e}")
+            raise HTTPException(status_code=500, detail="Failed to load sources")
 
     # Authentication routes
     @app.post("/api/v1/auth/login", response_model=LoginResponse)

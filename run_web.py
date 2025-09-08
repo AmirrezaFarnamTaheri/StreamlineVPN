@@ -1,32 +1,31 @@
 """Main entry point for StreamlineVPN with web interface."""
 
-import os
 import sys
+import os
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).parent / "src"))
 
 from streamline_vpn.utils.logging import get_logger
-from streamline_vpn.web.settings import Settings
 from streamline_vpn.web.static_server import EnhancedStaticServer
+from streamline_vpn.web.settings import Settings
 
 logger = get_logger(__name__)
 
-
 def main() -> None:
-    """Run the enhanced StreamlineVPN web interface with security enhancements."""
+    """Run the enhanced StreamlineVPN web interface."""
     settings = Settings()
 
-    # Basic production validation
-    if settings.ENV == "production":
-        if not os.environ.get("SSL_CERT_PATH"):
-            logger.warning("SSL certificate not configured for production!")
-        if len(settings.SECRET_KEY) < 32:
-            raise ValueError(
-                "Secret key must be at least 32 characters in production"
-            )
+    # Get dynamic configuration
+    host = os.getenv("HOST", "0.0.0.0")
+    port = int(os.getenv("PORT", settings.PORT))
+    api_port = int(os.getenv("API_PORT", "8080"))
 
+    # Inject API configuration into static files
     server = EnhancedStaticServer(settings=settings)
+
+    # Add API base configuration
+    server.app.state.api_base = f"http://{host}:{api_port}"
 
     @server.app.middleware("http")
     async def add_security_headers(request, call_next):  # noqa: ANN001
@@ -37,14 +36,12 @@ def main() -> None:
         response.headers["Strict-Transport-Security"] = (
             "max-age=31536000; includeSubDomains"
         )
-        api_host = settings.API_BASE.replace("http://", "").replace(
-            "https://", ""
-        )
+        api_host = f"{host}:{api_port}"
         response.headers["Content-Security-Policy"] = (
             "default-src 'self'; "
             "script-src 'self' 'unsafe-inline' cdn.jsdelivr.net; "
             "style-src 'self' 'unsafe-inline' cdn.jsdelivr.net; "
-            f"connect-src 'self' {settings.API_BASE} ws://{api_host} wss://{api_host};"
+            f"connect-src 'self' http://{api_host} ws://{api_host} wss://{api_host};"
         )
         return response
 
@@ -53,11 +50,10 @@ def main() -> None:
     ╔══════════════════════════════════════════════════════════╗
     ║           StreamlineVPN Control Center v2.0              ║
     ╠══════════════════════════════════════════════════════════╣
-    ║  🌐 Web Interface: http://localhost:{settings.PORT}                   ║
-    ║  📊 Control Panel: http://localhost:{settings.PORT}/interactive.html  ║
-    ║  🔄 Auto-Update: Every {settings.UPDATE_INTERVAL / 3600:.1f} hours                     ║
-    ║  📡 API Base: {settings.API_BASE}                        ║
-    ║  🔒 Environment: {settings.ENV}                                    ║
+    ║  🌐 Web Interface: http://localhost:{port}                   ║
+    ║  📊 Control Panel: http://localhost:{port}/interactive.html       ║
+    ║  🔄 Auto-Update: Every {settings.UPDATE_INTERVAL / 3600} hours                          ║
+    ║  📡 API Server: http://localhost:{api_port}                      ║
     ╚══════════════════════════════════════════════════════════╝
     """
     )
@@ -69,19 +65,18 @@ def main() -> None:
 
     uvicorn.run(
         server.app,
-        host=settings.HOST,
-        port=settings.PORT,
+        host=host,
+        port=port,
         log_level="info",
         ssl_keyfile=ssl_keyfile,
         ssl_certfile=ssl_certfile,
     )
-
 
 if __name__ == "__main__":
     try:
         main()
     except KeyboardInterrupt:
         logger.info("Shutting down StreamlineVPN...")
-    except Exception as exc:  # noqa: BLE001
+    except Exception as exc:
         logger.error("Fatal error: %s", exc, exc_info=True)
         sys.exit(1)

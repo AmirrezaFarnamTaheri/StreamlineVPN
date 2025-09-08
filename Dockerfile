@@ -42,22 +42,19 @@ RUN mkdir -p /app/output /app/logs && \
 HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
     CMD curl -f http://localhost:${API_PORT:-8000}/api/v1/health || exit 1
 
-# Expose ports
-# 8000: Main API
-# 8001: Metrics endpoint
-EXPOSE 8000 8001
+# Expose all necessary ports
+EXPOSE 8000 8001 8080
 
 # Create and switch to non-root user for security
 RUN useradd -m -u 1000 merger && \
     chown -R merger:merger /app
 USER merger
 
-# Environment variables
-ENV PYTHONUNBUFFERED=1
-ENV VPN_MERGER_OUTPUT_DIR=/app/output
-ENV VPN_MERGER_LOG_DIR=/app/logs
-ENV PYTHONPATH=/app
-ENV API_PORT=8000
+# Environment variables for dynamic configuration
+ENV HOST=0.0.0.0
+ENV PORT=8000
+ENV API_PORT=8080
+ENV WEB_PORT=8000
 
 # Default command - run the API server
 CMD ["python", "run_server.py"]

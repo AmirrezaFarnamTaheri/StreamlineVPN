@@ -1,35 +1,43 @@
-from apscheduler.schedulers.asyncio import AsyncIOScheduler
-from streamline_vpn.__main__ import main as run_pipeline_main
-import asyncio
+# src/streamline_vpn/scheduler.py
+"""Background scheduler for periodic processing."""
 
+import asyncio
+from apscheduler.schedulers.asyncio import AsyncIOScheduler
+from .utils.logging import get_logger
+from .core.merger import StreamlineVPNMerger
+
+logger = get_logger(__name__)
+scheduler = None
 
 def setup_scheduler():
-    """
-    Initializes and starts the scheduler.
-    """
+    """Setup the background scheduler."""
+    global scheduler
+
+    if scheduler is not None:
+        return scheduler
+
     scheduler = AsyncIOScheduler()
-    scheduler.add_job(run_pipeline_job, "interval", hours=12)
+
+    # Schedule processing every 12 hours
+    scheduler.add_job(
+        run_processing,
+        'interval',
+        hours=12,
+        id='process_sources',
+        replace_existing=True
+    )
+
     scheduler.start()
-    print("Scheduler started, pipeline will run every 12 hours.")
+    logger.info("Scheduler started - processing will run every 12 hours")
+    return scheduler
 
-
-async def run_pipeline_job():
-    """
-    A wrapper for the run_pipeline function to be used with the scheduler.
-    """
-    print("Running scheduled VPN data update...")
+async def run_processing():
+    """Run the processing pipeline."""
     try:
-        # Call the main function from __main__.py with default arguments
-        await run_pipeline_main("config/sources.yaml", "output", None)
-        print("VPN data update completed successfully.")
+        logger.info("Starting scheduled processing...")
+        merger = StreamlineVPNMerger()
+        await merger.initialize()
+        result = await merger.process_all()
+        logger.info(f"Scheduled processing completed: {result}")
     except Exception as e:
-        print(f"An error occurred during the scheduled VPN data update: {e}")
-
-
-if __name__ == "__main__":
-    setup_scheduler()
-    # Keep the script running
-    try:
-        asyncio.get_event_loop().run_forever()
-    except (KeyboardInterrupt, SystemExit):
-        pass
+        logger.error(f"Scheduled processing failed: {e}")
