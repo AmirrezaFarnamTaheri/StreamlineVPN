@@ -192,6 +192,8 @@ def setup_routes(
                 "message": "Processing completed successfully",
                 "statistics": result,
             }
+        except HTTPException:
+            raise
         except Exception as e:
             logger.error(f"Processing failed: {e}")
             return {"success": False, "message": str(e)}
