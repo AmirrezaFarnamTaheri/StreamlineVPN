@@ -411,7 +411,7 @@
         
         // Dynamic API base URL configuration
         const API_BASE = window.API_BASE ||
-            `${window.location.protocol}//${window.location.hostname}:${window.location.port === '8000' ? '8080' : '8080'}`;
+            `${window.location.protocol}//${window.location.hostname}:${window.location.port === '8000' ? '8080' : (window.location.port || (window.location.protocol === 'https:' ? '443' : '80'))}`;
         
         // Initialize
         document.addEventListener('DOMContentLoaded', function() {
@@ -710,15 +710,8 @@ async function loadSources() {
             const data = await response.json();
             sources = data.sources || [];
         } else {
-            // Fallback to loading from config file
-            sources = [
-                { url: 'https://raw.githubusercontent.com/mahdibland/V2RayAggregator/master/sub/sub_merge_yaml.txt', status: 'active', configs: 0, tier: 'tier_1_premium' },
-                { url: 'https://raw.githubusercontent.com/awesome-vpn/awesome-vpn/master/all.txt', status: 'active', configs: 0, tier: 'tier_1_premium' },
-                { url: 'https://raw.githubusercontent.com/freefq/free/master/v2', status: 'active', configs: 0, tier: 'tier_2_reliable' },
-                { url: 'https://raw.githubusercontent.com/Pawdroid/Free-servers/main/sub', status: 'active', configs: 0, tier: 'tier_2_reliable' },
-                { url: 'https://raw.githubusercontent.com/mfuu/v2ray/master/v2ray', status: 'active', configs: 0, tier: 'tier_3_bulk' },
-                { url: 'https://raw.githubusercontent.com/peasoft/NoMoreWalls/master/list.txt', status: 'active', configs: 0, tier: 'tier_3_bulk' }
-            ];
+            console.error('Failed to load sources from API');
+            sources = [];
         }
     } catch (error) {
         console.error('Failed to load sources:', error);

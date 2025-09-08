@@ -18,7 +18,7 @@ def main() -> None:
 
     # Get dynamic configuration
     host = os.getenv("HOST", "0.0.0.0")
-    port = int(os.getenv("PORT", settings.PORT))
+    web_port = int(os.getenv("WEB_PORT", settings.PORT))
     api_port = int(os.getenv("API_PORT", "8080"))
 
     # Inject API configuration into static files
@@ -50,8 +50,8 @@ def main() -> None:
     ╔══════════════════════════════════════════════════════════╗
     ║           StreamlineVPN Control Center v2.0              ║
     ╠══════════════════════════════════════════════════════════╣
-    ║  🌐 Web Interface: http://localhost:{port}                   ║
-    ║  📊 Control Panel: http://localhost:{port}/interactive.html       ║
+    ║  🌐 Web Interface: http://localhost:{web_port}                   ║
+    ║  📊 Control Panel: http://localhost:{web_port}/interactive.html       ║
     ║  🔄 Auto-Update: Every {settings.UPDATE_INTERVAL / 3600} hours                          ║
     ║  📡 API Server: http://localhost:{api_port}                      ║
     ╚══════════════════════════════════════════════════════════╝
@@ -66,7 +66,7 @@ def main() -> None:
     uvicorn.run(
         server.app,
         host=host,
-        port=port,
+        port=web_port,
         log_level="info",
         ssl_keyfile=ssl_keyfile,
         ssl_certfile=ssl_certfile,

@@ -1,76 +1,164 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="en">
-  <head>
-    <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>{{ page.title | default: site.title }}</title>
-    <meta name="description" content="{{ site.description }}" />
-    <!-- Cayman theme CSS (hosted) -->
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/pages-themes/cayman@v0.2.0/assets/css/style.css" />
-    <!-- Custom site styles -->
-    <link rel="stylesheet" href="{{ "/assets/site.css" | relative_url }}" />
-  </head>
-  <body>
-    <section class="page-header">
-      <img src="{{ "/assets/logo.svg" | relative_url }}" alt="StreamlineVPN" style="height:40px; vertical-align:middle; margin-right: 10px;" />
-      <h1 class="project-name" style="display:inline-block; vertical-align:middle; margin:0;">{{ site.title }}</h1>
-      <h2 class="project-tagline">{{ site.description }}</h2>
-      <nav class="nav-links">
-        <a href="{{ "/" | relative_url }}">Home</a>
-        <a href="{{ "/quick-start.html" | relative_url }}">Quick Start</a>
-        <a href="{{ "/api/" | relative_url }}">API</a>
-        <a href="{{ "/configuration/" | relative_url }}">Configuration</a>
-        <a href="{{ "/DEPLOYMENT.html" | relative_url }}">Deployment</a>
-        <a href="{{ "/web-interface.html" | relative_url }}">Web UI</a>
-        <button id="theme-toggle" class="btn">Toggle Theme</button>
-      </nav>
-    </section>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ page.title | default: site.title }} - StreamlineVPN</title>
+    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
 
-    <section class="main-content" data-page="{{ page.url }}">
-      <nav class="breadcrumbs">
-        <a href="{{ "/" | relative_url }}">Home</a>
-        {% assign parts = page.url | split:'/' %}
-        {% assign built = '' %}
-        {% for part in parts %}
-          {% if part == '' or part == 'index.html' %}{% continue %}{% endif %}
-          {% assign built = built | append: '/' | append: part %}
-          {% assign pretty = part | replace:'-',' ' | replace:'.html','' %}
-          <span class="sep">/</span>
-          {% if forloop.last %}
-            <span class="crumb current">{{ pretty | capitalize }}</span>
-          {% else %}
-            <a class="crumb" href="{{ built | relative_url }}">{{ pretty | capitalize }}</a>
-          {% endif %}
-        {% endfor %}
-      </nav>
-      <div class="content-grid">
-        <aside class="sidebar">
-          {% assign nav = site.data.nav.sections %}
-          {% if nav %}
-            {% for section in nav %}
-              <div class="sidebar-section">
-                <div class="sidebar-title">{{ section.title }}</div>
-                <ul class="sidebar-list">
-                  {% for item in section.items %}
-                    {% assign item_path = item.url | replace:'index.html','' %}
-                    {% assign active = page.url == item.url or page.url == item_path %}
-                    <li class="sidebar-item{% if active %} active{% endif %}"><a href="{{ item.url | relative_url }}">{{ item.title }}</a></li>
-                  {% endfor %}
-                </ul>
-              </div>
-            {% endfor %}
-          {% endif %}
-        </aside>
-        <article class="content-body">
-          {{ content }}
-          <footer class="site-footer">
-            <span class="site-footer-owner">© StreamlineVPN</span>
-            <span class="site-footer-credits">Built with GitHub Pages + Jekyll</span>
-          </footer>
-        </article>
-      </div>
-    </section>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
 
-    <script src="{{ "/assets/site.js" | relative_url }}"></script>
-  </body>
-  </html>
+        body {
+            font-family: 'Inter', system-ui, -apple-system, sans-serif;
+            background: #0f0f1e;
+            color: #ffffff;
+            overflow-x: hidden;
+        }
+
+        .animated-bg {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: linear-gradient(125deg, #667eea 0%, #764ba2 25%, #f093fb 50%, #667eea 100%);
+            background-size: 400% 400%;
+            animation: gradientShift 15s ease infinite;
+            opacity: 0.1;
+            z-index: -2;
+        }
+
+        .mesh-gradient {
+            position: fixed;
+            top: -50%;
+            left: -50%;
+            width: 200%;
+            height: 200%;
+            background: radial-gradient(circle at 20% 50%, rgba(120, 119, 198, 0.3), transparent 50%),
+                        radial-gradient(circle at 80% 80%, rgba(255, 119, 198, 0.3), transparent 50%),
+                        radial-gradient(circle at 40% 20%, rgba(255, 219, 98, 0.2), transparent 50%);
+            animation: meshMove 20s ease-in-out infinite;
+            z-index: -1;
+        }
+
+        @keyframes gradientShift {
+            0%, 100% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+        }
+
+        @keyframes meshMove {
+            0%, 100% { transform: rotate(0deg) scale(1); }
+            50% { transform: rotate(180deg) scale(1.1); }
+        }
+
+        .glass {
+            background: rgba(255, 255, 255, 0.05);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .glass-dark {
+            background: rgba(0, 0, 0, 0.3);
+            backdrop-filter: blur(20px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .hero-title {
+            font-size: clamp(2.5rem, 8vw, 4rem);
+            font-weight: 800;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 25%, #f093fb 50%, #f5576c 75%, #667eea 100%);
+            background-size: 200% 200%;
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            animation: gradientText 5s ease infinite;
+        }
+
+        @keyframes gradientText {
+            0%, 100% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+        }
+
+        .content-container {
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 2rem;
+            background: rgba(15, 15, 30, 0.7);
+            border-radius: 1rem;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        /* Add some basic styling for markdown content */
+        .prose {
+            color: #d1d5db;
+        }
+        .prose h1, .prose h2, .prose h3 {
+            color: #fff;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+            padding-bottom: 0.5rem;
+        }
+        .prose a {
+            color: #818cf8;
+        }
+        .prose code {
+            background: rgba(255, 255, 255, 0.1);
+            padding: 0.2em 0.4em;
+            border-radius: 3px;
+        }
+        .prose pre {
+            background: rgba(0, 0, 0, 0.5);
+            padding: 1em;
+            border-radius: 0.5em;
+        }
+
+        ::-webkit-scrollbar {
+            width: 10px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: rgba(255, 255, 255, 0.05);
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            border-radius: 5px;
+        }
+    </style>
+</head>
+<body>
+    <!-- Background Effects -->
+    <div class="animated-bg"></div>
+    <div class="mesh-gradient"></div>
+
+    {% include header.html %}
+
+    <main class="py-20 px-6">
+        <div class="container mx-auto">
+             <div class="text-center mb-12">
+                <h1 class="hero-title">{{ page.title }}</h1>
+                {% if page.description %}
+                <p class="text-xl text-gray-300 mt-4">{{ page.description }}</p>
+                {% endif %}
+            </div>
+            <div class="content-container prose lg:prose-xl">
+                {{ content }}
+            </div>
+        </div>
+    </main>
+
+    <!-- Footer -->
+    <footer class="glass-dark py-8 px-6 mt-20">
+        <div class="container mx-auto text-center">
+            <p class="text-gray-400">© 2025 StreamlineVPN. All rights reserved. | GPL-3.0 License</p>
+        </div>
+    </footer>
+
+    <script src="{{ "/assets/js/main.js" | relative_url }}"></script>
+</body>
+</html>

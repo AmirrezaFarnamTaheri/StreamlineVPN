@@ -1,13 +1,14 @@
 # src/streamline_vpn/scheduler.py
 """Background scheduler for periodic processing."""
 
-import asyncio
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from .utils.logging import get_logger
 from .core.merger import StreamlineVPNMerger
 
+
 logger = get_logger(__name__)
 scheduler = None
+
 
 def setup_scheduler():
     """Setup the background scheduler."""
@@ -30,6 +31,7 @@ def setup_scheduler():
     scheduler.start()
     logger.info("Scheduler started - processing will run every 12 hours")
     return scheduler
+
 
 async def run_processing():
     """Run the processing pipeline."""

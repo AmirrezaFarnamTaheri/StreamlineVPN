@@ -40,10 +40,10 @@ RUN mkdir -p /app/output /app/logs && \
 
 # Health check against REST API endpoint
 HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
-    CMD curl -f http://localhost:${API_PORT:-8000}/api/v1/health || exit 1
+    CMD curl -f http://localhost:${API_PORT}/health || exit 1
 
 # Expose all necessary ports
-EXPOSE 8000 8001 8080
+EXPOSE 8080 8000
 
 # Create and switch to non-root user for security
 RUN useradd -m -u 1000 merger && \
@@ -52,7 +52,6 @@ USER merger
 
 # Environment variables for dynamic configuration
 ENV HOST=0.0.0.0
-ENV PORT=8000
 ENV API_PORT=8080
 ENV WEB_PORT=8000
 

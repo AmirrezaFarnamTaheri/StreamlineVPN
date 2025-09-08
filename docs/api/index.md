@@ -1,92 +1,36 @@
-# API Overview
+---
+layout: default
+title: API Documentation
+description: A comprehensive guide to the StreamlineVPN REST API.
+---
 
-The VPN Subscription Merger provides a comprehensive REST API for accessing merged VPN configurations and system metrics.
-
-## REST API (v1)
-
-### Subscription Endpoints
-
-- `GET /api/v1/sub/raw` - Raw subscription data
-- `GET /api/v1/sub/base64` - Base64 encoded subscription
-- `GET /api/v1/sub/singbox` - Sing-box format configuration
-- `GET /api/v1/sub/clash` - Clash format configuration
-- `GET /api/v1/sub/report` - Detailed JSON report with metadata
-
-### Health & Status
-
-- `GET /api/v1/health` - System health check
-- `GET /api/v1/ready` - Readiness probe
-- `GET /api/v1/status` - System status and statistics
-
-### Configuration
-
-- `GET /api/v1/config/sources` - List configured sources
-- `GET /api/v1/config/status` - Configuration validation status
-
-## REST API (v2)
-
-### Enhanced Endpoints
-
-- `GET /api/v2/nodes` - Paginated node listing with filtering
-- `GET /api/v2/health` - Enhanced health information
-- `GET /api/v2/metrics` - Detailed performance metrics
-
-### Query Parameters
-
-- `cursor`: Pagination cursor
-- `limit`: Number of results (max 1000)
-- `protocol`: Filter by protocol (vmess, vless, trojan, etc.)
-- `reachable`: Filter by reachability status
-- `host_re`: Host regex filter
-- `risk`: Risk level filter
-- `anonymize`: Anonymize sensitive data
-
-## Metrics & Monitoring
-
-### Prometheus Metrics
-
-- Available on `--metrics-port` (default 8001)
-- Endpoint: `/metrics`
-- Includes custom metrics for:
-  - Source processing statistics
-  - Configuration quality metrics
-  - Performance timing data
-  - Error rates and success rates
-
-### OpenTelemetry
-
-- Distributed tracing support (optional)
-- Span correlation across components
-- Performance profiling capabilities
+The StreamlineVPN API provides a powerful and flexible interface for interacting with the VPN management platform. It is a RESTful API that uses standard HTTP verbs and returns JSON-encoded responses.
 
 ## Authentication
 
-### API Token Authentication
+All API requests must be authenticated using a bearer token. You can obtain a token by logging in to the Control Panel. The token should be included in the `Authorization` header of all requests.
 
-```bash
-curl -H "X-API-Token: your-token" https://api.example.com/api/v1/sub/raw
+```
+Authorization: Bearer <your_token>
 ```
 
-### Multi-tenant Support
+## Endpoints
 
-```bash
-curl -H "X-Tenant: tenant-id" https://api.example.com/api/v1/sub/raw
-```
+### Subscriptions
 
-## Rate Limiting
+*   `GET /api/v1/sub/raw`: Get the raw subscription data.
+*   `GET /api/v1/sub/base64`: Get the Base64 encoded subscription.
+*   `GET /api/v1/sub/singbox`: Get the configuration in Sing-box format.
+*   `GET /api/v1/sub/clash`: Get the configuration in Clash format.
 
-- Default: 100 requests per minute per IP
-- Configurable via environment variables
-- Rate limit headers included in responses
+### System Status
 
-## Error Handling
+*   `GET /health`: Check the health of the API server.
+*   `GET /api/v1/status`: Get the status and statistics of the VPN service.
 
-- Standard HTTP status codes
-- JSON error responses with details
-- Correlation IDs for debugging
-- Structured error logging
+### Configuration
 
-## OpenAPI
+*   `GET /api/sources`: Get the list of configured VPN sources.
+*   `POST /api/process`: Trigger a new processing job for the VPN sources.
 
-- OpenAPI file: `api/openapi.yaml`
-- Explore via Redoc: see the "OpenAPI (Redoc)" entry in the side navigation
+For a complete and interactive API reference, please see our [OpenAPI documentation](/api/openapi.html).

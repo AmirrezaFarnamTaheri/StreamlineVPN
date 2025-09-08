@@ -111,7 +111,9 @@ def setup_routes(
             from streamline_vpn.core.merger import StreamlineVPNMerger
 
             config_path = request.get("config_path", "config/sources.yaml")
-            output_formats = request.get("formats", ["json", "clash", "singbox"])
+            output_formats = request.get(
+                "formats", ["json", "clash", "singbox"]
+            )
 
             merger = StreamlineVPNMerger(config_path=config_path)
             await merger.initialize()
@@ -164,23 +166,27 @@ def setup_routes(
                         if url:
                             sources_list.append({
                                 "url": url,
-                                "status": "active", # Placeholder
-                                "configs": 0, # Placeholder
+                                "status": "active",  # Placeholder
+                                "configs": 0,  # Placeholder
                                 "tier": tier_name
                             })
                     elif isinstance(source_config, str):
                         sources_list.append({
                             "url": source_config,
-                            "status": "active", # Placeholder
-                            "configs": 0, # Placeholder
+                            "status": "active",  # Placeholder
+                            "configs": 0,  # Placeholder
                             "tier": tier_name
                         })
             return {"sources": sources_list}
         except FileNotFoundError:
-            raise HTTPException(status_code=404, detail="Sources config file not found")
+            raise HTTPException(
+                status_code=404, detail="Sources config file not found"
+            )
         except Exception as e:
             logger.error(f"Failed to load sources: {e}")
-            raise HTTPException(status_code=500, detail="Failed to load sources")
+            raise HTTPException(
+                status_code=500, detail="Failed to load sources"
+            )
 
     # Authentication routes
     @app.post("/api/v1/auth/login", response_model=LoginResponse)
@@ -215,7 +221,9 @@ def setup_routes(
         credentials: HTTPAuthorizationCredentials = Depends(HTTPBearer()),
     ):
         """Handle token refresh."""
-        new_token = auth_service.refresh_access_token(credentials.credentials)
+        new_token = auth_service.refresh_access_token(
+            credentials.credentials
+        )
         if not new_token:
             raise HTTPException(
                 status_code=status.HTTP_401_UNAUTHORIZED,
