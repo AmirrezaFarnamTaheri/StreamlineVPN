@@ -650,12 +650,19 @@
         // Load configurations from backend
         async function loadConfigurations() {
             try {
-                const response = await fetch(`${API_BASE}/api/v1/configurations?limit=1000`);
-                if (!response.ok) {
-                    throw new Error(`HTTP error! status: ${response.status}`);
+                const limit = 500;
+                let offset = 0;
+                let all = [];
+                while (true) {
+                    const resp = await fetch(`${API_BASE}/api/v1/configurations?limit=${limit}&offset=${offset}`);
+                    if (!resp.ok) throw new Error(`HTTP error! status: ${resp.status}`);
+                    const data = await resp.json();
+                    const batch = data.configurations || [];
+                    all = all.concat(batch);
+                    if (batch.length < limit) break;
+                    offset += limit;
                 }
-                const data = await response.json();
-                configurations = data.configurations || [];
+                configurations = all;
             } catch (error) {
                 console.error('Failed to load configurations:', error);
                 configurations = [];
