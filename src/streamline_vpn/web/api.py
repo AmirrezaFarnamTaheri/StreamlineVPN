@@ -461,17 +461,17 @@ def create_app() -> FastAPI:
                     "last_update": last_update,
                     "success_rate": getattr(src, "reputation_score", 0.0),
                 }
-            class AddSourceRequest(BaseModel):
-                url: str
+            )
+        return {"sources": source_infos}
 
-            @router.post("/sources/add")
-            async def api_v1_add_source(request: AddSourceRequest) -> Dict[str, Any]:
-                """Add a new source to the manager."""
-                merger = get_merger()
-                url = request.url.strip()
-                if url in merger.source_manager.sources:
+    class AddSourceRequest(BaseModel):
+        url: str
+
+    @router.post("/sources/add")
+    async def api_v1_add_source(request: AddSourceRequest) -> Dict[str, Any]:
         """Add a new source to the manager."""
         merger = get_merger()
+        url = request.url.strip()
         if url in merger.source_manager.sources:
             return {
                 "status": "success",
