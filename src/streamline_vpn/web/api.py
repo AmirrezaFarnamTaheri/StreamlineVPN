@@ -450,12 +450,15 @@ def create_app() -> FastAPI:
         merger = get_merger()
         source_infos = []
         for src in merger.source_manager.sources.values():
+            enabled = getattr(src, "enabled", True)
+            last_check = getattr(src, "last_check", None)
+            last_update = last_check.isoformat() if isinstance(last_check, datetime) else None
             source_infos.append(
                 {
-                    "url": src.url,
-                    "status": "active" if src.enabled else "disabled",
+                    "url": getattr(src, "url", None),
+                    "status": "active" if enabled else "disabled",
                     "configs": getattr(src, "avg_config_count", 0),
-                    "last_update": src.last_check.isoformat(),
+                    "last_update": last_update,
                     "success_rate": getattr(src, "reputation_score", 0.0),
                 }
             )
