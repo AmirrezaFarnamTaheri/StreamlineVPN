@@ -9,7 +9,7 @@ import os
 from datetime import datetime
 from typing import Any, Dict, List, Optional
 
-from fastapi import BackgroundTasks, Body, FastAPI, HTTPException
+from fastapi import BackgroundTasks, Body, FastAPI, HTTPException, status
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 
@@ -107,17 +107,16 @@ def create_app() -> FastAPI:
                 output_dir=request.output_dir, formats=request.formats
             )
 
-            if results.get("success", False):
-                return ProcessingResponse(
-                    success=True,
-                    message="Processing completed successfully",
-                    statistics=results.get("statistics"),
+            if not results.get("success", False):
+                raise HTTPException(
+                    status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                    detail=results.get("error", "Processing failed"),
                 )
-            else:
-                return ProcessingResponse(
-                    success=False,
-                    message=results.get("error", "Processing failed"),
-                )
+            return ProcessingResponse(
+                success=True,
+                message="Processing completed successfully",
+                statistics=results.get("statistics"),
+            )
 
         except Exception as e:
             logger.error(f"Processing error: {e}")

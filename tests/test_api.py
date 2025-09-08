@@ -56,6 +56,24 @@ def test_process_unknown_formats_rejected(client):
     assert "Unknown formats" in data["detail"]
 
 
+def test_process_internal_error_returns_500(client, monkeypatch):
+    """Unexpected errors should return a 500 HTTP error."""
+
+    async def mock_initialize(self):
+        pass
+
+    async def mock_process_all(self, output_dir: str, formats: list):
+        raise RuntimeError("boom")
+    from streamline_vpn.core.merger import StreamlineVPNMerger
+
+    monkeypatch.setattr(StreamlineVPNMerger, "initialize", mock_initialize)
+    monkeypatch.setattr(StreamlineVPNMerger, "process_all", mock_process_all)
+
+    response = client.post("/api/process", json={"formats": ["json"]})
+    assert response.status_code == 500
+    assert "Processing failed: boom" in response.json()["detail"]
+
+
 def test_get_sources_invalid_yaml(client, tmp_path, monkeypatch, caplog):
     """Malformed YAML should be logged and return a generic error."""
     bad_config = tmp_path / "sources.yaml"
