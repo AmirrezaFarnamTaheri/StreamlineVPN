@@ -21,9 +21,11 @@ from fastapi import (
     HTTPException,
     status,
 )
+from contextlib import asynccontextmanager
 from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
+import python_multipart  # noqa: F401 - ensure import for starlette deprecation warning
 from pydantic import BaseModel
 
 from ..core.merger import StreamlineVPNMerger
@@ -74,6 +76,28 @@ def get_merger() -> StreamlineVPNMerger:
     return merger
 
 
+@asynccontextmanager
+async def _lifespan(app: FastAPI):
+    """Application lifespan context to replace deprecated on_event hooks."""
+    # Startup
+    app.state.cleanup_task = asyncio.create_task(
+        cleanup_processing_jobs_periodically()
+    )
+    try:
+        yield
+    finally:
+        # Shutdown
+        task = getattr(app.state, "cleanup_task", None)
+        if task:
+            task.cancel()
+            try:
+                await asyncio.wait_for(asyncio.shield(task), timeout=2)
+            except asyncio.TimeoutError:  # pragma: no cover - timeout guard
+                pass
+            except BaseException:  # pragma: no cover - cancellation only
+                pass
+
+
 def create_app() -> FastAPI:
     """Create FastAPI application."""
     app = FastAPI(
@@ -82,6 +106,7 @@ def create_app() -> FastAPI:
         version="2.0.0",
         docs_url="/docs",
         redoc_url="/redoc",
+        lifespan=_lifespan,
     )
 
     # Add CORS middleware
@@ -121,23 +146,7 @@ def create_app() -> FastAPI:
                 detail = detail[:1021] + "..."
         return JSONResponse(status_code=400, content={"detail": detail})
 
-    @app.on_event("startup")
-    async def _startup_cleanup() -> None:
-        app.state.cleanup_task = asyncio.create_task(
-            cleanup_processing_jobs_periodically()
-        )
-
-    @app.on_event("shutdown")
-    async def _shutdown_cleanup() -> None:
-        task = getattr(app.state, "cleanup_task", None)
-        if task:
-            task.cancel()
-            try:
-                await asyncio.wait_for(asyncio.shield(task), timeout=2)
-            except asyncio.TimeoutError:  # pragma: no cover - timeout guard
-                pass
-            except BaseException:  # pragma: no cover - cancellation only
-                pass
+    # Lifespan now manages startup/shutdown
 
     @app.get("/", response_model=Dict[str, str])
     async def root():

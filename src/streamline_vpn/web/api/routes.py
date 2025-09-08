@@ -42,6 +42,7 @@ from .models import (
     ServerRecommendationResponse,
     User,
     VPNStatusResponse,
+    WebSocketMessage,
 )
 from .websocket import WebSocketManager
 
@@ -155,6 +156,25 @@ def setup_routes(
     """
     set_auth_service(auth_service)
     set_websocket_manager(websocket_manager)
+
+    async def _broadcast_job_update(job_id: str) -> None:
+        """Broadcast current job status to all connected clients."""
+        try:
+            status_info = job_status.get(job_id)
+            if not status_info:
+                return
+            if websocket_manager is None:
+                return
+            await websocket_manager.broadcast_message(
+                WebSocketMessage(
+                    type="job_update",
+                    data={"job_id": job_id, **status_info},
+                    timestamp=datetime.utcnow().isoformat(),
+                )
+            )
+        except Exception:
+            # Best-effort; do not fail the request path on WS errors
+            pass
 
     # Processing routes for control panel
     @app.post("/api/process")
@@ -397,10 +417,6 @@ def setup_routes(
             return {"sources": sources_list}
         except HTTPException:
             raise
-    # v1 alias for sources endpoint used by frontend
-    @app.get("/api/v1/sources")
-    async def get_sources_v1():
-        return await get_sources()
         except yaml.YAMLError as e:
             logger.error(f"Failed to parse sources: {e}")
             raise HTTPException(
@@ -411,6 +427,11 @@ def setup_routes(
             raise HTTPException(
                 status_code=500, detail="Failed to load sources"
             )
+
+    # v1 alias for sources endpoint used by frontend
+    @app.get("/api/v1/sources")
+    async def get_sources_v1():
+        return await get_sources()
 
     # Authentication routes
     @app.post("/api/v1/auth/login", response_model=LoginResponse)
@@ -464,36 +485,43 @@ def setup_routes(
         current_user: User = Depends(get_current_user),
         protocol: Optional[str] = None,
         location: Optional[str] = None,
+        min_quality: float = 0.0,
         limit: int = 100,
         offset: int = 0,
     ):
-        """Get available VPN servers with filtering and pagination."""
+        """Get available VPN servers with filtering and pagination from processed configs."""
         try:
             if limit <= 0 or limit > 500 or offset < 0:
                 raise HTTPException(
                     status_code=status.HTTP_400_BAD_REQUEST,
                     detail="Invalid pagination parameters",
                 )
-            servers = [
-                {
-                    "id": f"server-{i}",
-                    "server": f"vpn{i}.example.com",
-                    "protocol": ["vless", "vmess", "shadowsocks"][i % 3],
-                    "location": ["US", "UK", "JP", "SG"][i % 4],
-                    "port": 443 + i,
-                    "quality": 0.75 + (i % 20) * 0.01,
-                    "status": "active" if i % 5 != 0 else "maintenance",
+
+            merger = get_merger()
+            configs = await merger.get_configurations()
+
+            def to_server_dict(c) -> Dict[str, Any]:
+                return {
+                    "id": getattr(c, "id", None) or f"{c.protocol.value}-{c.server}-{c.port}",
+                    "server": c.server,
+                    "protocol": c.protocol.value,
+                    "location": c.metadata.get("location", "unknown"),
+                    "port": c.port,
+                    "quality": getattr(c, "quality_score", 0.0),
+                    "status": "active",
                 }
-                for i in range(1, 201)
-            ]
+
+            servers: List[Dict[str, Any]] = [to_server_dict(c) for c in configs]
 
             if protocol:
                 servers = [s for s in servers if s["protocol"] == protocol]
             if location:
                 servers = [s for s in servers if s["location"] == location]
+            if min_quality > 0:
+                servers = [s for s in servers if float(s.get("quality", 0.0)) >= float(min_quality)]
 
             total = len(servers)
-            servers = servers[slice(offset, offset + limit)]
+            servers = servers[offset:offset + limit]
 
             return {
                 "total": total,
@@ -518,26 +546,46 @@ def setup_routes(
         request: ServerRecommendationRequest,
         current_user: User = Depends(get_current_user),
     ):
-        """Get server recommendations."""
-        # Mock recommendations
-        recommendations = ["Multiple high-quality servers available"]
-        quality_prediction = {
-            "predicted_latency": 50.0,
-            "bandwidth_estimate": 100.0,
-            "reliability_score": 0.95,
-            "confidence": 0.9,
-            "quality_grade": "A",
-        }
+        """Get server recommendations based on filters and quality."""
+        merger = get_merger()
+        configs = await merger.get_configurations()
+
+        region = (request.region or "").strip() or None
+        proto = (request.protocol or "").strip() or None
+        max_latency = request.max_latency if request.max_latency is not None else None
+
+        candidates = []
+        for c in configs:
+            if proto and c.protocol.value != proto:
+                continue
+            if region and c.metadata.get("region") != region and c.metadata.get("location") != region:
+                continue
+            candidates.append(c)
+
+        candidates.sort(key=lambda x: getattr(x, "quality_score", 0.0), reverse=True)
+        top = candidates[:10]
 
         servers = [
             {
-                "id": "server_1",
-                "name": "US East Premium",
-                "region": "us-east",
-                "protocol": "vless",
-                "performance_score": 0.95,
+                "id": getattr(c, "id", None) or f"{c.protocol.value}-{c.server}-{c.port}",
+                "name": c.metadata.get("name") or c.server,
+                "region": c.metadata.get("region") or c.metadata.get("location") or "unknown",
+                "protocol": c.protocol.value,
+                "performance_score": getattr(c, "quality_score", 0.0),
             }
+            for c in top
         ]
+
+        # Simple quality-based summary
+        quality_prediction = {
+            "predicted_latency": 50.0 if max_latency is None else min(50.0, max_latency),
+            "bandwidth_estimate": 100.0,
+            "reliability_score": 0.9,
+            "confidence": 0.8,
+            "quality_grade": "A" if servers and servers[0]["performance_score"] >= 0.8 else "B",
+        }
+
+        recommendations = ["Choose highest performance_score", "Prefer nearby region if available"]
 
         return ServerRecommendationResponse(
             servers=servers,
@@ -551,21 +599,32 @@ def setup_routes(
         request: ConnectionRequest,
         current_user: User = Depends(get_current_user),
     ):
-        """Create VPN connection."""
-        # Mock connection creation
+        """Create VPN connection (placeholder integrates with external connector in production)."""
         connection_id = f"conn_{current_user.id}_{int(time.time())}"
+
+        # Lookup config details for the requested server id
+        merger = get_merger()
+        configs = await merger.get_configurations()
+        found = None
+        for c in configs:
+            cid = getattr(c, "id", None) or f"{c.protocol.value}-{c.server}-{c.port}"
+            if cid == request.server_id:
+                found = c
+                break
+
+        server_info = {
+            "id": request.server_id,
+            "name": getattr(found, "server", None) or "unknown",
+            "host": getattr(found, "server", None) or "unknown",
+            "port": getattr(found, "port", None) or 0,
+            "protocol": request.protocol or (found.protocol.value if found else None),
+            "region": (found.metadata.get("region") if found else None) or (found.metadata.get("location") if found else None) if found else None,
+        }
 
         return ConnectionResponse(
             connection_id=connection_id,
             status="connected",
-            server={
-                "id": request.server_id,
-                "name": "US East Premium",
-                "host": "us-east.streamlinevpn.com",
-                "port": 443,
-                "protocol": request.protocol or "vless",
-                "region": "us-east",
-            },
+            server=server_info,
             estimated_latency=50.0,
         )
 
@@ -706,16 +765,20 @@ def setup_routes(
             import uuid
 
             job_id = str(uuid.uuid4())
-            job_status[job_id] = {"status": "queued", "progress": 0}
+            job_status[job_id] = {"status": "queued", "progress": 0, "message": "Queued"}
+            asyncio.create_task(_broadcast_job_update(job_id))
 
             async def run_async():
-                job_status[job_id] = {"status": "running", "progress": 0}
+                job_status[job_id] = {"status": "running", "progress": 0, "message": "Running"}
+                await _broadcast_job_update(job_id)
                 try:
                     await run_pipeline_main(config_path, output_dir, formats)
                     job_status[job_id] = {
                         "status": "completed",
                         "progress": 100,
+                        "message": "Completed",
                     }
+                    await _broadcast_job_update(job_id)
                     logger.info(
                         "Pipeline job %s completed successfully",
                         job_id,
@@ -724,7 +787,9 @@ def setup_routes(
                     job_status[job_id] = {
                         "status": "failed",
                         "error": str(e),
+                        "message": "Failed",
                     }
+                    await _broadcast_job_update(job_id)
                     logger.error("Pipeline job %s failed: %s", job_id, e)
 
             task = asyncio.create_task(run_async())
@@ -788,9 +853,11 @@ def setup_routes(
 
             job_id = str(uuid.uuid4())
             job_status[job_id] = {"status": "queued", "progress": 0, "message": "Job queued"}
+            asyncio.create_task(_broadcast_job_update(job_id))
 
             async def run_async():
                 job_status[job_id] = {"status": "running", "progress": 5, "message": "Starting pipeline"}
+                await _broadcast_job_update(job_id)
                 try:
                     # Delegate to main pipeline entry
                     await run_pipeline_main(config_path, output_dir, norm_formats)
@@ -799,6 +866,7 @@ def setup_routes(
                         "progress": 100,
                         "message": "Pipeline completed",
                     }
+                    await _broadcast_job_update(job_id)
                     logger.info("Pipeline job %s completed successfully", job_id)
                 except Exception as e:  # noqa: BLE001
                     job_status[job_id] = {
@@ -806,6 +874,7 @@ def setup_routes(
                         "error": str(e),
                         "message": "Pipeline failed",
                     }
+                    await _broadcast_job_update(job_id)
                     logger.error("Pipeline job %s failed: %s", job_id, e)
 
             task = asyncio.create_task(run_async())

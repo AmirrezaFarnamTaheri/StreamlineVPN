@@ -278,9 +278,21 @@ class EnhancedStaticServer:
         return app
 
     async def _perform_update(self) -> None:
-        """Trigger backend pipeline run and refresh cached data."""
+        """Perform update with health check and backoff; refresh cached data."""
         try:
             logger.info("Starting auto-update...")
+
+            # Health check
+            try:
+                health = await self.backend_client.get(f"{self.api_base}/health", timeout=5.0)
+                if health.status_code != 200:
+                    logger.warning("Backend health returned %s", health.status_code)
+                    return
+            except Exception as exc:  # pragma: no cover
+                logger.warning("Backend not available: %s", exc)
+                return
+
+            # Trigger pipeline
             response = await self.backend_client.post(
                 f"{self.api_base}/api/v1/pipeline/run",
                 json={
@@ -291,46 +303,51 @@ class EnhancedStaticServer:
                         OutputFormat.CLASH.value,
                         OutputFormat.SINGBOX.value,
                         OutputFormat.BASE64.value,
+                        OutputFormat.RAW.value if hasattr(OutputFormat, "RAW") else "raw",
+                        OutputFormat.CSV.value if hasattr(OutputFormat, "CSV") else "csv",
                     ],
                 },
+                timeout=30.0,
             )
 
-            if response.status_code == 200:
-                job_id = response.json().get("job_id")
-                for _ in range(60):
-                    await asyncio.sleep(5)
+            if response.status_code != 200:
+                logger.error("Failed to start auto-update: %s", response.status_code)
+                return
+
+            job_id = response.json().get("job_id")
+            if not job_id:
+                logger.error("No job id returned from backend")
+                return
+
+            # Poll with exponential backoff
+            attempts = 0
+            max_attempts = 120  # ~10 minutes
+            delay = 2.0
+            while attempts < max_attempts:
+                await asyncio.sleep(min(delay, 30.0))
+                attempts += 1
+                try:
                     status_resp = await self.backend_client.get(
-                        f"{self.api_base}/api/v1/pipeline/status/{job_id}"
+                        f"{self.api_base}/api/v1/pipeline/status/{job_id}",
+                        timeout=10.0,
                     )
                     if status_resp.status_code != 200:
+                        delay = min(delay * 1.5, 30.0)
                         continue
                     status_data = status_resp.json()
-                    if status_data.get("status") == "completed":
-                        configs_resp = await self.backend_client.get(
-                            f"{self.api_base}/api/v1/configurations"
-                        )
-                        if configs_resp.status_code == 200:
-                            self.cached_data["configurations"] = (
-                                configs_resp.json().get("configurations", [])
-                            )
-                        stats_resp = await self.backend_client.get(
-                            f"{self.api_base}/api/v1/statistics"
-                        )
-                        if stats_resp.status_code == 200:
-                            self.cached_data["statistics"] = stats_resp.json()
-                        self.cached_data["last_update"] = (
-                            datetime.now().isoformat()
-                        )
+                    state = status_data.get("status")
+                    if state == "completed":
+                        # Refresh caches
+                        await self._refresh_cached_data()
+                        self.cached_data["last_update"] = datetime.now().isoformat()
                         break
-                    if status_data.get("status") == "failed":
-                        logger.error(
-                            "Auto-update failed: %s", status_data.get("error")
-                        )
+                    if state == "failed":
+                        logger.error("Auto-update failed: %s", status_data.get("error"))
                         break
-            else:
-                logger.error(
-                    "Failed to start auto-update: %s", response.status_code
-                )
+                    delay = min(delay * 1.2, 30.0)
+                except Exception as exc:  # pragma: no cover
+                    logger.error("Error polling job status: %s", exc)
+                    delay = min(delay * 1.5, 30.0)
 
             self.last_update = datetime.now()
             cache_file = self.static_dir / "cache.json"
@@ -358,6 +375,28 @@ class EnhancedStaticServer:
                 break
             except Exception as exc:
                 logger.error("Auto-update error: %s", exc)
+
+    async def _refresh_cached_data(self) -> None:
+        """Refresh cached data from backend endpoints."""
+        try:
+            cfg_resp = await self.backend_client.get(
+                f"{self.api_base}/api/v1/configurations?limit=1000", timeout=30.0
+            )
+            if cfg_resp.status_code == 200:
+                self.cached_data["configurations"] = cfg_resp.json().get("configurations", [])
+            stats_resp = await self.backend_client.get(
+                f"{self.api_base}/api/v1/statistics", timeout=15.0
+            )
+            if stats_resp.status_code == 200:
+                self.cached_data["statistics"] = stats_resp.json()
+            src_resp = await self.backend_client.get(
+                f"{self.api_base}/api/v1/sources", timeout=15.0
+            )
+            if src_resp.status_code == 200:
+                body = src_resp.json()
+                self.cached_data["sources"] = body.get("sources", body)
+        except Exception as exc:  # pragma: no cover
+            logger.error("Error refreshing cached data: %s", exc)
 
 
 if __name__ == "__main__":  # pragma: no cover - manual run only

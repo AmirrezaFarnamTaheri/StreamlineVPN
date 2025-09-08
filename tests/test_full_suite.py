@@ -246,19 +246,41 @@ class TestDiscoveryManager:
     @pytest.mark.asyncio
     async def test_source_discovery(self, discovery_manager):
         with patch("aiohttp.ClientSession") as mock_session:
-            mock_response = AsyncMock()
-            mock_response.status = 200
-            mock_response.json = AsyncMock(
-                return_value={
-                    "items": [
-                        {"full_name": "user/vpn-configs"},
-                        {"full_name": "org/free-nodes"},
-                    ]
-                }
-            )
-            mock_session.return_value.__aenter__.return_value.get = AsyncMock(
-                return_value=mock_response
-            )
+            # Async context manager for the top-level ClientSession
+            session_cm = AsyncMock()
+            session = session_cm.__aenter__.return_value
+            mock_session.return_value = session_cm
+
+            # Helper to build a response context manager
+            def make_get_cm(url, *args, **kwargs):
+                cm = AsyncMock()
+                resp = AsyncMock()
+                resp.status = 200
+                if url.endswith("/search/repositories"):
+                    resp.json = AsyncMock(
+                        return_value={
+                            "items": [
+                                {"full_name": "user/vpn-configs"},
+                                {"full_name": "org/free-nodes"},
+                            ]
+                        }
+                    )
+                else:
+                    resp.json = AsyncMock(return_value=[])
+                cm.__aenter__.return_value = resp
+                return cm
+
+            session.get = AsyncMock(side_effect=lambda url, *a, **k: make_get_cm(url, *a, **k))
+
+            def make_head_cm(*args, **kwargs):
+                cm = AsyncMock()
+                resp = AsyncMock()
+                resp.status = 200
+                cm.__aenter__.return_value = resp
+                return cm
+
+            session.head = AsyncMock(side_effect=make_head_cm)
+
             sources = await discovery_manager.discover_sources()
             assert isinstance(sources, list)
 

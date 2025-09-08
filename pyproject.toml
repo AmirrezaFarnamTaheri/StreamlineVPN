@@ -5,3 +5,9 @@ target-version = ['py38']
 [tool.isort]
 profile = "black"
 line_length = 79
+
+[tool.pytest.ini_options]
+filterwarnings = [
+  "ignore:Please use `import python_multipart` instead:PendingDeprecationWarning:starlette\\.formparsers",
+  "ignore:coroutine 'AsyncMockMixin._execute_mock_call' was never awaited:RuntimeWarning:streamline_vpn/discovery/manager.py",
+]

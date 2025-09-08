@@ -426,9 +426,66 @@
         // Initialize
         document.addEventListener('DOMContentLoaded', function() {
             initDashboard();
+            try { initWebSocket(); } catch (e) { console.warn('WS init failed', e); }
             loadStatistics();
             startPolling();
         });
+
+        // WebSocket client for real-time updates
+        let ws;
+        let wsClientId = 'client_' + Math.random().toString(36).slice(2, 11);
+        let wsReconnectAttempts = 0;
+        let wsPingTimer = null;
+
+        function wsUrl() {
+            const proto = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+            const host = window.location.hostname;
+            const apiUrl = new URL(API_BASE);
+            const port = apiUrl.port || (apiUrl.protocol === 'https:' ? '443' : '80');
+            return `${proto}//${host}:${port}/ws/${wsClientId}`;
+        }
+
+        function initWebSocket() {
+            const url = wsUrl();
+            try { ws = new WebSocket(url); } catch (e) { scheduleReconnect(); return; }
+            ws.onopen = () => {
+                wsReconnectAttempts = 0;
+                addTerminalLine('WebSocket connected', 'success');
+                tryPing();
+                wsPingTimer = setInterval(tryPing, 30000);
+            };
+            ws.onmessage = (event) => {
+                try { handleWsMessage(JSON.parse(event.data)); } catch {}
+            };
+            ws.onclose = () => {
+                addTerminalLine('WebSocket disconnected', 'warning');
+                if (wsPingTimer) { clearInterval(wsPingTimer); wsPingTimer = null; }
+                scheduleReconnect();
+            };
+            ws.onerror = () => {};
+        }
+
+        function tryPing() {
+            try { if (ws && ws.readyState === WebSocket.OPEN) ws.send(JSON.stringify({ type: 'ping' })); } catch {}
+        }
+
+        function scheduleReconnect() {
+            if (wsReconnectAttempts >= 5) return;
+            wsReconnectAttempts += 1;
+            const delay = Math.min(1000 * Math.pow(2, wsReconnectAttempts - 1), 15000);
+            setTimeout(initWebSocket, delay);
+        }
+
+        function handleWsMessage(message) {
+            if (!message || !message.type) return;
+            if (message.type === 'pong') return;
+            if (message.type === 'job_update') {
+                const d = message.data || {};
+                updateProgressDisplay(d.progress || 0, d.message || d.status || '');
+                if (d.status === 'completed') { showNotification('Processing completed!', 'success'); loadStatistics(); if (currentTab === 'configurations') loadConfigurations(); }
+                if (d.status === 'failed') { showNotification('Processing failed', 'error'); }
+            }
+        }
         
         // Tab switching
         function switchTab(tabName, event = null) {
@@ -621,7 +678,9 @@
                     addTerminalLine('Pipeline started successfully!', 'success');
                     if (jobId) {
                         addTerminalLine(`Job ID: ${jobId}`, 'info');
-                        await monitorJobProgress(jobId);
+                        if (!(ws && ws.readyState === WebSocket.OPEN)) {
+                            await monitorJobProgress(jobId);
+                        }
                     } else {
                         addTerminalLine('No job id returned. Fetching statistics...', 'warning');
                         await loadStatistics();

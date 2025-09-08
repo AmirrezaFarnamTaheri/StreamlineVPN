@@ -8,7 +8,7 @@ A high-performance, production-ready VPN configuration aggregator.
 __version__ = "2.0.0"
 __author__ = "StreamlineVPN Team"
 __status__ = "Production Ready"
-__license__ = "MIT"
+__license__ = "GPL-3.0-or-later"
 
 from .core.config_processor import ConfigurationProcessor
 from .core.merger import StreamlineVPNMerger
