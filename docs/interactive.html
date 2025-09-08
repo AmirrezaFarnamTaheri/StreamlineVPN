@@ -405,10 +405,11 @@
             document.querySelectorAll('.tab-btn').forEach(btn => {
                 btn.classList.remove('bg-white', 'bg-opacity-20');
             });
-            if (event && event.target) {
-                event.target.classList.add('bg-white', 'bg-opacity-20');
-            }
-            
+            const targetBtn = event && event.target
+                ? event.target
+                : document.querySelector(`.tab-btn[onclick*="switchTab('${tabName}'"]`);
+            if (targetBtn) targetBtn.classList.add('bg-white', 'bg-opacity-20');
+
             currentTab = tabName;
             
             // Load tab-specific data
@@ -552,7 +553,6 @@
                     }),
                     signal: controller.signal
                 });
-                clearTimeout(timeoutId);
 
                 if (response.ok) {
                     const result = await response.json();
@@ -567,20 +567,14 @@
                         message = await response.text();
                     }
                     addTerminalLine(`Processing failed: ${message}`, 'error');
-                    document.getElementById('connectionStatus').innerHTML = `
-                        <span class="status-indicator status-failed"></span>
-                        <span class="text-white">Disconnected</span>
-                    `;
+                    testConnection();
                 }
             } catch (error) {
                 const message = error.name === 'AbortError'
                     ? 'Processing request timed out'
                     : `Processing error: ${error.message}`;
                 addTerminalLine(message, 'error');
-                document.getElementById('connectionStatus').innerHTML = `
-                    <span class="status-indicator status-failed"></span>
-                    <span class="text-white">Disconnected</span>
-                `;
+                testConnection();
             } finally {
                 clearTimeout(timeoutId);
                 document.getElementById('processingStatus').classList.add('hidden');
@@ -771,13 +765,20 @@
             try {
                 const response = await fetch(`${API_BASE}/health`);
                 const contentType = response.headers.get('content-type') || '';
+                const parseJsonSafely = async (resp) => {
+                    try { return await resp.clone().json(); }
+                    catch { return null; }
+                };
                 if (response.ok) {
                     let version = '2.0.0';
                     if (contentType.includes('application/json')) {
-                        const data = await response.json();
-                        version = data.version || version;
+                        const data = await parseJsonSafely(response);
+                        if (data) {
+                            version = data.version || version;
+                        } else {
+                            await response.text();
+                        }
                     } else {
-                        // consume body to avoid unhandled promise and ignore plain-text
                         await response.text();
                     }
                     addTerminalLine(`Connection successful! API Version: ${version}`, 'success');
@@ -788,8 +789,12 @@
                 } else {
                     let message = '';
                     if (contentType.includes('application/json')) {
-                        const data = await response.json();
-                        message = data.message || JSON.stringify(data);
+                        const data = await parseJsonSafely(response);
+                        if (data) {
+                            message = data.message || JSON.stringify(data);
+                        } else {
+                            message = await response.text();
+                        }
                     } else {
                         message = await response.text();
                     }
