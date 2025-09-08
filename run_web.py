@@ -6,10 +6,9 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).parent / "src"))
 
-from fastapi.middleware.cors import CORSMiddleware
 from streamline_vpn.utils.logging import get_logger
-from streamline_vpn.web.static_server import EnhancedStaticServer
 from streamline_vpn.web.settings import Settings
+from streamline_vpn.web.static_server import EnhancedStaticServer
 
 logger = get_logger(__name__)
 
@@ -23,16 +22,11 @@ def main() -> None:
         if not os.environ.get("SSL_CERT_PATH"):
             logger.warning("SSL certificate not configured for production!")
         if len(settings.SECRET_KEY) < 32:
-            raise ValueError("Secret key must be at least 32 characters in production")
+            raise ValueError(
+                "Secret key must be at least 32 characters in production"
+            )
 
     server = EnhancedStaticServer(settings=settings)
-
-    server.app.add_middleware(
-        CORSMiddleware,
-        allow_origins=[f"http://localhost:{settings.PORT}"],
-        allow_methods=["*"],
-        allow_headers=["*"],
-    )
 
     @server.app.middleware("http")
     async def add_security_headers(request, call_next):  # noqa: ANN001
@@ -40,13 +34,13 @@ def main() -> None:
         response.headers["X-Content-Type-Options"] = "nosniff"
         response.headers["X-Frame-Options"] = "DENY"
         response.headers["X-XSS-Protection"] = "1; mode=block"
-        response.headers[
-            "Strict-Transport-Security"
-        ] = "max-age=31536000; includeSubDomains"
-        api_host = settings.API_BASE.replace("http://", "").replace("https://", "")
-        response.headers[
-            "Content-Security-Policy"
-        ] = (
+        response.headers["Strict-Transport-Security"] = (
+            "max-age=31536000; includeSubDomains"
+        )
+        api_host = settings.API_BASE.replace("http://", "").replace(
+            "https://", ""
+        )
+        response.headers["Content-Security-Policy"] = (
             "default-src 'self'; "
             "script-src 'self' 'unsafe-inline' cdn.jsdelivr.net; "
             "style-src 'self' 'unsafe-inline' cdn.jsdelivr.net; "
