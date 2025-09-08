@@ -114,6 +114,10 @@ def setup_routes(
             output_formats = request.get(
                 "formats", ["json", "clash", "singbox"]
             )
+            if not isinstance(output_formats, list) or not all(
+                isinstance(f, str) for f in output_formats
+            ):
+                output_formats = ["json", "clash", "singbox"]
 
             merger = StreamlineVPNMerger(config_path=config_path)
             await merger.initialize()
@@ -151,19 +155,32 @@ def setup_routes(
     async def get_sources():
         """Get configured sources."""
         try:
-            config_path = Path("config/sources.yaml")
-            if not config_path.exists():
-                return {"sources": []}
+            base_dir = Path(__file__).resolve().parents[3]
+            config_path = base_dir / "config" / "sources.yaml"
 
-            with config_path.open("r") as f:
-                sources_data = yaml.safe_load(f) or {}
+            if not config_path.is_file():
+                logger.warning("Sources config file not found")
+                raise HTTPException(
+                    status_code=404, detail="Sources config file not found"
+                )
+
+            with config_path.open("r", encoding="utf-8") as f:
+                loaded = yaml.safe_load(f)
+                sources_data = loaded if isinstance(loaded, dict) else {}
 
             tiers = sources_data.get("sources") or {}
+            if not isinstance(tiers, dict):
+                tiers = {}
+
             sources_list = []
+            seen_urls = set()
             for tier_name, tier_data in tiers.items():
+                tier_str = str(tier_name)
 
                 if isinstance(tier_data, list):
-                    url_list = tier_data
+                    url_list = [
+                        u for u in tier_data if isinstance(u, (str, dict))
+                    ]
                 elif isinstance(tier_data, dict):
                     urls = tier_data.get("urls")
                     url_list = (
@@ -171,6 +188,9 @@ def setup_routes(
                         if isinstance(urls, list)
                         else ([urls] if urls else [])
                     )
+                    url_list = [
+                        u for u in url_list if isinstance(u, (str, dict))
+                    ]
                 else:
                     url_list = []
 
@@ -183,18 +203,42 @@ def setup_routes(
 
                     if isinstance(url, str):
                         url = url.strip()
-                    if url:
-                        sources_list.append(
-                            {
-                                "url": url,
-                                "status": "active",  # Placeholder
-                                "configs": 0,  # Placeholder
-                                "tier": tier_name,
-                            }
+
+                    if (
+                        not url
+                        or not isinstance(url, str)
+                        or not (
+                            url.startswith("http://")
+                            or url.startswith("https://")
                         )
+                    ):
+                        continue
+
+                    if url in seen_urls:
+                        continue
+                    seen_urls.add(url)
+
+                    sources_list.append(
+                        {
+                            "url": url,
+                            "status": "active",  # Placeholder
+                            "configs": 0,  # Placeholder
+                            "tier": tier_str,
+                        }
+                    )
             return {"sources": sources_list}
-        except Exception:
-            return {"sources": []}
+        except HTTPException:
+            raise
+        except yaml.YAMLError as e:
+            logger.error(f"Failed to parse sources: {e}")
+            raise HTTPException(
+                status_code=500, detail="Failed to load sources"
+            )
+        except Exception as e:
+            logger.error(f"Failed to load sources: {e}")
+            raise HTTPException(
+                status_code=500, detail="Failed to load sources"
+            )
 
     # Authentication routes
     @app.post("/api/v1/auth/login", response_model=LoginResponse)
