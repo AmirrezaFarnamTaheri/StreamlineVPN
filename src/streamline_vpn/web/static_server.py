@@ -219,6 +219,16 @@ class EnhancedStaticServer:
                     for k, v in request.headers.items()
                     if k.lower() not in hop_by_hop and k.lower() != "host"
                 }
+                # Add forwarding headers
+                client_host = request.client.host if request.client else ""
+                if client_host:
+                    existing_xff = fwd_headers.get("x-forwarded-for", "")
+                    fwd_headers["x-forwarded-for"] = (
+                        f"{existing_xff}, {client_host}" if existing_xff else client_host
+                    )
+                fwd_headers.setdefault("x-forwarded-proto", request.url.scheme)
+                fwd_headers.setdefault("x-forwarded-host", request.headers.get("host", ""))
+
                 response = await self.backend_client.request(
                     method=request.method,
                     url=backend_url,
@@ -226,10 +236,11 @@ class EnhancedStaticServer:
                     params=dict(request.query_params),
                     content=body,
                 )
+                hop_by_hop_resp = hop_by_hop
                 resp_headers = {
                     k: v
                     for k, v in response.headers.items()
-                    if k.lower() not in hop_by_hop
+                    if k.lower() not in hop_by_hop_resp
                 }
                 content_type = response.headers.get("content-type", "")
                 if content_type.startswith("application/json"):
