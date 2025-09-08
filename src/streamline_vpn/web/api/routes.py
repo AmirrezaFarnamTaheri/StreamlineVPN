@@ -114,10 +114,19 @@ def setup_routes(
             output_formats = request.get(
                 "formats", ["json", "clash", "singbox"]
             )
+            allowed_formats = {"json", "clash", "singbox"}
             if not isinstance(output_formats, list) or not all(
                 isinstance(f, str) for f in output_formats
             ):
                 output_formats = ["json", "clash", "singbox"]
+            else:
+                output_formats = [
+                    f
+                    for f in (fmt.strip().lower() for fmt in output_formats)
+                    if f in allowed_formats
+                ]
+                if not output_formats:
+                    output_formats = ["json", "clash", "singbox"]
 
             merger = StreamlineVPNMerger(config_path=config_path)
             await merger.initialize()
@@ -155,10 +164,15 @@ def setup_routes(
     async def get_sources():
         """Get configured sources."""
         try:
-            base_dir = Path(__file__).resolve().parents[3]
-            config_path = base_dir / "config" / "sources.yaml"
+            # Resolve sources.yaml from multiple possible locations
+            _here = Path(__file__).resolve()
+            _candidates = [
+                p / "config" / "sources.yaml" for p in (_here.parents)
+            ]
+            _candidates.append(Path.cwd() / "config" / "sources.yaml")
+            config_path = next((p for p in _candidates if p.is_file()), None)
 
-            if not config_path.is_file():
+            if config_path is None:
                 logger.warning("Sources config file not found")
                 raise HTTPException(
                     status_code=404, detail="Sources config file not found"
@@ -166,7 +180,16 @@ def setup_routes(
 
             with config_path.open("r", encoding="utf-8") as f:
                 loaded = yaml.safe_load(f)
-                sources_data = loaded if isinstance(loaded, dict) else {}
+                if loaded is None:
+                    raise HTTPException(
+                        status_code=400, detail="Sources config is empty"
+                    )
+                if not isinstance(loaded, dict):
+                    raise HTTPException(
+                        status_code=400,
+                        detail="Sources config must be a mapping",
+                    )
+                sources_data = loaded
 
             tiers = sources_data.get("sources") or {}
             if not isinstance(tiers, dict):
@@ -208,19 +231,43 @@ def setup_routes(
                         not url
                         or not isinstance(url, str)
                         or not (
-                            url.startswith("http://")
-                            or url.startswith("https://")
+                            url.lower().startswith("http://")
+                            or url.lower().startswith("https://")
                         )
                     ):
                         continue
 
-                    if url in seen_urls:
+                    norm_url = url.strip()
+                    # Normalize scheme and host for deduplication
+                    try:
+                        from urllib.parse import urlsplit, urlunsplit
+
+                        parts = urlsplit(norm_url)
+                        norm_host = (
+                            parts.hostname.lower() if parts.hostname else ""
+                        )
+                        norm_scheme = (parts.scheme or "").lower()
+                        norm_netloc = norm_host
+                        if parts.port:
+                            norm_netloc = f"{norm_host}:{parts.port}"
+                        normalized = urlunsplit(
+                            (
+                                norm_scheme,
+                                norm_netloc,
+                                parts.path or "",
+                                parts.query or "",
+                                parts.fragment or "",
+                            )
+                        )
+                    except Exception:
+                        normalized = norm_url
+                    if normalized in seen_urls:
                         continue
-                    seen_urls.add(url)
+                    seen_urls.add(normalized)
 
                     sources_list.append(
                         {
-                            "url": url,
+                            "url": norm_url,
                             "status": "active",  # Placeholder
                             "configs": 0,  # Placeholder
                             "tier": tier_str,
