@@ -303,7 +303,7 @@
                 </p>
 
                 <div class="flex flex-col sm:flex-row justify-center gap-4 fade-in" style="animation-delay: 0.4s;">
-                    <button id="launchControlPanel" class="btn-primary group relative overflow-hidden">
+                    <a id="launchControlPanel" href="interactive.html" class="btn-primary group relative overflow-hidden inline-block">
                         <span class="relative z-10 flex items-center justify-center">
                             <svg class="w-5 h-5 mr-2 group-hover:rotate-12 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
@@ -311,7 +311,7 @@
                             Launch Control Panel
                         </span>
                         <span class="absolute inset-0 bg-gradient-to-r from-purple-600 to-pink-600 transform scale-x-0 group-hover:scale-x-100 transition-transform origin-left"></span>
-                    </button>
+                    </a>
                     <button onclick="window.location.href='#features'" class="btn-secondary">
                         Explore Features
                     </button>
@@ -561,7 +561,9 @@
         // Launch control panel with loading state
         const launchBtn = document.getElementById('launchControlPanel');
         if (launchBtn) {
-            launchBtn.addEventListener('click', function () {
+            launchBtn.addEventListener('click', function (e) {
+                e.preventDefault();
+                const originalContent = this.innerHTML;
                 this.innerHTML = `
                     <span class="flex items-center justify-center">
                         <svg class="animate-spin h-5 w-5 mr-2" viewBox="0 0 24 24">
@@ -572,7 +574,11 @@
                     </span>
                 `;
                 setTimeout(() => {
-                    window.location.href = 'interactive.html';
+                    try {
+                        window.location.href = this.href;
+                    } catch (error) {
+                        this.innerHTML = originalContent;
+                    }
                 }, 500);
             });
         }
