@@ -203,28 +203,45 @@ class EnhancedStaticServer:
                     if request.method in {"POST", "PUT", "PATCH"}
                     else None
                 )
+                hop_by_hop = {
+                    "connection",
+                    "keep-alive",
+                    "proxy-authenticate",
+                    "proxy-authorization",
+                    "te",
+                    "trailers",
+                    "transfer-encoding",
+                    "upgrade",
+                    "content-length",
+                }
+                fwd_headers = {
+                    k: v
+                    for k, v in request.headers.items()
+                    if k.lower() not in hop_by_hop and k.lower() != "host"
+                }
                 response = await self.backend_client.request(
                     method=request.method,
                     url=backend_url,
-                    headers={
-                        k: v
-                        for k, v in request.headers.items()
-                        if k.lower() != "host"
-                    },
+                    headers=fwd_headers,
                     params=dict(request.query_params),
                     content=body,
                 )
+                resp_headers = {
+                    k: v
+                    for k, v in response.headers.items()
+                    if k.lower() not in hop_by_hop
+                }
                 content_type = response.headers.get("content-type", "")
                 if content_type.startswith("application/json"):
                     return JSONResponse(
                         response.json(),
                         status_code=response.status_code,
-                        headers=dict(response.headers),
+                        headers=resp_headers,
                     )
                 return HTMLResponse(
                     response.text,
                     status_code=response.status_code,
-                    headers=dict(response.headers),
+                    headers=resp_headers,
                 )
             except httpx.RequestError as exc:  # pragma: no cover - network
                 logger.error("Proxy request failed: %s", exc)
