@@ -5,20 +5,29 @@ FastAPI Web API
 FastAPI-based REST API for StreamlineVPN.
 """
 
+import asyncio
 import os
 import uuid
-import asyncio
-from pathlib import Path
+from collections import Counter
 from datetime import datetime, timedelta
+from pathlib import Path
 from typing import Any, Dict, List, Optional
 
-from fastapi import APIRouter, BackgroundTasks, Body, FastAPI, HTTPException, status
+from fastapi import (
+    APIRouter,
+    BackgroundTasks,
+    Body,
+    FastAPI,
+    HTTPException,
+    status,
+)
+from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import JSONResponse
 from pydantic import BaseModel
 
-from collections import Counter
-
 from ..core.merger import StreamlineVPNMerger
+from ..models import OutputFormat
 from ..settings import get_settings
 from ..utils.logging import get_logger
 
@@ -58,7 +67,9 @@ processing_jobs: Dict[str, Any] = {}
 JOB_RETENTION_PERIOD = timedelta(hours=1)
 
 
-def cleanup_processing_jobs(retention: timedelta = JOB_RETENTION_PERIOD) -> int:
+def cleanup_processing_jobs(
+    retention: timedelta = JOB_RETENTION_PERIOD,
+) -> int:
     """Remove completed or failed jobs older than the retention period.
 
     Args:
@@ -118,13 +129,31 @@ def create_app() -> FastAPI:
     )
 
     # Add CORS middleware
+    cors_settings = get_settings()
     app.add_middleware(
         CORSMiddleware,
-        allow_origins=["*"],
-        allow_credentials=True,
-        allow_methods=["*"],
-        allow_headers=["*"],
+        allow_origins=cors_settings.allowed_origins,
+        allow_credentials=cors_settings.allow_credentials,
+        allow_methods=cors_settings.allowed_methods,
+        allow_headers=cors_settings.allowed_headers,
     )
+
+    @app.exception_handler(RequestValidationError)
+    async def validation_exception_handler(
+        request, exc: RequestValidationError
+    ) -> JSONResponse:
+        """Return HTTP 400 instead of 422 for validation errors."""
+        unsupported: List[str] = []
+        for err in exc.errors():
+            if err.get("loc", []) and "formats" in err.get("loc", []):
+                val = err.get("input")
+                if val is not None:
+                    unsupported.append(str(val))
+        if unsupported:
+            detail = f"Unsupported formats: {', '.join(unsupported)}"
+        else:
+            detail = exc.errors()
+        return JSONResponse(status_code=400, content={"detail": detail})
 
     @app.on_event("startup")
     async def _startup_cleanup() -> None:
@@ -380,7 +409,10 @@ def create_app() -> FastAPI:
     class PipelineRequest(BaseModel):
         config_path: str = "config/sources.yaml"
         output_dir: str = "output"
-        formats: List[str] = ["json", "clash"]
+        formats: List[OutputFormat] = [
+            OutputFormat.JSON,
+            OutputFormat.CLASH,
+        ]
 
     @router.post("/pipeline/run", status_code=status.HTTP_200_OK)
     async def run_pipeline(
@@ -409,22 +441,40 @@ def create_app() -> FastAPI:
                 global merger
                 try:
                     update_job_progress(job_id, 10, "Initializing merger...")
-                    local_merger = StreamlineVPNMerger(config_path=str(config_file))
+                    local_merger = StreamlineVPNMerger(
+                        config_path=str(config_file)
+                    )
                     await local_merger.initialize()
-                    update_job_progress(job_id, 50, "Processing configurations...")
+                    update_job_progress(
+                        job_id, 50, "Processing configurations..."
+                    )
+                    formats = [fmt.value for fmt in request.formats]
+                    supported = {f.value for f in OutputFormat}
+                    invalid = [f for f in formats if f not in supported]
+                    if invalid:
+                        raise HTTPException(
+                            status_code=status.HTTP_400_BAD_REQUEST,
+                            detail=f"Unsupported formats: {', '.join(invalid)}",
+                        )
                     result = await local_merger.process_all(
-                        output_dir=request.output_dir, formats=request.formats
+                        output_dir=request.output_dir, formats=formats
                     )
                     merger = local_merger
                     processing_jobs[job_id]["status"] = "completed"
-                    update_job_progress(job_id, 100, "Pipeline completed successfully")
+                    update_job_progress(
+                        job_id, 100, "Pipeline completed successfully"
+                    )
                     processing_jobs[job_id]["result"] = result
-                    processing_jobs[job_id]["completed_at"] = datetime.now().isoformat()
+                    processing_jobs[job_id][
+                        "completed_at"
+                    ] = datetime.now().isoformat()
                 except Exception as exc:  # pragma: no cover - logging path
                     logger.error("Pipeline job %s failed: %s", job_id, exc)
                     processing_jobs[job_id]["status"] = "failed"
                     processing_jobs[job_id]["error"] = str(exc)
-                    processing_jobs[job_id]["completed_at"] = datetime.now().isoformat()
+                    processing_jobs[job_id][
+                        "completed_at"
+                    ] = datetime.now().isoformat()
                     update_job_progress(job_id, 100, str(exc))
 
             background_tasks.add_task(process_async)
@@ -519,7 +569,11 @@ def create_app() -> FastAPI:
         for src in merger.source_manager.sources.values():
             enabled = getattr(src, "enabled", True)
             last_check = getattr(src, "last_check", None)
-            last_update = last_check.isoformat() if isinstance(last_check, datetime) else None
+            last_update = (
+                last_check.isoformat()
+                if isinstance(last_check, datetime)
+                else None
+            )
             source_infos.append(
                 {
                     "url": getattr(src, "url", None),
