@@ -7,9 +7,11 @@ FastAPI route definitions for the StreamlineVPN API.
 
 import asyncio
 import json
+import os
 import threading
 import time
 import yaml
+import ipaddress
 from datetime import datetime
 from pathlib import Path
 from typing import List, Optional
@@ -57,12 +59,32 @@ job_status = {}
 job_tasks = {}
 
 
-def find_project_root(start: Path) -> Path:
-    """Locate the project root using common markers."""
-    for parent in [start] + list(start.parents):
-        if (parent / ".git").exists() or (parent / "pyproject.toml").is_file():
-            return parent
-    return start.parent
+def find_config_path() -> Path | None:
+    """Locate the sources configuration file using common strategies."""
+    if config_env := os.getenv("APP_CONFIG_PATH"):
+        path = Path(config_env)
+        if path.is_file():
+            return path
+
+    cwd_path = Path.cwd() / "config" / "sources.yaml"
+    if cwd_path.is_file():
+        return cwd_path
+
+    package_path = (
+        Path(__file__).parent.parent.parent / "config" / "sources.yaml"
+    )
+    if package_path.is_file():
+        return package_path
+    return None
+
+
+def is_ipv6_address(host: str) -> bool:
+    """Return True if *host* is a valid IPv6 address."""
+    try:
+        ipaddress.IPv6Address(host)
+        return True
+    except ipaddress.AddressValueError:
+        return False
 
 
 def set_auth_service(auth_service: AuthenticationService) -> None:
@@ -128,18 +150,34 @@ def setup_routes(
                 isinstance(f, str) for f in output_formats
             ):
                 raise HTTPException(
-                    status_code=400, detail="formats must be a list of strings"
+                    status_code=400,
+                    detail="'formats' must be a list of strings",
                 )
             normalized_formats = [
                 fmt.strip().lower() for fmt in output_formats
             ]
+            unknown = [
+                f for f in normalized_formats if f not in allowed_formats
+            ]
             output_formats = [
                 f for f in normalized_formats if f in allowed_formats
             ]
+            if unknown:
+                raise HTTPException(
+                    status_code=400,
+                    detail=(
+                        "Unknown formats: "
+                        f"{', '.join(sorted(set(unknown)))}. "
+                        f"Allowed: {', '.join(sorted(allowed_formats))}"
+                    ),
+                )
             if not output_formats:
                 raise HTTPException(
                     status_code=400,
-                    detail=f"formats must include one of: {', '.join(sorted(allowed_formats))}",
+                    detail=(
+                        "'formats' must include at least one of: "
+                        f"{', '.join(sorted(allowed_formats))}"
+                    ),
                 )
 
             merger = StreamlineVPNMerger(config_path=config_path)
@@ -178,10 +216,8 @@ def setup_routes(
     async def get_sources():
         """Get configured sources."""
         try:
-            project_root = find_project_root(Path(__file__).resolve())
-            config_path = project_root / "config" / "sources.yaml"
-
-            if not config_path.is_file():
+            config_path = find_config_path()
+            if config_path is None or not config_path.is_file():
                 logger.warning("Sources config file not found")
                 raise HTTPException(
                     status_code=404, detail="Sources config file not found"
@@ -190,10 +226,11 @@ def setup_routes(
             with config_path.open("r", encoding="utf-8") as f:
                 try:
                     loaded = yaml.safe_load(f)
-                except yaml.YAMLError as e:
+                except yaml.YAMLError:
+                    logger.exception("Failed to parse sources.yaml")
                     raise HTTPException(
                         status_code=400,
-                        detail=f"Invalid YAML format: {str(e)}",
+                        detail="Invalid YAML format in sources configuration",
                     )
                 if loaded is None:
                     raise HTTPException(
@@ -254,9 +291,15 @@ def setup_routes(
 
                     try:
                         parts = urlsplit(url)
-                        if parts.username or parts.password:
-                            continue
-                    except Exception:
+                    except ValueError as e:
+                        logger.warning(
+                            "Skipping invalid URL in sources: %s (%s)", url, e
+                        )
+                        continue
+                    if parts.username or parts.password:
+                        logger.warning(
+                            "Skipping URL with credentials in sources: %s", url
+                        )
                         continue
 
                     norm_url = url.strip()
@@ -267,9 +310,7 @@ def setup_routes(
                             parts.hostname.lower() if parts.hostname else ""
                         )
                         norm_scheme = (parts.scheme or "").lower()
-                        is_ipv6 = (
-                            ":" in norm_host and not norm_host.startswith("[")
-                        )
+                        is_ipv6 = is_ipv6_address(norm_host)
                         host_for_netloc = (
                             f"[{norm_host}]" if is_ipv6 else norm_host
                         )
