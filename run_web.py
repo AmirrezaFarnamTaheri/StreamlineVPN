@@ -7,42 +7,32 @@ sys.path.insert(0, str(Path(__file__).parent / "src"))
 
 from streamline_vpn.utils.logging import get_logger
 from streamline_vpn.web.static_server import EnhancedStaticServer
+from streamline_vpn.web.settings import Settings
 
 logger = get_logger(__name__)
 
 
 def main() -> None:
     """Run the enhanced StreamlineVPN web interface."""
-    host = "0.0.0.0"
-    port = 8000
-    static_dir = "docs"
-    api_base = "http://localhost:8080"
-    update_interval = 28800  # 8 hours
-
-    server = EnhancedStaticServer(
-        host=host,
-        port=port,
-        static_dir=static_dir,
-        api_base=api_base,
-        update_interval=update_interval,
-    )
+    settings = Settings()
+    server = EnhancedStaticServer(settings=settings)
 
     logger.info(
         f"""
     ╔══════════════════════════════════════════════════════════╗
     ║           StreamlineVPN Control Center v2.0              ║
     ╠══════════════════════════════════════════════════════════╣
-    ║  🌐 Web Interface: http://localhost:{port}                   ║
-    ║  📊 Control Panel: http://localhost:{port}/interactive       ║
-    ║  🔄 Auto-Update: Every 8 hours                          ║
-    ║  📡 API Base: {api_base}                      ║
+    ║  🌐 Web Interface: http://localhost:{settings.PORT}                   ║
+    ║  📊 Control Panel: http://localhost:{settings.PORT}/interactive.html       ║
+    ║  🔄 Auto-Update: Every {settings.UPDATE_INTERVAL / 3600} hours                          ║
+    ║  📡 API Base: {settings.API_BASE}                      ║
     ╚══════════════════════════════════════════════════════════╝
     """
     )
 
     import uvicorn
 
-    uvicorn.run(server.app, host=host, port=port, log_level="info")
+    uvicorn.run(server.app, host=settings.HOST, port=settings.PORT, log_level="info")
 
 
 if __name__ == "__main__":
