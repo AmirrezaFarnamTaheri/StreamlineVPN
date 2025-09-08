@@ -18,7 +18,6 @@ from pydantic import BaseModel
 from collections import Counter
 
 from ..core.merger import StreamlineVPNMerger
-from ..models.source import SourceMetadata, SourceTier
 from ..settings import get_settings
 from ..utils.logging import get_logger
 
@@ -472,19 +471,17 @@ def create_app() -> FastAPI:
         """Add a new source to the manager."""
         merger = get_merger()
         url = request.url.strip()
-        if url in merger.source_manager.sources:
-            return {
-                "status": "success",
-                "message": f"Source already exists: {url}",
-            }
         try:
-            merger.source_manager.sources[url] = SourceMetadata(
-                url=url, tier=SourceTier.RELIABLE
-            )
+            await merger.source_manager.add_source(url)
             return {"status": "success", "message": f"Source added: {url}"}
-        except Exception as exc:  # pragma: no cover
-            logger.error("Error adding source: %s", exc)
+        except ValueError as exc:
             raise HTTPException(status_code=400, detail=str(exc))
+        except Exception as exc:  # pragma: no cover - unexpected
+            logger.error("Error adding source: %s", exc)
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail="Failed to add source",
+            )
 
     app.include_router(router)
 

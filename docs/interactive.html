@@ -711,7 +711,7 @@
             return 'poor';
         }
         
-        // Load sources with mock data
+        // Load sources from API
 async function loadSources() {
     try {
         const response = await fetch(`${API_BASE}/api/v1/sources`);
@@ -906,19 +906,26 @@ async function loadSources() {
             });
         }
         
-        function addSource() {
+        async function addSource() {
             const url = document.getElementById('newSourceUrl').value.trim();
             if (!url) return;
-            
-            sources.push({
-                url: url,
-                status: 'active',
-                configs: Math.floor(Math.random() * 300)
-            });
-
-            renderSources();
-            document.getElementById('newSourceUrl').value = '';
-            addTerminalLine(`Source added: ${url}`, 'success');
+            try {
+                const response = await fetch(`${API_BASE}/api/v1/sources/add`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ url })
+                });
+                const data = await response.json();
+                if (!response.ok) {
+                    addTerminalLine(`Add source failed: ${data.detail || data.message}`, 'error');
+                    return;
+                }
+                addTerminalLine(data.message, 'success');
+                document.getElementById('newSourceUrl').value = '';
+                await loadSources();
+            } catch (error) {
+                addTerminalLine(`Add source error: ${error.message}`, 'error');
+            }
         }
         
         function filterConfigs() {

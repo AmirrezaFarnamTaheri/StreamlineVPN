@@ -151,6 +151,72 @@ class SourceManager:
         except Exception as e:
             logger.error(f"Failed to load performance data: {e}")
 
+    async def add_source(
+        self, url: str, tier: SourceTier = SourceTier.RELIABLE
+    ) -> SourceMetadata:
+        """Add a new source after validation and persist it.
+
+        Args:
+            url: Source URL to add
+            tier: Source tier for the new source
+
+        Returns:
+            The created :class:`SourceMetadata` instance
+
+        Raises:
+            ValueError: If the URL is invalid, unsafe, or already exists
+        """
+        url = url.strip()
+        if not url:
+            raise ValueError("Source URL is required")
+        if url in self.sources:
+            raise ValueError("Source already exists")
+
+        validation = self.security_manager.validate_source(url)
+        if not validation.get("is_safe") or not validation.get("is_valid_url", False):
+            raise ValueError("Invalid or unsafe source URL")
+
+        metadata = SourceMetadata(url=url, tier=tier)
+        self.sources[url] = metadata
+        await self._persist_new_source(metadata)
+        return metadata
+
+    async def _persist_new_source(self, metadata: SourceMetadata) -> None:
+        """Persist a newly added source to the configuration file."""
+        try:
+            config_data: Dict[str, Any] = {}
+            if self.config_path.exists():
+                with open(self.config_path, "r", encoding="utf-8") as f:
+                    config_data = yaml.safe_load(f) or {}
+
+            sources_cfg = config_data.setdefault("sources", {})
+            tier_key = self._find_tier_key(metadata.tier, sources_cfg)
+            tier_section = sources_cfg.setdefault(tier_key, {})
+            url_list = tier_section.setdefault("urls", [])
+            url_list.append(
+                {
+                    "url": metadata.url,
+                    "weight": metadata.weight,
+                    "protocols": metadata.protocols,
+                    "update": metadata.update_frequency,
+                    "metadata": metadata.metadata,
+                }
+            )
+
+            with open(self.config_path, "w", encoding="utf-8") as f:
+                yaml.safe_dump(config_data, f, sort_keys=False)
+        except Exception as exc:  # pragma: no cover - logging path
+            logger.error("Failed to persist new source: %s", exc)
+
+    def _find_tier_key(
+        self, tier: SourceTier, sources_cfg: Dict[str, Any]
+    ) -> str:
+        """Find the appropriate key for a tier in the config file."""
+        for key in sources_cfg:
+            if tier.value in key.lower():
+                return key
+        return tier.value
+
     async def save_performance_data(self) -> None:
         """Save performance data to file."""
         try:
