@@ -13,11 +13,12 @@ from typing import Any, Dict, Optional
 
 import aiofiles
 import httpx
-from fastapi import BackgroundTasks, FastAPI, HTTPException, Request
+from fastapi import BackgroundTasks, FastAPI, HTTPException, Request, Response
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import HTMLResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 
+from ..models import OutputFormat
 from ..utils.logging import get_logger
 from .settings import Settings
 
@@ -86,6 +87,10 @@ class EnhancedStaticServer:
         async def shutdown_event() -> None:
             if self.update_task:
                 self.update_task.cancel()
+                try:
+                    await self.update_task
+                except asyncio.CancelledError:
+                    pass
             await self.backend_client.aclose()
 
         @app.get("/api/status")
@@ -234,9 +239,10 @@ class EnhancedStaticServer:
                         else client_host
                     )
                 fwd_headers.setdefault("x-forwarded-proto", request.url.scheme)
-                fwd_headers.setdefault(
-                    "x-forwarded-host", request.headers.get("host", "")
-                )
+                orig_host = request.headers.get("host", "")
+                fwd_headers.setdefault("x-forwarded-host", orig_host)
+                if orig_host:
+                    fwd_headers.setdefault("host", orig_host)
 
                 response = await self.backend_client.request(
                     method=request.method,
@@ -251,17 +257,12 @@ class EnhancedStaticServer:
                     for k, v in response.headers.items()
                     if k.lower() not in hop_by_hop_resp
                 }
-                content_type = response.headers.get("content-type", "")
-                if content_type.startswith("application/json"):
-                    return JSONResponse(
-                        response.json(),
-                        status_code=response.status_code,
-                        headers=resp_headers,
-                    )
-                return HTMLResponse(
-                    response.text,
+                content = await response.aread()
+                return Response(
+                    content=content,
                     status_code=response.status_code,
                     headers=resp_headers,
+                    media_type=response.headers.get("content-type"),
                 )
             except httpx.RequestError as exc:  # pragma: no cover - network
                 logger.error("Proxy request failed: %s", exc)
@@ -285,7 +286,12 @@ class EnhancedStaticServer:
                 json={
                     "config_path": "config/sources.unified.yaml",
                     "output_dir": "output",
-                    "formats": ["json", "clash", "singbox", "base64"],
+                    "formats": [
+                        OutputFormat.JSON.value,
+                        OutputFormat.CLASH.value,
+                        OutputFormat.SINGBOX.value,
+                        OutputFormat.BASE64.value,
+                    ],
                 },
             )
 

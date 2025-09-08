@@ -520,7 +520,10 @@
         
         function updateStatistics(stats) {
             document.getElementById('totalConfigs').textContent = stats.total_configs || 0;
-            document.getElementById('successfulSources').textContent = stats.successful_sources || 0;
+            const succEl = document.getElementById('successfulSources');
+            if (succEl) {
+                succEl.textContent = stats.successful_sources || 0;
+            }
             document.getElementById('successRate').textContent = `${Math.round((stats.success_rate || 0) * 100)}%`;
             document.getElementById('avgQuality').textContent = (stats.avg_quality || 0).toFixed(2);
 
@@ -567,8 +570,12 @@
         // Start processing
         async function startProcessing() {
             const configPath = document.getElementById('configPath').value;
-            const formats = Array.from(document.querySelectorAll('.output-format:checked')).map(cb => OutputFormat[cb.value]);
-
+            const selected = Array.from(document.querySelectorAll('.output-format:checked')).map(cb => OutputFormat[cb.value]);
+            const formats = selected.filter(v => typeof v === 'string');
+            if (formats.length !== selected.length) {
+                addTerminalLine('One or more selected formats are not supported', 'error');
+                return;
+            }
             if (formats.length === 0) {
                 addTerminalLine('Please select at least one output format', 'warning');
                 return;
@@ -663,14 +670,16 @@
                 const limit = 500;
                 let offset = 0;
                 let all = [];
+                let total = null;
                 while (true) {
                     const resp = await fetch(`${API_BASE}/api/v1/configurations?limit=${limit}&offset=${offset}`);
                     if (!resp.ok) throw new Error(`HTTP error! status: ${resp.status}`);
                     const data = await resp.json();
-                    const batch = data.configurations || [];
-                    all = all.concat(batch);
-                    if (batch.length < limit) break;
-                    offset += limit;
+                    const configs = (data && Array.isArray(data.configurations)) ? data.configurations : [];
+                    all = all.concat(configs);
+                    if (total === null && typeof data.total === 'number') total = data.total;
+                    offset += configs.length;
+                    if (configs.length < limit || (total !== null && all.length >= total)) break;
                 }
                 configurations = all;
             } catch (error) {
@@ -925,12 +934,17 @@ async function loadSources() {
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ url })
                 });
-                const data = await response.json();
+                let data;
+                try {
+                    data = await response.json();
+                } catch (_) {
+                    data = { message: await response.text() };
+                }
                 if (!response.ok) {
-                    addTerminalLine(`Add source failed: ${data.detail || data.message}`, 'error');
+                    addTerminalLine(`Add source failed: ${data.detail || data.message || 'Unknown error'}`, 'error');
                     return;
                 }
-                addTerminalLine(data.message, 'success');
+                addTerminalLine(data.message || 'Source added', 'success');
                 document.getElementById('newSourceUrl').value = '';
                 await loadSources();
             } catch (error) {

@@ -7,6 +7,7 @@ Manages VPN configuration sources.
 
 import asyncio
 import json
+import os
 from datetime import datetime
 from pathlib import Path
 from typing import Any, Dict, List, Optional
@@ -39,6 +40,7 @@ class SourceManager:
         self.sources: Dict[str, SourceMetadata] = {}
         self.performance_file = Path("data/source_performance.json")
         self.security_manager = security_manager or SecurityManager()
+        self._lock = asyncio.Lock()
 
         # Load sources and performance data
         self._load_sources()
@@ -154,35 +156,53 @@ class SourceManager:
     async def add_source(
         self, url: str, tier: SourceTier = SourceTier.RELIABLE
     ) -> SourceMetadata:
-        """Add a new source after validation and persist it.
+        """Add a new source after validation and persist it."""
+        async with self._lock:
+            raw_url = url.strip()
+            if not raw_url:
+                raise ValueError("Source URL is required")
+            if self.security_manager is None:
+                raise ValueError("Security validation is unavailable")
 
-        Args:
-            url: Source URL to add
-            tier: Source tier for the new source
+            from urllib.parse import urlparse, urlunparse
 
-        Returns:
-            The created :class:`SourceMetadata` instance
+            parsed = urlparse(raw_url)
+            netloc = (parsed.hostname or "").lower()
+            if parsed.port and (
+                (parsed.scheme == "http" and parsed.port != 80)
+                or (parsed.scheme == "https" and parsed.port != 443)
+            ):
+                netloc = f"{netloc}:{parsed.port}"
+            norm_path = parsed.path.rstrip("/") or "/"
+            normalized_url = urlunparse(
+                (
+                    parsed.scheme.lower(),
+                    netloc,
+                    norm_path,
+                    parsed.params,
+                    parsed.query,
+                    parsed.fragment,
+                )
+            )
 
-        Raises:
-            ValueError: If the URL is invalid, unsafe, or already exists
-        """
-        url = url.strip()
-        if not url:
-            raise ValueError("Source URL is required")
-        if url in self.sources:
-            raise ValueError("Source already exists")
+            if normalized_url in self.sources:
+                raise ValueError("Source already exists")
 
-        validation = self.security_manager.validate_source(url)
-        if not validation.get("is_safe") or not validation.get("is_valid_url", False):
-            raise ValueError("Invalid or unsafe source URL")
+            validation = self.security_manager.validate_source(normalized_url)
+            if not validation.get("is_safe") or not validation.get(
+                "is_valid_url", False
+            ):
+                raise ValueError("Invalid or unsafe source URL")
 
-        metadata = SourceMetadata(url=url, tier=tier)
-        self.sources[url] = metadata
-        await self._persist_new_source(metadata)
-        return metadata
+            metadata = SourceMetadata(url=normalized_url, tier=tier)
+            await self._persist_new_source_atomically(metadata)
+            self.sources[normalized_url] = metadata
+            return metadata
 
-    async def _persist_new_source(self, metadata: SourceMetadata) -> None:
-        """Persist a newly added source to the configuration file."""
+    async def _persist_new_source_atomically(
+        self, metadata: SourceMetadata
+    ) -> None:
+        """Persist a newly added source to the configuration file atomically."""
         try:
             config_data: Dict[str, Any] = {}
             if self.config_path.exists():
@@ -203,10 +223,15 @@ class SourceManager:
                 }
             )
 
-            with open(self.config_path, "w", encoding="utf-8") as f:
+            temp_path = self.config_path.with_suffix(".tmp")
+            with open(temp_path, "w", encoding="utf-8") as f:
                 yaml.safe_dump(config_data, f, sort_keys=False)
+                f.flush()
+                os.fsync(f.fileno())
+            os.replace(temp_path, self.config_path)
         except Exception as exc:  # pragma: no cover - logging path
             logger.error("Failed to persist new source: %s", exc)
+            raise
 
     def _find_tier_key(
         self, tier: SourceTier, sources_cfg: Dict[str, Any]
