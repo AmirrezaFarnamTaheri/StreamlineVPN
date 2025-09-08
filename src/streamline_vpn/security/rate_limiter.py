@@ -8,7 +8,7 @@ Rate limiting functionality for security management.
 from typing import Dict, List, Any
 from datetime import datetime, timedelta
 
-from ...utils.logging import get_logger
+from ..utils.logging import get_logger
 
 logger = get_logger(__name__)
 

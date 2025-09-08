@@ -255,19 +255,19 @@
                 
                 <!-- Quick Actions -->
                 <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-                    <button onclick="quickProcess()" class="glass-morphism rounded-lg px-6 py-4 text-white hover-lift">
+                    <button onclick="startProcessing(); quickAction(this);" class="glass-morphism rounded-lg px-6 py-4 text-white hover-lift">
                         <svg class="w-8 h-8 mb-2 mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path>
                         </svg>
-                        Quick Process
+                        Run Default Process
                     </button>
-                    <button onclick="testConnection()" class="glass-morphism rounded-lg px-6 py-4 text-white hover-lift">
+                    <button onclick="testConnection(); quickAction(this);" class="glass-morphism rounded-lg px-6 py-4 text-white hover-lift">
                         <svg class="w-8 h-8 mb-2 mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
                         </svg>
                         Test Connection
                     </button>
-                    <button onclick="clearCache()" class="glass-morphism rounded-lg px-6 py-4 text-white hover-lift">
+                    <button onclick="clearCache(); quickAction(this);" class="glass-morphism rounded-lg px-6 py-4 text-white hover-lift">
                         <svg class="w-8 h-8 mb-2 mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
                         </svg>
@@ -1211,8 +1211,22 @@ async function loadSources() {
         // Render sources
         function renderSources() {
             const list = document.getElementById('sourceList');
-            list.innerHTML = '';
+            if (!list) return;
+
+            if (!sources || sources.length === 0) {
+                list.innerHTML = `
+                    <div class="text-center text-gray-400 py-8">
+                        <svg class="w-16 h-16 mx-auto mb-4 opacity-50" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"></path>
+                        </svg>
+                        <p class="text-lg mb-2">No sources found</p>
+                        <p class="text-sm">Add a new source above to get started</p>
+                    </div>
+                `;
+                return;
+            }
             
+            list.innerHTML = '';
             sources.forEach(source => {
                 const item = `
                     <div class="glass-morphism rounded-lg p-4">
@@ -1233,6 +1247,9 @@ async function loadSources() {
         }
         
         // Terminal functions
+        const terminalHistory = [];
+        let terminalHistoryIndex = -1;
+
         function addTerminalLine(text, type = 'info') {
             const terminal = document.getElementById('terminalOutput');
             const line = document.createElement('div');
@@ -1243,8 +1260,22 @@ async function loadSources() {
         }
         
         function handleTerminalInput(event) {
+            const input = document.getElementById('terminalInput');
             if (event.key === 'Enter') {
                 executeCommand();
+            } else if (event.key === 'ArrowUp') {
+                if (terminalHistoryIndex > 0) {
+                    terminalHistoryIndex--;
+                    input.value = terminalHistory[terminalHistoryIndex];
+                }
+            } else if (event.key === 'ArrowDown') {
+                if (terminalHistoryIndex < terminalHistory.length - 1) {
+                    terminalHistoryIndex++;
+                    input.value = terminalHistory[terminalHistoryIndex];
+                } else {
+                    terminalHistoryIndex = terminalHistory.length;
+                    input.value = '';
+                }
             }
         }
         
@@ -1254,6 +1285,8 @@ async function loadSources() {
             if (!command) return;
             
             addTerminalLine(`> ${command}`, 'info');
+            terminalHistory.push(command);
+            terminalHistoryIndex = terminalHistory.length;
             processCommand(command);
             input.value = '';
         }
@@ -1288,29 +1321,9 @@ async function loadSources() {
         }
         
         // Quick actions
-        async function quickProcess() {
-            addTerminalLine('Starting quick process...', 'info');
-            document.getElementById('processingStatus').classList.remove('hidden');
-
-            // Simulate processing with progress
-            let progress = 0;
-            const interval = setInterval(() => {
-                progress += 10;
-                document.getElementById('processingProgress').textContent = `${progress}%`;
-                document.getElementById('progressBar').style.width = `${progress}%`;
-
-                if (progress >= 100) {
-                    clearInterval(interval);
-                    document.getElementById('processingStatus').classList.add('hidden');
-                    addTerminalLine('Quick process completed successfully', 'success');
-                    showProcessingResults({
-                        total_configs: 1250,
-                        valid_configs: 1150,
-                        success_rate: 0.92,
-                        processing_time: 3.5
-                    });
-                }
-            }, 200);
+        function quickAction(button) {
+            button.classList.add('animate-pulse');
+            setTimeout(() => button.classList.remove('animate-pulse'), 1000);
         }
         
         async function testConnection() {

@@ -5,7 +5,7 @@ Geographic Optimizer
 Geographic optimization for VPN server selection.
 """
 
-from typing import Dict, List, Optional, Tuple
+from typing import Any, Dict, List, Optional, Tuple
 import math
 
 from ..models.configuration import VPNConfiguration

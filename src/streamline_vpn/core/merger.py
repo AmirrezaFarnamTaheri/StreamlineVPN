@@ -14,6 +14,7 @@ from .source_manager import SourceManager
 from .config_processor import ConfigurationProcessor
 from .output_manager import OutputManager
 from ..security.manager import SecurityManager
+from ..fetcher.service import FetcherService
 
 logger = get_logger(__name__)
 
@@ -39,9 +40,12 @@ class StreamlineVPNMerger(BaseMerger):
         # Initialize security manager
         self.security_manager = SecurityManager()
 
+        # Initialize fetcher service
+        self.fetcher_service = FetcherService(max_concurrent=max_concurrent)
+
         # Initialize core managers
         self.source_manager = SourceManager(
-            self.config_path, self.security_manager
+            self.config_path, self.security_manager, self.fetcher_service
         )
         self.config_processor = ConfigurationProcessor()
         self.output_manager = OutputManager()
@@ -59,12 +63,14 @@ class StreamlineVPNMerger(BaseMerger):
     async def initialize(self):
         """Initialize the merger."""
         await super().initialize()
+        await self.fetcher_service.initialize()
 
     async def shutdown(self):
         """Shutdown the merger and save performance data."""
         if self.source_manager:
             logger.info("Saving source performance data...")
             await self.source_manager.save_performance_data()
+        await self.fetcher_service.close()
 
     async def __aenter__(self):
         """Async context manager entry."""

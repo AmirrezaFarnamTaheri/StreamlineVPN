@@ -10,11 +10,10 @@ def client():
     # Create a dummy settings object for testing
     settings = Settings(
         secret_key="test_secret",
-        redis_nodes=[{"host": "localhost", "port": "6379"}],
     )
 
     app = APIServer(
-        secret_key=settings.secret_key, redis_nodes=settings.redis_nodes
+            secret_key=settings.secret_key, redis_nodes=settings.redis.nodes
     ).get_app()
 
     with TestClient(app) as c:
@@ -29,9 +28,7 @@ def test_run_pipeline_endpoint(client):
     # We also need to mock the run_pipeline_main function to avoid actually running the pipeline.
     from unittest.mock import patch
 
-    with patch(
-        "streamline_vpn.web.api.routes.run_pipeline_main"
-    ) as mock_run_pipeline:
+    with patch("streamline_vpn.__main__.main") as mock_run_pipeline:
         mock_run_pipeline.return_value = 0  # Simulate a successful run
 
         response = client.post(

@@ -8,7 +8,7 @@ Security pattern analysis and detection functionality.
 import re
 from typing import Dict, List, Any
 
-from ...utils.logging import get_logger
+from ..utils.logging import get_logger
 
 logger = get_logger(__name__)
 

@@ -446,16 +446,16 @@ def setup_routes(
                         continue
                     seen_urls.add(normalized)
 
-                    # Check source status and count configurations
-                    try:
-                        merger = StreamlineVPNMerger()
-                        await merger.initialize()
-                        source_status = await merger.check_source_status(normalized)
-                        config_count = await merger.count_source_configurations(normalized)
-                    except Exception:
+                    # Get source status from the source manager
+                    source_manager = _get_source_manager()
+                    source_metadata = source_manager.sources.get(normalized)
+                    if source_metadata:
+                        source_status = "active" if not source_metadata.is_blacklisted else "blacklisted"
+                        config_count = source_metadata.avg_config_count
+                    else:
                         source_status = "unknown"
                         config_count = 0
-                    
+
                     sources_list.append(
                         {
                             "url": normalized,

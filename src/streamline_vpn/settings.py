@@ -100,7 +100,6 @@ class RedisSettings(BaseSettings):
 
 class Settings(BaseSettings):
     secret_key: str = "CHANGE_THIS_IN_PRODUCTION_USE_ENVIRONMENT_VARIABLE"  # WARNING: Change in production!
-    redis_nodes: List[Dict[str, str]] = [{"host": "localhost", "port": "6379"}]
     fetcher: FetcherSettings = Field(default_factory=FetcherSettings)
     security: SecuritySettings = Field(default_factory=SecuritySettings)
     redis: RedisSettings = Field(default_factory=RedisSettings)

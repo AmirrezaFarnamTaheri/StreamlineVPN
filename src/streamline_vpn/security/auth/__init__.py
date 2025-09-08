@@ -59,7 +59,6 @@ __all__ = [
     "PolicyEngine",
     "ContinuousAuthenticator",
     "ThreatAnalyzer",
-    "ZeroTrustVPN",
     "initialize_zero_trust",
     "get_zero_trust",
 ]
