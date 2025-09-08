@@ -16,6 +16,7 @@ from ...core.source_manager import SourceManager
 from ...jobs.manager import JobManager
 from ...jobs.models import JobStatus, JobType
 from ...security.manager import SecurityManager
+from ...utils.logging import get_logger
 
 
 # Dependency injection context
@@ -56,6 +57,8 @@ class GraphQLContext:
 
 # Global context instance
 context = GraphQLContext()
+
+logger = get_logger(__name__)
 
 
 @strawberry.type
@@ -200,7 +203,7 @@ class Query:
                 continue
             filtered_configs.append(cfg)
 
-        paginated = filtered_configs[offset:offset + limit]
+        paginated = filtered_configs[offset : offset + limit]
 
         return [
             VPNConfiguration(
@@ -425,9 +428,10 @@ class Mutation:
                 )
 
         except Exception as e:
+            logger.error("Processing failed: %s", e)
             return ProcessingResult(
                 success=False,
-                message=f"Processing failed: {str(e)}",
+                message="Processing failed",
             )
 
     @strawberry.field
@@ -454,9 +458,10 @@ class Mutation:
             )
 
         except Exception as e:
+            logger.error("Failed to blacklist source %s: %s", source_url, e)
             return SourceOperationResult(
                 success=False,
-                message=f"Failed to blacklist source: {str(e)}",
+                message="Failed to blacklist source",
                 source_url=source_url,
                 operation="blacklist",
             )
@@ -485,9 +490,10 @@ class Mutation:
             )
 
         except Exception as e:
+            logger.error("Failed to whitelist source %s: %s", source_url, e)
             return SourceOperationResult(
                 success=False,
-                message=f"Failed to whitelist source: {str(e)}",
+                message="Failed to whitelist source",
                 source_url=source_url,
                 operation="whitelist",
             )
@@ -510,9 +516,10 @@ class Mutation:
             )
 
         except Exception as e:
+            logger.error("Failed to cancel job %s: %s", job_id, e)
             return ProcessingResult(
                 success=False,
-                message=f"Failed to cancel job: {str(e)}",
+                message="Failed to cancel job",
                 job_id=job_id,
             )
 
@@ -527,9 +534,10 @@ class Mutation:
             )
 
         except Exception as e:
+            logger.error("Failed to clear cache: %s", e)
             return ProcessingResult(
                 success=False,
-                message=f"Failed to clear cache: {str(e)}",
+                message="Failed to clear cache",
             )
 
 

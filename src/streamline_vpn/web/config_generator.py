@@ -2,7 +2,7 @@
 
 from pathlib import Path
 
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, status
 from fastapi.responses import FileResponse, HTMLResponse
 from fastapi.staticfiles import StaticFiles
 
@@ -54,8 +54,11 @@ class VPNConfigGenerator:
                     "configurations": [config.to_dict() for config in configs],
                 }
             except Exception as e:
-                logger.error(f"Error getting configs: {e}")
-                raise HTTPException(status_code=500, detail=str(e))
+                logger.error("Error getting configs: %s", e)
+                raise HTTPException(
+                    status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                    detail="Internal server error",
+                )
 
         @self.app.post("/api/generate")
         async def generate_configs(format_type: str = "json"):
@@ -64,13 +67,18 @@ class VPNConfigGenerator:
                 results = await self.merger.process_all()
                 if results.get("success"):
                     return {"message": "Configurations generated successfully"}
-                else:
-                    raise HTTPException(
-                        status_code=500, detail=results.get("error")
-                    )
+                error_msg = results.get("error")
+                logger.error("Error generating configs: %s", error_msg)
+                raise HTTPException(
+                    status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                    detail="Internal server error",
+                )
             except Exception as e:
-                logger.error(f"Error generating configs: {e}")
-                raise HTTPException(status_code=500, detail=str(e))
+                logger.error("Error generating configs: %s", e)
+                raise HTTPException(
+                    status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                    detail="Internal server error",
+                )
 
         @self.app.get("/api/download/{format_type}")
         async def download_configs(format_type: str):
@@ -98,8 +106,11 @@ class VPNConfigGenerator:
                     media_type="application/octet-stream",
                 )
             except Exception as e:
-                logger.error(f"Error downloading configs: {e}")
-                raise HTTPException(status_code=500, detail=str(e))
+                logger.error("Error downloading configs: %s", e)
+                raise HTTPException(
+                    status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                    detail="Internal server error",
+                )
 
     def _get_index_html(self) -> str:
         """Get main HTML page."""
