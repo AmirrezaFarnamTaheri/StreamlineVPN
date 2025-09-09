@@ -72,8 +72,9 @@ class SourceManager:
                 if not isinstance(tier_data, dict) or "urls" not in tier_data:
                     continue
 
+                tier_str = tier_name.split('_')[-1]
                 try:
-                    tier = SourceTier(tier_name)
+                    tier = SourceTier(tier_str)
                 except ValueError:
                     logger.warning(f"Unknown tier: {tier_name}, skipping")
                     continue
@@ -136,6 +137,7 @@ class SourceManager:
 
         except yaml.YAMLError as e:
             logger.error(f"Failed to parse YAML configuration: {e}")
+            raise ValueError(f"Invalid YAML format in {self.config_path}") from e
         except Exception as e:
             logger.error(f"Failed to load sources: {e}", exc_info=True)
 

@@ -67,11 +67,7 @@ class BaseMerger:
 
             settings = get_settings()
             self.cache_manager = CacheManager(redis_nodes=settings.redis.nodes)
-            try:
-                await self.cache_manager.connect()
-            except Exception as e:
-                logger.error(f"Failed to connect to cache manager: {e}")
-                # Continue without Redis if connection fails
+            # The redis client is initialized in the constructor, no need to connect.
 
         logger.info("Merger components initialized")
 

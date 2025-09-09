@@ -1,16 +1,17 @@
 """Main entry point for StreamlineVPN with web interface."""
 
-import sys
 import os
+import sys
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).parent / "src"))
 
 from streamline_vpn.utils.logging import get_logger
-from streamline_vpn.web.static_server import EnhancedStaticServer
 from streamline_vpn.web.settings import Settings
+from streamline_vpn.web.static_server import EnhancedStaticServer
 
 logger = get_logger(__name__)
+
 
 def main() -> None:
     """Run the enhanced StreamlineVPN web interface."""
@@ -25,7 +26,7 @@ def main() -> None:
     server = EnhancedStaticServer(settings=settings)
 
     # Add API base configuration
-    server.app.state.api_base = f"http://{host}:{api_port}"
+    server.app.state.api_base = f"http://localhost:{api_port}"
 
     @server.app.middleware("http")
     async def add_security_headers(request, call_next):  # noqa: ANN001
@@ -37,12 +38,14 @@ def main() -> None:
             "max-age=31536000; includeSubDomains"
         )
         api_host = f"{host}:{api_port}"
+        localhost_api_host = f"localhost:{api_port}"
         response.headers["Content-Security-Policy"] = (
             "default-src 'self'; "
             "script-src 'self' 'unsafe-inline' cdn.jsdelivr.net cdn.tailwindcss.com; "
             "style-src 'self' 'unsafe-inline' cdn.jsdelivr.net fonts.googleapis.com; "
             "font-src 'self' data: fonts.gstatic.com; "
-            f"connect-src 'self' http://{api_host} ws://{api_host} wss://{api_host}; "
+            f"connect-src 'self' http://{api_host} ws://{api_host} wss://{api_host} "
+            f"http://{localhost_api_host} ws://{localhost_api_host} wss://{localhost_api_host}; "
             "img-src 'self' data:; "
             "object-src 'none'; frame-ancestors 'none';"
         )
@@ -74,6 +77,7 @@ def main() -> None:
         ssl_keyfile=ssl_keyfile,
         ssl_certfile=ssl_certfile,
     )
+
 
 if __name__ == "__main__":
     try:
