@@ -174,7 +174,29 @@ def create_app():
             "message": "Job completed"
         }
     
-    return app
+    class _AppWrapper:
+        """Lightweight wrapper exposing the FastAPI app.
+
+        Some parts of the codebase (and tests) expect an object with a
+        ``get_app`` method returning the actual :class:`FastAPI` instance,
+        while other parts use the object directly as an ASGI application.  This
+        wrapper satisfies both behaviours by delegating attribute access and
+        calls to the underlying app.
+        """
+
+        def __init__(self, inner: FastAPI):
+            self._inner = inner
+
+        def get_app(self) -> FastAPI:
+            return self._inner
+
+        def __getattr__(self, item):
+            return getattr(self._inner, item)
+
+        async def __call__(self, scope, receive, send):  # pragma: no cover - ASGI pass-through
+            await self._inner(scope, receive, send)
+
+    return _AppWrapper(app)
 
 
 __all__ = [
