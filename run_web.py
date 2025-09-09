@@ -1,16 +1,17 @@
 """Main entry point for StreamlineVPN with web interface."""
 
-import sys
 import os
+import sys
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).parent / "src"))
 
 from streamline_vpn.utils.logging import get_logger
-from streamline_vpn.web.static_server import EnhancedStaticServer
 from streamline_vpn.web.settings import Settings
+from streamline_vpn.web.static_server import EnhancedStaticServer
 
 logger = get_logger(__name__)
+
 
 def main() -> None:
     """Run the enhanced StreamlineVPN web interface."""
@@ -25,7 +26,7 @@ def main() -> None:
     server = EnhancedStaticServer(settings=settings)
 
     # Add API base configuration
-    server.app.state.api_base = f"http://{host}:{api_port}"
+    server.app.state.api_base = f"http://localhost:{api_port}"
 
     @server.app.middleware("http")
     async def add_security_headers(request, call_next):  # noqa: ANN001
@@ -76,6 +77,7 @@ def main() -> None:
         ssl_keyfile=ssl_keyfile,
         ssl_certfile=ssl_certfile,
     )
+
 
 if __name__ == "__main__":
     try:
