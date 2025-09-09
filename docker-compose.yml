@@ -1,33 +1,26 @@
 version: '3.8'
 
 services:
-  # PostgreSQL Database
   postgres:
     image: postgres:15-alpine
-    container_name: streamline-postgres
     environment:
       POSTGRES_DB: streamline
       POSTGRES_USER: streamline
-      POSTGRES_PASSWORD: ${DB_PASSWORD:-streamline_secure_password}
+      POSTGRES_PASSWORD: streamline123
     ports:
       - "5432:5432"
     volumes:
       - postgres-data:/var/lib/postgresql/data
-      - ./scripts/init.sql:/docker-entrypoint-initdb.d/init.sql:ro
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U streamline"]
       interval: 10s
       timeout: 5s
       retries: 5
-    restart: unless-stopped
     networks:
       - streamline-network
 
-  # Redis Cache
   redis:
     image: redis:7-alpine
-    container_name: streamline-redis
-    command: redis-server --appendonly yes --maxmemory 256mb --maxmemory-policy allkeys-lru
     ports:
       - "6379:6379"
     volumes:
@@ -37,15 +30,11 @@ services:
       interval: 10s
       timeout: 5s
       retries: 5
-    restart: unless-stopped
     networks:
       - streamline-network
 
-  # API Server
   api:
-    build:
-      context: .
-      dockerfile: Dockerfile
+    build: .
     container_name: streamline-api
     command: python run_server.py
     ports:
@@ -53,38 +42,20 @@ services:
     environment:
       - HOST=0.0.0.0
       - API_PORT=8080
-      - WEB_PORT=8000
+      - DATABASE_URL=postgresql://streamline:streamline123@postgres:5432/streamline
       - REDIS_URL=redis://redis:6379/0
-      - DATABASE_URL=postgresql://streamline:${DB_PASSWORD:-streamline_secure_password}@postgres:5432/streamline
-      - JWT_SECRET_KEY=${JWT_SECRET_KEY:-your-secret-key-change-in-production}
-      - STREAMLINE_ENV=${STREAMLINE_ENV:-production}
-      - ALLOWED_ORIGINS=http://localhost:8000,http://localhost:8080,http://127.0.0.1:8000,http://127.0.0.1:8080
-      - LOG_LEVEL=${LOG_LEVEL:-INFO}
     volumes:
       - ./config:/app/config:ro
       - ./output:/app/output
-      - ./logs:/app/logs
       - ./src:/app/src:ro
-      - ./docs:/app/docs:ro
     depends_on:
-      postgres:
-        condition: service_healthy
-      redis:
-        condition: service_healthy
-    healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8080/health"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-    restart: unless-stopped
+      - postgres
+      - redis
     networks:
       - streamline-network
 
-  # Web Interface
   web:
-    build:
-      context: .
-      dockerfile: Dockerfile
+    build: .
     container_name: streamline-web
     command: python run_web.py
     ports:
@@ -92,43 +63,13 @@ services:
     environment:
       - HOST=0.0.0.0
       - WEB_PORT=8000
-      - API_PORT=8080
       - API_BASE=http://api:8080
-      - STATIC_DIR=docs
-      - UPDATE_INTERVAL=28800  # 8 hours
     volumes:
       - ./docs:/app/docs:ro
-      - ./output:/app/output:ro
-    depends_on:
-      api:
-        condition: service_healthy
-    healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8000/api/status"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-    restart: unless-stopped
-    networks:
-      - streamline-network
-
-  # Nginx Reverse Proxy (Optional - for production)
-  nginx:
-    image: nginx:alpine
-    container_name: streamline-nginx
-    ports:
-      - "80:80"
-      - "443:443"
-    volumes:
-      - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
-      - ./nginx/ssl:/etc/nginx/ssl:ro
     depends_on:
       - api
-      - web
-    restart: unless-stopped
     networks:
       - streamline-network
-    profiles:
-      - production
 
 volumes:
   postgres-data:
@@ -137,5 +78,3 @@ volumes:
 networks:
   streamline-network:
     driver: bridge
-
-

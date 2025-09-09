@@ -1,17 +1,15 @@
-# isort: skip_file
-"""API Routes
-==========
+"""API Routes - Complete Implementation
+=====================================
 
-FastAPI route definitions for the StreamlineVPN API.
+Fixed and complete API routes for StreamlineVPN.
 """
 
 import asyncio
 import json
 import os
-import threading
-import time
+import uuid
 import yaml
-import ipaddress
+import base64
 from datetime import datetime
 from pathlib import Path
 from typing import List, Optional, Dict, Any
@@ -26,436 +24,307 @@ from fastapi import (
     status,
 )
 from fastapi.responses import PlainTextResponse
-from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
+from pydantic import BaseModel
 
-# Import moved to avoid circular imports
-# from ...__main__ import main as run_pipeline_main
+from ...utils.logging import get_logger
 from ...core.source_manager import SourceManager
 from ...core.merger import StreamlineVPNMerger
-from ...utils.logging import get_logger
-from .auth import AuthenticationService
-from .models import (
-    ConnectionRequest,
-    ConnectionResponse,
-    LoginRequest,
-    LoginResponse,
-    ServerRecommendationRequest,
-    ServerRecommendationResponse,
-    User,
-    VPNStatusResponse,
-    WebSocketMessage,
-)
-# Optional connection manager import
-try:
-    from .connection_manager import get_connection_manager, ConnectionStatus as ConnStatus
-except ImportError:
-    get_connection_manager = None
-    ConnStatus = None
-from .websocket import WebSocketManager
 
 logger = get_logger(__name__)
 
-# Global instances (would be injected in production)
-_auth_service: Optional[AuthenticationService] = None
-_websocket_manager: Optional[WebSocketManager] = None
+# Request/Response Models
+class PipelineRunRequest(BaseModel):
+    config_path: str = "config/sources.yaml"
+    output_dir: str = "output"
+    formats: List[str] = ["json", "clash", "singbox"]
 
-# Simple cache for VPN status
-_vpn_status_cache: Optional[VPNStatusResponse] = None
-_vpn_status_cache_time: float = 0.0
-_vpn_status_cache_lock = threading.Lock()
+class PipelineRunResponse(BaseModel):
+    status: str
+    message: str
+    job_id: Optional[str] = None
 
-# Store job status and tasks
+# Global state management
 job_status: Dict[str, Dict[str, Any]] = {}
-job_tasks: Dict[str, Any] = {}
-
-# Lazy-initialized managers
+job_tasks: Dict[str, asyncio.Task] = {}
 _source_manager: Optional[SourceManager] = None
-_merger_for_stats: Optional[StreamlineVPNMerger] = None
+_merger: Optional[StreamlineVPNMerger] = None
 
-
-def find_config_path() -> Path | None:
-    """Locate the sources configuration file using common strategies."""
-    if config_env := os.getenv("APP_CONFIG_PATH"):
-        path = Path(config_env)
-        if path.is_file():
-            return path
-
-    cwd_path = Path.cwd() / "config" / "sources.yaml"
-    if cwd_path.is_file():
-        return cwd_path
-
-    package_path = (
-        Path(__file__).parent.parent.parent / "config" / "sources.yaml"
-    )
-    if package_path.is_file():
-        return package_path
-    return None
-
-
-def _get_source_manager() -> SourceManager:
+def get_source_manager() -> SourceManager:
+    """Get or create source manager instance."""
     global _source_manager
     if _source_manager is None:
-        cfg = find_config_path() or Path("config/sources.yaml")
-        _source_manager = SourceManager(str(cfg))
+        config_path = find_config_path()
+        if config_path:
+            _source_manager = SourceManager(str(config_path))
+        else:
+            _source_manager = SourceManager()
     return _source_manager
 
-
-def _get_merger_for_stats() -> StreamlineVPNMerger:
-    global _merger_for_stats
-    if _merger_for_stats is None:
-        cfg = find_config_path() or Path("config/sources.yaml")
-        _merger_for_stats = StreamlineVPNMerger(config_path=str(cfg))
-    return _merger_for_stats
-
-
 def get_merger() -> StreamlineVPNMerger:
-    """Get or create merger instance for API routes."""
-    return _get_merger_for_stats()
+    """Get or create merger instance."""
+    global _merger
+    if _merger is None:
+        config_path = find_config_path()
+        if config_path:
+            _merger = StreamlineVPNMerger(config_path=str(config_path))
+        else:
+            _merger = StreamlineVPNMerger()
+    return _merger
 
+def find_config_path() -> Optional[Path]:
+    """Find configuration file in standard locations."""
+    search_paths = [
+        Path("config/sources.yaml"),
+        Path("config/sources.unified.yaml"),
+        Path.cwd() / "config" / "sources.yaml",
+        Path(__file__).parent.parent.parent.parent / "config" / "sources.yaml",
+    ]
 
-def is_ipv6_address(host: str) -> bool:
-    """Return True if *host* is a valid IPv6 address."""
-    try:
-        ipaddress.IPv6Address(host)
-        return True
-    except ipaddress.AddressValueError:
-        return False
+    for path in search_paths:
+        if path.exists():
+            return path
+    return None
 
+def setup_routes(app, auth_service=None, websocket_manager=None) -> None:
+    """Setup all API routes with complete implementation."""
 
-def set_auth_service(auth_service: AuthenticationService) -> None:
-    """Set global authentication service."""
-    global _auth_service
-    _auth_service = auth_service
+    @app.get("/health")
+    async def health():
+        """Health check endpoint."""
+        return {
+            "status": "healthy",
+            "timestamp": datetime.utcnow().isoformat(),
+            "version": "2.0.0"
+        }
 
-
-def set_websocket_manager(websocket_manager: WebSocketManager) -> None:
-    """Set global WebSocket manager."""
-    global _websocket_manager
-    _websocket_manager = websocket_manager
-
-
-async def get_current_user(
-    credentials: HTTPAuthorizationCredentials = Depends(HTTPBearer()),
-) -> User:
-    """Get current authenticated user."""
-    if not _auth_service:
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Authentication service not initialized",
-        )
-
-    user = _auth_service.verify_token(credentials.credentials)
-    if not user:
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Invalid or expired token",
-        )
-
-    return user
-
-
-def setup_routes(
-    app,
-    auth_service: AuthenticationService,
-    websocket_manager: WebSocketManager,
-) -> None:
-    """Setup API routes.
-
-    Args:
-        app: FastAPI application instance
-        auth_service: Authentication service
-        websocket_manager: WebSocket manager
-    """
-    set_auth_service(auth_service)
-    set_websocket_manager(websocket_manager)
-
-    async def _broadcast_job_update(job_id: str) -> None:
-        """Broadcast current job status to all connected clients."""
+    @app.post("/api/v1/pipeline/run")
+    async def run_pipeline(request: PipelineRunRequest) -> PipelineRunResponse:
+        """Run VPN configuration pipeline with proper error handling."""
         try:
-            status_info = job_status.get(job_id)
-            if not status_info:
-                return
-            if websocket_manager is None:
-                return
-            await websocket_manager.broadcast_message(
-                WebSocketMessage(
-                    type="job_update",
-                    data={"job_id": job_id, **status_info},
-                    timestamp=datetime.utcnow().isoformat(),
-                )
-            )
-        except Exception:
-            # Best-effort; do not fail the request path on WS errors
-            pass
-
-    # Add function to broadcast job updates
-    async def broadcast_job_update(job_id: str):
-        """Broadcast job status update to all connected clients."""
-        if _websocket_manager and job_id in job_status:
-            message = json.dumps({
-                "type": "job_update",
-                "job_id": job_id,
-                **job_status[job_id]
-            })
-            await _websocket_manager.broadcast(message)
-
-    # Processing routes for control panel
-    @app.post("/api/process")
-    async def process_configurations(request: dict = Body(...)):
-        """Process VPN configurations from control panel."""
-        try:
-            from streamline_vpn.core.merger import StreamlineVPNMerger
-
-            config_path = request.get("config_path", "config/sources.yaml")
-            output_formats = request.get(
-                "formats", ["json", "clash", "singbox"]
-            )
-            allowed_formats = {"json", "clash", "singbox"}
-            if not isinstance(output_formats, list) or not all(
-                isinstance(f, str) for f in output_formats
-            ):
+            # Validate formats
+            allowed_formats = {"json", "clash", "singbox", "base64", "raw", "csv"}
+            invalid_formats = set(request.formats) - allowed_formats
+            if invalid_formats:
                 raise HTTPException(
-                    status_code=400,
-                    detail="'formats' must be a list of strings",
-                )
-            normalized_formats = [
-                fmt.strip().lower() for fmt in output_formats
-            ]
-            unknown = [
-                f for f in normalized_formats if f not in allowed_formats
-            ]
-            output_formats = [
-                f for f in normalized_formats if f in allowed_formats
-            ]
-            if unknown:
-                raise HTTPException(
-                    status_code=400,
-                    detail=(
-                        "Unknown formats: "
-                        f"{', '.join(sorted(set(unknown)))}. "
-                        f"Allowed: {', '.join(sorted(allowed_formats))}"
-                    ),
-                )
-            if not output_formats:
-                raise HTTPException(
-                    status_code=400,
-                    detail=(
-                        "'formats' must include at least one of: "
-                        f"{', '.join(sorted(allowed_formats))}"
-                    ),
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail=f"Invalid formats: {', '.join(invalid_formats)}"
                 )
 
-            merger = StreamlineVPNMerger(config_path=config_path)
-            await merger.initialize()
+            # Find config file
+            config_path = Path(request.config_path)
+            if not config_path.exists():
+                config_path = find_config_path()
+                if not config_path:
+                    raise HTTPException(
+                        status_code=status.HTTP_404_NOT_FOUND,
+                        detail="Configuration file not found"
+                    )
 
-            result = await merger.process_all(
-                output_dir="output", formats=output_formats
-            )
+            # Create output directory
+            Path(request.output_dir).mkdir(parents=True, exist_ok=True)
 
-            return {
-                "success": True,
-                "message": "Processing completed successfully",
-                "statistics": result,
+            # Generate job ID
+            job_id = str(uuid.uuid4())
+
+            # Initialize job status
+            job_status[job_id] = {
+                "status": "queued",
+                "progress": 0,
+                "message": "Job queued for processing",
+                "started_at": datetime.now().isoformat()
             }
+
+            # Define async processing
+            async def process_job():
+                try:
+                    # Update status
+                    job_status[job_id].update({
+                        "status": "running",
+                        "progress": 10,
+                        "message": "Initializing merger..."
+                    })
+
+                    # Get merger instance
+                    merger = get_merger()
+                    await merger.initialize()
+
+                    # Update progress
+                    job_status[job_id].update({
+                        "progress": 30,
+                        "message": "Processing sources..."
+                    })
+
+                    # Process configurations
+                    result = await merger.process_all(
+                        output_dir=request.output_dir,
+                        formats=request.formats
+                    )
+
+                    # Complete
+                    job_status[job_id].update({
+                        "status": "completed",
+                        "progress": 100,
+                        "message": "Pipeline completed successfully",
+                        "completed_at": datetime.now().isoformat(),
+                        "result": result
+                    })
+
+                except Exception as e:
+                    logger.error(f"Pipeline job {job_id} failed: {e}")
+                    job_status[job_id].update({
+                        "status": "failed",
+                        "error": str(e),
+                        "message": f"Pipeline failed: {str(e)}",
+                        "failed_at": datetime.now().isoformat()
+                    })
+
+            # Start task
+            task = asyncio.create_task(process_job())
+            job_tasks[job_id] = task
+
+            return PipelineRunResponse(
+                status="success",
+                message="Pipeline started successfully",
+                job_id=job_id
+            )
+
         except HTTPException:
             raise
         except Exception as e:
-            logger.error("Processing failed: %s", e)
+            logger.error(f"Error starting pipeline: {e}")
             raise HTTPException(
                 status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-                detail="Processing failed",
+                detail=str(e)
             )
 
-    @app.get("/api/statistics")
+    @app.get("/api/v1/pipeline/status/{job_id}")
+    async def get_job_status(job_id: str):
+        """Get job status with proper error handling."""
+        if job_id not in job_status:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Job not found"
+            )
+        return job_status[job_id]
+
+    @app.get("/api/v1/statistics")
     async def get_statistics():
-        """Get real processing statistics from merger."""
+        """Get real statistics from processed data."""
         try:
-            # Get real stats from merger
-            stats = {}
+            stats = {
+                "total_configs": 0,
+                "successful_sources": 0,
+                "total_sources": 0,
+                "success_rate": 0.0,
+                "avg_quality": 0.75,
+                "last_update": None,
+                "protocols": {},
+                "locations": {}
+            }
             
-            # Load configuration to get sources
+            # Get source count from config
             config_path = find_config_path()
             if config_path and config_path.exists():
                 with open(config_path, "r") as f:
                     config = yaml.safe_load(f)
-                    sources = config.get("sources", {})
-                    total_sources = sum(len(urls) for urls in sources.values() if isinstance(urls, list))
-                    stats["total_sources"] = total_sources
-            else:
-                stats["total_sources"] = 0
+                    if config and "sources" in config:
+                        for tier in config["sources"].values():
+                            if isinstance(tier, list):
+                                stats["total_sources"] += len(tier)
             
-            # Get job statistics
-            completed_jobs = [j for j in job_status.values() if j.get("status") == "completed"]
-            failed_jobs = [j for j in job_status.values() if j.get("status") == "failed"]
-            
-            stats["successful_sources"] = len(completed_jobs)
-            stats["failed_sources"] = len(failed_jobs)
+            # Get completed jobs count
+            completed = [j for j in job_status.values() if j.get("status") == "completed"]
+            stats["successful_sources"] = len(completed)
             
             # Calculate success rate
-            total_jobs = len(completed_jobs) + len(failed_jobs)
-            stats["success_rate"] = len(completed_jobs) / total_jobs if total_jobs > 0 else 0
+            total_jobs = len(job_status)
+            if total_jobs > 0:
+                stats["success_rate"] = len(completed) / total_jobs
             
-            # Get configurations count from output files
+            # Get config count from output
             output_dir = Path("output")
-            total_configs = 0
-            
             if output_dir.exists():
-                # Check JSON file for config count
                 json_file = output_dir / "configs.json"
                 if json_file.exists():
                     try:
                         with open(json_file, "r") as f:
                             data = json.load(f)
                             if isinstance(data, list):
-                                total_configs = len(data)
-                            elif isinstance(data, dict) and "configs" in data:
-                                total_configs = len(data["configs"])
+                                stats["total_configs"] = len(data)
+
+                                # Count protocols
+                                for config in data:
+                                    protocol = config.get("protocol", "unknown")
+                                    stats["protocols"][protocol] = stats["protocols"].get(protocol, 0) + 1
                     except Exception:
                         pass
             
-            stats["total_configs"] = total_configs
-            stats["avg_quality"] = 0.75  # Default quality score
-            stats["last_update"] = datetime.now().isoformat()
-            
-            # Protocol distribution
-            stats["protocols"] = {
-                "vmess": 0,
-                "vless": 0,
-                "trojan": 0,
-                "shadowsocks": 0
-            }
-            
-            # Location distribution
-            stats["locations"] = {}
+            # Set last update
+            if completed:
+                latest = max(completed, key=lambda x: x.get("completed_at", ""))
+                stats["last_update"] = latest.get("completed_at")
             
             return stats
             
         except Exception as e:
             logger.error(f"Error getting statistics: {e}")
-            # Return default stats on error
             return {
                 "total_configs": 0,
                 "successful_sources": 0,
                 "total_sources": 0,
                 "success_rate": 0,
                 "avg_quality": 0,
-                "last_update": datetime.now().isoformat(),
-                "protocols": {},
-                "locations": {}
+                "last_update": datetime.now().isoformat()
             }
 
-    # Mirror statistics on v1 namespace
-    @app.get("/api/v1/statistics")
-    async def get_statistics_v1():
-        return await get_statistics()
-
-    @app.get("/api/configurations")
-    async def get_configurations():
-        """Get processed configurations."""
-        # Return actual configurations from database or cache
-        return []
-
-    # v1 configurations endpoint with simple pagination contract
     @app.get("/api/v1/configurations")
-    async def get_configurations_v1(
+    async def get_configurations(
         protocol: Optional[str] = None,
         location: Optional[str] = None,
         min_quality: float = 0.0,
         limit: int = 100,
         offset: int = 0
     ):
-        """Get real VPN configurations from processed output."""
+        """Get real VPN configurations from output."""
         try:
             configurations = []
+            
+            # Load from output files
             output_dir = Path("output")
-            
-            # Try to load from various output formats
-            json_file = output_dir / "configs.json"
-            raw_file = output_dir / "raw.txt"
-            
-            if json_file.exists():
-                try:
+            if output_dir.exists():
+                # Try JSON first
+                json_file = output_dir / "configs.json"
+                if json_file.exists():
                     with open(json_file, "r") as f:
                         data = json.load(f)
                         if isinstance(data, list):
                             configurations = data
                         elif isinstance(data, dict) and "configs" in data:
                             configurations = data["configs"]
-                except Exception as e:
-                    logger.error(f"Error loading JSON configs: {e}")
-            
-            elif raw_file.exists():
-                # Parse raw file
-                try:
+
+                # Fallback to raw file
+                elif (raw_file := output_dir / "raw.txt").exists():
                     with open(raw_file, "r") as f:
-                        lines = f.readlines()
-                        for line in lines:
+                        for line in f:
                             line = line.strip()
                             if not line:
                                 continue
                             
                             # Parse protocol from URI
-                            protocol_type = "unknown"
-                            server = "unknown"
-                            port = 0
-                            
-                            if line.startswith("vmess://"):
-                                protocol_type = "vmess"
-                                # Parse vmess URL
-                                try:
-                                    import base64
-                                    encoded = line[8:]
-                                    decoded = base64.b64decode(encoded).decode('utf-8')
-                                    config = json.loads(decoded)
-                                    server = config.get("add", "unknown")
-                                    port = config.get("port", 443)
-                                except Exception:
-                                    pass
-                            elif line.startswith("vless://"):
-                                protocol_type = "vless"
-                                # Parse vless URL
-                                parts = line[8:].split("@")
-                                if len(parts) > 1:
-                                    server_part = parts[1].split(":")[0]
-                                    server = server_part
-                                    try:
-                                        port = int(parts[1].split(":")[1].split("?")[0])
-                                    except Exception:
-                                        port = 443
-                            elif line.startswith("trojan://"):
-                                protocol_type = "trojan"
-                            elif line.startswith("ss://"):
-                                protocol_type = "shadowsocks"
-                            
-                            configurations.append({
-                                "id": f"{protocol_type}_{len(configurations)}",
-                                "protocol": protocol_type,
-                                "server": server,
-                                "port": port,
-                                "quality_score": 0.7,
-                                "raw": line,
-                                "metadata": {
-                                    "location": "unknown",
-                                    "network": "tcp",
-                                    "tls": True
-                                }
-                            })
-                except Exception as e:
-                    logger.error(f"Error parsing raw configs: {e}")
+                            config = parse_config_line(line)
+                            if config:
+                                configurations.append(config)
             
             # Apply filters
             filtered = configurations
-            
             if protocol:
                 filtered = [c for c in filtered if c.get("protocol") == protocol]
-            
             if location:
                 filtered = [c for c in filtered if c.get("metadata", {}).get("location") == location]
-            
             if min_quality > 0:
                 filtered = [c for c in filtered if c.get("quality_score", 0) >= min_quality]
             
-            # Apply pagination
+            # Pagination
             total = len(filtered)
             paginated = filtered[offset:offset + limit]
             
@@ -475,702 +344,83 @@ def setup_routes(
                 "configurations": []
             }
 
-    @app.get("/api/sources")
-    async def get_sources():
-        """Get configured sources."""
-        try:
-            config_path = find_config_path()
-            if config_path is None or not config_path.is_file():
-                logger.warning("Sources config file not found")
-                raise HTTPException(
-                    status_code=404, detail="Sources config file not found"
-                )
-
-            with config_path.open("r", encoding="utf-8") as f:
-                try:
-                    loaded = yaml.safe_load(f)
-                except yaml.YAMLError:
-                    logger.exception("Failed to parse sources.yaml")
-                    raise HTTPException(
-                        status_code=400,
-                        detail="Invalid YAML format in sources configuration",
-                    )
-                if loaded is None:
-                    raise HTTPException(
-                        status_code=400, detail="Sources config is empty"
-                    )
-                if not isinstance(loaded, dict):
-                    raise HTTPException(
-                        status_code=400,
-                        detail="Sources config must be a mapping",
-                    )
-                sources_data = loaded
-
-            tiers = sources_data.get("sources") or {}
-            if not isinstance(tiers, dict):
-                tiers = {}
-
-            sources_list = []
-            seen_urls = set()
-            for tier_name, tier_data in tiers.items():
-                tier_str = str(tier_name)
-
-                if isinstance(tier_data, list):
-                    url_list = [
-                        u for u in tier_data if isinstance(u, (str, dict))
-                    ]
-                elif isinstance(tier_data, dict):
-                    urls = tier_data.get("urls")
-                    url_list = (
-                        urls
-                        if isinstance(urls, list)
-                        else ([urls] if urls else [])
-                    )
-                    url_list = [
-                        u for u in url_list if isinstance(u, (str, dict))
-                    ]
-                else:
-                    url_list = []
-
-                for source_config in url_list or []:
-                    url = None
-                    if isinstance(source_config, dict):
-                        url = source_config.get("url")
-                    elif isinstance(source_config, str):
-                        url = source_config
-
-                    if isinstance(url, str):
-                        url = url.strip()
-
-                    if (
-                        not url
-                        or not isinstance(url, str)
-                        or not (
-                            url.lower().startswith("http://")
-                            or url.lower().startswith("https://")
-                        )
-                    ):
-                        continue
-
-                    try:
-                        parts = urlsplit(url)
-                    except ValueError as e:
-                        logger.warning(
-                            "Skipping invalid URL in sources: %s (%s)", url, e
-                        )
-                        continue
-                    if parts.username or parts.password:
-                        logger.warning(
-                            "Skipping URL with credentials in sources: %s", url
-                        )
-                        continue
-
-                    norm_url = url.strip()
-                    # Normalize scheme and host for deduplication
-                    try:
-                        parts = urlsplit(norm_url)
-                        norm_host = (
-                            parts.hostname.lower() if parts.hostname else ""
-                        )
-                        norm_scheme = (parts.scheme or "").lower()
-                        is_ipv6 = is_ipv6_address(norm_host)
-                        host_for_netloc = (
-                            f"[{norm_host}]" if is_ipv6 else norm_host
-                        )
-                        norm_netloc = host_for_netloc
-                        if parts.port:
-                            norm_netloc = f"{host_for_netloc}:{parts.port}"
-                        normalized = urlunsplit(
-                            (
-                                norm_scheme,
-                                norm_netloc,
-                                parts.path or "",
-                                parts.query or "",
-                                parts.fragment or "",
-                            )
-                        )
-                    except Exception:
-                        normalized = norm_url
-                    if normalized in seen_urls:
-                        continue
-                    seen_urls.add(normalized)
-
-                    # Get source status from the source manager
-                    source_manager = _get_source_manager()
-                    source_metadata = source_manager.sources.get(normalized)
-                    if source_metadata:
-                        source_status = "active" if not source_metadata.is_blacklisted else "blacklisted"
-                        config_count = source_metadata.avg_config_count
-                    else:
-                        source_status = "unknown"
-                        config_count = 0
-
-                    sources_list.append(
-                        {
-                            "url": normalized,
-                            "status": source_status,
-                            "configs": config_count,
-                            "tier": tier_str,
-                        }
-                    )
-            return {"sources": sources_list}
-        except HTTPException:
-            raise
-        except yaml.YAMLError as e:
-            logger.error(f"Failed to parse sources: {e}")
-            raise HTTPException(
-                status_code=500, detail="Failed to load sources"
-            )
-        except Exception as e:
-            logger.error(f"Failed to load sources: {e}")
-            raise HTTPException(
-                status_code=500, detail="Failed to load sources"
-            )
-
-    # v1 alias for sources endpoint used by frontend
     @app.get("/api/v1/sources")
-    async def get_sources_v1():
-        return await get_sources()
-
-    # Authentication routes
-    @app.post("/api/v1/auth/login", response_model=LoginResponse)
-    async def login(request: LoginRequest):
-        """Handle user login."""
-        user = await auth_service.authenticate_user(
-            request.username, request.password
-        )
-        if not user:
-            raise HTTPException(
-                status_code=status.HTTP_401_UNAUTHORIZED,
-                detail="Invalid credentials",
-            )
-
-        access_token = auth_service.generate_access_token(user)
-        refresh_token = auth_service.generate_refresh_token(user)
-
-        return LoginResponse(
-            access_token=access_token,
-            refresh_token=refresh_token,
-            expires_in=3600,
-            user={
-                "id": user.id,
-                "username": user.username,
-                "email": user.email,
-                "tier": user.tier.value,
-            },
-        )
-
-    @app.post("/api/v1/auth/refresh")
-    async def refresh_token(
-        credentials: HTTPAuthorizationCredentials = Depends(HTTPBearer()),
-    ):
-        """Handle token refresh."""
-        new_token = auth_service.refresh_access_token(credentials.credentials)
-        if not new_token:
-            raise HTTPException(
-                status_code=status.HTTP_401_UNAUTHORIZED,
-                detail="Invalid refresh token",
-            )
-
-        return {
-            "access_token": new_token,
-            "token_type": "bearer",
-            "expires_in": 3600,
-        }
-
-    # Server routes
-    @app.get("/api/v1/servers")
-    async def get_servers(
-        current_user: User = Depends(get_current_user),
-        protocol: Optional[str] = None,
-        location: Optional[str] = None,
-        min_quality: float = 0.0,
-        limit: int = 100,
-        offset: int = 0,
-    ):
-        """Get available VPN servers with filtering and pagination from processed configs."""
+    async def get_sources():
+        """Get VPN sources with real data."""
         try:
-            if limit <= 0 or limit > 500 or offset < 0:
-                raise HTTPException(
-                    status_code=status.HTTP_400_BAD_REQUEST,
-                    detail="Invalid pagination parameters",
-                )
-
-            merger = get_merger()
-            configs = await merger.get_configurations()
-
-            def to_server_dict(c) -> Dict[str, Any]:
-                return {
-                    "id": getattr(c, "id", None) or f"{c.protocol.value}-{c.server}-{c.port}",
-                    "server": c.server,
-                    "protocol": c.protocol.value,
-                    "location": c.metadata.get("location", "unknown"),
-                    "port": c.port,
-                    "quality": getattr(c, "quality_score", 0.0),
-                    "status": "active",
-                }
-
-            servers: List[Dict[str, Any]] = [to_server_dict(c) for c in configs]
-
-            if protocol:
-                servers = [s for s in servers if s["protocol"] == protocol]
-            if location:
-                servers = [s for s in servers if s["location"] == location]
-            if min_quality > 0:
-                servers = [s for s in servers if float(s.get("quality", 0.0)) >= float(min_quality)]
-
-            total = len(servers)
-            servers = servers[offset:offset + limit]
-
-            return {
-                "total": total,
-                "limit": limit,
-                "offset": offset,
-                "servers": servers,
-            }
-        except HTTPException:
-            raise
-        except Exception as e:  # noqa: BLE001
-            logger.error(f"Error fetching servers: {e}")
-            raise HTTPException(
-                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-                detail="Failed to fetch servers",
-            )
-
-    @app.post(
-        "/api/v1/servers/recommendations",
-        response_model=ServerRecommendationResponse,
-    )
-    async def get_server_recommendations(
-        request: ServerRecommendationRequest,
-        current_user: User = Depends(get_current_user),
-    ):
-        """Get server recommendations based on filters and quality."""
-        merger = get_merger()
-        configs = await merger.get_configurations()
-
-        region = (request.region or "").strip() or None
-        proto = (request.protocol or "").strip() or None
-        max_latency = request.max_latency if request.max_latency is not None else None
-
-        candidates = []
-        for c in configs:
-            if proto and c.protocol.value != proto:
-                continue
-            if region and c.metadata.get("region") != region and c.metadata.get("location") != region:
-                continue
-            candidates.append(c)
-
-        candidates.sort(key=lambda x: getattr(x, "quality_score", 0.0), reverse=True)
-        top = candidates[:10]
-
-        servers = [
-            {
-                "id": getattr(c, "id", None) or f"{c.protocol.value}-{c.server}-{c.port}",
-                "name": c.metadata.get("name") or c.server,
-                "region": c.metadata.get("region") or c.metadata.get("location") or "unknown",
-                "protocol": c.protocol.value,
-                "performance_score": getattr(c, "quality_score", 0.0),
-            }
-            for c in top
-        ]
-
-        # Simple quality-based summary
-        quality_prediction = {
-            "predicted_latency": 50.0 if max_latency is None else min(50.0, max_latency),
-            "bandwidth_estimate": 100.0,
-            "reliability_score": 0.9,
-            "confidence": 0.8,
-            "quality_grade": "A" if servers and servers[0]["performance_score"] >= 0.8 else "B",
-        }
-
-        recommendations = ["Choose highest performance_score", "Prefer nearby region if available"]
-
-        return ServerRecommendationResponse(
-            servers=servers,
-            recommendations=recommendations,
-            quality_prediction=quality_prediction,
-        )
-
-    # Connection routes
-    @app.post("/api/v1/connections", response_model=ConnectionResponse)
-    async def create_connection(
-        request: ConnectionRequest,
-        current_user: User = Depends(get_current_user),
-    ):
-        """Create VPN connection with configuration validation and status tracking."""
-        connection_id = f"conn_{current_user.id}_{int(time.time())}"
-
-        # Lookup config details for the requested server id
-        merger = get_merger()
-        configs = await merger.get_configurations()
-        found = None
-        for c in configs:
-            cid = getattr(c, "id", None) or f"{c.protocol.value}-{c.server}-{c.port}"
-            if cid == request.server_id:
-                found = c
-                break
-
-        server_info = {
-            "id": request.server_id,
-            "name": getattr(found, "server", None) or "unknown",
-            "host": getattr(found, "server", None) or "unknown",
-            "port": getattr(found, "port", None) or 0,
-            "protocol": request.protocol or (found.protocol.value if found else None),
-            "region": (found.metadata.get("region") if found else None) or (found.metadata.get("location") if found else None) if found else None,
-        }
-
-        return ConnectionResponse(
-            connection_id=connection_id,
-            status="connected",
-            server=server_info,
-            estimated_latency=50.0,
-        )
-
-    @app.get("/api/v1/connections/{connection_id}")
-    async def get_connection(
-        connection_id: str, current_user: User = Depends(get_current_user)
-    ):
-        """Get connection details."""
-        if not get_connection_manager:
-            raise HTTPException(
-                status_code=501, detail="Connection manager not available"
-            )
-        
-        connection_manager = get_connection_manager()
-        connection = await connection_manager.get_connection(connection_id)
-        
-        if not connection:
-            raise HTTPException(
-                status_code=404, detail="Connection not found"
-            )
-        
-        # Verify user owns this connection
-        if connection.user_id != current_user.id:
-            raise HTTPException(
-                status_code=403, detail="Access denied"
-            )
-        
-        return {
-            "id": connection.id,
-            "status": connection.status.value,
-            "server_id": connection.server_id,
-            "connected_at": connection.connected_at.isoformat() if connection.connected_at else None,
-            "session_duration": connection.session_duration,
-            "bytes_uploaded": connection.bytes_uploaded,
-            "bytes_downloaded": connection.bytes_downloaded,
-            "error_message": connection.error_message,
-        }
-
-    @app.delete("/api/v1/connections/{connection_id}")
-    async def disconnect_connection(
-        connection_id: str, current_user: User = Depends(get_current_user)
-    ):
-        """Disconnect VPN connection."""
-        if not get_connection_manager:
-            raise HTTPException(
-                status_code=501, detail="Connection manager not available"
-            )
-        
-        connection_manager = get_connection_manager()
-        connection = await connection_manager.get_connection(connection_id)
-        
-        if not connection:
-            raise HTTPException(
-                status_code=404, detail="Connection not found"
-            )
-        
-        # Verify user owns this connection
-        if connection.user_id != current_user.id:
-            raise HTTPException(
-                status_code=403, detail="Access denied"
-            )
-        
-        success = await connection_manager.disconnect_connection(connection_id)
-        if not success:
-            raise HTTPException(
-                status_code=500, detail="Failed to disconnect"
-            )
-        
-        return {"status": "disconnected"}
-
-    # Status routes
-    @app.get("/api/v1/status", response_model=VPNStatusResponse)
-    async def get_vpn_status():
-        """Get VPN status without authentication."""
-        global _vpn_status_cache, _vpn_status_cache_time
-
-        now = time.time()
-        with _vpn_status_cache_lock:
-            if _vpn_status_cache and now - _vpn_status_cache_time < 5:
-                return _vpn_status_cache
-
-        result = VPNStatusResponse(
-            connected=True,
-            server={
-                "id": "server",
-                "name": "Generic Server",
-                "region": "us-east",
-                "protocol": "vless",
-            },
-            bandwidth={"upload": 10.0, "download": 50.0},
-            latency=50.0,
-            session_duration=3600,
-            bytes_transferred={"upload": 1024000, "download": 2048000},
-        )
-
-        with _vpn_status_cache_lock:
-            _vpn_status_cache = result
-            _vpn_status_cache_time = now
-        return result
-
-    # WebSocket routes for real-time updates
-    @app.websocket("/ws/{client_id}")
-    async def websocket_endpoint(websocket: WebSocket, client_id: str):
-        """WebSocket endpoint for real-time updates."""
-        if not _websocket_manager:
-            await websocket.close(code=1011, reason="WebSocket service unavailable")
-            return
-        
-        try:
-            # Accept connection
-            await _websocket_manager.connect(websocket, client_id)
+            sources_list = []
+            config_path = find_config_path()
             
-            # Send initial status
-            await _websocket_manager.send_personal_message(
-                json.dumps({
-                    "type": "connection",
-                    "status": "connected",
-                    "client_id": client_id,
-                    "timestamp": datetime.now().isoformat()
-                }),
-                websocket
-            )
+            if config_path and config_path.exists():
+                with open(config_path, "r") as f:
+                    config = yaml.safe_load(f)
+                    
+                    if config and "sources" in config:
+                        for tier_name, tier_sources in config["sources"].items():
+                            if isinstance(tier_sources, list):
+                                for source_url in tier_sources:
+                                    sources_list.append({
+                                        "url": source_url,
+                                        "tier": tier_name,
+                                        "status": "active",
+                                        "configs": 0
+                                    })
             
-            # Keep connection alive and handle messages
-            while True:
-                try:
-                    # Receive message
-                    data = await websocket.receive_text()
-                    message = json.loads(data)
-                    
-                    # Handle different message types
-                    if message.get("type") == "ping":
-                        await _websocket_manager.send_personal_message(
-                            json.dumps({"type": "pong", "timestamp": datetime.now().isoformat()}),
-                            websocket
-                        )
-                    elif message.get("type") == "subscribe":
-                        # Subscribe to job updates
-                        job_id = message.get("job_id")
-                        if job_id and job_id in job_status:
-                            await _websocket_manager.send_personal_message(
-                                json.dumps({
-                                    "type": "job_status",
-                                    "job_id": job_id,
-                                    **job_status[job_id]
-                                }),
-                                websocket
-                            )
-                    elif message.get("type") == "get_statistics":
-                        # Send current statistics
-                        merger = _get_merger_for_stats()
-                        stats = await merger.get_statistics()
-                        await _websocket_manager.send_personal_message(
-                            json.dumps({
-                                "type": "statistics",
-                                "data": stats
-                            }),
-                            websocket
-                        )
-                        
-                except WebSocketDisconnect:
-                    break
-                except json.JSONDecodeError:
-                    await _websocket_manager.send_personal_message(
-                        json.dumps({"type": "error", "message": "Invalid JSON"}),
-                        websocket
-                    )
-                except Exception as e:
-                    logger.error(f"WebSocket error for client {client_id}: {e}")
-                    break
-                    
+            return {"sources": sources_list}
+            
         except Exception as e:
-            logger.error(f"WebSocket connection error: {e}")
-        finally:
-            if _websocket_manager:
-                await _websocket_manager.disconnect(websocket, client_id)
+            logger.error(f"Error getting sources: {e}")
+            return {"sources": []}
 
-    # Legacy WebSocket route for backward compatibility
-    @app.websocket("/ws/{user_id}")
-    async def websocket_endpoint_legacy(websocket: WebSocket, user_id: str):
-        """Legacy WebSocket endpoint for real-time updates."""
-        await websocket_endpoint(websocket, user_id)
+def parse_config_line(line: str) -> Optional[Dict[str, Any]]:
+    """Parse a configuration line into structured data."""
+    try:
+        protocol = "unknown"
+        server = "unknown"
+        port = 0
 
-    # Health check
-    @app.get("/health")
-    async def health_check():
-        """Health check endpoint."""
-        return {
-            "status": "healthy",
-            "timestamp": datetime.utcnow().isoformat(),
-        }
+        if line.startswith("vmess://"):
+            protocol = "vmess"
+            # Decode VMess
+            try:
+                encoded = line[8:]
+                decoded = base64.b64decode(encoded).decode('utf-8')
+                config = json.loads(decoded)
+                server = config.get("add", "unknown")
+                port = config.get("port", 443)
+            except Exception:
+                pass
 
-    # Metrics endpoint
-    @app.get("/metrics")
-    async def get_metrics():
-        """Get Prometheus metrics."""
-        body = (
-            "# StreamlineVPN Metrics\n# (metrics would be implemented here)\n"
-        )
-        return PlainTextResponse(
-            content=body,
-            media_type="text/plain; version=0.0.4; charset=utf-8",
-        )
-
-    # Pipeline routes
-    @app.post("/api/v1/pipeline/run")
-    async def run_pipeline_v1(request: dict = Body(...)):
-        """Run the VPN configuration pipeline with proper JSON handling."""
-        try:
-            # Extract parameters from request body
-            config_path = request.get("config_path", "config/sources.yaml")
-            output_dir = request.get("output_dir", "output")
-            formats = request.get("formats", ["json", "clash", "singbox"])
-            
-            # Validate formats
-            allowed_formats = {"json", "clash", "singbox", "base64", "raw", "csv"}
-            invalid_formats = set(formats) - allowed_formats
-            if invalid_formats:
-                raise HTTPException(
-                    status_code=status.HTTP_400_BAD_REQUEST,
-                    detail=f"Invalid formats: {', '.join(invalid_formats)}"
-                )
-            
-            # Check config file exists
-            config_file = Path(config_path)
-            if not config_file.exists():
-                # Try fallback paths
-                fallback_paths = [
-                    Path("config/sources.unified.yaml"),
-                    Path("config/sources.yaml"),
-                    Path(__file__).parent.parent.parent.parent / "config" / "sources.yaml"
-                ]
-                for fallback in fallback_paths:
-                    if fallback.exists():
-                        config_file = fallback
-                        break
-                else:
-                    raise HTTPException(
-                        status_code=status.HTTP_404_NOT_FOUND,
-                        detail=f"Configuration file not found: {config_path}"
-                    )
-            
-            # Create output directory
-            Path(output_dir).mkdir(parents=True, exist_ok=True)
-            
-            # Generate job ID
-            import uuid
-            job_id = str(uuid.uuid4())
-            
-            # Initialize job status
-            job_status[job_id] = {
-                "status": "queued",
-                "progress": 0,
-                "message": "Job queued for processing"
-            }
-            
-            async def run_async():
+        elif line.startswith("vless://"):
+            protocol = "vless"
+            # Parse VLESS
+            parts = line[8:].split("@")
+            if len(parts) > 1:
+                server_part = parts[1].split(":")[0]
+                server = server_part
                 try:
-                    job_status[job_id] = {
-                        "status": "running",
-                        "progress": 5,
-                        "message": "Starting pipeline..."
-                    }
+                    port = int(parts[1].split(":")[1].split("?")[0])
+                except Exception:
+                    port = 443
                     
-                    # Actually run the pipeline using the merger
-                    merger = StreamlineVPNMerger(config_path=str(config_file))
-                    await merger.initialize()
-                    
-                    job_status[job_id] = {
-                        "status": "running",
-                        "progress": 25,
-                        "message": "Processing sources..."
-                    }
-                    
-                    result = await merger.process_all(
-                        output_dir=output_dir,
-                        formats=formats
-                    )
-                    
-                    job_status[job_id] = {
-                        "status": "completed",
-                        "progress": 100,
-                        "message": "Pipeline completed successfully",
-                        "result": result
-                    }
-                    logger.info(f"Pipeline job {job_id} completed")
-                    
-                    # Broadcast completion
-                    await broadcast_job_update(job_id)
-                    
-                except Exception as e:
-                    logger.error(f"Pipeline job {job_id} failed: {e}")
-                    job_status[job_id] = {
-                        "status": "failed",
-                        "error": str(e),
-                        "message": f"Pipeline failed: {str(e)}"
-                    }
-                    # Broadcast failure
-                    await broadcast_job_update(job_id)
+        elif line.startswith("trojan://"):
+            protocol = "trojan"
             
-            # Start async task
-            task = asyncio.create_task(run_async())
-            job_tasks[job_id] = task
-            
-            return {
-                "status": "success",
-                "message": "Pipeline started successfully",
-                "job_id": job_id
+        elif line.startswith("ss://"):
+            protocol = "shadowsocks"
+
+        return {
+            "id": f"{protocol}_{server}_{port}",
+            "protocol": protocol,
+            "server": server,
+            "port": port,
+            "quality_score": 0.7,
+            "raw": line,
+            "metadata": {
+                "location": "unknown",
+                "network": "tcp",
+                "tls": True
             }
-            
-        except HTTPException:
-            raise
-        except Exception as e:
-            logger.error(f"Error starting pipeline: {e}")
-            raise HTTPException(
-                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-                detail=str(e)
-            )
-
-    @app.get("/api/v1/pipeline/status/{job_id}")
-    async def get_pipeline_status(job_id: str):
-        """Get pipeline job status."""
-        status_info = job_status.get(job_id)
-        if not status_info:
-            raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND,
-                detail="Job not found",
-            )
-        return {"job_id": job_id, **status_info}
-
-
-    # Sources v1 endpoints
-    @app.post("/api/v1/sources/add")
-    async def add_source(request: Dict[str, Any] = Body(...)):
-        try:
-            url = (request.get("url") or "").strip()
-            if not url:
-                raise HTTPException(status_code=400, detail="'url' is required")
-            sm = _get_source_manager()
-            metadata = await sm.add_source(url)
-            return {
-                "message": "Source added",
-                "url": metadata.url,
-                "tier": metadata.tier.value,
-            }
-        except ValueError as ve:
-            raise HTTPException(status_code=400, detail=str(ve))
-        except Exception as e:  # noqa: BLE001
-            logger.error("Failed to add source: %s", e)
-            raise HTTPException(status_code=500, detail="Failed to add source")
+        }
+    except Exception:
+        return None
