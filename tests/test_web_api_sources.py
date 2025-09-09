@@ -1,61 +1,67 @@
-import importlib.util
-from pathlib import Path
-from types import SimpleNamespace
-from unittest.mock import patch
-
+from unittest.mock import AsyncMock
 import pytest
 from fastapi.testclient import TestClient
 
-spec = importlib.util.spec_from_file_location(
-    "streamline_vpn.web.api_app",
-    Path(__file__).resolve().parents[1] / "src/streamline_vpn/web/api.py",
-)
-api_module = importlib.util.module_from_spec(spec)
-import sys
-sys.modules[spec.name] = api_module
-spec.loader.exec_module(api_module)
-create_app = api_module.create_app
+from streamline_vpn.web.api import create_app, get_merger
+from streamline_vpn.core.merger import StreamlineVPNMerger
 
 
 class DummySourceManager:
+    """A mock source manager for testing purposes."""
     def __init__(self):
         self.sources = set()
 
     async def add_source(self, url: str):
-        if not url.startswith("http"):
-            raise ValueError("Invalid or unsafe source URL")
+        if "invalid" in url:
+            raise ValueError("Invalid URL")
         if url in self.sources:
             raise ValueError("Source already exists")
         self.sources.add(url)
 
 
 @pytest.fixture
-def client():
+def client_with_mock_merger():
+    """Fixture to provide a test client with a mocked merger."""
     app = create_app()
-    merger = SimpleNamespace(source_manager=DummySourceManager())
-    with patch.object(api_module, "get_merger", return_value=merger):
-        with TestClient(app) as c:
-            yield c, merger
+
+    mock_merger = AsyncMock(spec=StreamlineVPNMerger)
+    mock_merger.source_manager = DummySourceManager()
+
+    async def override_get_merger():
+        return mock_merger
+
+    app.dependency_overrides[get_merger] = override_get_merger
+
+    with TestClient(app) as c:
+        yield c, mock_merger
 
 
-def test_add_source_success(client):
-    c, merger = client
-    resp = c.post("/api/v1/sources/add", json={"url": "https://example.com"})
-    assert resp.status_code == 200
-    assert resp.json()["status"] == "success"
+def test_add_source_success(client_with_mock_merger):
+    """Test successfully adding a new source."""
+    client, merger = client_with_mock_merger
+    response = client.post("/api/v1/sources", json={"url": "https://example.com"})
+
+    assert response.status_code == 201
+    assert response.json()["status"] == "success"
     assert "https://example.com" in merger.source_manager.sources
 
 
-def test_add_source_duplicate(client):
-    c, merger = client
+def test_add_source_duplicate(client_with_mock_merger):
+    """Test that adding a duplicate source returns a 400 error."""
+    client, merger = client_with_mock_merger
     merger.source_manager.sources.add("https://dup.com")
-    resp = c.post("/api/v1/sources/add", json={"url": "https://dup.com"})
-    assert resp.status_code == 400
-    assert "already exists" in resp.json()["detail"]
+
+    response = client.post("/api/v1/sources", json={"url": "https://dup.com"})
+
+    assert response.status_code == 400
+    assert "already exists" in response.json()["detail"]
 
 
-def test_add_source_invalid_url(client):
-    c, _ = client
-    resp = c.post("/api/v1/sources/add", json={"url": "not-a-url"})
-    assert resp.status_code == 400
-    assert "Invalid" in resp.json()["detail"]
+def test_add_source_invalid_url(client_with_mock_merger):
+    """Test that adding an invalid URL returns a 400 error."""
+    client, _ = client_with_mock_merger
+
+    response = client.post("/api/v1/sources", json={"url": "invalid-url"})
+
+    assert response.status_code == 400
+    assert "Invalid URL" in response.json()["detail"]

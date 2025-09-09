@@ -7,560 +7,119 @@
     <script src="/api-base.js"></script>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
-    <style>
-        :root {
-            --primary: #6366f1;
-            --primary-dark: #4f46e5;
-            --secondary: #8b5cf6;
-            --success: #10b981;
-            --warning: #f59e0b;
-            --danger: #ef4444;
-            --dark: #1e293b;
-            --darker: #0f172a;
-        }
-
-        * {
-            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
-        }
-
-        body {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            min-height: 100vh;
-            position: relative;
-        }
-        
-        .glass {
-            background: rgba(255, 255, 255, 0.1);
-            backdrop-filter: blur(10px);
-            border: 1px solid rgba(255, 255, 255, 0.2);
-        }
-        
-        .glass-dark {
-            background: rgba(15, 23, 42, 0.8);
-            backdrop-filter: blur(10px);
-            border: 1px solid rgba(255, 255, 255, 0.1);
-        }
-
-        .status-dot {
-            width: 8px;
-            height: 8px;
-            border-radius: 50%;
-            display: inline-block;
-            animation: pulse 2s infinite;
-        }
-
-        .status-active { background: #10b981; }
-        .status-inactive { background: #ef4444; }
-
-        @keyframes pulse {
-            0%, 100% { opacity: 1; }
-            50% { opacity: 0.5; }
-        }
-        
-        .terminal {
-            background: #0f172a;
-            color: #10b981;
-            font-family: 'Monaco', 'Courier New', monospace;
-            padding: 1rem;
-            border-radius: 0.5rem;
-            height: 400px;
-            overflow-y: auto;
-        }
-        
-        .tab-content {
-            display: none;
-        }
-        
-        .tab-content.active {
-            display: block;
-            animation: fadeIn 0.3s ease-out;
-        }
-        
-        @keyframes fadeIn {
-            from { opacity: 0; }
-            to { opacity: 1; }
-        }
-        
-        .loader {
-            border: 2px solid rgba(255, 255, 255, 0.2);
-            border-top: 2px solid white;
-            border-radius: 50%;
-            width: 20px;
-            height: 20px;
-            animation: spin 1s linear infinite;
-        }
-        
-        @keyframes spin {
-            0% { transform: rotate(0deg); }
-            100% { transform: rotate(360deg); }
-        }
-    </style>
+    <link rel="stylesheet" href="/assets/css/style.css">
 </head>
-<body class="text-white">
+<body class="bg-darker text-light">
     <div class="container mx-auto px-4 py-8 max-w-7xl">
         <!-- Header -->
-        <div class="text-center mb-8">
-            <h1 class="text-5xl font-bold mb-4">StreamlineVPN Control Center</h1>
-            <p class="text-xl opacity-80">Enterprise VPN Configuration Management</p>
-        </div>
+        <header class="flex items-center justify-between mb-12">
+            <div class="flex items-center space-x-4">
+                <img src="/assets/logo.svg" alt="StreamlineVPN Logo" class="h-10 w-10">
+                <h1 class="text-2xl font-bold">StreamlineVPN</h1>
+            </div>
+            <div class="text-sm text-gray">Status: <span class="text-success">Operational</span></div>
+        </header>
 
         <!-- Stats -->
-        <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
-            <div class="glass rounded-xl p-6">
-                <div class="text-sm opacity-70 mb-2">Total Configs</div>
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-10">
+            <div class="glass p-6">
+                <div class="text-sm text-gray mb-2">Total Configs</div>
                 <div id="totalConfigs" class="text-3xl font-bold">0</div>
             </div>
-            <div class="glass rounded-xl p-6">
-                <div class="text-sm opacity-70 mb-2">Active Sources</div>
+            <div class="glass p-6">
+                <div class="text-sm text-gray mb-2">Active Sources</div>
                 <div id="activeSources" class="text-3xl font-bold">0</div>
             </div>
-            <div class="glass rounded-xl p-6">
-                <div class="text-sm opacity-70 mb-2">Success Rate</div>
+            <div class="glass p-6">
+                <div class="text-sm text-gray mb-2">Success Rate</div>
                 <div id="successRate" class="text-3xl font-bold">0%</div>
             </div>
-            <div class="glass rounded-xl p-6">
-                <div class="text-sm opacity-70 mb-2">Avg Quality</div>
+            <div class="glass p-6">
+                <div class="text-sm text-gray mb-2">Avg Quality</div>
                 <div id="avgQuality" class="text-3xl font-bold">0.0</div>
             </div>
         </div>
 
         <!-- Tabs -->
-        <div class="glass rounded-xl p-2 mb-8">
-            <div class="flex gap-2" role="tablist" aria-label="Sections" id="tablist">
-                <button id="tab-dashboard" role="tab" aria-controls="dashboard-tab" aria-selected="true" tabindex="0" onclick="switchTab('dashboard', this)" class="tab-btn px-4 py-2 rounded-lg hover:bg-white/20 bg-white/20" type="button">Dashboard</button>
-                <button id="tab-process" role="tab" aria-controls="process-tab" aria-selected="false" tabindex="-1" onclick="switchTab('process', this)" class="tab-btn px-4 py-2 rounded-lg hover:bg-white/20" type="button">Process</button>
-                <button id="tab-configs" role="tab" aria-controls="configs-tab" aria-selected="false" tabindex="-1" onclick="switchTab('configs', this)" class="tab-btn px-4 py-2 rounded-lg hover:bg-white/20" type="button">Configurations</button>
-                <button id="tab-sources" role="tab" aria-controls="sources-tab" aria-selected="false" tabindex="-1" onclick="switchTab('sources', this)" class="tab-btn px-4 py-2 rounded-lg hover:bg-white/20" type="button">Sources</button>
-                <button id="tab-terminal" role="tab" aria-controls="terminal-tab" aria-selected="false" tabindex="-1" onclick="switchTab('terminal', this)" class="tab-btn px-4 py-2 rounded-lg hover:bg-white/20" type="button">Terminal</button>
+        <div class="mb-8">
+            <div class="border-b border-gray-700">
+                <nav class="-mb-px flex space-x-8" aria-label="Tabs" id="tablist">
+                    <button data-tab="dashboard" class="tab-btn whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm">Dashboard</button>
+                    <button data-tab="process" class="tab-btn whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm">Process</button>
+                    <button data-tab="configs" class="tab-btn whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm">Configurations</button>
+                    <button data-tab="sources" class="tab-btn whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm">Sources</button>
+                    <button data-tab="terminal" class="tab-btn whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm">Terminal</button>
+                </nav>
             </div>
         </div>
 
         <!-- Tab Content -->
-        <div class="glass-dark rounded-xl p-8">
+        <div class="glass-dark p-8">
             <!-- Dashboard Tab -->
-            <div id="dashboard-tab" class="tab-content active" role="tabpanel" aria-labelledby="tab-dashboard" tabindex="0">
+            <div id="dashboard-tab" class="tab-content" role="tabpanel">
                 <h2 class="text-2xl font-bold mb-6">System Overview</h2>
-                <canvas id="chart" height="100"></canvas>
+                <div class="h-96">
+                    <canvas id="chart"></canvas>
+                </div>
             </div>
 
             <!-- Process Tab -->
-            <div id="process-tab" class="tab-content" role="tabpanel" aria-labelledby="tab-process" tabindex="0">
+            <div id="process-tab" class="tab-content" role="tabpanel">
                 <h2 class="text-2xl font-bold mb-6">Process Configurations</h2>
                 
-                <div class="space-y-4">
+                <div class="space-y-6 max-w-lg mx-auto">
                     <div>
-                        <label class="block text-sm mb-2">Configuration Path</label>
+                        <label for="configPath" class="block text-sm font-medium text-gray mb-2">Configuration Path</label>
                         <input type="text" id="configPath" value="config/sources.yaml"
-                               class="w-full px-4 py-2 rounded-lg bg-white/10 border border-white/20">
+                               class="w-full px-4 py-2 rounded-lg bg-dark border border-gray-700 focus:ring-primary focus:border-primary transition">
                     </div>
                     
                     <div>
-                        <label class="block text-sm mb-2">Output Formats</label>
-                        <div class="flex gap-4">
-                            <label><input type="checkbox" class="format-cb" value="json" checked> JSON</label>
-                            <label><input type="checkbox" class="format-cb" value="clash" checked> Clash</label>
-                            <label><input type="checkbox" class="format-cb" value="singbox" checked> Singbox</label>
-                            <label><input type="checkbox" class="format-cb" value="base64"> Base64</label>
+                        <label class="block text-sm font-medium text-gray mb-2">Output Formats</label>
+                        <div class="grid grid-cols-2 gap-4">
+                            <label class="flex items-center space-x-3"><input type="checkbox" class="format-cb h-4 w-4 rounded bg-dark border-gray-600 text-primary focus:ring-primary" value="json" checked> <span>JSON</span></label>
+                            <label class="flex items-center space-x-3"><input type="checkbox" class="format-cb h-4 w-4 rounded bg-dark border-gray-600 text-primary focus:ring-primary" value="clash" checked> <span>Clash</span></label>
+                            <label class="flex items-center space-x-3"><input type="checkbox" class="format-cb h-4 w-4 rounded bg-dark border-gray-600 text-primary focus:ring-primary" value="singbox" checked> <span>Singbox</span></label>
+                            <label class="flex items-center space-x-3"><input type="checkbox" class="format-cb h-4 w-4 rounded bg-dark border-gray-600 text-primary focus:ring-primary" value="base64"> <span>Base64</span></label>
                         </div>
                     </div>
                     
-                    <button onclick="startProcessing()" class="w-full py-3 bg-gradient-to-r from-purple-500 to-pink-500 rounded-lg font-semibold" type="button" aria-label="Start processing configurations">
+                    <button id="startProcessingBtn" class="w-full py-3 bg-primary hover:bg-primary-dark rounded-lg font-semibold transition-all duration-300" type="button" aria-label="Start processing configurations">
                         Start Processing
                     </button>
                     
                     <div id="progressBar" class="hidden" aria-live="polite">
-                        <div class="w-full bg-white/10 rounded-full h-4">
-                            <div id="progressFill" class="bg-gradient-to-r from-blue-500 to-purple-500 h-full rounded-full transition-all" style="width: 0%"></div>
+                        <div class="w-full bg-dark rounded-full h-2.5">
+                            <div id="progressFill" class="bg-gradient-to-r from-primary to-success h-full rounded-full transition-all" style="width: 0%"></div>
                         </div>
-                        <div id="progressText" class="text-sm mt-2" aria-live="polite"></div>
+                        <div id="progressText" class="text-sm mt-2 text-gray" aria-live="polite"></div>
                     </div>
                 </div>
             </div>
 
             <!-- Configurations Tab -->
-            <div id="configs-tab" class="tab-content" role="tabpanel" aria-labelledby="tab-configs" tabindex="0">
-                <h2 class="text-2xl font-bold mb-6">Configurations</h2>
-                <div id="configsList" class="space-y-2"></div>
+            <div id="configs-tab" class="tab-content" role="tabpanel">
+                <h2 class="text-2xl font-bold mb-6">Available Configurations</h2>
+                <div id="configsList" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4"></div>
             </div>
 
             <!-- Sources Tab -->
-            <div id="sources-tab" class="tab-content" role="tabpanel" aria-labelledby="tab-sources" tabindex="0">
+            <div id="sources-tab" class="tab-content" role="tabpanel">
                 <h2 class="text-2xl font-bold mb-6">VPN Sources</h2>
-                <div id="sourcesList" class="space-y-2"></div>
+                <div id="sourcesList" class="space-y-4"></div>
             </div>
 
             <!-- Terminal Tab -->
-            <div id="terminal-tab" class="tab-content" role="tabpanel" aria-labelledby="tab-terminal" tabindex="0">
-                <h2 class="text-2xl font-bold mb-6">Terminal</h2>
+            <div id="terminal-tab" class="tab-content" role="tabpanel">
+                <h2 class="text-2xl font-bold mb-6">Logs</h2>
                 <div class="terminal" id="terminal" role="log" aria-live="polite" aria-atomic="false">
-                    <div>StreamlineVPN Terminal v2.0</div>
-                    <div>Ready...</div>
+                    <div class="text-success">StreamlineVPN Terminal v2.0 :: Ready</div>
                 </div>
             </div>
         </div>
     </div>
 
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <script>
-        // API Configuration
-        const API_BASE = (() => {
-            // Prefer value injected by the static server if present
-            const injected = window.__API_BASE__;
-            if (typeof injected === 'string' && injected.startsWith('http')) return injected;
-            const hostname = window.location.hostname;
-            if (hostname === 'localhost' || hostname === '127.0.0.1') {
-                return `http://${hostname}:8080`;
-            }
-            return `${window.location.protocol}//${window.location.host}`;
-        })();
-        
-        console.log('API Base:', API_BASE);
-
-        // Global state
-        let chart = null;
-        let currentTab = 'dashboard';
-        
-        // Initialize
-        document.addEventListener('DOMContentLoaded', () => {
-            initChart();
-            loadStatistics();
-            setInterval(loadStatistics, 5000);
-        });
-        
-        // Tab switching
-        function switchTab(tab, btnEl) {
-            document.querySelectorAll('.tab-content').forEach(el => {
-                el.classList.remove('active');
-                el.setAttribute('hidden', '');
-            });
-            document.getElementById(`${tab}-tab`).classList.add('active');
-            document.getElementById(`${tab}-tab`).removeAttribute('hidden');
-            
-            document.querySelectorAll('.tab-btn').forEach(btn => {
-                btn.classList.remove('bg-white/20');
-                btn.setAttribute('aria-selected', 'false');
-                btn.setAttribute('tabindex', '-1');
-            });
-            if (btnEl) {
-                btnEl.classList.add('bg-white/20');
-                btnEl.setAttribute('aria-selected', 'true');
-                btnEl.setAttribute('tabindex', '0');
-                btnEl.focus();
-            }
-            
-            currentTab = tab;
-
-            if (tab === 'configs') loadConfigurations();
-            if (tab === 'sources') loadSources();
-        }
-
-        // Keyboard navigation for tabs (left/right arrows)
-        document.getElementById('tablist').addEventListener('keydown', (e) => {
-            const tabs = Array.from(document.querySelectorAll('#tablist [role="tab"]'));
-            const currentIndex = tabs.findIndex(t => t.getAttribute('aria-selected') === 'true');
-            if (e.key === 'ArrowRight' || e.key === 'ArrowLeft') {
-                e.preventDefault();
-                let nextIndex = currentIndex;
-                if (e.key === 'ArrowRight') nextIndex = (currentIndex + 1) % tabs.length;
-                if (e.key === 'ArrowLeft') nextIndex = (currentIndex - 1 + tabs.length) % tabs.length;
-                const nextTab = tabs[nextIndex];
-                const tabId = nextTab.id.replace('tab-', '');
-                switchTab(tabId, nextTab);
-            }
-        });
-        
-        // Initialize chart
-        function initChart() {
-            const ctx = document.getElementById('chart').getContext('2d');
-            chart = new Chart(ctx, {
-                type: 'line',
-                data: {
-                    labels: [],
-                    datasets: [{
-                        label: 'Configurations',
-                        data: [],
-                        borderColor: 'rgb(99, 102, 241)',
-                        backgroundColor: 'rgba(99, 102, 241, 0.1)',
-                        tension: 0.4
-                    }]
-                },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    plugins: {
-                        legend: {
-                            labels: { color: 'white' }
-                        }
-                    },
-                    scales: {
-                        x: {
-                            ticks: { color: 'white' },
-                            grid: { color: 'rgba(255,255,255,0.1)' }
-                        },
-                        y: {
-                            ticks: { color: 'white' },
-                            grid: { color: 'rgba(255,255,255,0.1)' }
-                        }
-                    }
-                }
-            });
-        }
-        
-        // Load statistics
-        async function loadStatistics() {
-            try {
-                const response = await fetch(`${API_BASE}/api/v1/statistics`);
-                const contentType = response.headers.get('content-type') || '';
-                if (!response.ok || !contentType.includes('application/json')) {
-                    const text = await response.text();
-                    throw new Error(`HTTP ${response.status}: ${text.substring(0, 100)}`);
-                }
-                const stats = await response.json();
-                
-                document.getElementById('totalConfigs').textContent = stats.total_configs || 0;
-                document.getElementById('activeSources').textContent = stats.total_sources || 0;
-                document.getElementById('successRate').textContent = Math.round((stats.success_rate || 0) * 100) + '%';
-                document.getElementById('avgQuality').textContent = (stats.avg_quality || 0).toFixed(2);
-
-                // Update chart
-                if (chart) {
-                    const time = new Date().toLocaleTimeString();
-                    chart.data.labels.push(time);
-                    chart.data.datasets[0].data.push(stats.total_configs || 0);
-
-                    if (chart.data.labels.length > 10) {
-                        chart.data.labels.shift();
-                        chart.data.datasets[0].data.shift();
-                    }
-
-                    chart.update();
-                }
-            } catch (error) {
-                console.error('Failed to load statistics:', error);
-            }
-        }
-        
-        // Load configurations
-        async function loadConfigurations() {
-            try {
-                const response = await fetch(`${API_BASE}/api/v1/configurations?limit=50`);
-                const contentType = response.headers.get('content-type') || '';
-                if (!response.ok || !contentType.includes('application/json')) {
-                    const text = await response.text();
-                    throw new Error(`HTTP ${response.status}: ${text.substring(0, 100)}`);
-                }
-                const data = await response.json();
-
-                const container = document.getElementById('configsList');
-                container.innerHTML = '';
-
-                if (data.configurations && data.configurations.length > 0) {
-                    data.configurations.forEach(config => {
-                        const div = document.createElement('div');
-                        div.className = 'glass rounded-lg p-4';
-                        div.innerHTML = `
-                            <div class="flex justify-between">
-                                <div>
-                                    <span class="font-semibold">${config.protocol}</span>
-                                    <span class="text-sm opacity-70 ml-2">${config.server}:${config.port}</span>
-                                </div>
-                                <div>
-                                    <span class="text-sm">Quality: ${(config.quality_score * 100).toFixed(0)}%</span>
-                                </div>
-                            </div>
-                        `;
-                        container.appendChild(div);
-                    });
-                } else {
-                    container.innerHTML = '<div class="text-center opacity-70">No configurations available</div>';
-                }
-            } catch (error) {
-                console.error('Failed to load configurations:', error);
-            }
-        }
-
-        // Load sources
-        async function loadSources() {
-            try {
-                const response = await fetch(`${API_BASE}/api/v1/sources`);
-                const contentType = response.headers.get('content-type') || '';
-                if (!response.ok || !contentType.includes('application/json')) {
-                    const text = await response.text();
-                    throw new Error(`HTTP ${response.status}: ${text.substring(0, 100)}`);
-                }
-                const data = await response.json();
-
-                const container = document.getElementById('sourcesList');
-                container.innerHTML = '';
-
-                if (data.sources && data.sources.length > 0) {
-                    data.sources.forEach(source => {
-                        // Build a concise display name without showing full root
-                        let displayName = source.url || '';
-                        try {
-                            const u = new URL(displayName);
-                            const parts = u.pathname.split('/').filter(Boolean);
-                            const tail = parts.slice(-2).join('/');
-                            displayName = tail ? `${u.hostname}/…/${tail}` : u.hostname;
-                        } catch (e) {
-                            // Fallback: truncate
-                            if (displayName.length > 40) {
-                                displayName = `…${displayName.slice(-40)}`;
-                            }
-                        }
-
-                        const successRate = typeof source.success_rate === 'number'
-                            ? Math.round(source.success_rate * 100)
-                            : undefined;
-                        const configs = source.configs ?? source.avg_config_count ?? 0;
-
-                        const div = document.createElement('div');
-                        div.className = 'glass rounded-lg p-4';
-                        div.innerHTML = `
-                            <div class="flex justify-between items-center">
-                                <div>
-                                    <div class="font-semibold">${displayName}</div>
-                                    <div class="text-sm opacity-70 flex gap-4">
-                                        <span>Configs: ${configs}</span>
-                                        ${successRate !== undefined ? `<span>Success: ${successRate}%</span>` : ''}
-                                    </div>
-                                </div>
-                                <div>
-                                    <span class="status-dot ${source.status === 'active' ? 'status-active' : 'status-inactive'}"></span>
-                                    <span class="text-sm ml-2">${source.status}</span>
-                                </div>
-                            </div>
-                        `;
-                        container.appendChild(div);
-                    });
-                } else {
-                    container.innerHTML = '<div class="text-center opacity-70">No sources configured</div>';
-                }
-            } catch (error) {
-                console.error('Failed to load sources:', error);
-            }
-        }
-        
-        // Start processing
-        async function startProcessing() {
-            const configPath = document.getElementById('configPath').value;
-            const formats = Array.from(document.querySelectorAll('.format-cb:checked')).map(cb => cb.value);
-            
-            if (formats.length === 0) {
-                alert('Please select at least one output format');
-                return;
-            }
-
-            // Show progress
-            document.getElementById('progressBar').classList.remove('hidden');
-            updateProgress(0, 'Starting...');
-
-            // Disable start button
-            const startBtn = document.querySelector('#process-tab button');
-            const prevText = startBtn.textContent;
-            startBtn.disabled = true;
-            startBtn.textContent = 'Processing...';
-
-            try {
-                const response = await fetch(`${API_BASE}/api/v1/pipeline/run`, {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify({
-                        config_path: configPath,
-                        output_dir: 'output',
-                        formats: formats
-                    })
-                });
-
-                const contentType = response.headers.get('content-type') || '';
-                if (!response.ok || !contentType.includes('application/json')) {
-                    const text = await response.text();
-                    throw new Error(`HTTP ${response.status}: ${text.substring(0, 100)}`);
-                }
-                const result = await response.json();
-
-                if (result.status === 'success' && result.job_id) {
-                    // Monitor job progress
-                    monitorJob(result.job_id, () => {
-                        // On complete
-                        loadStatistics();
-                        loadConfigurations();
-                        startBtn.disabled = false;
-                        startBtn.textContent = prevText;
-                    }, (errMsg) => {
-                        // On fail
-                        startBtn.disabled = false;
-                        startBtn.textContent = prevText;
-                    });
-                } else {
-                    throw new Error(result.message || 'Failed to start processing');
-                }
-            } catch (error) {
-                console.error('Processing error:', error);
-                addTerminalLine(`Error: ${error.message}`, 'error');
-                updateProgress(0, 'Failed');
-                startBtn.disabled = false;
-                startBtn.textContent = prevText;
-            }
-        }
-        
-        // Monitor job progress
-        async function monitorJob(jobId, onComplete, onFail) {
-            const checkInterval = setInterval(async () => {
-                try {
-                    const response = await fetch(`${API_BASE}/api/v1/pipeline/status/${jobId}`);
-                    const contentType = response.headers.get('content-type') || '';
-                    if (!response.ok || !contentType.includes('application/json')) {
-                        const text = await response.text();
-                        throw new Error(`HTTP ${response.status}: ${text.substring(0, 100)}`);
-                    }
-                    const status = await response.json();
-                    
-                    updateProgress(status.progress || 0, status.message || 'Processing...');
-                    addTerminalLine(`[${jobId.substr(0, 8)}] ${status.message}`);
-                    
-                    if (status.status === 'completed') {
-                        clearInterval(checkInterval);
-                        updateProgress(100, 'Completed!');
-                        addTerminalLine('✅ Processing completed successfully', 'success');
-                        if (onComplete) onComplete();
-                    } else if (status.status === 'failed') {
-                        clearInterval(checkInterval);
-                        updateProgress(0, 'Failed');
-                        addTerminalLine(`❌ Processing failed: ${status.error}`, 'error');
-                        if (onFail) onFail(status.error);
-                    }
-                } catch (error) {
-                    clearInterval(checkInterval);
-                    console.error('Job monitoring error:', error);
-                    addTerminalLine(`Error: ${error.message}`, 'error');
-                    if (onFail) onFail(error.message);
-                }
-            }, 2000);
-        }
-        
-        // Update progress bar
-        function updateProgress(percent, message) {
-            document.getElementById('progressFill').style.width = `${percent}%`;
-            document.getElementById('progressText').textContent = message;
-        }
-        
-        // Add terminal line
-        function addTerminalLine(text, type = 'info') {
-            const terminal = document.getElementById('terminal');
-            const line = document.createElement('div');
-            
-            const timestamp = new Date().toLocaleTimeString();
-            line.textContent = `[${timestamp}] ${text}`;
-            
-            if (type === 'error') line.style.color = '#ef4444';
-            if (type === 'success') line.style.color = '#10b981';
-            
-            terminal.appendChild(line);
-            terminal.scrollTop = terminal.scrollHeight;
-        }
-    </script>
+    <script src="/assets/js/app.js"></script>
 </body>
 </html>
