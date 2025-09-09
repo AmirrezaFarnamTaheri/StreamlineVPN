@@ -74,7 +74,7 @@ sources:
         # Test FastAPI app creation
         app = create_app()
         assert app is not None
-        assert app.get_app().title == "StreamlineVPN API"
+        assert app.title == "StreamlineVPN API"
 
         # Test GraphQL app creation (if available)
         if create_graphql_app is not None:

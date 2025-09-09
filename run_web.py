@@ -37,12 +37,14 @@ def main() -> None:
             "max-age=31536000; includeSubDomains"
         )
         api_host = f"{host}:{api_port}"
+        localhost_api_host = f"localhost:{api_port}"
         response.headers["Content-Security-Policy"] = (
             "default-src 'self'; "
             "script-src 'self' 'unsafe-inline' cdn.jsdelivr.net cdn.tailwindcss.com; "
             "style-src 'self' 'unsafe-inline' cdn.jsdelivr.net fonts.googleapis.com; "
             "font-src 'self' data: fonts.gstatic.com; "
-            f"connect-src 'self' http://{api_host} ws://{api_host} wss://{api_host}; "
+            f"connect-src 'self' http://{api_host} ws://{api_host} wss://{api_host} "
+            f"http://{localhost_api_host} ws://{localhost_api_host} wss://{localhost_api_host}; "
             "img-src 'self' data:; "
             "object-src 'none'; frame-ancestors 'none';"
         )

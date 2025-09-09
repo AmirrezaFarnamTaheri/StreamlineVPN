@@ -11,7 +11,7 @@ class Settings(BaseSettings):
     HOST: str = "0.0.0.0"
     PORT: int = 8000
     STATIC_DIR: str = "docs"
-    API_BASE: str = "http://localhost:8080"
+    API_BASE: str = "http://0.0.0.0:8080"
     UPDATE_INTERVAL: int = 28800  # 8 hours in seconds
 
     # CORS settings for static server

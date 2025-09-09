@@ -9,7 +9,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from ..utils.logging import get_logger
-from .api import create_api_server
+# from .api import create_api_server
 
 logger = get_logger(__name__)
 
@@ -46,8 +46,8 @@ class IntegratedWebServer:
         )
 
         # Include API routes
-        api_app = create_api_server()
-        app.mount("/api", api_app)
+        # api_app = create_api_server()
+        # app.mount("/api", api_app)
 
         # Include GraphQL routes (if available)
         try:

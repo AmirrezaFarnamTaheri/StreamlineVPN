@@ -326,8 +326,8 @@ class EnhancedStaticServer:
                 timeout=30.0
             )
             
-            if response.status_code != 200:
-                logger.error(f"Failed to start pipeline: {response.status_code}")
+            if response.status_code != 202:
+                logger.error(f"Failed to start pipeline: {response.status_code} {response.text}")
                 return
             
             result = response.json()

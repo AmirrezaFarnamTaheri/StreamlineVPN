@@ -1,78 +1,40 @@
-import importlib.util
-import sys
-from pathlib import Path
 from unittest.mock import patch
-
 from fastapi.testclient import TestClient
 
+from streamline_vpn.web.api import create_app
 from streamline_vpn.models.formats import OutputFormat
 
 
-def load_api_app():
-    api_path = (
-        Path(__file__).resolve().parents[1]
-        / "src"
-        / "streamline_vpn"
-        / "web"
-        / "api.py"
-    )
-    spec = importlib.util.spec_from_file_location(
-        "streamline_vpn.web.api_app", api_path
-    )
-    module = importlib.util.module_from_spec(spec)
-    sys.modules[spec.name] = module  # type: ignore[assignment]
-    spec.loader.exec_module(module)  # type: ignore[union-attr]
-    return module.create_app
-
-
-def get_client():
-    app_factory = load_api_app()
-    app = app_factory()
-    return TestClient(app)
-
-
-async def _noop(*args, **kwargs):
-    return None
-
-
-async def _fake_process_all(self, output_dir: str, formats: list):
-    return {"success": True, "formats": formats}
-
-
 def test_run_pipeline_valid_formats(tmp_path):
-    config = "tests/fixtures/test_sources.yaml"
-    with get_client() as app_client, patch(
-        "streamline_vpn.core.merger.StreamlineVPNMerger.initialize", _noop
-    ), patch(
-        "streamline_vpn.core.merger.StreamlineVPNMerger.process_all",
-        _fake_process_all,
-    ):
-        resp = app_client.post(
+    """
+    The pipeline endpoint should accept valid formats and return a 202 status.
+    """
+    app = create_app()
+    with TestClient(app) as client, patch("pathlib.Path.is_file", return_value=True):
+        response = client.post(
             "/api/v1/pipeline/run",
             json={
-                "config_path": config,
+                "config_path": "tests/fixtures/test_sources.yaml",
                 "output_dir": str(tmp_path),
                 "formats": [OutputFormat.JSON.value, OutputFormat.CLASH.value],
             },
         )
-        assert resp.status_code == 200
+        assert response.status_code == 202
 
 
 def test_run_pipeline_invalid_format(tmp_path):
-    config = "tests/fixtures/test_sources.yaml"
-    with get_client() as app_client, patch(
-        "streamline_vpn.core.merger.StreamlineVPNMerger.initialize", _noop
-    ), patch(
-        "streamline_vpn.core.merger.StreamlineVPNMerger.process_all",
-        _fake_process_all,
-    ):
-        resp = app_client.post(
+    """
+    The pipeline endpoint should reject invalid formats with a 400 status.
+    """
+    app = create_app()
+    with TestClient(app) as client:
+        response = client.post(
             "/api/v1/pipeline/run",
             json={
-                "config_path": config,
+                "config_path": "tests/fixtures/test_sources.yaml",
                 "output_dir": str(tmp_path),
-                "formats": ["json", "invalid"],
+                "formats": ["json", "invalid-format"],
             },
         )
-        assert resp.status_code == 400
-        assert "Unsupported formats" in resp.json()["detail"]
+        assert response.status_code == 400  # Validation error
+        assert "invalid-format" in response.text

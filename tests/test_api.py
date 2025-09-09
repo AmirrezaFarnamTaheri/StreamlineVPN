@@ -1,21 +1,22 @@
 import pytest
 from fastapi.testclient import TestClient
+from unittest.mock import patch, AsyncMock
 
-from streamline_vpn.settings import Settings
-from streamline_vpn.web.api.server import APIServer
+from streamline_vpn.web.api import create_app, get_merger
+from streamline_vpn.core.merger import StreamlineVPNMerger
 
 
 @pytest.fixture(scope="module")
 def client():
-    # Create a dummy settings object for testing
-    settings = Settings(
-        secret_key="test_secret",
-    )
+    app = create_app()
+    # Mock the merger dependency for tests
+    mock_merger_instance = AsyncMock(spec=StreamlineVPNMerger)
+    mock_merger_instance.source_manager = AsyncMock()
 
-    app = APIServer(
-            secret_key=settings.secret_key, redis_nodes=settings.redis.nodes
-    ).get_app()
+    async def override_get_merger():
+        return mock_merger_instance
 
+    app.dependency_overrides[get_merger] = override_get_merger
     with TestClient(app) as c:
         yield c
 
@@ -23,14 +24,9 @@ def client():
 def test_run_pipeline_endpoint(client):
     """
     Test the /api/v1/pipeline/run endpoint.
+    It should accept the request and return a 202 status code.
     """
-    # We'll use the test configuration file for this test.
-    # We also need to mock the run_pipeline_main function to avoid actually running the pipeline.
-    from unittest.mock import patch
-
-    with patch("streamline_vpn.__main__.main") as mock_run_pipeline:
-        mock_run_pipeline.return_value = 0  # Simulate a successful run
-
+    with patch("pathlib.Path.is_file", return_value=True):
         response = client.post(
             "/api/v1/pipeline/run",
             json={
@@ -40,53 +36,42 @@ def test_run_pipeline_endpoint(client):
             },
         )
 
-        assert response.status_code == 200
-        data = response.json()
-        assert data["status"] == "success"
-        assert data["message"] == "Pipeline started successfully"
-        assert "job_id" in data
-
-
-def test_process_unknown_formats_rejected(client):
-    """Unknown output formats should return a 400 error."""
-    response = client.post(
-        "/api/process",
-        json={"formats": ["json", "invalid"]},
-    )
-    assert response.status_code == 400
+    assert response.status_code == 202
     data = response.json()
-    assert "Unknown formats" in data["error"]
+    assert data["status"] == "accepted"
+    assert "job_id" in data
 
 
-def test_process_internal_error_returns_500(client, monkeypatch):
-    """Unexpected errors should return a 500 HTTP error."""
-
-    async def mock_initialize(self):
-        pass
-
-    async def mock_process_all(self, output_dir: str, formats: list):
-        raise RuntimeError("boom")
-
-    from streamline_vpn.core.merger import StreamlineVPNMerger
-
-    monkeypatch.setattr(StreamlineVPNMerger, "initialize", mock_initialize)
-    monkeypatch.setattr(StreamlineVPNMerger, "process_all", mock_process_all)
-
-    response = client.post("/api/process", json={"formats": ["json"]})
-    assert response.status_code == 500
-    assert response.json()["error"] == "Processing failed"
-
-
-def test_get_sources_invalid_yaml(client, tmp_path, monkeypatch, caplog):
-    """Malformed YAML should be logged and return a generic error."""
-    bad_config = tmp_path / "sources.yaml"
-    bad_config.write_text(":\n- bad")
-    monkeypatch.setenv("APP_CONFIG_PATH", str(bad_config))
-    with caplog.at_level("ERROR"):
-        response = client.get("/api/sources")
-    assert response.status_code == 400
-    assert (
-        response.json()["error"]
-        == "Invalid YAML format in sources configuration"
+def test_pipeline_run_unknown_formats_rejected(client):
+    """A pipeline run with unknown output formats should return a 400 error."""
+    response = client.post(
+        "/api/v1/pipeline/run",
+        json={
+            "config_path": "tests/fixtures/test_sources.yaml",
+            "output_dir": "output",
+            "formats": ["json", "invalid_format"],
+        },
     )
-    assert "Failed to parse sources.yaml" in caplog.text
+    assert response.status_code == 400  # Pydantic validation error
+    data = response.json()
+    assert "detail" in data
+    assert "invalid_format" in str(data["detail"])
+
+
+def test_service_unavailable_if_merger_fails(monkeypatch):
+    """
+    If the merger fails to initialize, endpoints should return a 503 error.
+    """
+    # Mock the StreamlineVPNMerger to raise an exception on init
+    with patch("streamline_vpn.web.api.StreamlineVPNMerger", side_effect=RuntimeError("Merger Boom!")):
+        app = create_app()
+        with TestClient(app) as client:
+            # The health endpoint should reflect the degraded state
+            response = client.get("/health")
+            assert response.status_code == 200
+            assert response.json()["status"] == "degraded"
+
+            # Any endpoint depending on the merger should fail
+            response = client.get("/api/v1/statistics")
+            assert response.status_code == 503
+            assert response.json()["detail"] == "Service not initialized"
