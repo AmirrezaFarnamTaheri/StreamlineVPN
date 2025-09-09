@@ -11,13 +11,21 @@ class Settings(BaseSettings):
     HOST: str = "0.0.0.0"
     PORT: int = 8000
     STATIC_DIR: str = "docs"
-    API_BASE: str = "http://0.0.0.0:8080"
+    API_BASE: str = "http://localhost:8080"
     UPDATE_INTERVAL: int = 28800  # 8 hours in seconds
 
     # CORS settings for static server
-    ALLOWED_ORIGINS: list[str] = ["http://localhost:3000", "http://localhost:8000", "http://localhost:8080"]
+    ALLOWED_ORIGINS: list[str] = [
+        "http://localhost:3000",
+        "http://localhost:8000",
+        "http://localhost:8080",
+    ]
     ALLOWED_METHODS: list[str] = ["GET", "POST", "PUT", "DELETE", "OPTIONS"]
-    ALLOWED_HEADERS: list[str] = ["Content-Type", "Authorization", "X-Requested-With"]
+    ALLOWED_HEADERS: list[str] = [
+        "Content-Type",
+        "Authorization",
+        "X-Requested-With",
+    ]
     ALLOW_CREDENTIALS: bool = True
 
 
