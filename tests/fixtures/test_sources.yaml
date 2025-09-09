@@ -1,49 +1,55 @@
-# Test Sources Configuration
-# ==========================
-
 sources:
   premium:
-    description: "High-quality test sources"
+    description: High-quality test sources
     urls:
-      - url: "https://raw.githubusercontent.com/test/premium-configs/master/list.txt"
-        weight: 0.9
-        protocols: ["vmess", "vless"]
-        update: "1h"
-        metadata:
-          description: "Test premium source"
-          region: "test"
-
+    - url: https://raw.githubusercontent.com/test/premium-configs/master/list.txt
+      weight: 0.9
+      protocols:
+      - vmess
+      - vless
+      update: 1h
+      metadata:
+        description: Test premium source
+        region: test
   reliable:
-    description: "Reliable test sources"
+    description: Reliable test sources
     urls:
-      - url: "https://raw.githubusercontent.com/test/reliable-configs/master/list.txt"
-        weight: 0.7
-        protocols: ["vmess", "trojan"]
-        update: "4h"
-        metadata:
-          description: "Test reliable source"
-          region: "test"
-
-# Processing configuration
+    - url: https://raw.githubusercontent.com/test/reliable-configs/master/list.txt
+      weight: 0.7
+      protocols:
+      - vmess
+      - trojan
+      update: 4h
+      metadata:
+        description: Test reliable source
+        region: test
+    - url: https://example.com/
+      weight: 0.5
+      protocols:
+      - all
+      update: 24h
+      metadata: {}
+    - url: https://dup.com/
+      weight: 0.5
+      protocols:
+      - all
+      update: 24h
+      metadata: {}
 processing:
   max_concurrent: 10
   timeout: 15
   retry_attempts: 2
   retry_delay: 1
-
-# Quality thresholds
 quality:
   min_score: 0.2
   high_quality_threshold: 0.6
   blacklist_threshold: 0.1
-
-# Output configuration
 output:
-  formats: ["raw", "json"]
+  formats:
+  - raw
+  - json
   include_metadata: true
   sort_by_quality: true
-
-# Cache configuration
 cache:
   enabled: true
   ttl: 1800

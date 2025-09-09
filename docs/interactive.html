@@ -317,16 +317,23 @@
                 }
                 const stats = await response.json();
                 
-                document.getElementById('totalConfigs').textContent = stats.total_configs || 0;
-                document.getElementById('activeSources').textContent = stats.total_sources || 0;
-                document.getElementById('successRate').textContent = Math.round((stats.success_rate || 0) * 100) + '%';
-                document.getElementById('avgQuality').textContent = (stats.avg_quality || 0).toFixed(2);
+                const totalConfigs = Number(stats.total_configs) || 0;
+                const activeSources = (
+                    Number(stats.active_sources) || Number(stats.total_sources) || Number(stats.successful_sources) || 0
+                );
+                const successRatePct = Math.round(((typeof stats.success_rate === 'number' ? stats.success_rate : 0) * 100));
+                const avgQualityVal = (typeof stats.avg_quality === 'number' ? stats.avg_quality : 0);
+
+                document.getElementById('totalConfigs').textContent = totalConfigs;
+                document.getElementById('activeSources').textContent = activeSources;
+                document.getElementById('successRate').textContent = successRatePct + '%';
+                document.getElementById('avgQuality').textContent = avgQualityVal.toFixed(2);
 
                 // Update chart
                 if (chart) {
                     const time = new Date().toLocaleTimeString();
                     chart.data.labels.push(time);
-                    chart.data.datasets[0].data.push(stats.total_configs || 0);
+                    chart.data.datasets[0].data.push(totalConfigs);
 
                     if (chart.data.labels.length > 10) {
                         chart.data.labels.shift();
