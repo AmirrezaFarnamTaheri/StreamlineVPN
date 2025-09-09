@@ -205,6 +205,7 @@ def create_app() -> FastAPI:
 
     @app.post("/pipeline/run")
     async def run_pipeline_legacy(
+        background_tasks: BackgroundTasks,
         config_path: str = Body("config/sources.yaml"),
         output_dir: str = Body("output"),
         formats: List[str] = Body(["json", "clash", "singbox"])

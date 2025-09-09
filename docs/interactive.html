@@ -126,25 +126,25 @@
 
         <!-- Tabs -->
         <div class="glass rounded-xl p-2 mb-8">
-            <div class="flex gap-2">
-                <button onclick="switchTab('dashboard', this)" class="tab-btn px-4 py-2 rounded-lg hover:bg-white/20 bg-white/20">Dashboard</button>
-                <button onclick="switchTab('process', this)" class="tab-btn px-4 py-2 rounded-lg hover:bg-white/20">Process</button>
-                <button onclick="switchTab('configs', this)" class="tab-btn px-4 py-2 rounded-lg hover:bg-white/20">Configurations</button>
-                <button onclick="switchTab('sources', this)" class="tab-btn px-4 py-2 rounded-lg hover:bg-white/20">Sources</button>
-                <button onclick="switchTab('terminal', this)" class="tab-btn px-4 py-2 rounded-lg hover:bg-white/20">Terminal</button>
+            <div class="flex gap-2" role="tablist" aria-label="Sections" id="tablist">
+                <button id="tab-dashboard" role="tab" aria-controls="dashboard-tab" aria-selected="true" tabindex="0" onclick="switchTab('dashboard', this)" class="tab-btn px-4 py-2 rounded-lg hover:bg-white/20 bg-white/20" type="button">Dashboard</button>
+                <button id="tab-process" role="tab" aria-controls="process-tab" aria-selected="false" tabindex="-1" onclick="switchTab('process', this)" class="tab-btn px-4 py-2 rounded-lg hover:bg-white/20" type="button">Process</button>
+                <button id="tab-configs" role="tab" aria-controls="configs-tab" aria-selected="false" tabindex="-1" onclick="switchTab('configs', this)" class="tab-btn px-4 py-2 rounded-lg hover:bg-white/20" type="button">Configurations</button>
+                <button id="tab-sources" role="tab" aria-controls="sources-tab" aria-selected="false" tabindex="-1" onclick="switchTab('sources', this)" class="tab-btn px-4 py-2 rounded-lg hover:bg-white/20" type="button">Sources</button>
+                <button id="tab-terminal" role="tab" aria-controls="terminal-tab" aria-selected="false" tabindex="-1" onclick="switchTab('terminal', this)" class="tab-btn px-4 py-2 rounded-lg hover:bg-white/20" type="button">Terminal</button>
             </div>
         </div>
 
         <!-- Tab Content -->
         <div class="glass-dark rounded-xl p-8">
             <!-- Dashboard Tab -->
-            <div id="dashboard-tab" class="tab-content active">
+            <div id="dashboard-tab" class="tab-content active" role="tabpanel" aria-labelledby="tab-dashboard" tabindex="0">
                 <h2 class="text-2xl font-bold mb-6">System Overview</h2>
                 <canvas id="chart" height="100"></canvas>
             </div>
 
             <!-- Process Tab -->
-            <div id="process-tab" class="tab-content">
+            <div id="process-tab" class="tab-content" role="tabpanel" aria-labelledby="tab-process" tabindex="0">
                 <h2 class="text-2xl font-bold mb-6">Process Configurations</h2>
                 
                 <div class="space-y-4">
@@ -164,35 +164,35 @@
                         </div>
                     </div>
                     
-                    <button onclick="startProcessing()" class="w-full py-3 bg-gradient-to-r from-purple-500 to-pink-500 rounded-lg font-semibold">
+                    <button onclick="startProcessing()" class="w-full py-3 bg-gradient-to-r from-purple-500 to-pink-500 rounded-lg font-semibold" type="button" aria-label="Start processing configurations">
                         Start Processing
                     </button>
                     
-                    <div id="progressBar" class="hidden">
+                    <div id="progressBar" class="hidden" aria-live="polite">
                         <div class="w-full bg-white/10 rounded-full h-4">
                             <div id="progressFill" class="bg-gradient-to-r from-blue-500 to-purple-500 h-full rounded-full transition-all" style="width: 0%"></div>
                         </div>
-                        <div id="progressText" class="text-sm mt-2"></div>
+                        <div id="progressText" class="text-sm mt-2" aria-live="polite"></div>
                     </div>
                 </div>
             </div>
 
             <!-- Configurations Tab -->
-            <div id="configs-tab" class="tab-content">
+            <div id="configs-tab" class="tab-content" role="tabpanel" aria-labelledby="tab-configs" tabindex="0">
                 <h2 class="text-2xl font-bold mb-6">Configurations</h2>
                 <div id="configsList" class="space-y-2"></div>
             </div>
 
             <!-- Sources Tab -->
-            <div id="sources-tab" class="tab-content">
+            <div id="sources-tab" class="tab-content" role="tabpanel" aria-labelledby="tab-sources" tabindex="0">
                 <h2 class="text-2xl font-bold mb-6">VPN Sources</h2>
                 <div id="sourcesList" class="space-y-2"></div>
             </div>
 
             <!-- Terminal Tab -->
-            <div id="terminal-tab" class="tab-content">
+            <div id="terminal-tab" class="tab-content" role="tabpanel" aria-labelledby="tab-terminal" tabindex="0">
                 <h2 class="text-2xl font-bold mb-6">Terminal</h2>
-                <div class="terminal" id="terminal">
+                <div class="terminal" id="terminal" role="log" aria-live="polite" aria-atomic="false">
                     <div>StreamlineVPN Terminal v2.0</div>
                     <div>Ready...</div>
                 </div>
@@ -231,14 +231,21 @@
         function switchTab(tab, btnEl) {
             document.querySelectorAll('.tab-content').forEach(el => {
                 el.classList.remove('active');
+                el.setAttribute('hidden', '');
             });
             document.getElementById(`${tab}-tab`).classList.add('active');
+            document.getElementById(`${tab}-tab`).removeAttribute('hidden');
             
             document.querySelectorAll('.tab-btn').forEach(btn => {
                 btn.classList.remove('bg-white/20');
+                btn.setAttribute('aria-selected', 'false');
+                btn.setAttribute('tabindex', '-1');
             });
             if (btnEl) {
                 btnEl.classList.add('bg-white/20');
+                btnEl.setAttribute('aria-selected', 'true');
+                btnEl.setAttribute('tabindex', '0');
+                btnEl.focus();
             }
             
             currentTab = tab;
@@ -246,6 +253,21 @@
             if (tab === 'configs') loadConfigurations();
             if (tab === 'sources') loadSources();
         }
+
+        // Keyboard navigation for tabs (left/right arrows)
+        document.getElementById('tablist').addEventListener('keydown', (e) => {
+            const tabs = Array.from(document.querySelectorAll('#tablist [role="tab"]'));
+            const currentIndex = tabs.findIndex(t => t.getAttribute('aria-selected') === 'true');
+            if (e.key === 'ArrowRight' || e.key === 'ArrowLeft') {
+                e.preventDefault();
+                let nextIndex = currentIndex;
+                if (e.key === 'ArrowRight') nextIndex = (currentIndex + 1) % tabs.length;
+                if (e.key === 'ArrowLeft') nextIndex = (currentIndex - 1 + tabs.length) % tabs.length;
+                const nextTab = tabs[nextIndex];
+                const tabId = nextTab.id.replace('tab-', '');
+                switchTab(tabId, nextTab);
+            }
+        });
         
         // Initialize chart
         function initChart() {

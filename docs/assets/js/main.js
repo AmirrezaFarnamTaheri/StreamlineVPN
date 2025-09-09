@@ -10,6 +10,9 @@ const StreamlineVPN = {
     // Configuration
     config: {
         apiBase: (() => {
+            if (typeof window !== 'undefined' && window.__API_BASE__) {
+                return window.__API_BASE__;
+            }
             const hostname = window.location.hostname;
             const isLocalhost = hostname === 'localhost' || hostname === '127.0.0.1';
             return isLocalhost ? `http://${hostname}:8080` : `${window.location.protocol}//${window.location.host}`;
@@ -358,6 +361,9 @@ const StreamlineVPN = {
             
             if (selectedFormats.length === 0) {
                 this.addTerminalLine('Please select at least one output format', 'warning');
+                // Ensure UI is re-enabled when early-returning
+                this.state.isProcessing = false;
+                this.updateProcessingUI(false);
                 return;
             }
             
