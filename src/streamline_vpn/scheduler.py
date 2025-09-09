@@ -28,8 +28,21 @@ def setup_scheduler():
         replace_existing=True
     )
 
-    scheduler.start()
-    logger.info("Scheduler started - processing will run every 8 hours")
+    # Don't start immediately - will be started when event loop is running
+    logger.info("Scheduler configured - processing will run every 8 hours")
+    return scheduler
+
+def start_scheduler():
+    """Start the scheduler if it exists and event loop is running."""
+    global scheduler
+    if scheduler is not None:
+        try:
+            import asyncio
+            loop = asyncio.get_running_loop()
+            scheduler.start()
+            logger.info("Scheduler started")
+        except RuntimeError:
+            logger.warning("No running event loop - scheduler will not start")
     return scheduler
 
 

@@ -14,6 +14,7 @@ from .source_manager import SourceManager
 from .config_processor import ConfigurationProcessor
 from .output_manager import OutputManager
 from ..security.manager import SecurityManager
+from ..fetcher.service import FetcherService
 
 logger = get_logger(__name__)
 
@@ -39,9 +40,12 @@ class StreamlineVPNMerger(BaseMerger):
         # Initialize security manager
         self.security_manager = SecurityManager()
 
+        # Initialize fetcher service
+        self.fetcher_service = FetcherService(max_concurrent=max_concurrent)
+
         # Initialize core managers
         self.source_manager = SourceManager(
-            self.config_path, self.security_manager
+            self.config_path, self.security_manager, self.fetcher_service
         )
         self.config_processor = ConfigurationProcessor()
         self.output_manager = OutputManager()
@@ -59,12 +63,14 @@ class StreamlineVPNMerger(BaseMerger):
     async def initialize(self):
         """Initialize the merger."""
         await super().initialize()
+        await self.fetcher_service.initialize()
 
     async def shutdown(self):
         """Shutdown the merger and save performance data."""
         if self.source_manager:
             logger.info("Saving source performance data...")
             await self.source_manager.save_performance_data()
+        await self.fetcher_service.close()
 
     async def __aenter__(self):
         """Async context manager entry."""
@@ -268,6 +274,16 @@ class StreamlineVPNMerger(BaseMerger):
             "max_concurrent": self.max_concurrent,
         }
 
+    async def get_configurations(self) -> List[Any]:
+        """Get all configurations.
+        
+        Returns:
+            List of VPN configurations
+        """
+        if hasattr(self, 'results') and self.results:
+            return self.results
+        return []
+
     async def get_all_configurations(self) -> List[Dict[str, Any]]:
         """Get all configurations as dictionaries.
         
@@ -319,3 +335,50 @@ class StreamlineVPNMerger(BaseMerger):
         except Exception as e:
             logger.error(f"Failed to count configurations for {source_url}: {e}", exc_info=True)
             return 0
+
+    async def get_statistics(self) -> Dict[str, Any]:
+        """Get processing statistics.
+        
+        Returns:
+            Statistics dictionary
+        """
+        try:
+            if hasattr(self, 'statistics') and self.statistics:
+                return self.statistics.to_dict()
+            return {
+                "total_configs": len(await self.get_configurations()),
+                "successful_sources": len(self.sources),
+                "success_rate": 1.0,
+                "avg_quality": 0.5,
+                "last_update": None,
+                "protocols": {},
+                "locations": {}
+            }
+        except Exception as e:
+            logger.error(f"Failed to get statistics: {e}", exc_info=True)
+            return {}
+
+    async def clear_cache(self) -> None:
+        """Clear all caches."""
+        try:
+            if hasattr(self, 'cache_manager') and self.cache_manager:
+                await self.cache_manager.clear()
+            logger.info("Cache cleared successfully")
+        except Exception as e:
+            logger.error(f"Failed to clear cache: {e}", exc_info=True)
+
+    async def save_results(self, output_dir: str, formats: Optional[List[str]] = None) -> None:
+        """Save processing results to output directory.
+        
+        Args:
+            output_dir: Output directory path
+            formats: List of output formats
+        """
+        try:
+            if hasattr(self, 'results') and self.results:
+                await self.output_manager.save_configurations(
+                    self.results, output_dir, formats
+                )
+                logger.info(f"Results saved to {output_dir}")
+        except Exception as e:
+            logger.error(f"Failed to save results: {e}", exc_info=True)

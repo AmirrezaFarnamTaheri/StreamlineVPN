@@ -96,37 +96,31 @@ class EnhancedStaticServer:
 
         @app.get("/api/status")
         async def get_status() -> JSONResponse:
-            try:
-                stats_response = await self.backend_client.get(
-                    f"{self.api_base}/api/v1/statistics"
-                )
-                stats = (
-                    stats_response.json()
-                    if stats_response.status_code == 200
-                    else {}
-                )
-                return JSONResponse(
-                    {
-                        "status": "online",
-                        "backend_status": (
-                            "connected" if stats else "disconnected"
-                        ),
-                        "last_update": self.cached_data.get("last_update"),
-                        "next_update": (
-                            datetime.now()
-                            + timedelta(seconds=self.update_interval)
-                        ).isoformat(),
-                        "statistics": stats,
-                        "cached_configs": len(
-                            self.cached_data.get("configurations", [])
-                        ),
-                        "auto_update_enabled": self.update_task is not None,
-                    }
-                )
-        except Exception as exc:  # pragma: no cover
-            logger.error("Error getting status: %s", exc, exc_info=True)
+            stats_response = await self.backend_client.get(
+                f"{self.api_base}/api/v1/statistics"
+            )
+            stats = (
+                stats_response.json()
+                if stats_response.status_code == 200
+                else {}
+            )
             return JSONResponse(
-                {"status": "error", "error": str(exc)}, status_code=503
+                {
+                    "status": "online",
+                    "backend_status": (
+                        "connected" if stats else "disconnected"
+                    ),
+                    "last_update": self.cached_data.get("last_update"),
+                    "next_update": (
+                        datetime.now()
+                        + timedelta(seconds=self.update_interval)
+                    ).isoformat(),
+                    "statistics": stats,
+                    "cached_configs": len(
+                        self.cached_data.get("configurations", [])
+                    ),
+                    "auto_update_enabled": self.update_task is not None,
+                }
             )
 
         @app.get("/api/configurations")

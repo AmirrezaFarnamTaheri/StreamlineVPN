@@ -255,19 +255,19 @@
                 
                 <!-- Quick Actions -->
                 <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-                    <button onclick="quickProcess()" class="glass-morphism rounded-lg px-6 py-4 text-white hover-lift">
+                    <button onclick="startProcessing(); quickAction(this);" class="glass-morphism rounded-lg px-6 py-4 text-white hover-lift">
                         <svg class="w-8 h-8 mb-2 mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path>
                         </svg>
-                        Quick Process
+                        Run Default Process
                     </button>
-                    <button onclick="testConnection()" class="glass-morphism rounded-lg px-6 py-4 text-white hover-lift">
+                    <button onclick="testConnection(); quickAction(this);" class="glass-morphism rounded-lg px-6 py-4 text-white hover-lift">
                         <svg class="w-8 h-8 mb-2 mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
                         </svg>
                         Test Connection
                     </button>
-                    <button onclick="clearCache()" class="glass-morphism rounded-lg px-6 py-4 text-white hover-lift">
+                    <button onclick="clearCache(); quickAction(this);" class="glass-morphism rounded-lg px-6 py-4 text-white hover-lift">
                         <svg class="w-8 h-8 mb-2 mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
                         </svg>
@@ -409,9 +409,25 @@
         let processingJobId = null;
         let performanceChart = null;
         
-        // Dynamic API base URL configuration
-        const API_BASE = window.API_BASE ||
-            `${window.location.protocol}//${window.location.hostname}:${window.location.port === '8000' ? '8080' : (window.location.port || (window.location.protocol === 'https:' ? '443' : '80'))}`;
+        // Fixed API base URL configuration - properly detect localhost and port
+        const API_BASE = (() => {
+            // Check if we're on localhost/development
+            const hostname = window.location.hostname;
+            const isLocalhost = hostname === 'localhost' || hostname === '127.0.0.1';
+            
+            if (isLocalhost) {
+                // Always use port 8080 for API on localhost
+                return `http://${hostname}:8080`;
+            } else if (window.API_BASE) {
+                // Use injected API_BASE if available
+                return window.API_BASE;
+            } else {
+                // Production - API on same host
+                return `${window.location.protocol}//${window.location.host}`;
+            }
+        })();
+        
+        console.log('API Base URL:', API_BASE);
 
         // Enum mirroring backend OutputFormat values
         const OutputFormat = Object.freeze({
@@ -449,7 +465,7 @@
             connect() {
                 const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
                 const host = window.location.hostname;
-                const port = host === 'localhost' || host === '127.0.0.1' ? '8080' : window.location.port;
+                const port = host === 'localhost' || host === '127.0.0.1' ? '8080' : '8080';
                 const wsUrl = `${protocol}//${host}:${port}/ws/${this.clientId}`;
                 
                 console.log(`Connecting to WebSocket: ${wsUrl}`);
@@ -717,14 +733,46 @@
         // Load statistics with backend data
         async function loadStatistics() {
             try {
-                const response = await fetch(`${API_BASE}/api/v1/statistics`);
+                console.log('Loading statistics from:', `${API_BASE}/api/v1/statistics`);
+                const response = await fetch(`${API_BASE}/api/v1/statistics`, {
+                    method: 'GET',
+                    headers: {
+                        'Accept': 'application/json',
+                        'Content-Type': 'application/json'
+                    }
+                });
+                
                 if (!response.ok) {
+                    if (response.status === 404) {
+                        // Try fallback to basic statistics endpoint
+                        const fallbackResponse = await fetch(`${API_BASE}/statistics`);
+                        if (fallbackResponse.ok) {
+                            const stats = await fallbackResponse.json();
+                            updateStatistics(stats);
+                            return;
+                        }
+                    }
                     throw new Error(`HTTP error! status: ${response.status}`);
                 }
+                
                 const stats = await response.json();
+                console.log('Statistics loaded:', stats);
                 updateStatistics(stats);
             } catch (error) {
                 console.error('Failed to load statistics:', error);
+                addTerminalLine(`Failed to load statistics: ${error.message}`, 'error');
+                // Try to load from static server
+                try {
+                    const staticResponse = await fetch('/api/statistics');
+                    if (staticResponse.ok) {
+                        const staticStats = await staticResponse.json();
+                        updateStatistics(staticStats);
+                        addTerminalLine('Loaded statistics from static server', 'info');
+                        return;
+                    }
+                } catch (staticError) {
+                    console.warn('Static server also failed:', staticError);
+                }
                 updateWithMockData();
             }
         }
@@ -783,13 +831,9 @@
             const configPath = document.getElementById('configPath').value;
             const selected = Array.from(
                 document.querySelectorAll('.output-format:checked')
-            ).map(cb => OutputFormat[cb.value]);
-            const formatsRaw = selected.filter(v => typeof v === 'string');
-            if (formatsRaw.length !== selected.length) {
-                addTerminalLine('One or more selected formats are not supported', 'error');
-                return;
-            }
-            const formats = Array.from(new Set(formatsRaw));
+            ).map(cb => cb.value.toLowerCase());
+            
+            const formats = Array.from(new Set(selected));
             if (formats.length === 0) {
                 addTerminalLine('Please select at least one output format', 'warning');
                 return;
@@ -811,6 +855,12 @@
                 addTerminalLine(`Starting processing with config: ${configPath}`, 'info');
                 addTerminalLine(`Output formats: ${formats.join(', ')}`, 'info');
 
+                console.log('Starting pipeline with:', {
+                    config_path: configPath,
+                    output_dir: 'output',
+                    formats: formats
+                });
+
                 const response = await fetch(`${API_BASE}/api/v1/pipeline/run`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
@@ -822,10 +872,12 @@
                 });
 
                 if (!response.ok) {
-                    throw new Error(`HTTP error! status: ${response.status}`);
+                    const errorText = await response.text();
+                    throw new Error(`HTTP ${response.status}: ${errorText}`);
                 }
 
                 const result = await response.json();
+                console.log('Pipeline response:', result);
 
                 if (result.status === 'success') {
                     const jobId = result.job_id;
@@ -951,9 +1003,31 @@
                 let offset = 0;
                 let all = [];
                 let total = null;
+                
+                // Try v1 API first
                 while (true) {
-                    const resp = await fetch(`${API_BASE}/api/v1/configurations?limit=${limit}&offset=${offset}`);
-                    if (!resp.ok) throw new Error(`HTTP error! status: ${resp.status}`);
+                    const resp = await fetch(`${API_BASE}/api/v1/configurations?limit=${limit}&offset=${offset}`, {
+                        method: 'GET',
+                        headers: {
+                            'Accept': 'application/json',
+                            'Content-Type': 'application/json'
+                        }
+                    });
+                    
+                    if (!resp.ok) {
+                        if (resp.status === 404) {
+                            // Try fallback to basic configurations endpoint
+                            const fallbackResp = await fetch(`${API_BASE}/configurations`);
+                            if (fallbackResp.ok) {
+                                const fallbackData = await fallbackResp.json();
+                                configurations = fallbackData.configurations || [];
+                                renderConfigurations();
+                                return;
+                            }
+                        }
+                        throw new Error(`HTTP error! status: ${resp.status}`);
+                    }
+                    
                     const data = await resp.json();
                     const configs = (data && Array.isArray(data.configurations)) ? data.configurations : [];
                     if (configs.length === 0) break;
@@ -965,7 +1039,22 @@
                 configurations = all;
             } catch (error) {
                 console.error('Failed to load configurations:', error);
-                configurations = [];
+                addTerminalLine(`Failed to load configurations: ${error.message}`, 'error');
+                
+                // Try to load from static server as fallback
+                try {
+                    const staticResp = await fetch('/api/configurations');
+                    if (staticResp.ok) {
+                        const staticData = await staticResp.json();
+                        configurations = staticData || [];
+                        addTerminalLine('Loaded configurations from static server', 'info');
+                    } else {
+                        configurations = [];
+                    }
+                } catch (staticError) {
+                    console.warn('Static server also failed:', staticError);
+                    configurations = [];
+                }
             }
             renderConfigurations();
         }
@@ -1211,8 +1300,22 @@ async function loadSources() {
         // Render sources
         function renderSources() {
             const list = document.getElementById('sourceList');
-            list.innerHTML = '';
+            if (!list) return;
+
+            if (!sources || sources.length === 0) {
+                list.innerHTML = `
+                    <div class="text-center text-gray-400 py-8">
+                        <svg class="w-16 h-16 mx-auto mb-4 opacity-50" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"></path>
+                        </svg>
+                        <p class="text-lg mb-2">No sources found</p>
+                        <p class="text-sm">Add a new source above to get started</p>
+                    </div>
+                `;
+                return;
+            }
             
+            list.innerHTML = '';
             sources.forEach(source => {
                 const item = `
                     <div class="glass-morphism rounded-lg p-4">
@@ -1233,6 +1336,9 @@ async function loadSources() {
         }
         
         // Terminal functions
+        const terminalHistory = [];
+        let terminalHistoryIndex = -1;
+
         function addTerminalLine(text, type = 'info') {
             const terminal = document.getElementById('terminalOutput');
             const line = document.createElement('div');
@@ -1243,8 +1349,22 @@ async function loadSources() {
         }
         
         function handleTerminalInput(event) {
+            const input = document.getElementById('terminalInput');
             if (event.key === 'Enter') {
                 executeCommand();
+            } else if (event.key === 'ArrowUp') {
+                if (terminalHistoryIndex > 0) {
+                    terminalHistoryIndex--;
+                    input.value = terminalHistory[terminalHistoryIndex];
+                }
+            } else if (event.key === 'ArrowDown') {
+                if (terminalHistoryIndex < terminalHistory.length - 1) {
+                    terminalHistoryIndex++;
+                    input.value = terminalHistory[terminalHistoryIndex];
+                } else {
+                    terminalHistoryIndex = terminalHistory.length;
+                    input.value = '';
+                }
             }
         }
         
@@ -1254,6 +1374,8 @@ async function loadSources() {
             if (!command) return;
             
             addTerminalLine(`> ${command}`, 'info');
+            terminalHistory.push(command);
+            terminalHistoryIndex = terminalHistory.length;
             processCommand(command);
             input.value = '';
         }
@@ -1288,34 +1410,15 @@ async function loadSources() {
         }
         
         // Quick actions
-        async function quickProcess() {
-            addTerminalLine('Starting quick process...', 'info');
-            document.getElementById('processingStatus').classList.remove('hidden');
-
-            // Simulate processing with progress
-            let progress = 0;
-            const interval = setInterval(() => {
-                progress += 10;
-                document.getElementById('processingProgress').textContent = `${progress}%`;
-                document.getElementById('progressBar').style.width = `${progress}%`;
-
-                if (progress >= 100) {
-                    clearInterval(interval);
-                    document.getElementById('processingStatus').classList.add('hidden');
-                    addTerminalLine('Quick process completed successfully', 'success');
-                    showProcessingResults({
-                        total_configs: 1250,
-                        valid_configs: 1150,
-                        success_rate: 0.92,
-                        processing_time: 3.5
-                    });
-                }
-            }, 200);
+        function quickAction(button) {
+            button.classList.add('animate-pulse');
+            setTimeout(() => button.classList.remove('animate-pulse'), 1000);
         }
         
         async function testConnection() {
             addTerminalLine('Testing API connection...', 'info');
             try {
+                console.log('Testing connection to:', `${API_BASE}/health`);
                 const response = await fetch(`${API_BASE}/health`);
                 const contentType = response.headers.get('content-type') || '';
                 const parseJsonSafely = async (resp) => {
@@ -1335,10 +1438,7 @@ async function loadSources() {
                         await response.text();
                     }
                     addTerminalLine(`Connection successful! API Version: ${version}`, 'success');
-                    document.getElementById('connectionStatus').innerHTML = `
-                        <span class="status-indicator status-running"></span>
-                        <span class="text-white">Connected</span>
-                    `;
+                    showNotification('API connection successful!', 'success');
                 } else {
                     let message = '';
                     if (contentType.includes('application/json')) {
@@ -1352,18 +1452,25 @@ async function loadSources() {
                         message = await response.text();
                     }
                     addTerminalLine(`Connection failed: ${message}`, 'error');
-                    document.getElementById('connectionStatus').innerHTML = `
-                        <span class="status-indicator status-failed"></span>
-                        <span class="text-white">Disconnected</span>
-                    `;
+                    showNotification('API connection failed!', 'error');
                 }
             } catch (error) {
                 addTerminalLine(`Connection error: ${error.message}`, 'error');
-                document.getElementById('connectionStatus').innerHTML = `
-                    <span class="status-indicator status-failed"></span>
-                    <span class="text-white">Disconnected</span>
-                `;
+                showNotification(`Connection error: ${error.message}`, 'error');
             }
+        }
+        
+        // Quick process function for dashboard
+        async function quickProcess() {
+            addTerminalLine('Starting quick process with default settings...', 'info');
+            // Set default values
+            document.getElementById('configPath').value = 'config/sources.yaml';
+            // Check default formats
+            document.querySelectorAll('.output-format').forEach(cb => {
+                cb.checked = ['json', 'clash', 'singbox'].includes(cb.value.toLowerCase());
+            });
+            // Start processing
+            await startProcessing();
         }
         
         async function clearCache() {

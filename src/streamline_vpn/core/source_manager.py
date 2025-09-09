@@ -18,6 +18,7 @@ from ..models.processing_result import ProcessingResult
 from ..models.source import SourceMetadata, SourceTier
 from ..security.manager import SecurityManager
 from ..utils.logging import get_logger
+from ..fetcher.service import FetcherService
 
 logger = get_logger(__name__)
 
@@ -29,17 +30,20 @@ class SourceManager:
         self,
         config_path: str,
         security_manager: Optional[SecurityManager] = None,
+        fetcher_service: Optional[FetcherService] = None,
     ):
         """Initialize source manager.
 
         Args:
             config_path: Path to sources configuration file
             security_manager: Optional security manager for validating sources
+            fetcher_service: Optional fetcher service for fetching sources
         """
         self.config_path = Path(config_path)
         self.sources: Dict[str, SourceMetadata] = {}
         self.performance_file = Path("data/source_performance.json")
         self.security_manager = security_manager or SecurityManager()
+        self.fetcher_service = fetcher_service
         self._lock = asyncio.Lock()
 
         # Load sources and performance data
@@ -380,56 +384,37 @@ class SourceManager:
         Returns:
             Processing result
         """
-        import aiohttp
-
-        # Import moved to avoid circular imports
-
         start_time = datetime.now()
 
+        if not self.fetcher_service:
+            logger.error("Fetcher service not available")
+            return ProcessingResult(
+                url=source_url,
+                success=False,
+                error="Fetcher service not available",
+            )
+
         try:
-            # Add connection timeout and read timeout
-            timeout = aiohttp.ClientTimeout(total=30, connect=10, sock_read=20)
-            async with aiohttp.ClientSession(timeout=timeout) as session:
-                async with session.get(source_url) as response:
-                    if response.status == 200:
-                        content = await response.text()
-                        configs = self._parse_configs(content)
+            content = await self.fetcher_service.fetch(source_url, method="GET")
+            response_time = (datetime.now() - start_time).total_seconds()
 
-                        response_time = (
-                            datetime.now() - start_time
-                        ).total_seconds()
+            if content:
+                configs = self._parse_configs(content)
+                return ProcessingResult(
+                    url=source_url,
+                    success=True,
+                    configs=configs,
+                    response_time=response_time,
+                    config_count=len(configs),
+                )
+            else:
+                return ProcessingResult(
+                    url=source_url,
+                    success=False,
+                    error="Failed to fetch content",
+                    response_time=response_time,
+                )
 
-                        return ProcessingResult(
-                            url=source_url,
-                            success=True,
-                            configs=configs,
-                            response_time=response_time,
-                            config_count=len(configs),
-                        )
-                    else:
-                        return ProcessingResult(
-                            url=source_url,
-                            success=False,
-                            error=f"HTTP {response.status}: {response.reason}",
-                            response_time=(
-                                datetime.now() - start_time
-                            ).total_seconds(),
-                        )
-
-        except asyncio.TimeoutError:
-            return ProcessingResult(
-                url=source_url,
-                success=False,
-                error="Request timeout",
-                response_time=(datetime.now() - start_time).total_seconds(),
-            )
-        except aiohttp.ClientError as e:
-            return ProcessingResult(
-                url=source_url,
-                success=False,
-                error=f"Client error: {str(e)}",
-                response_time=(datetime.now() - start_time).total_seconds(),
-            )
         except Exception as e:
             logger.error(f"Unexpected error fetching source {source_url}: {e}")
             return ProcessingResult(

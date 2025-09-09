@@ -1,13 +1,13 @@
 import os
 import sys
-from streamline_vpn.web.api.server import APIServer
+from streamline_vpn.web.api import create_app
 from streamline_vpn.settings import get_settings
 from fastapi.middleware.cors import CORSMiddleware
 
 def main():
     """Main entry point for running the API server with unified configuration."""
     settings = get_settings()
-    redis_nodes = settings.redis_nodes or []
+    # Remove redis_nodes reference as it's not available in settings
     
     # Get dynamic configuration
     host = os.getenv("HOST", "0.0.0.0")
@@ -32,14 +32,11 @@ def main():
     # Combine and deduplicate origins
     all_origins = list(set(default_origins + allowed_origins))
     
-    # Initialize API server
-    api_server = APIServer(
-        secret_key=settings.secret_key,
-        redis_nodes=redis_nodes
-    )
+    # Create FastAPI app
+    app = create_app()
     
     # Single CORS configuration
-    api_server.app.add_middleware(
+    app.add_middleware(
         CORSMiddleware,
         allow_origins=all_origins,
         allow_credentials=True,
@@ -48,15 +45,17 @@ def main():
         expose_headers=["*"],
     )
     
-    # Start background scheduler
+    # Setup background scheduler (don't start yet)
     try:
         from streamline_vpn.scheduler import setup_scheduler
         setup_scheduler()
+        print("Scheduler configured")
     except ImportError:
         print("Warning: Scheduler not available")
     
     # Run server
-    api_server.run(host=host, port=api_port)
+    import uvicorn
+    uvicorn.run(app, host=host, port=api_port, log_level="info")
 
 if __name__ == "__main__":
     try:

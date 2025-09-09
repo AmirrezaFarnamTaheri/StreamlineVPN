@@ -58,10 +58,14 @@ services:
       - DATABASE_URL=postgresql://streamline:${DB_PASSWORD:-streamline_secure_password}@postgres:5432/streamline
       - JWT_SECRET_KEY=${JWT_SECRET_KEY:-your-secret-key-change-in-production}
       - STREAMLINE_ENV=${STREAMLINE_ENV:-production}
+      - ALLOWED_ORIGINS=http://localhost:8000,http://localhost:8080,http://127.0.0.1:8000,http://127.0.0.1:8080
+      - LOG_LEVEL=${LOG_LEVEL:-INFO}
     volumes:
       - ./config:/app/config:ro
       - ./output:/app/output
       - ./logs:/app/logs
+      - ./src:/app/src:ro
+      - ./docs:/app/docs:ro
     depends_on:
       postgres:
         condition: service_healthy

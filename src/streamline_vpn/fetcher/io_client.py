@@ -45,10 +45,14 @@ async def execute_request(
     rate_limiters: Optional[Dict[str, Any]] = None,
     get_domain=None,
 ) -> str:
+    from ..utils.logging import get_logger
+    logger = get_logger(__name__)
+
     last_exc: Optional[BaseException] = None
     for attempt in range(retry_attempts + 1):
         try:
             start = time.time()
+            logger.info(f"Fetching URL: {method} {url}")
             async with session.request(
                 method=method,
                 url=url,
@@ -56,6 +60,7 @@ async def execute_request(
                 data=data,
                 params=params,
             ) as resp:
+                logger.info(f"Response for {url}: {resp.status}")
                 resp.raise_for_status()
                 content = await resp.text()
                 # record response time
@@ -68,6 +73,7 @@ async def execute_request(
                         )
                 return content
         except Exception as e:
+            logger.error(f"Attempt {attempt + 1} failed for {url}: {e}")
             last_exc = e
             if attempt < retry_attempts:
                 await asyncio.sleep(retry_delay * (2**attempt))
