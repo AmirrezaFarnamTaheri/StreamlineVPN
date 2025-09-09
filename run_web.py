@@ -39,9 +39,12 @@ def main() -> None:
         api_host = f"{host}:{api_port}"
         response.headers["Content-Security-Policy"] = (
             "default-src 'self'; "
-            "script-src 'self' 'unsafe-inline' cdn.jsdelivr.net; "
-            "style-src 'self' 'unsafe-inline' cdn.jsdelivr.net; "
-            f"connect-src 'self' http://{api_host} ws://{api_host} wss://{api_host};"
+            "script-src 'self' 'unsafe-inline' cdn.jsdelivr.net cdn.tailwindcss.com; "
+            "style-src 'self' 'unsafe-inline' cdn.jsdelivr.net fonts.googleapis.com; "
+            "font-src 'self' data: fonts.gstatic.com; "
+            f"connect-src 'self' http://{api_host} ws://{api_host} wss://{api_host}; "
+            "img-src 'self' data:; "
+            "object-src 'none'; frame-ancestors 'none';"
         )
         return response
 

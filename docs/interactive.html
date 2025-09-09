@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>StreamlineVPN Control Center</title>
+    <script src="/api-base.js"></script>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
     <style>
@@ -126,11 +127,11 @@
         <!-- Tabs -->
         <div class="glass rounded-xl p-2 mb-8">
             <div class="flex gap-2">
-                <button onclick="switchTab('dashboard')" class="tab-btn px-4 py-2 rounded-lg hover:bg-white/20 bg-white/20">Dashboard</button>
-                <button onclick="switchTab('process')" class="tab-btn px-4 py-2 rounded-lg hover:bg-white/20">Process</button>
-                <button onclick="switchTab('configs')" class="tab-btn px-4 py-2 rounded-lg hover:bg-white/20">Configurations</button>
-                <button onclick="switchTab('sources')" class="tab-btn px-4 py-2 rounded-lg hover:bg-white/20">Sources</button>
-                <button onclick="switchTab('terminal')" class="tab-btn px-4 py-2 rounded-lg hover:bg-white/20">Terminal</button>
+                <button onclick="switchTab('dashboard', this)" class="tab-btn px-4 py-2 rounded-lg hover:bg-white/20 bg-white/20">Dashboard</button>
+                <button onclick="switchTab('process', this)" class="tab-btn px-4 py-2 rounded-lg hover:bg-white/20">Process</button>
+                <button onclick="switchTab('configs', this)" class="tab-btn px-4 py-2 rounded-lg hover:bg-white/20">Configurations</button>
+                <button onclick="switchTab('sources', this)" class="tab-btn px-4 py-2 rounded-lg hover:bg-white/20">Sources</button>
+                <button onclick="switchTab('terminal', this)" class="tab-btn px-4 py-2 rounded-lg hover:bg-white/20">Terminal</button>
             </div>
         </div>
 
@@ -203,11 +204,14 @@
     <script>
         // API Configuration
         const API_BASE = (() => {
+            // Prefer value injected by the static server if present
+            const injected = window.__API_BASE__;
+            if (typeof injected === 'string' && injected.startsWith('http')) return injected;
             const hostname = window.location.hostname;
             if (hostname === 'localhost' || hostname === '127.0.0.1') {
                 return `http://${hostname}:8080`;
             }
-            return `${window.location.protocol}//${window.location.host}/api`;
+            return `${window.location.protocol}//${window.location.host}`;
         })();
         
         console.log('API Base:', API_BASE);
@@ -224,7 +228,7 @@
         });
         
         // Tab switching
-        function switchTab(tab) {
+        function switchTab(tab, btnEl) {
             document.querySelectorAll('.tab-content').forEach(el => {
                 el.classList.remove('active');
             });
@@ -233,7 +237,9 @@
             document.querySelectorAll('.tab-btn').forEach(btn => {
                 btn.classList.remove('bg-white/20');
             });
-            event.target.classList.add('bg-white/20');
+            if (btnEl) {
+                btnEl.classList.add('bg-white/20');
+            }
             
             currentTab = tab;
 
@@ -282,6 +288,11 @@
         async function loadStatistics() {
             try {
                 const response = await fetch(`${API_BASE}/api/v1/statistics`);
+                const contentType = response.headers.get('content-type') || '';
+                if (!response.ok || !contentType.includes('application/json')) {
+                    const text = await response.text();
+                    throw new Error(`HTTP ${response.status}: ${text.substring(0, 100)}`);
+                }
                 const stats = await response.json();
                 
                 document.getElementById('totalConfigs').textContent = stats.total_configs || 0;
@@ -311,6 +322,11 @@
         async function loadConfigurations() {
             try {
                 const response = await fetch(`${API_BASE}/api/v1/configurations?limit=50`);
+                const contentType = response.headers.get('content-type') || '';
+                if (!response.ok || !contentType.includes('application/json')) {
+                    const text = await response.text();
+                    throw new Error(`HTTP ${response.status}: ${text.substring(0, 100)}`);
+                }
                 const data = await response.json();
 
                 const container = document.getElementById('configsList');
@@ -345,6 +361,11 @@
         async function loadSources() {
             try {
                 const response = await fetch(`${API_BASE}/api/v1/sources`);
+                const contentType = response.headers.get('content-type') || '';
+                if (!response.ok || !contentType.includes('application/json')) {
+                    const text = await response.text();
+                    throw new Error(`HTTP ${response.status}: ${text.substring(0, 100)}`);
+                }
                 const data = await response.json();
 
                 const container = document.getElementById('sourcesList');
@@ -352,13 +373,35 @@
 
                 if (data.sources && data.sources.length > 0) {
                     data.sources.forEach(source => {
+                        // Build a concise display name without showing full root
+                        let displayName = source.url || '';
+                        try {
+                            const u = new URL(displayName);
+                            const parts = u.pathname.split('/').filter(Boolean);
+                            const tail = parts.slice(-2).join('/');
+                            displayName = tail ? `${u.hostname}/…/${tail}` : u.hostname;
+                        } catch (e) {
+                            // Fallback: truncate
+                            if (displayName.length > 40) {
+                                displayName = `…${displayName.slice(-40)}`;
+                            }
+                        }
+
+                        const successRate = typeof source.success_rate === 'number'
+                            ? Math.round(source.success_rate * 100)
+                            : undefined;
+                        const configs = source.configs ?? source.avg_config_count ?? 0;
+
                         const div = document.createElement('div');
                         div.className = 'glass rounded-lg p-4';
                         div.innerHTML = `
                             <div class="flex justify-between items-center">
                                 <div>
-                                    <div class="font-semibold">${source.url}</div>
-                                    <div class="text-sm opacity-70">Tier: ${source.tier}</div>
+                                    <div class="font-semibold">${displayName}</div>
+                                    <div class="text-sm opacity-70 flex gap-4">
+                                        <span>Configs: ${configs}</span>
+                                        ${successRate !== undefined ? `<span>Success: ${successRate}%</span>` : ''}
+                                    </div>
                                 </div>
                                 <div>
                                     <span class="status-dot ${source.status === 'active' ? 'status-active' : 'status-inactive'}"></span>
@@ -390,6 +433,12 @@
             document.getElementById('progressBar').classList.remove('hidden');
             updateProgress(0, 'Starting...');
 
+            // Disable start button
+            const startBtn = document.querySelector('#process-tab button');
+            const prevText = startBtn.textContent;
+            startBtn.disabled = true;
+            startBtn.textContent = 'Processing...';
+
             try {
                 const response = await fetch(`${API_BASE}/api/v1/pipeline/run`, {
                     method: 'POST',
@@ -403,11 +452,26 @@
                     })
                 });
 
+                const contentType = response.headers.get('content-type') || '';
+                if (!response.ok || !contentType.includes('application/json')) {
+                    const text = await response.text();
+                    throw new Error(`HTTP ${response.status}: ${text.substring(0, 100)}`);
+                }
                 const result = await response.json();
 
                 if (result.status === 'success' && result.job_id) {
                     // Monitor job progress
-                    monitorJob(result.job_id);
+                    monitorJob(result.job_id, () => {
+                        // On complete
+                        loadStatistics();
+                        loadConfigurations();
+                        startBtn.disabled = false;
+                        startBtn.textContent = prevText;
+                    }, (errMsg) => {
+                        // On fail
+                        startBtn.disabled = false;
+                        startBtn.textContent = prevText;
+                    });
                 } else {
                     throw new Error(result.message || 'Failed to start processing');
                 }
@@ -415,14 +479,21 @@
                 console.error('Processing error:', error);
                 addTerminalLine(`Error: ${error.message}`, 'error');
                 updateProgress(0, 'Failed');
+                startBtn.disabled = false;
+                startBtn.textContent = prevText;
             }
         }
         
         // Monitor job progress
-        async function monitorJob(jobId) {
+        async function monitorJob(jobId, onComplete, onFail) {
             const checkInterval = setInterval(async () => {
                 try {
                     const response = await fetch(`${API_BASE}/api/v1/pipeline/status/${jobId}`);
+                    const contentType = response.headers.get('content-type') || '';
+                    if (!response.ok || !contentType.includes('application/json')) {
+                        const text = await response.text();
+                        throw new Error(`HTTP ${response.status}: ${text.substring(0, 100)}`);
+                    }
                     const status = await response.json();
                     
                     updateProgress(status.progress || 0, status.message || 'Processing...');
@@ -432,15 +503,18 @@
                         clearInterval(checkInterval);
                         updateProgress(100, 'Completed!');
                         addTerminalLine('✅ Processing completed successfully', 'success');
-                        loadStatistics();
+                        if (onComplete) onComplete();
                     } else if (status.status === 'failed') {
                         clearInterval(checkInterval);
                         updateProgress(0, 'Failed');
                         addTerminalLine(`❌ Processing failed: ${status.error}`, 'error');
+                        if (onFail) onFail(status.error);
                     }
                 } catch (error) {
                     clearInterval(checkInterval);
                     console.error('Job monitoring error:', error);
+                    addTerminalLine(`Error: ${error.message}`, 'error');
+                    if (onFail) onFail(error.message);
                 }
             }, 2000);
         }

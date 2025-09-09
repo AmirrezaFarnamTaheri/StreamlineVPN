@@ -2,7 +2,8 @@
 <html>
 <head>
     <title>StreamlineVPN Config Generator</title>
-    <link rel="stylesheet" href="/assets/site.css" />
+    <link rel="stylesheet" href="assets/site.css" />
+    <script src="/api-base.js"></script>
 </head>
 <body class="config-generator">
     <div class="container">
@@ -21,20 +22,29 @@
         <div>
             <h3>Download Formats:</h3>
             <button class="button" onclick="downloadConfigs('json')">JSON</button>
-            <button class="button" onclick="downloadConfigs('clash')">Clash</button>
-            <button class="button" onclick="downloadConfigs('singbox')">SingBox</button>
-            <button class="button" onclick="downloadConfigs('raw')">Raw</button>
+            <button class="button" onclick="downloadConfigs('text')">Text</button>
+            <button class="button" onclick="downloadConfigs('download')">Download JSON</button>
         </div>
     </div>
 
     <script>
+        const API_BASE = (() => {
+            const injected = window.__API_BASE__;
+            if (typeof injected === 'string' && injected.startsWith('http')) return injected;
+            const hostname = window.location.hostname;
+            if (hostname === 'localhost' || hostname === '127.0.0.1') {
+                return `http://${hostname}:8080`;
+            }
+            return `${window.location.protocol}//${window.location.host}`;
+        })();
+
         async function loadConfigs() {
             try {
-                const response = await fetch('/api/configurations');
+                const response = await fetch(`${API_BASE}/api/v1/configurations?limit=50`);
                 const data = await response.json();
-
+                const configs = data.configurations || [];
                 const configList = document.getElementById('configList');
-                const configsHTML = data.configurations.map(
+                const configsHTML = configs.map(
                     config => `
                     <div class="config-item">
                         <strong>${config.protocol}</strong>
@@ -44,42 +54,46 @@
                                 ? Number(config.quality_score).toFixed(2)
                                 : 'N/A'
                         }</small>
-                        <br><small>Network: ${
-                            config.network ?? 'N/A'
-                        }</small>
                     </div>`
                 ).join('');
-
                 configList.innerHTML = `
-                    <h3>Available Configurations (${
-                        data.count
-                    })</h3>
+                    <h3>Available Configurations (${configs.length})</h3>
                     ${configsHTML}
                 `;
             } catch (error) {
-                alert(
-                    'Error loading configurations: ' + error.message
-                );
+                alert('Error loading configurations: ' + error.message);
             }
         }
 
         async function generateConfigs() {
             try {
-                const response = await fetch('/api/process', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ formats: ['json','clash','singbox','raw'] }) });
+                const response = await fetch(`${API_BASE}/api/v1/pipeline/run`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        config_path: 'config/sources.unified.yaml',
+                        output_dir: 'output',
+                        formats: ['json','clash','singbox','raw']
+                    })
+                });
                 const data = await response.json();
-                alert(data.message);
+                if (response.ok) {
+                    alert(data.message || 'Pipeline started');
+                } else {
+                    throw new Error(data.detail || 'Failed to start pipeline');
+                }
                 loadConfigs();
             } catch (error) {
-                const errorMsg =
-                    "Error generating configurations: " +
-                    error.message;
-                alert(errorMsg);
+                alert("Error generating configurations: " + error.message);
             }
         }
 
         function downloadConfigs(format) {
+            // Export is served by the static server on the current origin
             window.open(`/api/export/${format}`, '_blank');
         }
     </script>
 </body>
 </html>
+
+

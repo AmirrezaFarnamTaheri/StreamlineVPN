@@ -54,6 +54,15 @@ class EnhancedStaticServer:
             version="2.0.0",
         )
 
+        # If api_base is injected by the launcher, prefer it
+        try:  # pragma: no cover - runtime wiring
+            injected = getattr(app.state, "api_base", None)
+            if isinstance(injected, str) and injected.startswith("http"):
+                self.api_base = injected
+                logger.info("Using injected API base: %s", self.api_base)
+        except Exception:
+            pass
+
         app.add_middleware(
             CORSMiddleware,
             allow_origins=self.settings.ALLOWED_ORIGINS,
@@ -194,6 +203,23 @@ class EnhancedStaticServer:
                     },
                 )
             raise HTTPException(status_code=400, detail="Invalid format")
+
+        @app.get("/api-base.js")
+        async def api_base_script() -> Response:
+            """Expose backend API base URL for frontend pages."""
+            js = (
+                "// Injected by EnhancedStaticServer\n"
+                f"window.__API_BASE__ = '{self.api_base}';\n"
+            )
+            return Response(
+                content=js,
+                media_type="application/javascript",
+                headers={
+                    "Cache-Control": "no-cache, no-store, must-revalidate",
+                    "Pragma": "no-cache",
+                    "Expires": "0",
+                },
+            )
 
         @app.api_route(
             "/api/{path:path}",

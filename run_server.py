@@ -1,5 +1,10 @@
 import os
 import sys
+from pathlib import Path
+
+# Ensure local src is preferred over any installed package
+sys.path.insert(0, str(Path(__file__).parent / "src"))
+
 from streamline_vpn.web.api import create_app
 from streamline_vpn.settings import get_settings
 from fastapi.middleware.cors import CORSMiddleware

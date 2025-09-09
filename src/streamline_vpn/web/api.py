@@ -532,12 +532,22 @@ def create_app() -> FastAPI:
         try:
             config_file = Path(request.config_path)
             if not config_file.exists():
-                raise HTTPException(
-                    status_code=status.HTTP_404_NOT_FOUND,
-                    detail=(
-                        f"Configuration file not found: {request.config_path}"
-                    ),
-                )
+                # Fallbacks for typical dev paths
+                fallback_paths = [
+                    Path("config/sources.unified.yaml"),
+                    Path("config/sources.yaml"),
+                ]
+                for fb in fallback_paths:
+                    if fb.exists():
+                        config_file = fb
+                        break
+                else:
+                    raise HTTPException(
+                        status_code=status.HTTP_404_NOT_FOUND,
+                        detail=(
+                            f"Configuration file not found: {request.config_path}"
+                        ),
+                    )
 
             Path(request.output_dir).mkdir(parents=True, exist_ok=True)
 
