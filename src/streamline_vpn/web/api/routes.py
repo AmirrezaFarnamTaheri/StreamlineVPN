@@ -29,6 +29,7 @@ from pydantic import BaseModel
 from ...utils.logging import get_logger
 from ...core.source_manager import SourceManager
 from ...core.merger import StreamlineVPNMerger
+from ...models.formats import OutputFormat
 
 logger = get_logger(__name__)
 
@@ -72,17 +73,39 @@ def get_merger() -> StreamlineVPNMerger:
     return _merger
 
 def find_config_path() -> Optional[Path]:
-    """Find configuration file in standard locations."""
+    """Find configuration file path.
+
+    The search order matches the expectations in tests:
+
+    1. ``APP_CONFIG_PATH`` environment variable if it points to an existing
+       file.
+    2. ``config/sources.yaml`` in the current working directory.
+    3. ``config/sources.unified.yaml`` in the current working directory.
+    4. The repository level ``config/sources.yaml``.
+
+    Returns:
+        Absolute :class:`pathlib.Path` to the configuration file if found,
+        otherwise ``None``.
+    """
+
+    # Environment variable takes precedence
+    env_path = os.getenv("APP_CONFIG_PATH")
+    if env_path:
+        path = Path(env_path)
+        if path.exists():
+            return path.resolve()
+
     search_paths = [
+        Path.cwd() / "config" / "sources.yaml",
+        Path.cwd() / "config" / "sources.unified.yaml",
         Path("config/sources.yaml"),
         Path("config/sources.unified.yaml"),
-        Path.cwd() / "config" / "sources.yaml",
         Path(__file__).parent.parent.parent.parent / "config" / "sources.yaml",
     ]
 
     for path in search_paths:
         if path.exists():
-            return path
+            return path.resolve()
     return None
 
 def setup_routes(app, auth_service=None, websocket_manager=None) -> None:
@@ -96,6 +119,66 @@ def setup_routes(app, auth_service=None, websocket_manager=None) -> None:
             "timestamp": datetime.utcnow().isoformat(),
             "version": "2.0.0"
         }
+
+    @app.post("/api/process")
+    async def process(request: Dict[str, Any]):
+        """Process VPN configurations.
+
+        This simplified endpoint validates requested output formats and
+        delegates the heavy lifting to :class:`StreamlineVPNMerger`.
+        """
+
+        formats = request.get("formats", []) or []
+        allowed = {f.value for f in OutputFormat}
+        invalid = [f for f in formats if f not in allowed]
+        if invalid:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=f"Unknown formats: {', '.join(invalid)}",
+            )
+
+        try:
+            merger = get_merger()
+            await merger.initialize()
+            await merger.process_all(
+                output_dir=request.get("output_dir", "output"),
+                formats=formats,
+            )
+            return {"status": "success"}
+        except HTTPException:
+            raise
+        except Exception as e:  # pragma: no cover - unexpected failures
+            logger.error("Processing failed: %s", e)
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail="Processing failed",
+            )
+
+    @app.get("/api/sources")
+    async def sources():
+        """Return configured sources from the YAML configuration."""
+        config_path = find_config_path()
+        if not config_path or not config_path.exists():
+            return {"sources": []}
+        try:
+            with open(config_path, "r") as fh:
+                config = yaml.safe_load(fh) or {}
+        except yaml.YAMLError as exc:
+            logger.error("Failed to parse sources.yaml: %s", exc)
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Invalid YAML format in sources configuration",
+            )
+
+        sources_list = []
+        sources_cfg = config.get("sources", {})
+        if isinstance(sources_cfg, dict):
+            for tier, urls in sources_cfg.items():
+                if isinstance(urls, list):
+                    for url in urls:
+                        sources_list.append({"url": url, "tier": tier})
+
+        return {"sources": sources_list}
 
     @app.post("/api/v1/pipeline/run")
     async def run_pipeline(request: PipelineRunRequest) -> PipelineRunResponse:
