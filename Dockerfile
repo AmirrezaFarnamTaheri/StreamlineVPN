@@ -1,59 +1,66 @@
-# VPN Merger - Production-ready Multi-stage Docker Build
-# ======================================================
+# Multi-stage build for StreamlineVPN
 
-# Build stage for dependencies
+# Stage 1: Builder
 FROM python:3.11-slim as builder
 
-WORKDIR /build
-
 # Install build dependencies
-RUN apt-get update && apt-get install -y --no-install-recommends \
+RUN apt-get update && apt-get install -y \
     gcc \
-    python3-dev \
+    g++ \
+    make \
+    libffi-dev \
+    libssl-dev \
     && rm -rf /var/lib/apt/lists/*
 
-# Copy and install Python dependencies
-COPY requirements.txt requirements-prod.txt ./
-RUN pip install --no-cache-dir -r requirements-prod.txt
+# Set working directory
+WORKDIR /build
 
-# Production stage
+# Copy requirements
+COPY requirements.txt .
+
+# Install Python dependencies
+RUN pip install --no-cache-dir --user -r requirements.txt
+
+# Stage 2: Runtime
 FROM python:3.11-slim
 
-WORKDIR /app
-
 # Install runtime dependencies
-RUN apt-get update && apt-get install -y --no-install-recommends \
-    ca-certificates \
+RUN apt-get update && apt-get install -y \
     curl \
     && rm -rf /var/lib/apt/lists/*
 
-# Copy Python packages from builder stage
-COPY --from=builder /usr/local/lib/python3.11/site-packages /usr/local/lib/python3.11/site-packages
-COPY --from=builder /usr/local/bin /usr/local/bin
+# Create non-root user
+RUN useradd -m -s /bin/bash streamline
+
+# Set working directory
+WORKDIR /app
+
+# Copy Python dependencies from builder
+COPY --from=builder /root/.local /home/streamline/.local
 
 # Copy application code
-COPY . .
+COPY --chown=streamline:streamline . .
 
-# Create necessary directories with proper permissions
-RUN mkdir -p /app/output /app/logs && \
-    chmod 755 /app/output /app/logs
+# Create necessary directories
+RUN mkdir -p /app/output /app/logs /app/data /app/cache \
+    && chown -R streamline:streamline /app
 
-# Health check against REST API endpoint
-HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
-    CMD curl -sf http://localhost:${API_PORT:-8080}/health || curl -sf http://localhost:${API_PORT:-8080}/api/v1/health || exit 1
+# Switch to non-root user
+USER streamline
 
-# Expose all necessary ports
+# Add local bin to PATH
+ENV PATH=/home/streamline/.local/bin:$PATH
+
+# Environment variables
+ENV PYTHONUNBUFFERED=1
+ENV VPN_ENVIRONMENT=production
+
+# Health check
+HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
+    CMD curl -f http://localhost:8080/health || exit 1
+
+# Expose ports
 EXPOSE 8080 8000
 
-# Create and switch to non-root user for security
-RUN useradd -m -u 1000 merger && \
-    chown -R merger:merger /app
-USER merger
-
-# Environment variables for dynamic configuration
-ENV HOST=0.0.0.0
-ENV API_PORT=8080
-ENV WEB_PORT=8000
-
-# Default command - run the API server
+# Default command
 CMD ["python", "run_server.py"]

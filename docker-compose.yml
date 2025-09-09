@@ -1,80 +1,158 @@
+# Docker Compose configuration for StreamlineVPN
+
 version: '3.8'
 
 services:
-  postgres:
-    image: postgres:15-alpine
-    environment:
-      POSTGRES_DB: streamline
-      POSTGRES_USER: streamline
-      POSTGRES_PASSWORD: streamline123
-    ports:
-      - "5432:5432"
-    volumes:
-      - postgres-data:/var/lib/postgresql/data
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U streamline"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
-    networks:
-      - streamline-network
-
+  # Redis cache
   redis:
     image: redis:7-alpine
+    container_name: streamline-redis
+    restart: unless-stopped
     ports:
       - "6379:6379"
     volumes:
-      - redis-data:/data
+      - redis_data:/data
+    command: redis-server --appendonly yes
+    networks:
+      - streamline-network
     healthcheck:
       test: ["CMD", "redis-cli", "ping"]
       interval: 10s
       timeout: 5s
       retries: 5
+
+  # PostgreSQL database (optional)
+  postgres:
+    image: postgres:15-alpine
+    container_name: streamline-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: streamlinevpn
+      POSTGRES_USER: streamline
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-changeme}
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
     networks:
       - streamline-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U streamline"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
 
+  # API server
   api:
-    build: .
+    build:
+      context: .
+      dockerfile: Dockerfile
     container_name: streamline-api
-    command: python run_server.py
+    restart: unless-stopped
+    env_file:
+      - .env
+    environment:
+      - API_HOST=0.0.0.0
+      - API_PORT=8080
+      - VPN_REDIS_URL=redis://redis:6379/0
+      - DATABASE_URL=postgresql://streamline:${DB_PASSWORD:-changeme}@postgres/streamlinevpn
     ports:
       - "8080:8080"
-    environment:
-      - HOST=0.0.0.0
-      - API_PORT=8080
-      - DATABASE_URL=postgresql://streamline:streamline123@postgres:5432/streamline
-      - REDIS_URL=redis://redis:6379/0
     volumes:
       - ./config:/app/config:ro
       - ./output:/app/output
-      - ./src:/app/src:ro
+      - ./logs:/app/logs
+      - ./data:/app/data
     depends_on:
-      - postgres
-      - redis
+      redis:
+        condition: service_healthy
+      postgres:
+        condition: service_healthy
     networks:
       - streamline-network
+    command: python run_server.py
 
+  # Web interface
   web:
-    build: .
+    build:
+      context: .
+      dockerfile: Dockerfile
     container_name: streamline-web
-    command: python run_web.py
+    restart: unless-stopped
+    env_file:
+      - .env
+    environment:
+      - WEB_HOST=0.0.0.0
+      - WEB_PORT=8000
+      - API_BASE_URL=http://api:8080
     ports:
       - "8000:8000"
-    environment:
-      - HOST=0.0.0.0
-      - WEB_PORT=8000
-      - API_BASE=http://api:8080
     volumes:
       - ./docs:/app/docs:ro
+      - ./logs:/app/logs
     depends_on:
       - api
     networks:
       - streamline-network
+    command: python run_web.py
 
-volumes:
-  postgres-data:
-  redis-data:
+  # Nginx reverse proxy (optional)
+  nginx:
+    image: nginx:alpine
+    container_name: streamline-nginx
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./ssl:/etc/nginx/ssl:ro
+    depends_on:
+      - api
+      - web
+    networks:
+      - streamline-network
+
+  # Prometheus monitoring (optional)
+  prometheus:
+    image: prom/prometheus:latest
+    container_name: streamline-prometheus
+    restart: unless-stopped
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - prometheus_data:/prometheus
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+    networks:
+      - streamline-network
+
+  # Grafana dashboard (optional)
+  grafana:
+    image: grafana/grafana:latest
+    container_name: streamline-grafana
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    environment:
+      - GF_SECURITY_ADMIN_PASSWORD=${GRAFANA_PASSWORD:-admin}
+    volumes:
+      - grafana_data:/var/lib/grafana
+      - ./grafana/dashboards:/etc/grafana/provisioning/dashboards:ro
+      - ./grafana/datasources:/etc/grafana/provisioning/datasources:ro
+    depends_on:
+      - prometheus
+    networks:
+      - streamline-network
 
 networks:
   streamline-network:
     driver: bridge
+
+volumes:
+  redis_data:
+  postgres_data:
+  prometheus_data:
+  grafana_data:

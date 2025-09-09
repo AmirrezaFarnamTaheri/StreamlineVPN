@@ -19,7 +19,7 @@ from fastapi.responses import HTMLResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 
 from ..utils.logging import get_logger
-from .settings import Settings
+from .settings import get_settings
 
 logger = get_logger(__name__)
 
@@ -29,14 +29,14 @@ class EnhancedStaticServer:
 
     def __init__(
         self,
-        settings: Settings,
+        settings=None,
     ):
         """Initialize enhanced static server.
 
         Args:
-            settings: Configuration settings object.
+            settings: Configuration settings object. If None, will use get_settings().
         """
-        self.settings = settings
+        self.settings = settings or get_settings()
         self.static_dir = Path(self.settings.STATIC_DIR)
         self.api_base = self.settings.API_BASE
         self.update_interval = self.settings.UPDATE_INTERVAL
