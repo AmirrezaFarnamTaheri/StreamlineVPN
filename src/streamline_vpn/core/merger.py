@@ -193,18 +193,25 @@ class StreamlineVPNMerger(BaseMerger):
             }
 
     async def _load_sources(self) -> None:
-        """Load sources from configuration."""
+        """Load sources from configuration.
+        
+        Loads active sources from the source manager and validates them.
+        Updates internal sources list for processing.
+        
+        Raises:
+            RuntimeError: If source loading fails
+        """
         try:
-            # Get active source URLs from source manager
-            if self.source_manager is None:
-                logger.warning("Source manager not initialized")
-                self.sources = []
-                return
+            if not self.source_manager:
+                raise RuntimeError("Source manager not initialized")
+                
             self.sources = await self.source_manager.get_active_sources()
-            logger.info(f"Loaded {len(self.sources)} active sources")
+            logger.info(f"Successfully loaded {len(self.sources)} active sources")
+            
         except Exception as e:
-            logger.error(f"Error loading sources: {e}", exc_info=True)
+            logger.error(f"Failed to load sources: {e}")
             self.sources = []
+            raise RuntimeError(f"Source loading failed: {e}")
 
     async def get_source_statistics(self) -> Dict[str, Any]:
         """Get source statistics.

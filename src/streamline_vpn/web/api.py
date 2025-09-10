@@ -88,41 +88,49 @@ def get_merger() -> StreamlineVPNMerger:
 
 @asynccontextmanager
 async def _lifespan(app: FastAPI):
-    """Application lifespan context to replace deprecated on_event hooks."""
-    # Startup
-    app.state.cleanup_task = asyncio.create_task(
-        cleanup_processing_jobs_periodically()
-    )
-    # Clean up any persisted stale jobs (data/jobs.json)
+    """Application lifespan context manager with proper initialization.
+    
+    Handles startup and shutdown operations gracefully.
+    """
+    # Startup phase
+    logger.info("Starting API server initialization...")
+    
     try:
+        # Initialize cleanup task
+        app.state.cleanup_task = asyncio.create_task(
+            cleanup_processing_jobs_periodically()
+        )
+        
+        # Clean up stale jobs
         await startup_cleanup()
-    except Exception:
-        pass
-    # Try to initialize merger early so health reflects readiness
-    global service_healthy, merger
-    try:
-        merger = StreamlineVPNMerger()
-        if hasattr(merger, "initialize"):
-            # initialize may be async; guard accordingly
-            init = merger.initialize
-            if asyncio.iscoroutinefunction(init):
-                await init()  # type: ignore
-    except Exception:
-        service_healthy = False
-        merger = None
-    try:
+        
+        # Initialize merger with proper error handling
+        global service_healthy, merger
+        try:
+            merger = StreamlineVPNMerger()
+            if hasattr(merger, "initialize"):
+                await merger.initialize()
+            service_healthy = True
+            logger.info("API server initialized successfully")
+        except Exception as e:
+            logger.error(f"Failed to initialize merger: {e}")
+            service_healthy = False
+            merger = None
+            
         yield
+        
     finally:
-        # Shutdown
-        task = getattr(app.state, "cleanup_task", None)
-        if task:
-            task.cancel()
+        # Shutdown phase
+        logger.info("Shutting down API server...")
+        if app.state.cleanup_task:
+            app.state.cleanup_task.cancel()
             try:
-                await asyncio.wait_for(asyncio.shield(task), timeout=2)
-            except asyncio.TimeoutError:  # pragma: no cover - timeout guard
+                await asyncio.wait_for(app.state.cleanup_task, timeout=2)
+            except (asyncio.TimeoutError, asyncio.CancelledError):
                 pass
-            except BaseException:  # pragma: no cover - cancellation only
-                pass
+        
+        if merger and hasattr(merger, "shutdown"):
+            await merger.shutdown()
 
 
 def create_app() -> FastAPI:
@@ -208,8 +216,26 @@ def create_app() -> FastAPI:
         }
 
     @app.get("/health", response_model=HealthResponse)
-    async def health():
-        """Health check endpoint."""
+    async def health() -> HealthResponse:
+        """Health check endpoint for monitoring and load balancer health checks.
+        
+        Provides comprehensive health status information including service state,
+        uptime, and version information for monitoring systems.
+        
+        Returns:
+            HealthResponse object containing:
+                - status: Current service status ("healthy" or "degraded")
+                - timestamp: Current timestamp in ISO format
+                - version: API version string
+                - uptime: Service uptime in seconds
+        
+        Example:
+            >>> response = await health()
+            >>> print(response.status)
+            "healthy"
+            >>> print(response.uptime)
+            3600.5
+        """
         uptime = (datetime.now() - start_time).total_seconds()
         return HealthResponse(
             status="healthy" if service_healthy else "degraded",
@@ -221,8 +247,41 @@ def create_app() -> FastAPI:
     @app.post("/process", response_model=ProcessingResponse)
     async def process_configurations(
         request: ProcessingRequest, background_tasks: BackgroundTasks
-    ):
-        """Process VPN configurations."""
+    ) -> ProcessingResponse:
+        """Process VPN configurations from configured sources.
+        
+        Initiates the complete VPN configuration processing pipeline including
+        fetching from sources, parsing, validation, deduplication, and output
+        generation in specified formats.
+        
+        Args:
+            request: ProcessingRequest containing:
+                - output_dir: Directory to save output files
+                - formats: List of output formats (json, clash, singbox, etc.)
+                - max_concurrent: Maximum concurrent processing tasks
+            background_tasks: FastAPI background tasks for async operations
+        
+        Returns:
+            ProcessingResponse containing:
+                - success: Boolean indicating if processing succeeded
+                - message: Human-readable status message
+                - job_id: Optional job identifier for tracking
+                - statistics: Optional processing statistics
+        
+        Raises:
+            HTTPException: If processing fails
+                - 500: Internal server error during processing
+        
+        Example:
+            >>> request = ProcessingRequest(
+            ...     output_dir="output",
+            ...     formats=["json", "clash"],
+            ...     max_concurrent=50
+            ... )
+            >>> response = await process_configurations(request, background_tasks)
+            >>> print(response.success)
+            True
+        """
         try:
             merger = get_merger()
 
@@ -368,8 +427,28 @@ def create_app() -> FastAPI:
             )
 
     @app.get("/configurations")
-    async def get_configurations():
-        """Get processed configurations."""
+    async def get_configurations() -> Dict[str, Any]:
+        """Get processed VPN configurations from the merger.
+        
+        Retrieves all currently processed VPN configurations from the merger service
+        and returns them in a structured format with metadata.
+        
+        Returns:
+            Dictionary containing:
+                - count: Number of configurations available
+                - configurations: List of configuration dictionaries
+        
+        Raises:
+            HTTPException: If configurations cannot be retrieved
+                - 500: Internal server error during retrieval
+        
+        Example:
+            >>> response = await get_configurations()
+            >>> print(response["count"])
+            150
+            >>> print(len(response["configurations"]))
+            150
+        """
         try:
             merger = get_merger()
             configs = await merger.get_configurations()

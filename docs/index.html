@@ -3,566 +3,80 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>StreamlineVPN - Next-Gen VPN Management Platform</title>
-    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+    <title>StreamlineVPN - Professional VPN Management Platform</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="/api-base.js"></script>
     <style>
-        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
-        
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
-        
-        body {
-            font-family: 'Inter', system-ui, -apple-system, sans-serif;
-            background: #0f0f1e;
-            color: #ffffff;
-            overflow-x: hidden;
-        }
-        
-        /* Animated Background */
-        .animated-bg {
-            position: fixed;
-            top: 0;
-            left: 0;
-            right: 0;
-            bottom: 0;
-            background: linear-gradient(125deg, #667eea 0%, #764ba2 25%, #f093fb 50%, #667eea 100%);
-            background-size: 400% 400%;
-            animation: gradientShift 15s ease infinite;
-            opacity: 0.1;
-            z-index: -2;
-        }
-        
-        .mesh-gradient {
-            position: fixed;
-            top: -50%;
-            left: -50%;
-            width: 200%;
-            height: 200%;
-            background: radial-gradient(circle at 20% 50%, rgba(120, 119, 198, 0.3), transparent 50%),
-                        radial-gradient(circle at 80% 80%, rgba(255, 119, 198, 0.3), transparent 50%),
-                        radial-gradient(circle at 40% 20%, rgba(255, 219, 98, 0.2), transparent 50%);
-            animation: meshMove 20s ease-in-out infinite;
-            z-index: -1;
-        }
-        
         @keyframes gradientShift {
             0%, 100% { background-position: 0% 50%; }
             50% { background-position: 100% 50%; }
         }
-        
-        @keyframes meshMove {
-            0%, 100% { transform: rotate(0deg) scale(1); }
-            50% { transform: rotate(180deg) scale(1.1); }
-        }
-
-        /* Glass Morphism */
-        .glass {
-            background: rgba(255, 255, 255, 0.05);
-            backdrop-filter: blur(10px);
-            border: 1px solid rgba(255, 255, 255, 0.1);
-        }
-        
-        .glass-dark {
-            background: rgba(0, 0, 0, 0.3);
-            backdrop-filter: blur(20px);
-            border: 1px solid rgba(255, 255, 255, 0.1);
-        }
-        
-        /* Navigation */
-        .nav-link {
-            position: relative;
-            padding: 8px 16px;
-            transition: all 0.3s ease;
-        }
-        
-        .nav-link::after {
-            content: '';
-            position: absolute;
-            bottom: 0;
-            left: 50%;
-            width: 0;
-            height: 2px;
-            background: linear-gradient(90deg, #667eea, #764ba2);
-            transform: translateX(-50%);
-            transition: width 0.3s ease;
-        }
-        
-        .nav-link:hover::after,
-        .nav-link.active::after {
-            width: 80%;
-        }
-        
-        /* Hero Section */
-        .hero-title {
-            font-size: clamp(2.5rem, 8vw, 5rem);
-            font-weight: 800;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 25%, #f093fb 50%, #f5576c 75%, #667eea 100%);
+        .animated-gradient {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             background-size: 200% 200%;
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-            background-clip: text;
-            animation: gradientText 5s ease infinite;
+            animation: gradientShift 10s ease infinite;
         }
-        
-        @keyframes gradientText {
-            0%, 100% { background-position: 0% 50%; }
-            50% { background-position: 100% 50%; }
-        }
-        
-        /* Feature Cards */
-        .feature-card {
-            position: relative;
-            overflow: hidden;
-            transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-        }
-
-        .feature-card::before {
-            content: '';
-            position: absolute;
-            top: -50%;
-            left: -50%;
-            width: 200%;
-            height: 200%;
-            background: radial-gradient(circle, rgba(102, 126, 234, 0.1) 0%, transparent 70%);
-            opacity: 0;
-            transition: opacity 0.3s ease;
-        }
-        
-        .feature-card:hover::before {
-            opacity: 1;
-        }
-        
-        .feature-card:hover {
-            transform: translateY(-10px) scale(1.02);
-            box-shadow: 0 20px 40px rgba(102, 126, 234, 0.3);
-        }
-        
-        /* Buttons */
-        .btn-primary {
-            position: relative;
-            padding: 14px 32px;
-            background: linear-gradient(135deg, #667eea, #764ba2);
-            border-radius: 12px;
-            font-weight: 600;
-            letter-spacing: 0.5px;
-            overflow: hidden;
-            transition: all 0.3s ease;
-        }
-        
-        .btn-primary::before {
-            content: '';
-            position: absolute;
-            top: 0;
-            left: -100%;
-            width: 100%;
-            height: 100%;
-            background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
-            transition: left 0.5s ease;
-        }
-        
-        .btn-primary:hover::before {
-            left: 100%;
-        }
-        
-        .btn-primary:hover {
-            transform: scale(1.05);
-            box-shadow: 0 10px 30px rgba(102, 126, 234, 0.4);
-        }
-        
-        .btn-secondary {
-            padding: 14px 32px;
-            background: transparent;
-            border: 2px solid rgba(255, 255, 255, 0.3);
-            border-radius: 12px;
-            font-weight: 600;
-            letter-spacing: 0.5px;
-            transition: all 0.3s ease;
-        }
-        
-        .btn-secondary:hover {
+        .glass-morphism {
             background: rgba(255, 255, 255, 0.1);
-            border-color: rgba(255, 255, 255, 0.5);
-            transform: scale(1.05);
+            backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
         }
-        
-        /* Stats */
-        .stat-number {
-            font-size: 3rem;
-            font-weight: 800;
-            background: linear-gradient(135deg, #667eea, #f093fb);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-            background-clip: text;
+        .hover-lift {
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
         }
-        
-        /* Animations */
-        .float-animation {
-            animation: float 6s ease-in-out infinite;
-        }
-        
-        @keyframes float {
-            0%, 100% { transform: translateY(0); }
-            50% { transform: translateY(-20px); }
-        }
-        
-        .slide-up {
-            opacity: 0;
-            transform: translateY(30px);
-            animation: slideUp 0.6s ease forwards;
-        }
-        
-        @keyframes slideUp {
-            to {
-                opacity: 1;
-                transform: translateY(0);
-            }
-        }
-        
-        .fade-in {
-            opacity: 0;
-            animation: fadeIn 0.8s ease forwards;
-        }
-        
-        @keyframes fadeIn {
-            to { opacity: 1; }
-        }
-        
-        /* Scrollbar */
-        ::-webkit-scrollbar {
-            width: 10px;
-        }
-        
-        ::-webkit-scrollbar-track {
-            background: rgba(255, 255, 255, 0.05);
-        }
-        
-        ::-webkit-scrollbar-thumb {
-            background: linear-gradient(135deg, #667eea, #764ba2);
-            border-radius: 5px;
-        }
-
-        /* Responsive */
-        @media (max-width: 768px) {
-            .hero-title {
-                font-size: 2.5rem;
-            }
-
-            .feature-grid {
-                grid-template-columns: 1fr;
-            }
+        .hover-lift:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
         }
     </style>
 </head>
-<body>
-    <!-- Background Effects -->
-    <div class="animated-bg"></div>
-    <div class="mesh-gradient"></div>
-
-    <script src="/api-base.js"></script>
-    <script src="assets/js/main.js"></script>
-
+<body class="bg-gradient-to-br from-gray-900 via-purple-900 to-gray-900 min-h-screen text-white">
+    <!-- Navigation Header -->
+    <nav class="glass-morphism fixed top-0 left-0 right-0 z-50 px-6 py-4">
+        <div class="container mx-auto flex justify-between items-center">
+            <div class="flex items-center space-x-3">
+                <svg class="w-8 h-8 text-purple-400" fill="currentColor" viewBox="0 0 24 24">
+                    <path d="M12 2L2 7v10c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V7l-10-5z"/>
+                </svg>
+                <h1 class="text-2xl font-bold">StreamlineVPN</h1>
+            </div>
+            <div class="flex space-x-6">
+                <a href="#features" class="hover:text-purple-400 transition">Features</a>
+                <a href="#stats" class="hover:text-purple-400 transition">Statistics</a>
+                <a href="/interactive.html" class="bg-purple-600 px-4 py-2 rounded-lg hover:bg-purple-700 transition">Control Panel</a>
+            </div>
+        </div>
+    </nav>
+    
     <!-- Hero Section -->
-    <section class="min-h-screen flex items-center justify-center px-6 pt-20">
+    <section class="pt-32 pb-20 px-6">
         <div class="container mx-auto text-center">
-            <div class="slide-up">
-                
-
-                <h1 class="hero-title mb-6">
-                    Next-Generation<br>VPN Management
-                </h1>
-
-                <p class="text-xl text-gray-300 mb-8 max-w-2xl mx-auto fade-in" style="animation-delay: 0.2s;">
-                    Aggregate, validate, and optimize VPN configurations from multiple sources with enterprise-grade reliability and performance.
-                </p>
-
-                <div class="flex flex-col sm:flex-row justify-center gap-4 fade-in" style="animation-delay: 0.4s;">
-                    <a id="launchControlPanel" href="interactive.html" class="btn-primary group relative overflow-hidden inline-block">
-                        <span class="relative z-10 flex items-center justify-center">
-                            <svg class="w-5 h-5 mr-2 group-hover:rotate-12 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
-                            </svg>
-                            Launch Control Panel
-                        </span>
-                        <span class="absolute inset-0 bg-gradient-to-r from-purple-600 to-pink-600 transform scale-x-0 group-hover:scale-x-100 transition-transform origin-left"></span>
-                    </a>
-                    <button onclick="window.location.href='#features'" class="btn-secondary">
-                        Explore Features
-                    </button>
-                </div>
-            </div>
-
-            <!-- Floating Icons -->
-            <div class="relative mt-20">
-                <div class="absolute -left-20 top-0 w-20 h-20 glass rounded-full float-animation"></div>
-                <div class="absolute -right-20 top-10 w-16 h-16 glass rounded-full float-animation" style="animation-delay: 2s;"></div>
-                <div class="absolute left-1/4 -bottom-10 w-12 h-12 glass rounded-full float-animation" style="animation-delay: 4s;"></div>
-            </div>
-        </div>
-    </section>
-
-    <!-- Stats Section -->
-    <section id="stats" class="py-20 px-6">
-        <div class="container mx-auto">
-            <div class="grid grid-cols-2 md:grid-cols-4 gap-8">
-                <div class="text-center slide-up">
-                    <div class="stat-number">50K+</div>
-                    <div class="text-gray-400">Configurations Processed</div>
-                </div>
-                <div class="text-center slide-up" style="animation-delay: 0.1s;">
-                    <div class="stat-number">99.9%</div>
-                    <div class="text-gray-400">Uptime Guarantee</div>
-                </div>
-                <div class="text-center slide-up" style="animation-delay: 0.2s;">
-                    <div class="stat-number">100+</div>
-                    <div class="text-gray-400">Active Sources</div>
-                </div>
-                <div class="text-center slide-up" style="animation-delay: 0.3s;">
-                    <div class="stat-number">5ms</div>
-                    <div class="text-gray-400">Avg Response Time</div>
-                </div>
-            </div>
-        </div>
-    </section>
-
-    <!-- Features Section -->
-    <section id="features" class="py-20 px-6">
-        <div class="container mx-auto">
-            <h2 class="text-4xl font-bold text-center mb-16">
-                Powerful Features
+            <h2 class="text-5xl font-bold mb-6 animated-gradient bg-clip-text text-transparent">
+                Enterprise VPN Configuration Management
             </h2>
+            <p class="text-xl text-gray-300 mb-8 max-w-2xl mx-auto">
+                Aggregate, validate, and manage VPN configurations from multiple sources with advanced ML-powered quality prediction
+            </p>
             
-            <div class="grid md:grid-cols-3 gap-8 feature-grid">
-                <div class="feature-card glass rounded-2xl p-8">
-                    <div class="w-14 h-14 bg-gradient-to-br from-blue-500 to-purple-500 rounded-xl flex items-center justify-center mb-6">
-                        <svg class="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path>
-                        </svg>
-                    </div>
-                    <h3 class="text-2xl font-bold mb-4">Lightning Fast</h3>
-                    <p class="text-gray-400">Process thousands of configurations in seconds with our optimized parsing engine.</p>
+            <!-- Stats Cards -->
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mt-12">
+                <div class="glass-morphism rounded-xl p-6 hover-lift">
+                    <div class="text-4xl font-bold text-purple-400 mb-2" id="active-sources">-</div>
+                    <div class="text-gray-300">Active Sources</div>
                 </div>
-                
-                <div class="feature-card glass rounded-2xl p-8">
-                    <div class="w-14 h-14 bg-gradient-to-br from-green-500 to-teal-500 rounded-xl flex items-center justify-center mb-6">
-                        <svg class="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"></path>
-                        </svg>
-                    </div>
-                    <h3 class="text-2xl font-bold mb-4">Secure & Reliable</h3>
-                    <p class="text-gray-400">Validation and security checks ensure only quality configurations pass through.</p>
+                <div class="glass-morphism rounded-xl p-6 hover-lift">
+                    <div class="text-4xl font-bold text-blue-400 mb-2" id="total-configs">-</div>
+                    <div class="text-gray-300">Total Configurations</div>
                 </div>
-                
-                <div class="feature-card glass rounded-2xl p-8">
-                    <div class="w-14 h-14 bg-gradient-to-br from-orange-500 to-red-500 rounded-xl flex items-center justify-center mb-6">
-                        <svg class="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 5a1 1 0 011-1h14a1 1 0 011 1v2a1 1 0 01-1 1H5a1 1 0 01-1-1V5zM4 13a1 1 0 011-1h6a1 1 0 011 1v6a1 1 0 01-1 1H5a1 1 0 01-1-1v-6zM16 13a1 1 0 011-1h2a1 1 0 011 1v6a1 1 0 01-1 1h-2a1 1 0 01-1-1v-6z"></path>
-                        </svg>
-                    </div>
-                    <h3 class="text-2xl font-bold mb-4">Multi-Format Support</h3>
-                    <p class="text-gray-400">Export to Clash, Singbox, V2Ray, and more formats with a single click.</p>
-                </div>
-                
-                <div class="feature-card glass rounded-2xl p-8">
-                    <div class="w-14 h-14 bg-gradient-to-br from-pink-500 to-purple-500 rounded-xl flex items-center justify-center mb-6">
-                        <svg class="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4"></path>
-                        </svg>
-                    </div>
-                    <h3 class="text-2xl font-bold mb-4">Smart Filtering</h3>
-                    <p class="text-gray-400">AI-powered quality scoring and automatic deduplication for optimal results.</p>
-                </div>
-                
-                <div class="feature-card glass rounded-2xl p-8">
-                    <div class="w-14 h-14 bg-gradient-to-br from-indigo-500 to-blue-500 rounded-xl flex items-center justify-center mb-6">
-                        <svg class="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"></path>
-                        </svg>
-                    </div>
-                    <h3 class="text-2xl font-bold mb-4">Real-time Analytics</h3>
-                    <p class="text-gray-400">Monitor performance, track sources, and optimize your VPN infrastructure.</p>
-                </div>
-                
-                <div class="feature-card glass rounded-2xl p-8">
-                    <div class="w-14 h-14 bg-gradient-to-br from-yellow-500 to-orange-500 rounded-xl flex items-center justify-center mb-6">
-                        <svg class="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"></path>
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
-                        </svg>
-                    </div>
-                    <h3 class="text-2xl font-bold mb-4">Fully Customizable</h3>
-                    <p class="text-gray-400">Tailor settings to your needs with our configuration system.</p>
+                <div class="glass-morphism rounded-xl p-6 hover-lift">
+                    <div class="text-4xl font-bold text-green-400 mb-2" id="success-rate">-</div>
+                    <div class="text-gray-300">Success Rate</div>
                 </div>
             </div>
         </div>
     </section>
 
-    <!-- Architecture Section -->
-    <section id="architecture" class="py-20 px-6">
-        <div class="container mx-auto">
-            <h2 class="text-4xl font-bold text-center mb-16">
-                Modern Architecture
-            </h2>
-            
-            <div class="glass rounded-2xl p-8 max-w-4xl mx-auto">
-                <div class="grid md:grid-cols-2 gap-8">
-                    <div>
-                        <h3 class="text-2xl font-bold mb-4 text-purple-400">Core Components</h3>
-                        <ul class="space-y-3">
-                            <li class="flex items-center">
-                                <span class="w-2 h-2 bg-purple-400 rounded-full mr-3"></span>
-                                FastAPI Backend with async support
-                            </li>
-                            <li class="flex items-center">
-                                <span class="w-2 h-2 bg-purple-400 rounded-full mr-3"></span>
-                                Real-time WebSocket connections
-                            </li>
-                            <li class="flex items-center">
-                                <span class="w-2 h-2 bg-purple-400 rounded-full mr-3"></span>
-                                Redis caching layer
-                            </li>
-                            <li class="flex items-center">
-                                <span class="w-2 h-2 bg-purple-400 rounded-full mr-3"></span>
-                                PostgreSQL for persistence
-                            </li>
-                        </ul>
-                    </div>
-
-                    <div>
-                        <h3 class="text-2xl font-bold mb-4 text-pink-400">Key Technologies</h3>
-                        <ul class="space-y-3">
-                            <li class="flex items-center">
-                                <span class="w-2 h-2 bg-pink-400 rounded-full mr-3"></span>
-                                Python 3.10+ with type hints
-                            </li>
-                            <li class="flex items-center">
-                                <span class="w-2 h-2 bg-pink-400 rounded-full mr-3"></span>
-                                Docker & Kubernetes ready
-                            </li>
-                            <li class="flex items-center">
-                                <span class="w-2 h-2 bg-pink-400 rounded-full mr-3"></span>
-                                GraphQL API support
-                            </li>
-                            <li class="flex items-center">
-                                <span class="w-2 h-2 bg-pink-400 rounded-full mr-3"></span>
-                                Prometheus metrics
-                            </li>
-                        </ul>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </section>
-
-    <!-- Documentation Section -->
-    <section id="docs" class="py-20 px-6 mb-20">
-        <div class="container mx-auto">
-            <h2 class="text-4xl font-bold text-center mb-16">
-                Get Started Today
-            </h2>
-            
-            <div class="grid md:grid-cols-3 gap-8 max-w-4xl mx-auto">
-                <a href="quick-start.html" class="glass rounded-2xl p-6 hover:scale-105 transition-transform">
-                    <h3 class="text-xl font-bold mb-2">Quick Start</h3>
-                    <p class="text-gray-400">Get up and running in minutes</p>
-                </a>
-                
-                <a href="api/" class="glass rounded-2xl p-6 hover:scale-105 transition-transform">
-                    <h3 class="text-xl font-bold mb-2">API Documentation</h3>
-                    <p class="text-gray-400">Complete API reference</p>
-                </a>
-                
-                <a href="configuration/" class="glass rounded-2xl p-6 hover:scale-105 transition-transform">
-                    <h3 class="text-xl font-bold mb-2">Configuration</h3>
-                    <p class="text-gray-400">Customize your setup</p>
-                </a>
-                
-                <a href="config_generator.html" class="glass rounded-2xl p-6 hover:scale-105 transition-transform md:col-span-3">
-                    <h3 class="text-xl font-bold mb-2">Config Generator</h3>
-                    <p class="text-gray-400">Generate and download configurations via the live backend</p>
-                </a>
-            </div>
-        </div>
-    </section>
-
-    <!-- Footer -->
-    <footer class="glass-dark py-8 px-6">
-        <div class="container mx-auto text-center">
-            <p class="text-gray-400">© 2025 StreamlineVPN. All rights reserved. | GPL-3.0 License</p>
-        </div>
-    </footer>
-
-    <script>
-        // Smooth scrolling
-        document.querySelectorAll('a[href^="#"]').forEach(anchor => {
-            anchor.addEventListener('click', function (e) {
-                e.preventDefault();
-                const target = document.querySelector(this.getAttribute('href'));
-                if (target) {
-                    target.scrollIntoView({ behavior: 'smooth', block: 'start' });
-                }
-            });
-        });
-        
-        // Intersection Observer for animations
-        const observer = new IntersectionObserver((entries) => {
-            entries.forEach(entry => {
-                if (entry.isIntersecting) {
-                    entry.target.style.animationPlayState = 'running';
-                }
-            });
-        }, { threshold: 0.1 });
-        
-        // Observe all animated elements
-        document.querySelectorAll('.slide-up, .fade-in').forEach(el => {
-            el.style.animationPlayState = 'paused';
-            observer.observe(el);
-        });
-        
-        // Active nav link on scroll
-        window.addEventListener('scroll', () => {
-            const sections = document.querySelectorAll('section[id]');
-            const scrollY = window.pageYOffset;
-            
-            sections.forEach(section => {
-                const sectionHeight = section.offsetHeight;
-                const sectionTop = section.offsetTop - 100;
-                const sectionId = section.getAttribute('id');
-                const navLink = document.querySelector(`.nav-link[href="#${sectionId}"]`);
-                
-                if (navLink && scrollY > sectionTop && scrollY <= sectionTop + sectionHeight) {
-                    document.querySelectorAll('.nav-link').forEach(link => link.classList.remove('active'));
-                    navLink.classList.add('active');
-                }
-            });
-        });
-
-        // Launch control panel with loading state
-        const launchBtn = document.getElementById('launchControlPanel');
-        if (launchBtn) {
-            launchBtn.addEventListener('click', function (e) {
-                e.preventDefault();
-                const originalContent = this.innerHTML;
-                this.innerHTML = `
-                    <span class="flex items-center justify-center">
-                        <svg class="animate-spin h-5 w-5 mr-2" viewBox="0 0 24 24">
-                            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4" fill="none"></circle>
-                            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                        </svg>
-                        Loading...
-                    </span>
-                `;
-                setTimeout(() => {
-                    try {
-                        window.location.href = this.href;
-                    } catch (error) {
-                        this.innerHTML = originalContent;
-                    }
-                }, 500);
-            });
-        }
-    </script>
+    
+    <script src="/assets/js/dashboard.js"></script>
 </body>
 </html>

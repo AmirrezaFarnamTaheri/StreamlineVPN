@@ -109,7 +109,17 @@
                         <label class="flex items-center space-x-3"><input type="checkbox" class="format-cb h-4 w-4 rounded bg-gray-900 border-gray-600 text-indigo-400 focus:ring-indigo-400" value="base64"> <span>Base64</span></label>
                     </div>
                 </div>
-                <button id="startProcessingBtn" class="w-full py-3 rounded-lg font-semibold transition bg-indigo-600 hover:bg-indigo-500" type="button" aria-label="Start processing configurations">Start Processing</button>
+                <button id="startProcessingBtn" 
+                        class="w-full py-3 bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 rounded-lg font-semibold transition-all transform hover:scale-105"
+                        type="button" 
+                        aria-label="Start VPN configuration processing">
+                    <span class="flex items-center justify-center">
+                        <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path>
+                        </svg>
+                        Start Processing
+                    </span>
+                </button>
                 <div id="progressBar" class="hidden" aria-live="polite">
                     <div class="w-full bg-gray-900 rounded-full h-2.5">
                         <div id="progressFill" class="bg-gradient-to-r from-indigo-500 to-green-400 h-full rounded-full transition-all" style="width: 0%"></div>
@@ -209,45 +219,115 @@
         }
     }
 
-    async function startProcessing() {
-        const formats = qsa('.format-cb:checked').map(cb => cb.value);
-        const body = {
-            config_path: el('configPath').value || 'config/sources.unified.yaml',
-            output_dir: 'output',
-            formats: formats.length ? formats : ['json']
-        };
-        el('progressBar').classList.remove('hidden');
-        el('progressFill').style.width = '5%';
-        el('progressText').textContent = 'Submitting pipeline...';
-        try {
-            const resp = await fetch(`${API_BASE}/api/v1/pipeline/run`, {
-                method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body)
-            });
-            const data = await resp.json();
-            if (![200,202].includes(resp.status)) throw new Error(data.detail || 'Failed to start');
-            el('progressText').textContent = data.message || 'Pipeline accepted';
-            const jobId = data.job_id;
-            if (jobId) {
-                // Poll status for brief period
-                let attempts = 0;
-                const timer = setInterval(async () => {
-                    attempts += 1;
-                    try {
-                        const s = await fetchJSON(`${API_BASE}/api/v1/pipeline/status/${jobId}`);
-                        const pct = s.progress ?? (s.status === 'completed' ? 100 : Math.min(95, attempts*5));
-                        el('progressFill').style.width = `${pct}%`;
-                        el('progressText').textContent = `Status: ${s.status} (${pct}%)`;
-                        if (s.status === 'completed' || s.status === 'failed' || attempts > 60) {
-                            clearInterval(timer);
-                            refreshConfigurations();
-                        }
-                    } catch (_) {}
-                }, 2000);
+    // Fully integrated backend connection
+    (function() {
+        const API_BASE = window.__API_BASE__ || 'http://localhost:8080';
+        
+        document.getElementById('startProcessingBtn').addEventListener('click', async function() {
+            const btn = this;
+            const originalContent = btn.innerHTML;
+            
+            try {
+                // Disable button and show loading state
+                btn.disabled = true;
+                btn.innerHTML = '<span class="flex items-center justify-center"><svg class="animate-spin h-5 w-5 mr-2" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4" fill="none"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>Processing...</span>';
+                
+                // Get form values
+                const configPath = document.getElementById('configPath').value || 'config/sources.yaml';
+                const formats = Array.from(document.querySelectorAll('.format-cb:checked')).map(cb => cb.value);
+                
+                // Call API
+                const response = await fetch(`${API_BASE}/api/v1/pipeline/run`, {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({
+                        config_path: configPath,
+                        output_dir: 'output',
+                        formats: formats.length ? formats : ['json']
+                    })
+                });
+                
+                const result = await response.json();
+                
+                if (response.ok) {
+                    // Show success
+                    showNotification('Pipeline started successfully!', 'success');
+                    
+                    // Poll for status
+                    if (result.job_id) {
+                        pollJobStatus(result.job_id);
+                    }
+                } else {
+                    throw new Error(result.detail || 'Pipeline failed to start');
+                }
+                
+            } catch (error) {
+                showNotification(error.message, 'error');
+            } finally {
+                // Restore button
+                btn.disabled = false;
+                btn.innerHTML = originalContent;
             }
-        } catch (e) {
-            el('progressText').textContent = `Error: ${e.message}`;
+        });
+        
+        async function pollJobStatus(jobId) {
+            const statusEl = document.getElementById('progressText');
+            const progressBar = document.getElementById('progressBar');
+            const progressFill = document.getElementById('progressFill');
+            
+            progressBar.classList.remove('hidden');
+            
+            const checkStatus = async () => {
+                try {
+                    const response = await fetch(`${API_BASE}/api/v1/pipeline/status/${jobId}`);
+                    const status = await response.json();
+                    
+                    if (status.progress) {
+                        progressFill.style.width = `${status.progress * 100}%`;
+                        statusEl.textContent = `Processing: ${Math.round(status.progress * 100)}%`;
+                    }
+                    
+                    if (status.status === 'completed') {
+                        progressFill.style.width = '100%';
+                        statusEl.textContent = 'Processing completed!';
+                        showNotification('Processing completed successfully!', 'success');
+                        refreshData();
+                    } else if (status.status === 'failed') {
+                        throw new Error('Processing failed');
+                    } else {
+                        // Continue polling
+                        setTimeout(checkStatus, 2000);
+                    }
+                } catch (error) {
+                    statusEl.textContent = 'Error checking status';
+                    showNotification('Failed to check job status', 'error');
+                }
+            };
+            
+            await checkStatus();
         }
-    }
+        
+        function showNotification(message, type) {
+            const notification = document.createElement('div');
+            notification.className = `fixed top-4 right-4 px-6 py-3 rounded-lg text-white z-50 ${
+                type === 'success' ? 'bg-green-600' : 'bg-red-600'
+            } animate-slide-in`;
+            notification.textContent = message;
+            document.body.appendChild(notification);
+            
+            setTimeout(() => {
+                notification.classList.add('animate-slide-out');
+                setTimeout(() => notification.remove(), 300);
+            }, 3000);
+        }
+        
+        async function refreshData() {
+            // Refresh sources and configurations
+            await refreshSources();
+            await refreshConfigurations();
+            await updateStatistics();
+        }
+    })();
 
     function setupTabs() {
         const tabs = qsa('#tablist .tab-btn');
@@ -274,7 +354,6 @@
     refreshStats();
     refreshConfigurations();
     refreshSources();
-    el('startProcessingBtn').addEventListener('click', startProcessing);
 </script>
 </body>
 </html>

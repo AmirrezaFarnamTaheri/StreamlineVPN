@@ -38,6 +38,7 @@ from pydantic import BaseModel, Field, field_validator
 from ..core.merger import StreamlineVPNMerger
 from ..models.formats import OutputFormat
 from ..utils.logging import get_logger
+from ..settings import get_settings
 
 logger = get_logger(__name__)
 
@@ -387,19 +388,31 @@ class UnifiedAPI:
                 pass
             return [s.strip() for s in val.split(",") if s.strip()] or default
 
-        origins = _parse_list(os.getenv("ALLOWED_ORIGINS", "*"), ["*"])
-        allow_credentials = os.getenv("ALLOW_CREDENTIALS", "true").lower() == "true"
-        allow_methods = _parse_list(os.getenv("ALLOWED_METHODS", "*"), ["*"])
-        allow_headers = _parse_list(os.getenv("ALLOWED_HEADERS", "*"), ["*"])
-
+        # Production-ready CORS configuration
+        settings = get_settings()
+        
+        # Parse allowed origins from environment or use defaults
+        allowed_origins = os.getenv("ALLOWED_ORIGINS", "").split(",") if os.getenv("ALLOWED_ORIGINS") else [
+            "http://localhost:3000",
+            "http://localhost:8000",
+            "http://localhost:8080",
+            "https://app.streamlinevpn.io"  # Production domain
+        ]
+        
+        # Remove empty strings and strip whitespace
+        allowed_origins = [origin.strip() for origin in allowed_origins if origin.strip()]
+        
         app.add_middleware(
             CORSMiddleware,
-            allow_origins=origins if origins != ["*"] else ["*"],
-            allow_credentials=allow_credentials,
-            allow_methods=allow_methods,
-            allow_headers=allow_headers,
-            expose_headers=["*"],
+            allow_origins=allowed_origins,
+            allow_credentials=False,  # Disable credentials in production unless needed
+            allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+            allow_headers=["Content-Type", "Authorization", "X-Request-ID"],
+            max_age=3600,
+            expose_headers=["X-Request-ID", "X-Process-Time"],
         )
+        
+        logger.info(f"CORS configured with origins: {allowed_origins}")
 
     def _setup_routes(self, app: FastAPI) -> None:
         @app.get("/", tags=["General"])
