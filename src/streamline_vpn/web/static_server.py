@@ -15,7 +15,7 @@ import aiofiles
 import httpx
 from fastapi import BackgroundTasks, FastAPI, HTTPException, Request, Response
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import HTMLResponse, JSONResponse
+from fastapi.responses import HTMLResponse, JSONResponse, FileResponse
 from fastapi.staticfiles import StaticFiles
 
 from ..utils.logging import get_logger
@@ -339,7 +339,7 @@ class StaticControlServer:
                 timeout=30.0
             )
             
-            if response.status_code != 200:
+            if response.status_code not in (200, 202):
                 logger.error(f"Failed to start pipeline: {response.status_code}")
                 return
             
@@ -358,49 +358,26 @@ class StaticControlServer:
             base_delay = 2  # Start with 2 seconds
             
             while attempt < max_attempts:
-                await asyncio.sleep(min(base_delay * (1.5 ** min(attempt, 10)), 30))  # Cap at 30 seconds
                 attempt += 1
-                
                 try:
-                    status_response = await self.backend_client.get(
+                    status_resp = await self.backend_client.get(
                         f"{self.api_base}/api/v1/pipeline/status/{job_id}",
-                        timeout=10.0
+                        timeout=10.0,
                     )
-                    
-                    if status_response.status_code != 200:
-                        logger.warning(f"Failed to get job status: {status_response.status_code}")
-                        continue
-                    
-                    status = status_response.json()
-                    job_status = status.get("status")
-                    
-                    logger.debug(f"Job {job_id} status: {job_status} ({status.get('progress', 0)}%)")
-                    
-                    if job_status == "completed":
-                        logger.info(f"Pipeline job {job_id} completed successfully")
-                        
-                        # Fetch updated data
-                        await self._refresh_cached_data()
-                        
-                        self.cached_data["last_update"] = datetime.now().isoformat()
-                        self.last_update = datetime.now()
-                        
-                        logger.info("Auto-update completed successfully")
-                        break
-                        
-                    elif job_status == "failed":
-                        error_msg = status.get("error", "Unknown error")
-                        logger.error(f"Pipeline job {job_id} failed: {error_msg}")
-                        break
-                        
+                    if status_resp.status_code == 200:
+                        status_data = status_resp.json()
+                        state = status_data.get("status") or status_data.get("state")
+                        if state in {"completed", "failed"}:
+                            logger.info("Pipeline finished with state: %s", state)
+                            break
+                    else:
+                        logger.warning("Status check returned %s", status_resp.status_code)
                 except Exception as e:
-                    logger.error(f"Error checking job status: {e}")
-                    
-            else:
-                logger.warning(f"Pipeline job {job_id} timed out after {max_attempts} attempts")
-                
+                    logger.warning("Status check error: %s", e)
+                # backoff
+                await asyncio.sleep(min(30, base_delay * (2 ** (attempt // 5))))
         except Exception as e:
-            logger.error(f"Auto-update error: {e}", exc_info=True)
+            logger.error(f"Auto-update failed: {e}")
 
     async def _auto_update_loop(self) -> None:
         """Auto-update loop that runs every update interval."""

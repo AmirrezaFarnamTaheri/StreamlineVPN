@@ -9,6 +9,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from ..utils.logging import get_logger
+from ..settings import get_settings
 # from .api import create_api_server
 
 logger = get_logger(__name__)
@@ -36,13 +37,20 @@ class IntegratedWebServer:
             version="2.0.0",
         )
 
-        # Add CORS middleware
+        # Add CORS middleware (restrict in production via settings)
+        settings = get_settings()
+        allow_origins = settings.allowed_origins
+        allow_credentials = settings.allow_credentials
+        allow_methods = settings.allowed_methods
+        allow_headers = settings.allowed_headers
+
         app.add_middleware(
             CORSMiddleware,
-            allow_origins=["*"],
-            allow_credentials=True,
-            allow_methods=["*"],
-            allow_headers=["*"],
+            allow_origins=allow_origins,
+            allow_credentials=allow_credentials,
+            allow_methods=allow_methods,
+            allow_headers=allow_headers,
+            max_age=3600,
         )
 
         # Include API routes
@@ -60,15 +68,7 @@ class IntegratedWebServer:
         # Root endpoint
         @app.get("/")
         async def root():
-            return {
-                "message": "StreamlineVPN Integrated Server",
-                "version": "2.0.0",
-                "services": {
-                    "api": "/api",
-                    "graphql": "/graphql",
-                    "docs": "/docs",
-                },
-            }
+            return
 
         return app
 

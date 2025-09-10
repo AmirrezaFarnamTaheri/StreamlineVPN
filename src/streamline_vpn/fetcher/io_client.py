@@ -17,6 +17,51 @@ import aiohttp
 _SESSIONS: "weakref.WeakSet[aiohttp.ClientSession]" = weakref.WeakSet()
 
 
+class SessionManager:
+    """Manage reusable aiohttp sessions with connection pooling."""
+
+    def __init__(self) -> None:
+        self._default_headers = {
+            "User-Agent": "StreamlineVPN/2.0.0",
+            "Accept": "text/plain, application/json, */*",
+            "Accept-Encoding": "gzip, deflate",
+        }
+        self._sessions: Dict[str, aiohttp.ClientSession] = {}
+        self._limits = {
+            "limit": 100,
+            "limit_per_host": 30,
+            "ttl_dns_cache": 300,
+            "use_dns_cache": True,
+        }
+        self._timeout_total = 30
+
+    async def get_session(self, key: str = "default") -> aiohttp.ClientSession:
+        sess = self._sessions.get(key)
+        if not sess or sess.closed:
+            connector = aiohttp.TCPConnector(**self._limits)
+            timeout = aiohttp.ClientTimeout(total=self._timeout_total)
+            sess = aiohttp.ClientSession(
+                connector=connector,
+                timeout=timeout,
+                headers=self._default_headers,
+            )
+            _track_session(sess)
+            self._sessions[key] = sess
+        return sess
+
+    async def close_all(self) -> None:
+        for sess in list(self._sessions.values()):
+            try:
+                if not sess.closed:
+                    await sess.close()
+            except Exception:
+                pass
+        self._sessions.clear()
+
+
+_SESSION_MANAGER = SessionManager()
+
+
 def _track_session(sess: aiohttp.ClientSession) -> None:
     try:
         _SESSIONS.add(sess)
@@ -35,24 +80,20 @@ def get_tracked_sessions() -> List[aiohttp.ClientSession]:
 def make_session(
     max_concurrent: int, timeout_seconds: int
 ) -> aiohttp.ClientSession:
-    connector = aiohttp.TCPConnector(
-        limit=max_concurrent,
-        limit_per_host=10,
-        ttl_dns_cache=300,
-        use_dns_cache=True,
-    )
-    timeout = aiohttp.ClientTimeout(total=timeout_seconds)
-    session = aiohttp.ClientSession(
-        connector=connector,
-        timeout=timeout,
-        headers={
-            "User-Agent": "StreamlineVPN/2.0.0",
-            "Accept": "text/plain, application/json, */*",
-            "Accept-Encoding": "gzip, deflate",
-        },
-    )
-    _track_session(session)
-    return session
+    # Backwards-compatible factory that now draws from SessionManager
+    # Ignores per-call limits in favor of centralized pooling.
+    # For legacy callers, still create a dedicated session if needed.
+    # Here, we map to the shared default pool.
+    # Note: We cannot await here; use get_event_loop to fetch session.
+    try:
+        loop = asyncio.get_event_loop()
+    except RuntimeError:
+        loop = None
+    if loop and loop.is_running():
+        # Create a temporary future to run async getter
+        return loop.run_until_complete(_SESSION_MANAGER.get_session("default"))  # type: ignore
+    else:
+        return asyncio.run(_SESSION_MANAGER.get_session("default"))
 
 
 async def execute_request(
@@ -76,7 +117,11 @@ async def execute_request(
         try:
             start = time.time()
             logger.info(f"Fetching URL: {method} {url}")
-            async with session.request(
+            # Ensure we use a live session (in case callers passed a closed one)
+            active_session = session
+            if active_session is None or getattr(active_session, "closed", False):
+                active_session = await _SESSION_MANAGER.get_session("default")
+            async with active_session.request(
                 method=method,
                 url=url,
                 headers=headers,
@@ -122,6 +167,10 @@ def _cleanup_sessions_at_exit() -> None:  # pragma: no cover - best-effort
                     await s.close()
                 except Exception:
                     pass
+            try:
+                await _SESSION_MANAGER.close_all()
+            except Exception:
+                pass
 
         if loop and loop.is_running():
             for s in sessions:

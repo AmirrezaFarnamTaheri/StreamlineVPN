@@ -104,8 +104,19 @@ class ConfigurationProcessor:
     def validate_config(self, config_data: Dict[str, Any]) -> bool:
         """Validate configuration data using default rules.
 
-        This is a simple alias to :meth:`validate_configuration` kept for
-        historical reasons where the shorter method name was used.
+        Args:
+            config_data: Dictionary containing configuration data to validate.
+
+        Returns:
+            True if configuration is valid, otherwise False.
+
+        Raises:
+            ValueError: If ``config_data`` cannot be converted into a configuration.
+
+        Example:
+            >>> processor = ConfigurationProcessor()
+            >>> processor.validate_config({"protocol": "vmess", "server": "example.com", "port": 443})
+            True
         """
         return self.validate_configuration(config_data)
 

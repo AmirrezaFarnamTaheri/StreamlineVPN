@@ -29,7 +29,10 @@ pip install -r requirements.txt
 python -m streamline_vpn --config config/sources.yaml --output output
 
 # API server (development)
-uvicorn streamline_vpn.web.api_app:app --host 0.0.0.0 --port 8080
+uvicorn streamline_vpn.web.unified_api:create_unified_app --host 0.0.0.0 --port 8080
+
+# Or run the unified script
+python run_unified.py
 ```
 
 ## Configuration
@@ -45,6 +48,10 @@ ALLOW_CREDENTIALS=false
 
 # Optional Redis cluster nodes
 STREAMLINE_REDIS__NODES='[{"host":"localhost","port":"6379"}]'
+
+# Optional jobs persistence override
+# JOBS_DIR=data
+# JOBS_FILE=data/jobs.json
 ```
 
 Key config files:
@@ -68,6 +75,24 @@ python scripts/coverage_gate.py coverage.xml
 ```
 
 CI already runs the gate and will fail on regressions.
+
+## Docker (Development)
+
+Two workflows are available:
+
+- Standard:
+
+```bash
+docker-compose up -d
+```
+
+- With hot reload and live-mounted code:
+
+```bash
+docker-compose -f docker-compose.yml -f docker-compose.dev.yml up -d
+```
+
+The dev override runs Uvicorn with `--reload` and mounts `src/`, `config/`, and `docs/` for quick iteration.
 
 ## Architecture (high level)
 

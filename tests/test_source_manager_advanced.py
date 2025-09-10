@@ -40,8 +40,8 @@ def test_source_manager_load_add_and_stats(tmp_path):
     with pytest.raises(ValueError):
         asyncio.run(sm.add_source(url, tier=SourceTier.RELIABLE))
 
-    # Update performance and compute statistics
-    sm.update_source_performance(url, success=True, config_count=50, response_time=1.0)
+    # Update performance and compute statistics (async API)
+    asyncio.run(sm.update_source_performance(url, success=True, config_count=50, response_time=1.0))
     stats = sm.get_source_statistics()
     assert stats["total_sources"] >= 1
     assert "tier_distribution" in stats

@@ -1,0 +1,161 @@
+"""
+Fixed Test Suite for StreamlineVPN
+===================================
+
+Comprehensive tests with properly awaited async mocks.
+"""
+
+import pytest
+from unittest.mock import Mock, AsyncMock, patch
+from datetime import datetime
+
+from fastapi.testclient import TestClient
+
+# Import components to test
+from streamline_vpn.core.merger import StreamlineVPNMerger
+from streamline_vpn.core.source_manager import SourceManager
+from streamline_vpn.core.config_processor import ConfigurationProcessor
+from streamline_vpn.web.unified_api import create_unified_app, JobManager
+from streamline_vpn.models.configuration import VPNConfiguration, Protocol
+
+
+class TestUnifiedAPI:
+    """Test the unified API implementation."""
+
+    @pytest.fixture
+    def app(self):
+        return create_unified_app()
+
+    @pytest.fixture
+    def client(self, app):
+        return TestClient(app)
+
+    def test_health_endpoint(self, client):
+        resp = client.get("/health")
+        assert resp.status_code == 200
+        data = resp.json()
+        assert "status" in data
+        assert "timestamp" in data
+        assert "version" in data
+        assert "uptime" in data
+
+    def test_root_endpoint(self, client):
+        resp = client.get("/")
+        assert resp.status_code == 200
+        data = resp.json()
+        assert data["message"] in {"StreamlineVPN Unified API", "StreamlineVPN API"}
+
+    def test_pipeline_invalid_format(self, client):
+        resp = client.post("/api/v1/pipeline/run", json={"output_dir": "output", "formats": ["json", "invalid_format"]})
+        assert resp.status_code == 400
+        data = resp.json()
+        assert "Invalid formats" in data["detail"]
+
+
+class TestJobManager:
+    """Test job management functionality."""
+
+    @pytest.fixture
+    def job_manager(self, tmp_path):
+        # Ensure the manager uses a writable directory
+        with patch("streamline_vpn.web.unified_api.os.getenv", side_effect=lambda k, d=None: str(tmp_path) if k in {"JOBS_DIR", "JOBS_FILE"} else d):
+            return JobManager()
+
+    def test_create_job(self, job_manager):
+        job_id = job_manager.create_job("test", {"param": "value"})
+        assert job_id.startswith("job_")
+        assert job_id in job_manager.jobs
+        job = job_manager.jobs[job_id]
+        assert job["type"] == "test"
+        assert job["status"] == "pending"
+        assert job["config"]["param"] == "value"
+
+    def test_update_job(self, job_manager):
+        jid = job_manager.create_job("test", {})
+        job_manager.update_job(jid, {"status": "running", "progress": 50})
+        job = job_manager.get_job(jid)
+        assert job["status"] == "running"
+        assert job["progress"] == 50
+
+
+class TestAsyncMocks:
+    """Test async functionality with proper mock handling."""
+
+    @pytest.mark.asyncio
+    async def test_merger_with_async_mocks(self):
+        with patch("streamline_vpn.core.source_manager.SourceManager") as MockSourceManager:
+            mock_source_manager = AsyncMock()
+            mock_source_manager.get_active_sources = AsyncMock(return_value=[
+                "http://example.com/source1.txt",
+                "http://example.com/source2.txt",
+            ])
+            MockSourceManager.return_value = mock_source_manager
+
+            with patch("aiohttp.ClientSession") as MockSession:
+                mock_session = AsyncMock()
+                mock_response = AsyncMock()
+                mock_response.status = 200
+                mock_response.text = AsyncMock(return_value="vmess://test_config")
+
+                # async context manager for get
+                mock_get_cm = AsyncMock()
+                mock_get_cm.__aenter__ = AsyncMock(return_value=mock_response)
+                mock_get_cm.__aexit__ = AsyncMock(return_value=None)
+                mock_session.get = Mock(return_value=mock_get_cm)
+
+                # async context manager for session
+                mock_session_cm = AsyncMock()
+                mock_session_cm.__aenter__ = AsyncMock(return_value=mock_session)
+                mock_session_cm.__aexit__ = AsyncMock(return_value=None)
+                MockSession.return_value = mock_session_cm
+
+                merger = StreamlineVPNMerger()
+                sources = await mock_source_manager.get_active_sources()
+                assert len(sources) == 2
+
+    @pytest.mark.asyncio
+    async def test_configuration_processor_parse(self):
+        processor = ConfigurationProcessor()
+        # invalid returns None
+        result = await processor.parse_config("invalid_config")
+        assert result is None
+
+
+class TestIntegration:
+    @pytest.mark.asyncio
+    async def test_full_pipeline_flow(self, tmp_path):
+        config_file = tmp_path / "test_config.yaml"
+        config_data = {"sources": {"test": ["http://example.com/test.txt"]}}
+        import yaml
+
+        with open(config_file, "w", encoding="utf-8") as f:
+            yaml.safe_dump(config_data, f)
+
+        with patch("aiohttp.ClientSession") as MockSession:
+            mock_session = AsyncMock()
+            mock_response = AsyncMock()
+            mock_response.status = 200
+            mock_response.text = AsyncMock(return_value="vmess://test_config")
+
+            mock_cm = AsyncMock()
+            mock_cm.__aenter__ = AsyncMock(return_value=mock_response)
+            mock_cm.__aexit__ = AsyncMock(return_value=None)
+            mock_session.get = Mock(return_value=mock_cm)
+
+            session_cm = AsyncMock()
+            session_cm.__aenter__ = AsyncMock(return_value=mock_session)
+            session_cm.__aexit__ = AsyncMock(return_value=None)
+            MockSession.return_value = session_cm
+
+            merger = StreamlineVPNMerger(config_path=str(config_file))
+            # Parser of config_processor returns VPNConfiguration for a valid line
+            with patch.object(merger.config_processor.parser, "parse_configuration") as mock_parse:
+                mock_parse.return_value = VPNConfiguration(
+                    protocol=Protocol.VMESS,
+                    server="test.example.com",
+                    port=443,
+                    user_id="test-uuid",
+                )
+                result = await merger.process_all(output_dir=str(tmp_path / "output"), formats=["json"])  # type: ignore[arg-type]
+                assert isinstance(result, dict)
+

@@ -99,11 +99,26 @@ class StreamlineVPNTester:
             
             async with self.session.post(
                 f"{self.api_base}/api/v1/pipeline/run",
-                json=payload
+                json=payload,
+                timeout=30
             ) as response:
-                if response.status == 200:
+                if response.status in (200, 202):
                     data = await response.json()
-                    print(f"✅ Pipeline run endpoint working: {data}")
+                    print(f"✅ Pipeline run endpoint accepted: {data}")
+                    job_id = data.get("job_id")
+                    # If job id present, poll status briefly
+                    if job_id:
+                        try:
+                            await asyncio.sleep(2)
+                            async with self.session.get(
+                                f"{self.api_base}/api/v1/pipeline/status/{job_id}",
+                                timeout=15
+                            ) as status_resp:
+                                if status_resp.status == 200:
+                                    status_data = await status_resp.json()
+                                    print(f"ℹ️ Job status: {status_data}")
+                        except Exception as _:
+                            pass
                     return True
                 else:
                     error_text = await response.text()

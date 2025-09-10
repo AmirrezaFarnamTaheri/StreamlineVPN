@@ -1,0 +1,26 @@
+version: '3.8'
+
+services:
+  api:
+    command: uvicorn streamline_vpn.web.unified_api:create_unified_app --host 0.0.0.0 --port 8080 --reload
+    environment:
+      - VPN_ENVIRONMENT=development
+      - VPN_DEBUG=true
+      - API_HOST=0.0.0.0
+      - API_PORT=8080
+      - ALLOWED_ORIGINS=["http://localhost:8000","http://127.0.0.1:8000"]
+    volumes:
+      - ./src:/app/src
+      - ./config:/app/config
+      - ./output:/app/output
+
+  web:
+    environment:
+      - VPN_ENVIRONMENT=development
+      - WEB_PORT=8000
+      - API_BASE_URL=http://api:8080
+    volumes:
+      - ./docs:/app/docs
+      - ./src:/app/src
+    command: python run_web.py
+

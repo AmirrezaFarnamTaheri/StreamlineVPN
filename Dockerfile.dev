@@ -1,0 +1,22 @@
+FROM python:3.11-slim
+
+WORKDIR /app
+
+# Install tools useful during development
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    curl \
+    git \
+    && rm -rf /var/lib/apt/lists/*
+
+COPY requirements.txt requirements-dev.txt* ./
+RUN pip install --no-cache-dir -r requirements.txt || true \
+ && if [ -f requirements-dev.txt ]; then pip install --no-cache-dir -r requirements-dev.txt || true; fi
+
+COPY . .
+
+ENV PYTHONUNBUFFERED=1 \
+    VPN_ENVIRONMENT=development \
+    VPN_DEBUG=true
+
+CMD ["uvicorn", "streamline_vpn.web.unified_api:create_unified_app", "--host", "0.0.0.0", "--port", "8080", "--reload"]
+
