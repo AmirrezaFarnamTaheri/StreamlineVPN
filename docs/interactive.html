@@ -27,8 +27,10 @@
         .terminal { font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace; background: rgba(0,0,0,0.5); border-radius: 0.75rem; padding: 1rem; height: 18rem; overflow: auto; }
         @keyframes slide-in { from { transform: translateX(100%); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
         @keyframes slide-out { from { transform: translateX(0); opacity: 1; } to { transform: translateX(100%); opacity: 0; } }
+        @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
         .animate-slide-in { animation: slide-in 0.3s ease-out; }
         .animate-slide-out { animation: slide-out 0.3s ease-in; }
+        .animate-spin { animation: spin 1s linear infinite; }
     </style>
 </head>
 <body class="bg-app text-white">
@@ -202,7 +204,14 @@
     // Load and display all 500+ backend sources
     async function loadAllSources() {
         const sourcesList = document.getElementById('sourcesList');
-        sourcesList.innerHTML = '<div class="text-gray-400">Loading sources...</div>';
+        sourcesList.innerHTML = `
+            <div class="text-center text-gray-400 py-8">
+                <svg class="w-12 h-12 mx-auto mb-4 opacity-50 animate-spin" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/>
+                </svg>
+                <p>Loading sources...</p>
+            </div>
+        `;
         
         try {
             const response = await fetch(`${API_BASE}/api/v1/sources`);
@@ -300,7 +309,6 @@
 
     // Fully integrated backend connection
     (function() {
-        const API_BASE = window.__API_BASE__ || 'http://localhost:8080';
         
         document.getElementById('startProcessingBtn').addEventListener('click', async function() {
             const btn = this;

@@ -13,6 +13,8 @@
         .glass { background: rgba(255,255,255,0.1); backdrop-filter: blur(12px); border: 1px solid rgba(255,255,255,0.2); }
         .config-card { transition: all 0.3s; cursor: pointer; }
         .config-card:hover { transform: translateY(-2px); background: rgba(255,255,255,0.15); }
+        @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+        .animate-spin { animation: spin 1s linear infinite; }
     </style>
 </head>
 <body class="bg-app text-white">
