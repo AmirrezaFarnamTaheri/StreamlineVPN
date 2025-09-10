@@ -212,7 +212,7 @@
     async function startProcessing() {
         const formats = qsa('.format-cb:checked').map(cb => cb.value);
         const body = {
-            config_path: el('configPath').value || 'config/sources.yaml',
+            config_path: el('configPath').value || 'config/sources.unified.yaml',
             output_dir: 'output',
             formats: formats.length ? formats : ['json']
         };

@@ -277,13 +277,10 @@ class PipelineRequest(BaseModel):
             raise ValueError("Configuration must be a YAML file")
         return v
 
+    # Do not raise here to allow endpoint to return consistent 400s
     @field_validator("formats")
     @classmethod
-    def validate_formats(cls, v: List[str]) -> List[str]:
-        valid = {f.value for f in OutputFormat}
-        invalid = [f for f in v if f not in valid]
-        if invalid:
-            raise ValueError(f"Invalid formats: {', '.join(invalid)}. Must be one of {sorted(valid)}")
+    def passthrough_formats(cls, v: List[str]) -> List[str]:
         return v
 
     @field_validator("output_dir")
@@ -607,14 +604,64 @@ class UnifiedAPI:
     def _setup_static_files(self, app: FastAPI) -> None:
         docs_path = Path(__file__).resolve().parents[3] / "docs"
         if docs_path.exists():
+            # Serve the entire docs folder under /static to avoid clobbering API routes
             app.mount("/static", StaticFiles(directory=str(docs_path)), name="static")
 
+            # Also expose /assets to match absolute references used by docs HTML
+            assets_dir = docs_path / "assets"
+            if assets_dir.exists():
+                app.mount("/assets", StaticFiles(directory=str(assets_dir)), name="assets")
+
+            # Minimal convenience routes to serve primary pages directly
             @app.get("/web", include_in_schema=False)
             async def serve_web():
                 index_file = docs_path / "index.html"
                 if index_file.exists():
                     return FileResponse(str(index_file))
-                return {"message": "Web interface not found"}
+                return JSONResponse({"message": "Web interface not found"}, status_code=status.HTTP_404_NOT_FOUND)
+
+            @app.get("/index.html", include_in_schema=False)
+            async def serve_index():
+                index_file = docs_path / "index.html"
+                if index_file.exists():
+                    return FileResponse(str(index_file))
+                return JSONResponse({"detail": "index.html not found"}, status_code=status.HTTP_404_NOT_FOUND)
+
+            @app.get("/interactive.html", include_in_schema=False)
+            async def serve_interactive():
+                page = docs_path / "interactive.html"
+                if page.exists():
+                    return FileResponse(str(page))
+                return JSONResponse({"detail": "interactive.html not found"}, status_code=status.HTTP_404_NOT_FOUND)
+
+            @app.get("/config_generator.html", include_in_schema=False)
+            async def serve_config_generator():
+                page = docs_path / "config_generator.html"
+                if page.exists():
+                    return FileResponse(str(page))
+                return JSONResponse({"detail": "config_generator.html not found"}, status_code=status.HTTP_404_NOT_FOUND)
+
+            # Provide api-base bootstrapper at root for consistency with the static server
+            @app.get("/api-base.js", include_in_schema=False)
+            async def api_base_script() -> Response:
+                js_file = docs_path / "api-base.js"
+                if js_file.exists():
+                    return FileResponse(str(js_file), media_type="application/javascript")
+                # Fallback inline value if file not found (mirrors docs/api-base.js semantics)
+                content = (
+                    "/* Fallback API base bootstrapper */\n"
+                    "(function(){\n"
+                    "  try {\n"
+                    "    if (typeof window === 'undefined') return;\n"
+                    "    if (typeof window.__API_BASE__ === 'string' && window.__API_BASE__.startsWith('http')) return;\n"
+                    "    var host = window.location.hostname;\n"
+                    "    var proto = window.location.protocol;\n"
+                    "    var isLocal = host === 'localhost' || host === '127.0.0.1';\n"
+                    "    window.__API_BASE__ = isLocal ? (proto + '//' + host + ':8080') : (proto + '//' + host);\n"
+                    "  } catch (e) { }\n"
+                    "})();\n"
+                )
+                return Response(content=content, media_type="application/javascript")
 
 
 # =======================

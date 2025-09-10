@@ -59,9 +59,9 @@
         <div class="glass rounded-xl p-6 mt-6">
             <h2 class="text-xl font-semibold mb-4">Downloads</h2>
             <div class="flex flex-wrap gap-3">
-                <button class="px-3 py-2 rounded-lg bg-gray-800 hover:bg-gray-700" onclick="downloadConfigs('json')">JSON</button>
-                <button class="px-3 py-2 rounded-lg bg-gray-800 hover:bg-gray-700" onclick="downloadConfigs('text')">Text</button>
-                <button class="px-3 py-2 rounded-lg bg-gray-800 hover:bg-gray-700" onclick="downloadConfigs('download')">Download JSON</button>
+                <button class="px-3 py-2 rounded-lg bg-gray-800 hover:bg-gray-700" onclick="downloadConfigs('json')">Preview JSON</button>
+                <button class="px-3 py-2 rounded-lg bg-gray-800 hover:bg-gray-700" onclick="downloadConfigs('text')">Preview Text</button>
+                <button class="px-3 py-2 rounded-lg bg-indigo-600 hover:bg-indigo-500" onclick="downloadConfigs('download')">Download JSON</button>
             </div>
         </div>
     </div>
@@ -81,6 +81,7 @@
 
         async function loadConfigs() {
             $('msg').textContent = 'Loading configurations...';
+            $('btnLoad').disabled = true; $('btnGenerate').disabled = true;
             try {
                 const response = await fetch(`${API_BASE}/api/v1/configurations?limit=100`);
                 const data = await response.json();
@@ -94,11 +95,12 @@
                 $('msg').textContent = '';
             } catch (err) {
                 $('msg').textContent = 'Error loading configurations';
-            }
+            } finally { $('btnLoad').disabled = false; $('btnGenerate').disabled = false; }
         }
 
         async function generateConfigs() {
             $('msg').textContent = 'Starting pipeline...';
+            $('btnGenerate').disabled = true; $('btnLoad').disabled = true;
             const fmts = qsa('.fmt:checked').map(el => el.value);
             try {
                 const response = await fetch(`${API_BASE}/api/v1/pipeline/run`, {
@@ -116,12 +118,71 @@
                 loadConfigs();
             } catch (err) {
                 $('msg').textContent = `Error: ${err.message}`;
-            }
+            } finally { $('btnGenerate').disabled = false; $('btnLoad').disabled = false; }
         }
 
-        function downloadConfigs(format) {
-            // Export is served by the static server on the current origin (if available)
-            window.open(`/api/export/${format}`, '_blank');
+        async function downloadConfigs(format) {
+            const fallbackFromApi = async () => {
+                try {
+                    const resp = await fetch(`${API_BASE}/api/v1/configurations?limit=1000`);
+                    const data = await resp.json();
+                    const configs = data.configurations || [];
+                    if (format === 'text') {
+                        const text = configs.map(c => `${c.protocol}://${c.server}:${c.port}`).join('\n');
+                        const blob = new Blob([text], { type: 'text/plain' });
+                        const url = URL.createObjectURL(blob);
+                        window.open(url, '_blank');
+                        setTimeout(() => URL.revokeObjectURL(url), 4000);
+                        return;
+                    }
+                    const jsonStr = JSON.stringify({ configurations: configs, exported_at: new Date().toISOString(), total: configs.length }, null, 2);
+                    const blob = new Blob([jsonStr], { type: 'application/json' });
+                    const url = URL.createObjectURL(blob);
+                    if (format === 'download') {
+                        const a = document.createElement('a');
+                        a.href = url;
+                        a.download = `vpn_configs_${new Date().toISOString().replace(/[-:T\.Z]/g,'').slice(0,14)}.json`;
+                        document.body.appendChild(a);
+                        a.click();
+                        a.remove();
+                    } else {
+                        window.open(url, '_blank');
+                    }
+                    setTimeout(() => URL.revokeObjectURL(url), 4000);
+                } catch (e) {
+                    $('msg').textContent = 'Export unavailable (no static server). Loaded from API instead.';
+                }
+            };
+
+            try {
+                // Prefer static server export if available on the current origin
+                const resp = await fetch(`/api/export/${format}`);
+                if (!resp.ok) throw new Error('no-static-export');
+                if (format === 'text') {
+                    const text = await resp.text();
+                    const blob = new Blob([text], { type: 'text/plain' });
+                    const url = URL.createObjectURL(blob);
+                    window.open(url, '_blank');
+                    setTimeout(() => URL.revokeObjectURL(url), 4000);
+                    return;
+                }
+                const content = await resp.text();
+                const blob = new Blob([content], { type: 'application/json' });
+                const url = URL.createObjectURL(blob);
+                if (format === 'download') {
+                    const a = document.createElement('a');
+                    a.href = url;
+                    a.download = `vpn_configs_${new Date().toISOString().replace(/[-:T\.Z]/g,'').slice(0,14)}.json`;
+                    document.body.appendChild(a);
+                    a.click();
+                    a.remove();
+                } else {
+                    window.open(url, '_blank');
+                }
+                setTimeout(() => URL.revokeObjectURL(url), 4000);
+            } catch (_) {
+                await fallbackFromApi();
+            }
         }
 
         $('btnLoad').addEventListener('click', loadConfigs);
