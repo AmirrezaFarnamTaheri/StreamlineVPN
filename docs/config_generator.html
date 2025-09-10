@@ -1,29 +1,68 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>StreamlineVPN Config Generator</title>
-    <link rel="stylesheet" href="assets/site.css" />
     <script src="/api-base.js"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        body { font-family: 'Inter', system-ui, -apple-system, sans-serif; }
+        .bg-app { background: linear-gradient(125deg, #0b1020 0%, #1b1030 50%, #0b1020 100%); min-height: 100vh; }
+        .glass { background: rgba(255,255,255,0.06); backdrop-filter: blur(10px); border: 1px solid rgba(255,255,255,0.08); }
+    </style>
 </head>
-<body class="config-generator">
-    <div class="container">
-        <h1>🚀 StreamlineVPN Config Generator</h1>
-        <p>Generate and download VPN configurations in multiple formats.</p>
+<body class="bg-app text-white">
+    <div class="container mx-auto px-4 py-10 max-w-5xl">
+        <header class="flex items-center justify-between mb-8">
+            <div class="flex items-center space-x-3">
+                <img src="/assets/logo.svg" class="h-10 w-10" alt="Logo">
+                <div>
+                    <h1 class="text-2xl font-bold">StreamlineVPN Config Generator</h1>
+                    <p class="text-gray-400 text-sm">Generate and download VPN configurations</p>
+                </div>
+            </div>
+            <a href="/index.html" class="text-sm text-indigo-300 hover:text-indigo-200">Back to Home</a>
+        </header>
 
-        <div>
-            <button class="button" onclick="loadConfigs()">Load Configurations</button>
-            <button class="button" onclick="generateConfigs()">Generate New</button>
+        <div class="grid md:grid-cols-2 gap-6">
+            <div class="glass rounded-xl p-6">
+                <h2 class="text-xl font-semibold mb-4">Controls</h2>
+                <div class="space-y-4">
+                    <div>
+                        <label class="block text-sm text-gray-300 mb-2">Configuration Path</label>
+                        <input id="cfgPath" class="w-full px-4 py-2 rounded-lg bg-gray-900 border border-gray-700 focus:ring-indigo-400 focus:border-indigo-400" value="config/sources.unified.yaml" />
+                    </div>
+                    <div>
+                        <label class="block text-sm text-gray-300 mb-2">Formats</label>
+                        <div class="grid grid-cols-2 gap-3">
+                            <label class="flex items-center space-x-2"><input type="checkbox" value="json" class="fmt" checked><span>JSON</span></label>
+                            <label class="flex items-center space-x-2"><input type="checkbox" value="clash" class="fmt" checked><span>Clash</span></label>
+                            <label class="flex items-center space-x-2"><input type="checkbox" value="singbox" class="fmt" checked><span>Singbox</span></label>
+                            <label class="flex items-center space-x-2"><input type="checkbox" value="base64" class="fmt"><span>Base64</span></label>
+                        </div>
+                    </div>
+                    <div class="flex gap-3">
+                        <button id="btnLoad" class="px-4 py-2 rounded-lg bg-gray-800 hover:bg-gray-700">Load Configurations</button>
+                        <button id="btnGenerate" class="px-4 py-2 rounded-lg bg-indigo-600 hover:bg-indigo-500">Generate New</button>
+                    </div>
+                    <div id="msg" class="text-sm text-gray-300"></div>
+                </div>
+            </div>
+            <div class="glass rounded-xl p-6">
+                <h2 class="text-xl font-semibold mb-4">Available Configurations</h2>
+                <div id="configList" class="space-y-3"></div>
+            </div>
         </div>
 
-        <div class="config-list" id="configList">
-            <p>Click "Load Configurations" to see available configurations.</p>
-        </div>
-
-        <div>
-            <h3>Download Formats:</h3>
-            <button class="button" onclick="downloadConfigs('json')">JSON</button>
-            <button class="button" onclick="downloadConfigs('text')">Text</button>
-            <button class="button" onclick="downloadConfigs('download')">Download JSON</button>
+        <div class="glass rounded-xl p-6 mt-6">
+            <h2 class="text-xl font-semibold mb-4">Downloads</h2>
+            <div class="flex flex-wrap gap-3">
+                <button class="px-3 py-2 rounded-lg bg-gray-800 hover:bg-gray-700" onclick="downloadConfigs('json')">JSON</button>
+                <button class="px-3 py-2 rounded-lg bg-gray-800 hover:bg-gray-700" onclick="downloadConfigs('text')">Text</button>
+                <button class="px-3 py-2 rounded-lg bg-gray-800 hover:bg-gray-700" onclick="downloadConfigs('download')">Download JSON</button>
+            </div>
         </div>
     </div>
 
@@ -32,66 +71,62 @@
             const injected = window.__API_BASE__;
             if (typeof injected === 'string' && injected.startsWith('http')) return injected;
             const hostname = window.location.hostname;
-            if (hostname === 'localhost' || hostname === '127.0.0.1') {
-                return `http://${hostname}:8080`;
-            }
+            if (hostname === 'localhost' || hostname === '127.0.0.1') return `http://${hostname}:8080`;
             return `${window.location.protocol}//${window.location.host}`;
         })();
 
+        const $ = (id) => document.getElementById(id);
+        const qs = (sel) => document.querySelector(sel);
+        const qsa = (sel) => Array.from(document.querySelectorAll(sel));
+
         async function loadConfigs() {
+            $('msg').textContent = 'Loading configurations...';
             try {
-                const response = await fetch(`${API_BASE}/api/v1/configurations?limit=50`);
+                const response = await fetch(`${API_BASE}/api/v1/configurations?limit=100`);
                 const data = await response.json();
                 const configs = data.configurations || [];
-                const configList = document.getElementById('configList');
-                const configsHTML = configs.map(
-                    config => `
-                    <div class="config-item">
-                        <strong>${config.protocol}</strong>
-                        - ${config.server}:${config.port}
-                        <br><small>Quality: ${
-                            (config.quality_score != null && !isNaN(config.quality_score))
-                                ? Number(config.quality_score).toFixed(2)
-                                : 'N/A'
-                        }</small>
-                    </div>`
-                ).join('');
-                configList.innerHTML = `
-                    <h3>Available Configurations (${configs.length})</h3>
-                    ${configsHTML}
-                `;
-            } catch (error) {
-                alert('Error loading configurations: ' + error.message);
+                $('configList').innerHTML = configs.map(c => `
+                    <div class="glass rounded-lg p-3">
+                        <div class="text-sm text-gray-400">${c.protocol}</div>
+                        <div class="font-semibold">${c.server}:${c.port}</div>
+                    </div>
+                `).join('') || '<div class="text-gray-400">No configurations available</div>';
+                $('msg').textContent = '';
+            } catch (err) {
+                $('msg').textContent = 'Error loading configurations';
             }
         }
 
         async function generateConfigs() {
+            $('msg').textContent = 'Starting pipeline...';
+            const fmts = qsa('.fmt:checked').map(el => el.value);
             try {
                 const response = await fetch(`${API_BASE}/api/v1/pipeline/run`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
-                        config_path: 'config/sources.unified.yaml',
+                        config_path: $('cfgPath').value || 'config/sources.unified.yaml',
                         output_dir: 'output',
-                        formats: ['json','clash','singbox','raw']
+                        formats: fmts.length ? fmts : ['json']
                     })
                 });
                 const data = await response.json();
-                if (response.ok) {
-                    alert(data.message || 'Pipeline started');
-                } else {
-                    throw new Error(data.detail || 'Failed to start pipeline');
-                }
+                if (![200,202].includes(response.status)) throw new Error(data.detail || 'Pipeline start failed');
+                $('msg').textContent = data.message || 'Pipeline accepted';
                 loadConfigs();
-            } catch (error) {
-                alert("Error generating configurations: " + error.message);
+            } catch (err) {
+                $('msg').textContent = `Error: ${err.message}`;
             }
         }
 
         function downloadConfigs(format) {
-            // Export is served by the static server on the current origin
+            // Export is served by the static server on the current origin (if available)
             window.open(`/api/export/${format}`, '_blank');
         }
+
+        $('btnLoad').addEventListener('click', loadConfigs);
+        $('btnGenerate').addEventListener('click', generateConfigs);
+        loadConfigs();
     </script>
 </body>
 </html>
