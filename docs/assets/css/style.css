@@ -1,0 +1,53 @@
+/* Minimal styles to complement Tailwind for the interactive panel */
+
+:root {
+  --bg-darker: #0f0f1e;
+  --text-light: #f5f7fa;
+  --text-gray: #9aa4b2;
+  --primary: #7c3aed;
+  --primary-dark: #6d28d9;
+  --success: #10b981;
+}
+
+body.bg-darker {
+  background-color: var(--bg-darker);
+  color: var(--text-light);
+}
+
+.text-light { color: var(--text-light); }
+.text-gray { color: var(--text-gray); }
+.text-success { color: var(--success); }
+
+.bg-dark { background-color: #12142a; }
+.bg-primary { background-color: var(--primary); }
+.bg-primary-dark { background-color: var(--primary-dark); }
+
+.glass {
+  background: rgba(255, 255, 255, 0.05);
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 0.75rem;
+}
+
+.glass-dark {
+  background: rgba(0, 0, 0, 0.35);
+  backdrop-filter: blur(16px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 0.75rem;
+}
+
+.terminal {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+  background: #0b0d1a;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 0.5rem;
+  padding: 0.75rem 1rem;
+  min-height: 10rem;
+}
+
+/* Basic button states when not fully covered by Tailwind */
+button:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+

@@ -1,12 +1,12 @@
 # Web Interface Documentation
 
-The VPN Merger includes a comprehensive web interface that combines VPN subscription merging, configuration generation, and analytics in a unified platform.
+The VPN Merger includes a web interface that combines VPN subscription merging, configuration generation, and analytics.
 
 ## Overview
 
 The web interface consists of three main components:
 
-1. **Main Dashboard** - Unified landing page with navigation to all services
+1. **Main Dashboard** - Landing page with navigation to all services
 2. **Configuration Generator** - Web-based VPN client configuration generator
 3. **Analytics Dashboard** - Real-time metrics and performance monitoring
 
@@ -15,11 +15,11 @@ The web interface consists of three main components:
 ### Starting the Web Server
 
 ```bash
-# Start the integrated web server
-python -m vpn_merger --web
+# Start the Web interface (respects WEB_HOST, WEB_PORT)
+python run_web.py
 
-# Start on custom port
-python -m vpn_merger --web --web-port 9000
+# Start the API server (respects API_HOST, API_PORT)
+python run_api.py
 ```
 
 ### Accessing the Interface
@@ -27,13 +27,11 @@ python -m vpn_merger --web --web-port 9000
 Once started, the web interface will be available at:
 
 - **Main Dashboard**: `http://localhost:8000`
-- **Configuration Generator**: `http://localhost:8080`
-- **Analytics Dashboard**: `http://localhost:8081`
-- **Static Files**: `http://localhost:8082`
+- **API Documentation**: `http://localhost:8080/docs`
 
-### Enhanced API and Template
+### API and Template
 
-The enhanced web interface exposes additional JSON APIs for orchestration and configuration:
+The web interface exposes additional JSON APIs for orchestration and configuration:
 
 - `GET /api/status` – basic runtime info
 - `GET /api/health` – health summary for main, generator, analytics, static
@@ -46,7 +44,7 @@ The enhanced web interface exposes additional JSON APIs for orchestration and co
 - `POST /api/config` – update configuration sections (JSON)
 - `POST /api/validate` – validate config; accepts `{ "config_path": "..." }` or `{ "config": { ... } }`
 
-Template path for the enhanced landing page:
+Template path for the landing page:
 
 - `src/vpn_merger/web/static/enhanced_interface.html`
 
@@ -161,7 +159,7 @@ GET /api/v1/utils/shortid?length=8
 # Generate secure password
 GET /api/v1/utils/password?length=20
 
-# Generate WireGuard key (placeholder)
+# Generate WireGuard key (example)
 GET /api/v1/utils/wg-key
 ```
 
@@ -235,6 +233,32 @@ All user inputs are validated on both client and server side:
 4. **Rate limiting**: API endpoints include rate limiting to prevent abuse
 5. **HTTPS in production**: Always use HTTPS in production environments
 
+### Security Headers & CSP
+
+The Web interface adds security headers by default:
+
+- `X-Content-Type-Options: nosniff`
+- `X-Frame-Options: DENY`
+- `X-XSS-Protection: 1; mode=block`
+- `Strict-Transport-Security: max-age=31536000; includeSubDomains` (when applicable)
+- `Content-Security-Policy` with a strict `connect-src`
+
+API base and CSP are configurable:
+
+- `API_BASE_URL`: Points the Web UI to your API server (defaults to `http://localhost:8080`).
+- `WEB_CONNECT_SRC_EXTRA`: Optional extra connect-src origins for CSP (space or comma separated).
+
+Examples:
+
+```bash
+# Point UI to a hosted API and allow WebSocket connections
+API_BASE_URL=https://api.example.com \
+WEB_CONNECT_SRC_EXTRA="https://api.example.com wss://ws.example.com" \
+python run_web.py
+```
+
+The frontend also includes `docs/api-base.js` which sets `window.__API_BASE__` based on `API_BASE_URL` and current host.
+
 ## Deployment
 
 ### Development
@@ -264,10 +288,12 @@ kubectl apply -f k8s/deployment.yaml
 
 ```bash
 # Web server configuration
-VPN_MERGER_WEB_HOST=0.0.0.0
-VPN_MERGER_WEB_PORT=8000
-VPN_MERGER_GENERATOR_PORT=8080
-VPN_MERGER_ANALYTICS_PORT=8081
+WEB_HOST=0.0.0.0
+WEB_PORT=8000
+# API base for the Web UI
+API_BASE_URL=http://localhost:8080
+# Optional extra CSP connect-src origins (space/comma separated)
+WEB_CONNECT_SRC_EXTRA="https://api.example.com wss://ws.example.com"
 
 # Security
 DASHBOARD_TOKEN=your_secure_token

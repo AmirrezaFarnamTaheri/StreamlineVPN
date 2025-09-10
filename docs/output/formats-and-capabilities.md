@@ -2,7 +2,7 @@
 
 ## Overview
 
-The VPN Subscription Merger supports multiple output formats to meet different use cases and client requirements. This document provides comprehensive information about all supported output formats, their capabilities, and configuration options.
+The VPN Subscription Merger supports multiple output formats to meet different use cases and client requirements. This page provides an overview of supported formats, their capabilities, and configuration options.
 
 ## Supported Output Formats
 
@@ -93,7 +93,7 @@ export VPN_WRITE_CSV=true
 
 **File**: `vpn_report.json`
 
-**Description**: JSON format with comprehensive metadata and processing statistics.
+**Description**: JSON format with metadata and processing statistics.
 
 **Example**:
 ```json
@@ -162,7 +162,7 @@ export VPN_WRITE_JSON=true
 
 **File**: `vpn_report.yaml`
 
-**Description**: YAML format with human-readable structure and comprehensive metadata.
+**Description**: YAML format with human-readable structure and metadata.
 
 **Example**:
 ```yaml
@@ -279,7 +279,6 @@ export VPN_WRITE_YAML=true
 
 **Use Cases**:
 - Sing-box client configuration
-- Advanced routing rules
 - Multi-protocol support
 - Custom proxy chains
 
@@ -409,56 +408,10 @@ output:
     yaml_indent: 2
 ```
 
-## Advanced Output Features
+## Output Tips
 
-### 1. Quality Filtering
-
-```python
-# Filter by quality score
-high_quality_configs = merger.get_results(min_quality=0.8)
-
-# Filter by protocol
-vless_configs = merger.get_results(protocol="vless")
-
-# Filter by country
-us_configs = merger.get_results(country="US")
-```
-
-### 2. Custom Formatting
-
-```python
-from vpn_merger.core.output.formatters import get_formatter
-
-# Get custom formatter
-formatter = get_formatter("custom")
-
-# Format with custom options
-formatted_output = formatter.format(
-    results,
-    include_metadata=True,
-    sort_by="quality_score",
-    limit=100
-)
-```
-
-### 3. Batch Processing
-
-```python
-# Process in batches
-batch_size = 100
-for i in range(0, len(configs), batch_size):
-    batch = configs[i:i + batch_size]
-    output_files = merger.save_results(batch, f"output/batch_{i//batch_size}")
-```
-
-### 4. Streaming Output
-
-```python
-# Stream output for large datasets
-async def stream_output(configs):
-    async for config in configs:
-        yield formatter.format_single(config)
-```
+- Control output formats with environment variables shown above.
+- Use the API’s `/api/v1/configurations` endpoint for filtered and paginated results.
 
 ## Output Validation
 
@@ -622,4 +575,4 @@ async def save_to_multiple_locations(configs):
         await save_to_location(configs, location)
 ```
 
-This comprehensive documentation covers all output formats and capabilities of the VPN Subscription Merger system, providing users with complete information about how to configure and use the various output options.
+This page outlines output formats and capabilities of the VPN Subscription Merger system and how to configure and use them.

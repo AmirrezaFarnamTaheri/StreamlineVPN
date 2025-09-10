@@ -2,7 +2,7 @@
 
 ## Overview
 
-The VPN Subscription Merger provides a comprehensive GraphQL API for advanced querying, real-time subscriptions, and job management. The GraphQL API is built using Strawberry and provides type-safe operations with real-time updates.
+The VPN Subscription Merger provides a GraphQL API for querying, real-time subscriptions, and job management. It is built using Strawberry and provides type-safe operations with live updates.
 
 ## Endpoint
 

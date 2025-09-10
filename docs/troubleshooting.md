@@ -7,18 +7,18 @@
 #### No Sources Loading
 **Problem**: Application shows 0 sources or fails to load configuration
 **Solutions**:
-- Ensure `config/sources.unified.yaml` exists and has valid YAML syntax
-- Check file permissions: `ls -la config/sources.unified.yaml`
-- Validate YAML syntax: `python -c "import yaml; yaml.safe_load(open('config/sources.unified.yaml'))"`
+- Ensure `config/sources.yaml` exists and has valid YAML syntax
+- Check file permissions: `ls -la config/sources.yaml`
+- Validate YAML syntax: `python -c "import yaml; yaml.safe_load(open('config/sources.yaml'))"`
 - Verify source URLs are accessible: `python vpn_merger_main.py --validate`
 
 #### Configuration File Not Found
 **Problem**: Error "Config file not found, using fallback sources"
 **Solutions**:
-- Check file path: `config/sources.unified.yaml`
+- Check file path: `config/sources.yaml`
 - Verify file exists: `ls -la config/`
 - Check working directory when running the application
-- Use absolute path if needed: `python vpn_merger_main.py --config /full/path/sources.unified.yaml`
+- Use absolute path if needed: `python -m streamline_vpn --config /full/path/sources.yaml`
 
 ### Import and Dependency Issues
 
@@ -28,7 +28,7 @@
 - Ensure you're running from the project root directory
 - Check Python version: `python --version` (requires Python 3.8+)
 - Install dependencies: `pip install -r requirements.txt`
-- Verify `vpn_merger_main.py` is in the current directory
+- Verify project is set up correctly and `python -m streamline_vpn --help` works
 
 #### Missing Dependencies
 **Problem**: `ModuleNotFoundError` for aiohttp, yaml, etc.
@@ -44,7 +44,7 @@
 **Problem**: Application runs but no output files are created
 **Solutions**:
 - Check output directory permissions: `ls -la output/`
-- Verify sources are accessible: `python vpn_merger_main.py --validate`
+- Verify sources are accessible via the API pipeline: `POST /api/v1/pipeline/run`
 - Check network connectivity to source URLs
 - Review log file: `tail -f vpn_merger.log`
 
@@ -52,8 +52,8 @@
 **Problem**: Application appears to freeze during execution
 **Solutions**:
 - Check network connectivity
-- Reduce concurrency: `python vpn_merger_main.py --concurrent 10`
-- Increase timeout: `python vpn_merger_main.py --timeout 60`
+- Reduce concurrency via settings or env
+- Increase timeout via settings or env
 - Monitor system resources: CPU, memory, network
 
 #### Memory Issues
@@ -125,7 +125,7 @@
 ### Core Configuration
 ```bash
 # Source configuration
-VPN_SOURCES_CONFIG=config/sources.unified.yaml
+VPN_SOURCES_CONFIG=config/sources.yaml
 
 # Processing settings
 VPN_CONCURRENT_LIMIT=50
@@ -176,7 +176,7 @@ python --version
 pip list
 
 # Validate configuration
-python -c "import yaml; yaml.safe_load(open('config/sources.unified.yaml'))"
+python -c "import yaml; yaml.safe_load(open('config/sources.yaml'))"
 
 # Test imports
 python -c "from vpn_merger import *; print('✅ All imports successful')"
@@ -214,7 +214,7 @@ python -c "import pstats; p = pstats.Stats('profile.stats'); p.sort_stats('cumul
 
 ### Common Log Messages
 ```
-INFO - Starting comprehensive merge with X sources
+INFO - Starting merge with X sources
 INFO - Merge completed: X valid configs from Y sources
 WARNING - Source not accessible: URL
 ERROR - Error processing source URL: Error message

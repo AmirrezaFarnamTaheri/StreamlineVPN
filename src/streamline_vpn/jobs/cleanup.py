@@ -42,22 +42,41 @@ class JobCleanupService:
 
             cleaned_jobs = []
 
+            def _to_dt(value: Any, default: datetime) -> datetime:
+                """Best-effort conversion of different timestamp formats to datetime.
+
+                Supports ISO8601 strings and UNIX epoch (int/float). Falls back to default.
+                """
+                if value is None:
+                    return default
+                try:
+                    if isinstance(value, (int, float)):
+                        return datetime.fromtimestamp(float(value))
+                    if isinstance(value, str) and value:
+                        # Some historical values may already be ISO formatted
+                        return datetime.fromisoformat(value)
+                except Exception:
+                    pass
+                return default
+
             for job in jobs:
-                created_at = datetime.fromisoformat(
-                    job.get("created_at", now.isoformat())
-                )
-                started_at = job.get("started_at")
+                created_at_raw = job.get("created_at")
+                # Prefer created_at; if missing, derive from started_at or fallback to now
+                created_at = _to_dt(created_at_raw, now)
+                started_at = _to_dt(job.get("started_at"), created_at)
+
+                # Normalize fields for future reads
+                job.setdefault("created_at", created_at.isoformat())
 
                 if job.get("status") in {"running", "pending"}:
-                    if started_at:
-                        started_time = datetime.fromisoformat(started_at)
-                        if started_time < stale_cutoff:
-                            job["status"] = "timeout"
-                            job["finished_at"] = now.isoformat()
-                            job["error"] = (
-                                "Job timeout - exceeded maximum runtime"
-                            )
-                            stats["fixed"] += 1
+                    # Treat long-running/pending jobs as failed on restart/timeout
+                    if started_at < stale_cutoff:
+                        job["status"] = "failed"
+                        job["finished_at"] = now.isoformat()
+                        job["error"] = (
+                            "Job terminated on cleanup due to staleness"
+                        )
+                        stats["fixed"] += 1
                     elif created_at < stale_cutoff:
                         job["status"] = "cancelled"
                         job["finished_at"] = now.isoformat()

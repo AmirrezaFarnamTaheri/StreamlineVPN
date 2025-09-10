@@ -1,36 +1,65 @@
 ---
 layout: default
 title: API Documentation
-description: A comprehensive guide to the StreamlineVPN REST API.
+description: Guide to the StreamlineVPN REST API.
 ---
 
-The StreamlineVPN API provides a powerful and flexible interface for interacting with the VPN management platform. It is a RESTful API that uses standard HTTP verbs and returns JSON-encoded responses.
+The StreamlineVPN API provides a REST interface for running the pipeline, inspecting statistics, listing configurations, and managing sources. All responses are JSON.
 
-## Authentication
+## Base URLs
 
-All API requests must be authenticated using a bearer token. You can obtain a token by logging in to the Control Panel. The token should be included in the `Authorization` header of all requests.
-
-```
-Authorization: Bearer <your_token>
-```
+- Local development: `http://localhost:8080`
+- In the Web UI, `API_BASE_URL` controls the API location used by the frontend.
 
 ## Endpoints
 
-### Subscriptions
+### Health & Statistics
 
-*   `GET /api/v1/sub/raw`: Get the raw subscription data.
-*   `GET /api/v1/sub/base64`: Get the Base64 encoded subscription.
-*   `GET /api/v1/sub/singbox`: Get the configuration in Sing-box format.
-*   `GET /api/v1/sub/clash`: Get the configuration in Clash format.
+- `GET /health` — API health
+- `GET /api/v1/statistics` — current statistics (sources, configs, success rate)
 
-### System Status
+Examples:
+```bash
+curl http://localhost:8080/health
+curl http://localhost:8080/api/v1/statistics
+```
 
-*   `GET /health`: Check the health of the API server.
-*   `GET /api/v1/status`: Get the status and statistics of the VPN service.
+### Pipeline
 
-### Configuration
+- `POST /api/v1/pipeline/run` — start the pipeline
+- `GET /api/v1/pipeline/status/{job_id}` — check job status
 
-*   `GET /api/sources`: Get the list of configured VPN sources.
-*   `POST /api/process`: Trigger a new processing job for the VPN sources.
+Example:
+```bash
+curl -X POST \
+  -H "Content-Type: application/json" \
+  -d '{"output_dir":"output","formats":["json","clash","singbox"]}' \
+  http://localhost:8080/api/v1/pipeline/run
 
-For a complete and interactive API reference, please see our [OpenAPI documentation](/api/openapi.html).
+# Then poll status
+curl http://localhost:8080/api/v1/pipeline/status/<job_id>
+```
+
+### Configurations
+
+- `GET /api/v1/configurations?limit=100&offset=0` — list processed configurations
+
+Example:
+```bash
+curl "http://localhost:8080/api/v1/configurations?limit=50"
+```
+
+### Sources
+
+- `GET /api/v1/sources` — list configured sources
+- `POST /api/v1/sources` — add a new source (JSON body `{ "url": "..." }`)
+
+Examples:
+```bash
+curl http://localhost:8080/api/v1/sources
+curl -X POST -H "Content-Type: application/json" \
+  -d '{"url":"https://example.com/configs.txt"}' \
+  http://localhost:8080/api/v1/sources
+```
+
+For the interactive API docs, start the server and open `http://localhost:8080/docs`.

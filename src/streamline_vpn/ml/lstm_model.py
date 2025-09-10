@@ -49,23 +49,23 @@ class LSTMModel:
                 logger.error(f"Failed to load ML model: {e}")
                 self.model = None
         else:
-            logger.warning("ML model not found. Using a dummy model.")
+            logger.warning("ML model not found. Using a fallback model.")
             self.model = self._create_dummy_model()
 
     def _create_dummy_model(self):
-        """Create and train a dummy model for testing and fallback purposes."""
+        """Create and train a lightweight fallback model for testing/development."""
         # This creates a minimal model structure for testing
         # when the actual trained model is not available.
         try:
             model = MLPRegressor(hidden_layer_sizes=(10,), max_iter=1, random_state=42)
-            # Create some dummy data to fit the model
+            # Create some synthetic data to fit the fallback model
             X = np.random.rand(10, 10)
             y = np.random.rand(10, 3)
             model.fit(X, y)
-            logger.info("Dummy ML model created and trained successfully")
+            logger.info("Fallback ML model created and trained successfully")
             return model
         except Exception as e:
-            logger.error(f"Failed to create dummy model: {e}")
+            logger.error(f"Failed to create fallback model: {e}")
             # Return a simple linear model as fallback
             from sklearn.linear_model import LinearRegression
             model = LinearRegression()

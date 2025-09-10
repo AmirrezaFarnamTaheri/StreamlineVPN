@@ -1,8 +1,8 @@
 """
-StreamlineVPN Merger (Refactored)
-==================================
+StreamlineVPN Merger
+====================
 
-Refactored main orchestration class for VPN configuration merging.
+Main orchestration class for VPN configuration merging.
 """
 
 from typing import Dict, List, Optional, Any
@@ -80,6 +80,32 @@ class StreamlineVPNMerger(BaseMerger):
     async def __aexit__(self, exc_type, exc_val, exc_tb):
         """Async context manager exit."""
         await self.shutdown()
+
+    def __del__(self):  # pragma: no cover - best-effort cleanup
+        try:
+            # Ensure fetcher session is closed to avoid unclosed session warnings
+            import asyncio
+
+            async def _close():
+                try:
+                    await self.fetcher_service.close()
+                except Exception:
+                    pass
+
+            # Try to close regardless of loop state
+            try:
+                loop = asyncio.get_event_loop()
+            except RuntimeError:
+                loop = None
+            if loop and loop.is_running():
+                loop.create_task(_close())
+            else:
+                try:
+                    asyncio.run(_close())
+                except Exception:
+                    pass
+        except Exception:
+            pass
 
     async def process_all(
         self, output_dir: str = "output", formats: Optional[List[str]] = None

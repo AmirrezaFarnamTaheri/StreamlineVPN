@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from pydantic_settings import BaseSettings, SettingsConfigDict
+from pydantic import Field
 
 
 class Settings(BaseSettings):
@@ -11,7 +12,8 @@ class Settings(BaseSettings):
     HOST: str = "0.0.0.0"
     PORT: int = 8000
     STATIC_DIR: str = "docs"
-    API_BASE: str = "http://localhost:8080"
+    # Support both API_BASE and API_BASE_URL environment variables
+    API_BASE: str = Field(default="http://localhost:8080", alias="API_BASE_URL")
     UPDATE_INTERVAL: int = 28800  # 8 hours in seconds
 
     # CORS settings for static server

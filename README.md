@@ -1,294 +1,91 @@
-# StreamlineVPN - VPN Configuration Platform
+# StreamlineVPN – VPN Configuration Aggregator
 
-[![Version](https://img.shields.io/badge/version-2.0.0-blue.svg)](https://github.com/streamlinevpn/streamlinevpn)
-[![License](https://img.shields.io/badge/License-GPLv3-blue.svg)](https://www.gnu.org/licenses/gpl-3.0)
+[![Version](https://img.shields.io/badge/version-2.0.0-blue.svg)](./src/streamline_vpn/__init__.py)
+[![License](https://img.shields.io/badge/License-GPLv3-blue.svg)](./LICENSE)
 [![Python](https://img.shields.io/badge/python-3.8+-blue.svg)](https://python.org)
-[![Status](https://img.shields.io/badge/status-production%20ready-brightgreen.svg)](https://github.com/streamlinevpn/streamlinevpn)
 
-A high-performance, enterprise-grade VPN configuration management platform with advanced security, machine learning quality prediction, and comprehensive monitoring capabilities.
+StreamlineVPN aggregates, validates, and exports VPN configurations from multiple sources. It provides a FastAPI backend, a lightweight static control center, and a multi-level cache to keep things fast and reliable.
 
-## 🚀 Features
+## Features
 
-### Core Functionality
-- **Multi-Source Aggregation**: Process configurations from 500+ VPN sources
-- **Protocol Support**: VLESS, VMess, Shadowsocks 2022, Trojan, and more
-- **Intelligent Deduplication**: Advanced algorithms to eliminate duplicate configurations
-- **Geographic Optimization**: Smart routing based on location and performance
+- Protocols: VLESS, VMess, Shadowsocks (incl. 2022), ShadowsocksR, Trojan
+- Processing: async fetching, validation, deduplication, export (JSON/CSV/Base64/Clash/Sing-Box)
+- Caching: L1 in-memory, L2 Redis, L3 SQLite fallback (new)
+- Web API: unified FastAPI app with background pipeline endpoints
+- Static Control Center: serves assets and proxies API; shows health and stats
+- Scheduler: APScheduler job to periodically run the pipeline
 
-### Security & Authentication
-- **Zero Trust Architecture**: Continuous device validation and policy enforcement
-- **Multi-Factor Authentication**: JWT-based with device posture validation
-- **Threat Analysis**: Real-time risk assessment and anomaly detection
-- **Encryption**: AES-256, ChaCha20-Poly1305, and BLAKE3 key derivation
-
-### Performance & Scalability
-- **40% Performance Improvement**: Optimized async patterns and zero-copy parsing
-- **Multi-Level Caching**: L1 application cache + L2 Redis cluster + L3 database
-- **Horizontal Scaling**: Kubernetes-native with auto-scaling capabilities
-- **Circuit Breakers**: Fault tolerance and graceful degradation
-
-### Machine Learning
-- **Quality Prediction**: LSTM networks for connection quality forecasting
-- **Performance Optimization**: ML-driven server recommendations
-- **Anomaly Detection**: Behavioral analysis and threat identification
-- **Real-time Analytics**: Continuous learning from user behavior
-
-### Monitoring & Observability
-- **Prometheus Metrics**: Comprehensive performance and operational metrics
-- **Grafana Dashboards**: Real-time visualization and alerting
-- **Distributed Tracing**: Jaeger integration for request tracking
-- **Structured Logging**: JSON logs with correlation IDs
-
-## 📋 Requirements
+## Requirements
 
 - Python 3.8+
-- Redis 6.0+ (for caching)
-- PostgreSQL 13+ (for persistence)
-- Kubernetes 1.20+ (for deployment)
-- Docker 20.0+ (for containerization)
+- Redis 6.0+ (optional, for L2 cache)
 
-## 🛠️ Installation
-
-### Quick Start
+## Quick Start
 
 ```bash
-# Clone the repository
-git clone https://github.com/streamlinevpn/streamlinevpn.git
-cd streamlinevpn
-
-# Install dependencies
 pip install -r requirements.txt
 
-# Run the application
+# One-off processing
 python -m streamline_vpn --config config/sources.yaml --output output
 
-# Or run the web interface
-python run_web.py
+# API server (development)
+uvicorn streamline_vpn.web.api_app:app --host 0.0.0.0 --port 8080
 ```
 
-### Production Deployment
+## Configuration
+
+Environment variables (JSON arrays preferred; comma lists accepted):
 
 ```bash
-# Deploy with Kubernetes
-kubectl apply -f kubernetes/
-
-# Or use Docker Compose
-docker-compose -f docker-compose.production.yml up -d
-
-# Initialize services
-python -m streamline_vpn --config config/sources.yaml --output output
-
-# Or run the production deployment script
-python scripts/deploy_production.py
-```
-
-## 📖 Usage
-
-### Basic Usage
-
-```python
-from streamline_vpn.core.merger import StreamlineVPNMerger
-
-# Create merger instance
-merger = StreamlineVPNMerger()
-
-# Process configurations
-results = await merger.process_all()
-
-# Get server recommendations
-recommendations = await merger.get_server_recommendations(
-    region="us-east",
-    protocol="vless"
-)
-```
-
-### Advanced Usage
-
-```python
-from streamline_vpn.core.merger import StreamlineVPNMerger
-from streamline_vpn.security.zero_trust import ZeroTrustVPN
-from streamline_vpn.ml.quality_predictor import QualityPredictionService
-from streamline_vpn.core.cache_manager import VPNCacheService
-
-# Initialize services
-merger = StreamlineVPNMerger()
-zero_trust = ZeroTrustVPN()
-ml_predictor = QualityPredictionService()
-cache_service = VPNCacheService()
-
-# Authenticate with Zero Trust
-auth_result = await zero_trust.authenticate_connection(
-    credentials={"username": "user", "password": "pass"},
-    device_info=device_info
-)
-
-# Get ML quality predictions
-prediction = await ml_predictor.predict_connection_quality(
-    server_metrics=metrics
-)
-
-# Cache server recommendations
-await cache_service.cache_server_recommendations(
-    user_id="user123",
-    region="us-east",
-    recommendations=recommendations
-)
-```
-
-## 🔧 Configuration
-
-### Environment Variables
-
-```bash
-# Core settings
-STREAMLINE_VPN_ENV=production
-STREAMLINE_VPN_LOG_LEVEL=INFO
-
-# Database
-DATABASE_URL=postgresql://user:pass@localhost/streamlinevpn
-REDIS_URL=redis://localhost:6379/0
-
-# Security
-JWT_SECRET_KEY=your-secret-key
-VAULT_URL=https://vault.example.com
-
-# Monitoring
-PROMETHEUS_PORT=9090
-GRAFANA_PORT=3000
-
 # CORS
-ALLOWED_ORIGINS=https://example.com,https://dashboard.example.com
-ALLOWED_METHODS=GET,POST
-ALLOWED_HEADERS=Content-Type
+ALLOWED_ORIGINS=["http://localhost:3000","http://localhost:8080"]
+ALLOWED_METHODS=["GET","POST","PUT","DELETE","OPTIONS"]
+ALLOWED_HEADERS=["Content-Type","Authorization"]
 ALLOW_CREDENTIALS=false
+
+# Optional Redis cluster nodes
+STREAMLINE_REDIS__NODES='[{"host":"localhost","port":"6379"}]'
 ```
 
-The CORS variables allow restricting which origins can interact with the API and static server.
+Key config files:
 
-### Configuration Files
+- `config/sources.yaml` – source lists (tiers and URLs)
+- `output/` – generated artifacts (JSON/Clash/Sing-Box etc.)
 
-- `config/sources.yaml` - VPN source configurations
-- `config/security.yaml` - Security policies and rules
-- `config/monitoring.yaml` - Monitoring and alerting settings
+## Testing & Coverage
 
-## 🏗️ Architecture
+```bash
+pytest -q
+# Coverage report
+pytest -q --cov=streamline_vpn --cov-report=term-missing
+```
 
-### Core Components
+Per-module coverage gate (thresholds for key modules):
+
+```bash
+pytest -q --cov=streamline_vpn --cov-report=xml:coverage.xml
+python scripts/coverage_gate.py coverage.xml
+```
+
+CI already runs the gate and will fail on regressions.
+
+## Architecture (high level)
 
 ```
 src/streamline_vpn/
-├── core/                    # Core processing engine
-│   ├── merger.py           # Main orchestration
-│   ├── caching/            # Multi-level caching
-│   └── processing/         # Configuration processing
-├── security/               # Security framework
-│   ├── auth/              # Zero Trust authentication
-│   └── threat_analyzer.py # Threat detection
-├── ml/                     # Machine learning
-│   └── quality_predictor.py
-├── web/                    # Web interface
-│   └── api/               # RESTful API
-├── monitoring/             # Observability
-│   └── metrics.py         # Prometheus metrics
-└── models/                 # Data models
+  core/           # processing engine, parsers, cache
+  web/            # FastAPI app + static server
+  jobs/           # background jobs & cleanup
+  models/         # typed configuration models
+  utils/          # logging, helpers
+  scheduler.py    # APScheduler glue
 ```
 
-### Technology Stack
+## Notes
 
-- **Backend**: Python 3.8+, FastAPI, asyncio
-- **Database**: PostgreSQL, Redis Cluster
-- **ML**: TensorFlow, PyTorch, scikit-learn
-- **Security**: JWT, OAuth2, HashiCorp Vault
-- **Monitoring**: Prometheus, Grafana, Jaeger
-- **Deployment**: Kubernetes, Docker, Terraform
+- L3 cache uses a local SQLite DB (`vpn_configs.db`). It is safe to run without Redis; the system falls back to L1+L3.
+- Windows: tests set a selector loop policy to avoid noisy SSL teardown logs.
 
-## 📊 Performance
+## License
 
-### Benchmarks
-
-- **Configuration Processing**: 10,000+ configs/second
-- **API Response Time**: <100ms (95th percentile)
-- **Cache Hit Rate**: >95% for server recommendations
-- **ML Prediction Accuracy**: >94% for quality assessment
-- **Concurrent Connections**: 10,000+ simultaneous users
-
-### Scalability
-
-- **Horizontal Scaling**: Auto-scaling from 3 to 20 pods
-- **Database**: Read replicas and connection pooling
-- **Caching**: Redis cluster with 3+ nodes
-- **Load Balancing**: Kubernetes ingress with SSL termination
-
-## 🔒 Security
-
-### Zero Trust Implementation
-
-- **Device Posture Validation**: Continuous compliance checking
-- **Multi-Factor Authentication**: TOTP, SMS, hardware tokens
-- **Policy Engine**: Dynamic access control based on risk
-- **Threat Intelligence**: Real-time threat feed integration
-
-### Compliance
-
-- **SOC 2 Type II**: Security and availability controls
-- **ISO 27001**: Information security management
-- **GDPR**: Data protection and privacy compliance
-- **HIPAA**: Healthcare data protection (optional)
-
-## 📈 Monitoring
-
-### Metrics
-
-- **Application Metrics**: Request rates, response times, error rates
-- **Infrastructure Metrics**: CPU, memory, disk, network usage
-- **Business Metrics**: User activity, feature usage, conversion rates
-- **Security Metrics**: Authentication attempts, threat detections
-
-### Alerting
-
-- **Critical Alerts**: System downtime, security breaches
-- **Warning Alerts**: Performance degradation, capacity issues
-- **Info Alerts**: Deployment notifications, maintenance windows
-
-## 🤝 Contributing
-
-We welcome contributions! Please see our [Contributing Guide](CONTRIBUTING.md) for details.
-
-### Development Setup
-
-```bash
-# Clone and setup
-git clone https://github.com/streamlinevpn/streamlinevpn.git
-cd streamlinevpn
-
-# Install development dependencies
-pip install -r requirements-dev.txt
-
-# Run tests
-pytest tests/
-
-# Run linting
-pre-commit run --all-files
-```
-
-## 📄 License
-
-This project is licensed under the GPL-3.0 License - see the [LICENSE](LICENSE) file for details.
-
-## 🆘 Support
-
-- **Documentation**: [docs.streamlinevpn.com](https://docs.streamlinevpn.com)
-- **Issues**: [GitHub Issues](https://github.com/streamlinevpn/streamlinevpn/issues)
-- **Discussions**: [GitHub Discussions](https://github.com/streamlinevpn/streamlinevpn/discussions)
-- **Email**: support@streamlinevpn.com
-
-## 🙏 Acknowledgments
-
-- VPN protocol specifications and community
-- Open source security and monitoring tools
-- Machine learning research and frameworks
-- Cloud infrastructure providers
-
----
-
-**StreamlineVPN** - Enterprise-grade VPN configuration management platform
+GPL-3.0 – see [LICENSE](./LICENSE).

@@ -2,7 +2,7 @@
 
 ## Overview
 
-This document provides a comprehensive reference for all error codes, HTTP status codes, and error handling patterns used in the VPN Subscription Merger API.
+This document lists error codes, HTTP status codes, and error handling patterns used in the VPN Subscription Merger API.
 
 ## HTTP Status Codes
 

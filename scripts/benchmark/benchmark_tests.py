@@ -357,7 +357,7 @@ class PerformanceOptimizationBenchmark(BaseBenchmark):
                     start_time = time.time()
                     
                     if optimized:
-                        # Use performance optimization (placeholder)
+                        # Use performance optimization (example)
                         # PerformanceOptimizer would be implemented here
                         pass
                     

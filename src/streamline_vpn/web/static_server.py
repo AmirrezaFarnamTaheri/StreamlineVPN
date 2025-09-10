@@ -1,8 +1,8 @@
 """
-Enhanced Static File Server with Auto-Update
-============================================
+Static Control Server with Auto-Update
+=====================================
 
-Static file server with auto-update capability for StreamlineVPN.
+Static control-center server with auto-update and backend proxying.
 """
 
 import asyncio
@@ -24,8 +24,8 @@ from .settings import Settings
 logger = get_logger(__name__)
 
 
-class EnhancedStaticServer:
-    """Enhanced static file server with auto-update and monitoring."""
+class StaticControlServer:
+    """Static control-center with auto-update and monitoring."""
 
     def __init__(
         self,
@@ -47,7 +47,7 @@ class EnhancedStaticServer:
         self.backend_client = httpx.AsyncClient(timeout=30.0)
 
     def _create_app(self) -> FastAPI:
-        """Create enhanced FastAPI application."""
+        """Create FastAPI application for the control center."""
         app = FastAPI(
             title="StreamlineVPN Control Center",
             description="Enterprise VPN Configuration Platform",
@@ -76,7 +76,7 @@ class EnhancedStaticServer:
         @app.on_event("startup")
         async def startup_event() -> None:
             """Initialize backend connection and start auto-update."""
-            logger.info("Starting enhanced static server...")
+            logger.info("Starting static control server...")
             try:
                 resp = await self.backend_client.get(f"{self.api_base}/health")
                 if resp.status_code == 200:
@@ -105,6 +105,7 @@ class EnhancedStaticServer:
 
         @app.get("/api/status")
         async def get_status() -> JSONResponse:
+            # Backend statistics
             stats_response = await self.backend_client.get(
                 f"{self.api_base}/api/v1/statistics"
             )
@@ -113,12 +114,24 @@ class EnhancedStaticServer:
                 if stats_response.status_code == 200
                 else {}
             )
+            # Backend health
+            health_status = "unknown"
+            try:
+                health_resp = await self.backend_client.get(
+                    f"{self.api_base}/health"
+                )
+                if health_resp.status_code == 200:
+                    h = health_resp.json()
+                    health_status = h.get("status", "unknown")
+            except Exception:  # pragma: no cover - non-critical
+                pass
             return JSONResponse(
                 {
                     "status": "online",
                     "backend_status": (
                         "connected" if stats else "disconnected"
                     ),
+                    "backend_health": health_status,
                     "last_update": self.cached_data.get("last_update"),
                     "next_update": (
                         datetime.now()
@@ -208,7 +221,7 @@ class EnhancedStaticServer:
         async def api_base_script() -> Response:
             """Expose backend API base URL for frontend pages."""
             js = (
-                "// Injected by EnhancedStaticServer\n"
+                "// Injected by StaticControlServer\n"
                 f"window.__API_BASE__ = '{self.api_base}';\n"
             )
             return Response(
@@ -440,7 +453,7 @@ if __name__ == "__main__":  # pragma: no cover - manual run only
 
     from .settings import settings
 
-    server = EnhancedStaticServer(settings)
+    server = StaticControlServer(settings)
     logger.info(f"Starting server on {settings.HOST}:{settings.PORT}")
     uvicorn.run(
         server.app,
@@ -448,3 +461,6 @@ if __name__ == "__main__":  # pragma: no cover - manual run only
         port=server.settings.PORT,
         log_level="info",
     )
+
+# Backward compatibility alias for older entrypoints/imports
+EnhancedStaticServer = StaticControlServer

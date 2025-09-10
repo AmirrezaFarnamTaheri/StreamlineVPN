@@ -2,7 +2,7 @@
  * StreamlineVPN Main JavaScript
  * =============================
  * 
- * Enhanced JavaScript functionality for the StreamlineVPN web interface.
+ * Additional JavaScript functionality for the StreamlineVPN web interface.
  */
 
 // Global state management
@@ -121,6 +121,16 @@ const StreamlineVPN = {
                 this.loadStatistics();
             }
         }, this.config.updateInterval);
+        // Health check banner using static server status (if hosted via static server)
+        setInterval(async () => {
+            try {
+                const status = await this.makeRequest('/api/status');
+                const health = status.backend_health || (status.backend_status === 'connected' ? 'healthy' : 'degraded');
+                this.updateHealthBanner(health);
+            } catch (e) {
+                // ignore
+            }
+        }, 10000);
     },
     
     // Switch tabs
@@ -189,6 +199,41 @@ const StreamlineVPN = {
         }
         if (this.elements.avgQuality) {
             this.elements.avgQuality.textContent = (stats.avg_quality || 0).toFixed(2);
+        }
+    },
+
+    // Show a persistent banner if backend health is degraded or disconnected
+    updateHealthBanner(status) {
+        let banner = document.getElementById('backend-health-banner');
+        const ensureBanner = () => {
+            if (!banner) {
+                banner = document.createElement('div');
+                banner.id = 'backend-health-banner';
+                banner.style.position = 'fixed';
+                banner.style.top = '0';
+                banner.style.left = '0';
+                banner.style.right = '0';
+                banner.style.zIndex = '9999';
+                banner.style.padding = '10px 16px';
+                banner.style.textAlign = 'center';
+                banner.style.fontWeight = '600';
+                document.body.appendChild(banner);
+            }
+            return banner;
+        };
+        if (status === 'healthy') {
+            if (banner) banner.remove();
+            return;
+        }
+        const el = ensureBanner();
+        if (status === 'degraded') {
+            el.style.background = '#f59e0b';
+            el.style.color = '#1f2937';
+            el.textContent = 'Backend status: Degraded – some features may be limited';
+        } else {
+            el.style.background = '#ef4444';
+            el.style.color = '#ffffff';
+            el.textContent = 'Backend status: Disconnected – attempting to reconnect...';
         }
     },
     

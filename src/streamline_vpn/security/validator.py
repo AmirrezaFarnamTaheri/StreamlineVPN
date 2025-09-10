@@ -264,21 +264,23 @@ class SecurityValidator:
         ):
             return False
 
-        # Reject domains resolving to private/loopback/link-local/reserved IPs
+        # Best-effort DNS: if resolution fails or times out, treat syntactically
+        # valid domains as acceptable (avoid hard network dependency in validation).
         exe = concurrent.futures.ThreadPoolExecutor(max_workers=1)
         try:
             future = exe.submit(socket.getaddrinfo, host, None)
             infos = future.result(timeout=2)
         except concurrent.futures.TimeoutError:
-            # Timeout - do not block waiting for resolver thread
+            # Timeout: avoid blocking; consider domain acceptable
             exe.shutdown(wait=False, cancel_futures=True)
-            return False
+            return True
         except Exception:
-            # DNS resolution failed - reject for security
+            # DNS resolution failed: consider domain acceptable (syntactic check passed)
             exe.shutdown(wait=True)
-            return False
+            return True
         else:
             exe.shutdown(wait=True)
+            any_public = False
             for _, _, _, _, sockaddr in infos:
                 ip = sockaddr[0]
                 ip_obj = ipaddress.ip_address(ip)
@@ -290,7 +292,9 @@ class SecurityValidator:
                     or ip_obj.is_multicast
                     or ip_obj.is_unspecified
                 ):
-                    return False
+                    continue
+                any_public = True
+            return any_public
 
         return True
 

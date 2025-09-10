@@ -2,16 +2,16 @@
 
 ## Overview
 
-The VPN Subscription Merger uses comprehensive schema validation to ensure configuration integrity, security, and proper system operation. This document describes the validation rules, schemas, and error handling for all configuration components.
+This guide describes the schema validation used to ensure configuration integrity, security, and proper operation. It outlines the key rules and error handling for configuration components.
 
 ## Configuration Files
 
 ### Main Configuration Schema
 
-The primary configuration file `config/sources.unified.yaml` follows this schema:
+The primary configuration file `config/sources.yaml` follows this schema:
 
 ```yaml
-# YAML Schema for sources.unified.yaml
+# YAML Schema for sources.yaml
 sources:
   tier_1_premium:      # Array of strings (URLs)
     - type: string
@@ -503,7 +503,7 @@ def format_validation_error(error: ValidationError) -> dict:
     }
 ```
 
-### Comprehensive Validation
+### Validation
 
 ```python
 def validate_complete_request(data: dict, request_type: str) -> dict:

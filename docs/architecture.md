@@ -25,12 +25,12 @@ flowchart TD
 
 ### Core Processing Pipeline
 
-- **SourceManager**: Loads curated and weighted sources from `config/sources.unified.yaml` with tiered organization
+- **SourceManager**: Loads sources from `config/sources.yaml` with tiered organization
 - **SourceValidator**: Validates source accessibility and content quality
 - **ConfigProcessor**: Handles protocol parsing, deduplication, and quality scoring
 - **VPNSubscriptionMerger**: Orchestrates the entire processing pipeline
 
-### Advanced Features
+### Features
 
 - **Discovery**: GitHub + Telegram/paste (env-driven), cached via optional memory/Redis
 - **Fetcher**: Retries, per-host rate limiting, circuit breaker, compression handling
@@ -42,7 +42,7 @@ flowchart TD
 
 - **Event Bus**: Centralized event handling and metrics collection
 - **Metrics**: Prometheus-compatible metrics endpoint
-- **Health Checks**: Comprehensive health monitoring
+- **Health Checks**: Health monitoring
 - **Logging**: Structured logging with correlation IDs
 
 ## Data Flow
@@ -53,4 +53,3 @@ flowchart TD
 4. **Scoring**: Quality assessment and ranking
 5. **Output**: Multiple format generation with metadata
 6. **Monitoring**: Real-time metrics and health tracking
-

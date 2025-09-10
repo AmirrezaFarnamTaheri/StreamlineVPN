@@ -5,12 +5,14 @@
       "sources": [
         "http://example.local/a.txt"
       ],
-      "status": "running",
+      "status": "failed",
       "total_configs": 0,
       "valid_configs": 0,
       "started_at": 1756911078.2533185,
-      "finished_at": null,
-      "progress": 0.0
+      "finished_at": "2025-09-10T12:09:43.872197",
+      "progress": 0.0,
+      "created_at": "2025-09-10T12:09:43.872197",
+      "error": "Job terminated on cleanup due to staleness"
     },
     {
       "id": "job_1756911078486",
@@ -18,24 +20,28 @@
         "http://example.local/a.txt",
         "http://example.local/b.txt"
       ],
-      "status": "pending",
+      "status": "failed",
       "total_configs": 0,
       "valid_configs": 0,
       "started_at": 1756911078.4865932,
-      "finished_at": null,
-      "progress": 0.0
+      "finished_at": "2025-09-10T12:09:43.872197",
+      "progress": 0.0,
+      "created_at": "2025-09-10T12:09:43.872197",
+      "error": "Job terminated on cleanup due to staleness"
     },
     {
       "id": "job_1756911728131",
       "sources": [
         "http://example.local/a.txt"
       ],
-      "status": "running",
+      "status": "failed",
       "total_configs": 0,
       "valid_configs": 0,
       "started_at": 1756911728.1313894,
-      "finished_at": null,
-      "progress": 0.0
+      "finished_at": "2025-09-10T12:09:43.872197",
+      "progress": 0.0,
+      "created_at": "2025-09-10T12:09:43.872197",
+      "error": "Job terminated on cleanup due to staleness"
     },
     {
       "id": "job_1756911728381",
@@ -43,24 +49,28 @@
         "http://example.local/a.txt",
         "http://example.local/b.txt"
       ],
-      "status": "pending",
+      "status": "failed",
       "total_configs": 0,
       "valid_configs": 0,
       "started_at": 1756911728.3818324,
-      "finished_at": null,
-      "progress": 0.0
+      "finished_at": "2025-09-10T12:09:43.872197",
+      "progress": 0.0,
+      "created_at": "2025-09-10T12:09:43.872197",
+      "error": "Job terminated on cleanup due to staleness"
     },
     {
       "id": "job_1756912527444",
       "sources": [
         "http://example.local/a.txt"
       ],
-      "status": "running",
+      "status": "failed",
       "total_configs": 0,
       "valid_configs": 0,
       "started_at": 1756912527.4446537,
-      "finished_at": null,
-      "progress": 0.0
+      "finished_at": "2025-09-10T12:09:43.872197",
+      "progress": 0.0,
+      "created_at": "2025-09-10T12:09:43.872197",
+      "error": "Job terminated on cleanup due to staleness"
     },
     {
       "id": "job_1756912527681",
@@ -68,24 +78,28 @@
         "http://example.local/a.txt",
         "http://example.local/b.txt"
       ],
-      "status": "pending",
+      "status": "failed",
       "total_configs": 0,
       "valid_configs": 0,
       "started_at": 1756912527.6812146,
-      "finished_at": null,
-      "progress": 0.0
+      "finished_at": "2025-09-10T12:09:43.872197",
+      "progress": 0.0,
+      "created_at": "2025-09-10T12:09:43.872197",
+      "error": "Job terminated on cleanup due to staleness"
     },
     {
       "id": "job_1756913336590",
       "sources": [
         "http://example.local/a.txt"
       ],
-      "status": "running",
+      "status": "failed",
       "total_configs": 0,
       "valid_configs": 0,
       "started_at": 1756913336.590542,
-      "finished_at": null,
-      "progress": 0.0
+      "finished_at": "2025-09-10T12:09:43.872197",
+      "progress": 0.0,
+      "created_at": "2025-09-10T12:09:43.872197",
+      "error": "Job terminated on cleanup due to staleness"
     },
     {
       "id": "job_1756913336822",
@@ -93,36 +107,42 @@
         "http://example.local/a.txt",
         "http://example.local/b.txt"
       ],
-      "status": "pending",
+      "status": "failed",
       "total_configs": 0,
       "valid_configs": 0,
       "started_at": 1756913336.8221817,
-      "finished_at": null,
-      "progress": 0.0
+      "finished_at": "2025-09-10T12:09:43.872197",
+      "progress": 0.0,
+      "created_at": "2025-09-10T12:09:43.872197",
+      "error": "Job terminated on cleanup due to staleness"
     },
     {
       "id": "job_1756913938646",
       "sources": [
         "http://example.local/a.txt"
       ],
-      "status": "pending",
+      "status": "failed",
       "total_configs": 0,
       "valid_configs": 0,
       "started_at": 1756913938.646616,
-      "finished_at": null,
-      "progress": 0.0
+      "finished_at": "2025-09-10T12:09:43.872197",
+      "progress": 0.0,
+      "created_at": "2025-09-10T12:09:43.872197",
+      "error": "Job terminated on cleanup due to staleness"
     },
     {
       "id": "job_1756914095672",
       "sources": [
         "http://example.local/a.txt"
       ],
-      "status": "running",
+      "status": "failed",
       "total_configs": 0,
       "valid_configs": 0,
       "started_at": 1756914095.6728137,
-      "finished_at": null,
-      "progress": 0.0
+      "finished_at": "2025-09-10T12:09:43.872197",
+      "progress": 0.0,
+      "created_at": "2025-09-10T12:09:43.872197",
+      "error": "Job terminated on cleanup due to staleness"
     },
     {
       "id": "job_1756914095924",
@@ -130,12 +150,14 @@
         "http://example.local/a.txt",
         "http://example.local/b.txt"
       ],
-      "status": "pending",
+      "status": "failed",
       "total_configs": 0,
       "valid_configs": 0,
       "started_at": 1756914095.9240267,
-      "finished_at": null,
-      "progress": 0.0
+      "finished_at": "2025-09-10T12:09:43.872197",
+      "progress": 0.0,
+      "created_at": "2025-09-10T12:09:43.872197",
+      "error": "Job terminated on cleanup due to staleness"
     },
     {
       "id": "job_1756914095972",
@@ -147,7 +169,8 @@
       "valid_configs": 0,
       "started_at": 1756914095.9729793,
       "finished_at": 1756914096.0718253,
-      "progress": 1.0
+      "progress": 1.0,
+      "created_at": "2025-09-10T12:09:43.872197"
     },
     {
       "id": "job_1756914096393",
@@ -159,7 +182,8 @@
       "valid_configs": 0,
       "started_at": 1756914096.3939319,
       "finished_at": 1756914096.502699,
-      "progress": 1.0
+      "progress": 1.0,
+      "created_at": "2025-09-10T12:09:43.872197"
     },
     {
       "id": "job_1756914431898",
@@ -171,19 +195,22 @@
       "valid_configs": 0,
       "started_at": 1756914431.898636,
       "finished_at": 1756914432.0084884,
-      "progress": 1.0
+      "progress": 1.0,
+      "created_at": "2025-09-10T12:09:43.872197"
     },
     {
       "id": "job_1756914752955",
       "sources": [
         "http://example.local/a.txt"
       ],
-      "status": "running",
+      "status": "failed",
       "total_configs": 0,
       "valid_configs": 0,
       "started_at": 1756914752.9552457,
-      "finished_at": null,
-      "progress": 0.0
+      "finished_at": "2025-09-10T12:09:43.872197",
+      "progress": 0.0,
+      "created_at": "2025-09-10T12:09:43.872197",
+      "error": "Job terminated on cleanup due to staleness"
     },
     {
       "id": "job_1756914753195",
@@ -191,24 +218,28 @@
         "http://example.local/a.txt",
         "http://example.local/b.txt"
       ],
-      "status": "pending",
+      "status": "failed",
       "total_configs": 0,
       "valid_configs": 0,
       "started_at": 1756914753.195314,
-      "finished_at": null,
-      "progress": 0.0
+      "finished_at": "2025-09-10T12:09:43.872197",
+      "progress": 0.0,
+      "created_at": "2025-09-10T12:09:43.872197",
+      "error": "Job terminated on cleanup due to staleness"
     },
     {
       "id": "job_1756915566033",
       "sources": [
         "http://example.local/a.txt"
       ],
-      "status": "running",
+      "status": "failed",
       "total_configs": 0,
       "valid_configs": 0,
       "started_at": 1756915566.0331113,
-      "finished_at": null,
-      "progress": 0.0
+      "finished_at": "2025-09-10T12:09:43.872197",
+      "progress": 0.0,
+      "created_at": "2025-09-10T12:09:43.872197",
+      "error": "Job terminated on cleanup due to staleness"
     },
     {
       "id": "job_1756915566266",
@@ -216,24 +247,28 @@
         "http://example.local/a.txt",
         "http://example.local/b.txt"
       ],
-      "status": "pending",
+      "status": "failed",
       "total_configs": 0,
       "valid_configs": 0,
       "started_at": 1756915566.2664566,
-      "finished_at": null,
-      "progress": 0.0
+      "finished_at": "2025-09-10T12:09:43.872197",
+      "progress": 0.0,
+      "created_at": "2025-09-10T12:09:43.872197",
+      "error": "Job terminated on cleanup due to staleness"
     },
     {
       "id": "job_1756918532196",
       "sources": [
         "http://example.local/a.txt"
       ],
-      "status": "running",
+      "status": "failed",
       "total_configs": 0,
       "valid_configs": 0,
       "started_at": 1756918532.196114,
-      "finished_at": null,
-      "progress": 0.0
+      "finished_at": "2025-09-10T12:09:43.872197",
+      "progress": 0.0,
+      "created_at": "2025-09-10T12:09:43.872197",
+      "error": "Job terminated on cleanup due to staleness"
     },
     {
       "id": "job_1756918532427",
@@ -241,24 +276,28 @@
         "http://example.local/a.txt",
         "http://example.local/b.txt"
       ],
-      "status": "pending",
+      "status": "failed",
       "total_configs": 0,
       "valid_configs": 0,
       "started_at": 1756918532.4272878,
-      "finished_at": null,
-      "progress": 0.0
+      "finished_at": "2025-09-10T12:09:43.872197",
+      "progress": 0.0,
+      "created_at": "2025-09-10T12:09:43.872197",
+      "error": "Job terminated on cleanup due to staleness"
     },
     {
       "id": "job_1756919272703",
       "sources": [
         "http://example.local/a.txt"
       ],
-      "status": "running",
+      "status": "failed",
       "total_configs": 0,
       "valid_configs": 0,
       "started_at": 1756919272.703789,
-      "finished_at": null,
-      "progress": 0.0
+      "finished_at": "2025-09-10T12:09:43.872197",
+      "progress": 0.0,
+      "created_at": "2025-09-10T12:09:43.872197",
+      "error": "Job terminated on cleanup due to staleness"
     },
     {
       "id": "job_1756919272958",
@@ -266,24 +305,28 @@
         "http://example.local/a.txt",
         "http://example.local/b.txt"
       ],
-      "status": "pending",
+      "status": "failed",
       "total_configs": 0,
       "valid_configs": 0,
       "started_at": 1756919272.9580538,
-      "finished_at": null,
-      "progress": 0.0
+      "finished_at": "2025-09-10T12:09:43.872197",
+      "progress": 0.0,
+      "created_at": "2025-09-10T12:09:43.872197",
+      "error": "Job terminated on cleanup due to staleness"
     },
     {
       "id": "job_1756920796482",
       "sources": [
         "http://example.local/a.txt"
       ],
-      "status": "running",
+      "status": "failed",
       "total_configs": 0,
       "valid_configs": 0,
       "started_at": 1756920796.4826496,
-      "finished_at": null,
-      "progress": 0.0
+      "finished_at": "2025-09-10T12:09:43.872197",
+      "progress": 0.0,
+      "created_at": "2025-09-10T12:09:43.872197",
+      "error": "Job terminated on cleanup due to staleness"
     },
     {
       "id": "job_1756920796727",
@@ -291,12 +334,14 @@
         "http://example.local/a.txt",
         "http://example.local/b.txt"
       ],
-      "status": "pending",
+      "status": "failed",
       "total_configs": 0,
       "valid_configs": 0,
       "started_at": 1756920796.7271173,
-      "finished_at": null,
-      "progress": 0.0
+      "finished_at": "2025-09-10T12:09:43.872197",
+      "progress": 0.0,
+      "created_at": "2025-09-10T12:09:43.872197",
+      "error": "Job terminated on cleanup due to staleness"
     },
     {
       "id": "job_1756921187452",
@@ -304,24 +349,28 @@
         "http://example.local/a.txt",
         "http://example.local/b.txt"
       ],
-      "status": "pending",
+      "status": "failed",
       "total_configs": 0,
       "valid_configs": 0,
       "started_at": 1756921187.4523528,
-      "finished_at": null,
-      "progress": 0.0
+      "finished_at": "2025-09-10T12:09:43.872197",
+      "progress": 0.0,
+      "created_at": "2025-09-10T12:09:43.872197",
+      "error": "Job terminated on cleanup due to staleness"
     },
     {
       "id": "job_1756921353857",
       "sources": [
         "http://example.local/a.txt"
       ],
-      "status": "running",
+      "status": "failed",
       "total_configs": 0,
       "valid_configs": 0,
       "started_at": 1756921353.857234,
-      "finished_at": null,
-      "progress": 0.0
+      "finished_at": "2025-09-10T12:09:43.872197",
+      "progress": 0.0,
+      "created_at": "2025-09-10T12:09:43.872197",
+      "error": "Job terminated on cleanup due to staleness"
     },
     {
       "id": "job_1756921354095",
@@ -329,24 +378,28 @@
         "http://example.local/a.txt",
         "http://example.local/b.txt"
       ],
-      "status": "pending",
+      "status": "failed",
       "total_configs": 0,
       "valid_configs": 0,
       "started_at": 1756921354.0953057,
-      "finished_at": null,
-      "progress": 0.0
+      "finished_at": "2025-09-10T12:09:43.872197",
+      "progress": 0.0,
+      "created_at": "2025-09-10T12:09:43.872197",
+      "error": "Job terminated on cleanup due to staleness"
     },
     {
       "id": "job_1756923358642",
       "sources": [
         "http://example.local/a.txt"
       ],
-      "status": "running",
+      "status": "failed",
       "total_configs": 0,
       "valid_configs": 0,
       "started_at": 1756923358.6428378,
-      "finished_at": null,
-      "progress": 0.0
+      "finished_at": "2025-09-10T12:09:43.872197",
+      "progress": 0.0,
+      "created_at": "2025-09-10T12:09:43.872197",
+      "error": "Job terminated on cleanup due to staleness"
     },
     {
       "id": "job_1756923358895",
@@ -354,24 +407,28 @@
         "http://example.local/a.txt",
         "http://example.local/b.txt"
       ],
-      "status": "pending",
+      "status": "failed",
       "total_configs": 0,
       "valid_configs": 0,
       "started_at": 1756923358.8952267,
-      "finished_at": null,
-      "progress": 0.0
+      "finished_at": "2025-09-10T12:09:43.872197",
+      "progress": 0.0,
+      "created_at": "2025-09-10T12:09:43.872197",
+      "error": "Job terminated on cleanup due to staleness"
     },
     {
       "id": "job_1756923731755",
       "sources": [
         "http://example.local/a.txt"
       ],
-      "status": "running",
+      "status": "failed",
       "total_configs": 0,
       "valid_configs": 0,
       "started_at": 1756923731.7558107,
-      "finished_at": null,
-      "progress": 0.0
+      "finished_at": "2025-09-10T12:09:43.872197",
+      "progress": 0.0,
+      "created_at": "2025-09-10T12:09:43.872197",
+      "error": "Job terminated on cleanup due to staleness"
     },
     {
       "id": "job_1756923731996",
@@ -379,24 +436,28 @@
         "http://example.local/a.txt",
         "http://example.local/b.txt"
       ],
-      "status": "pending",
+      "status": "failed",
       "total_configs": 0,
       "valid_configs": 0,
       "started_at": 1756923731.9965415,
-      "finished_at": null,
-      "progress": 0.0
+      "finished_at": "2025-09-10T12:09:43.872197",
+      "progress": 0.0,
+      "created_at": "2025-09-10T12:09:43.872197",
+      "error": "Job terminated on cleanup due to staleness"
     },
     {
       "id": "job_1756924760081",
       "sources": [
         "http://example.local/a.txt"
       ],
-      "status": "running",
+      "status": "failed",
       "total_configs": 0,
       "valid_configs": 0,
       "started_at": 1756924760.0813587,
-      "finished_at": null,
-      "progress": 0.0
+      "finished_at": "2025-09-10T12:09:43.872197",
+      "progress": 0.0,
+      "created_at": "2025-09-10T12:09:43.872197",
+      "error": "Job terminated on cleanup due to staleness"
     },
     {
       "id": "job_1756924760326",
@@ -404,24 +465,28 @@
         "http://example.local/a.txt",
         "http://example.local/b.txt"
       ],
-      "status": "pending",
+      "status": "failed",
       "total_configs": 0,
       "valid_configs": 0,
       "started_at": 1756924760.3264298,
-      "finished_at": null,
-      "progress": 0.0
+      "finished_at": "2025-09-10T12:09:43.872197",
+      "progress": 0.0,
+      "created_at": "2025-09-10T12:09:43.872197",
+      "error": "Job terminated on cleanup due to staleness"
     },
     {
       "id": "job_1756928059620",
       "sources": [
         "http://example.local/a.txt"
       ],
-      "status": "running",
+      "status": "failed",
       "total_configs": 0,
       "valid_configs": 0,
       "started_at": 1756928059.6201456,
-      "finished_at": null,
-      "progress": 0.0
+      "finished_at": "2025-09-10T12:09:43.872197",
+      "progress": 0.0,
+      "created_at": "2025-09-10T12:09:43.872197",
+      "error": "Job terminated on cleanup due to staleness"
     },
     {
       "id": "job_1756928059879",
@@ -429,24 +494,28 @@
         "http://example.local/a.txt",
         "http://example.local/b.txt"
       ],
-      "status": "pending",
+      "status": "failed",
       "total_configs": 0,
       "valid_configs": 0,
       "started_at": 1756928059.8796358,
-      "finished_at": null,
-      "progress": 0.0
+      "finished_at": "2025-09-10T12:09:43.872197",
+      "progress": 0.0,
+      "created_at": "2025-09-10T12:09:43.872197",
+      "error": "Job terminated on cleanup due to staleness"
     },
     {
       "id": "job_1756990150468",
       "sources": [
         "http://example.local/a.txt"
       ],
-      "status": "running",
+      "status": "failed",
       "total_configs": 0,
       "valid_configs": 0,
       "started_at": 1756990150.4687936,
-      "finished_at": null,
-      "progress": 0.0
+      "finished_at": "2025-09-10T12:09:43.872197",
+      "progress": 0.0,
+      "created_at": "2025-09-10T12:09:43.872197",
+      "error": "Job terminated on cleanup due to staleness"
     },
     {
       "id": "job_1756990150703",
@@ -454,24 +523,28 @@
         "http://example.local/a.txt",
         "http://example.local/b.txt"
       ],
-      "status": "pending",
+      "status": "failed",
       "total_configs": 0,
       "valid_configs": 0,
       "started_at": 1756990150.70346,
-      "finished_at": null,
-      "progress": 0.0
+      "finished_at": "2025-09-10T12:09:43.872197",
+      "progress": 0.0,
+      "created_at": "2025-09-10T12:09:43.872197",
+      "error": "Job terminated on cleanup due to staleness"
     },
     {
       "id": "job_1756990525188",
       "sources": [
         "http://example.local/a.txt"
       ],
-      "status": "running",
+      "status": "failed",
       "total_configs": 0,
       "valid_configs": 0,
       "started_at": 1756990525.1888514,
-      "finished_at": null,
-      "progress": 0.0
+      "finished_at": "2025-09-10T12:09:43.872197",
+      "progress": 0.0,
+      "created_at": "2025-09-10T12:09:43.872197",
+      "error": "Job terminated on cleanup due to staleness"
     },
     {
       "id": "job_1756990525430",
@@ -479,24 +552,28 @@
         "http://example.local/a.txt",
         "http://example.local/b.txt"
       ],
-      "status": "pending",
+      "status": "failed",
       "total_configs": 0,
       "valid_configs": 0,
       "started_at": 1756990525.4306562,
-      "finished_at": null,
-      "progress": 0.0
+      "finished_at": "2025-09-10T12:09:43.872197",
+      "progress": 0.0,
+      "created_at": "2025-09-10T12:09:43.872197",
+      "error": "Job terminated on cleanup due to staleness"
     },
     {
       "id": "job_1756990848075",
       "sources": [
         "http://example.local/a.txt"
       ],
-      "status": "running",
+      "status": "failed",
       "total_configs": 0,
       "valid_configs": 0,
       "started_at": 1756990848.0754902,
-      "finished_at": null,
-      "progress": 0.0
+      "finished_at": "2025-09-10T12:09:43.872197",
+      "progress": 0.0,
+      "created_at": "2025-09-10T12:09:43.872197",
+      "error": "Job terminated on cleanup due to staleness"
     },
     {
       "id": "job_1756990848324",
@@ -504,24 +581,28 @@
         "http://example.local/a.txt",
         "http://example.local/b.txt"
       ],
-      "status": "pending",
+      "status": "failed",
       "total_configs": 0,
       "valid_configs": 0,
       "started_at": 1756990848.324919,
-      "finished_at": null,
-      "progress": 0.0
+      "finished_at": "2025-09-10T12:09:43.872197",
+      "progress": 0.0,
+      "created_at": "2025-09-10T12:09:43.872197",
+      "error": "Job terminated on cleanup due to staleness"
     },
     {
       "id": "job_1756991447615",
       "sources": [
         "http://example.local/a.txt"
       ],
-      "status": "running",
+      "status": "failed",
       "total_configs": 0,
       "valid_configs": 0,
       "started_at": 1756991447.6158996,
-      "finished_at": null,
-      "progress": 0.0
+      "finished_at": "2025-09-10T12:09:43.872197",
+      "progress": 0.0,
+      "created_at": "2025-09-10T12:09:43.872197",
+      "error": "Job terminated on cleanup due to staleness"
     },
     {
       "id": "job_1756991447873",
@@ -529,24 +610,28 @@
         "http://example.local/a.txt",
         "http://example.local/b.txt"
       ],
-      "status": "pending",
+      "status": "failed",
       "total_configs": 0,
       "valid_configs": 0,
       "started_at": 1756991447.8737102,
-      "finished_at": null,
-      "progress": 0.0
+      "finished_at": "2025-09-10T12:09:43.872197",
+      "progress": 0.0,
+      "created_at": "2025-09-10T12:09:43.872197",
+      "error": "Job terminated on cleanup due to staleness"
     },
     {
       "id": "job_1756992141453",
       "sources": [
         "http://example.local/a.txt"
       ],
-      "status": "running",
+      "status": "failed",
       "total_configs": 0,
       "valid_configs": 0,
       "started_at": 1756992141.453433,
-      "finished_at": null,
-      "progress": 0.0
+      "finished_at": "2025-09-10T12:09:43.872197",
+      "progress": 0.0,
+      "created_at": "2025-09-10T12:09:43.872197",
+      "error": "Job terminated on cleanup due to staleness"
     },
     {
       "id": "job_1756992141738",
@@ -554,24 +639,28 @@
         "http://example.local/a.txt",
         "http://example.local/b.txt"
       ],
-      "status": "pending",
+      "status": "failed",
       "total_configs": 0,
       "valid_configs": 0,
       "started_at": 1756992141.7381854,
-      "finished_at": null,
-      "progress": 0.0
+      "finished_at": "2025-09-10T12:09:43.872197",
+      "progress": 0.0,
+      "created_at": "2025-09-10T12:09:43.872197",
+      "error": "Job terminated on cleanup due to staleness"
     },
     {
       "id": "job_1756992453816",
       "sources": [
         "http://example.local/a.txt"
       ],
-      "status": "running",
+      "status": "failed",
       "total_configs": 0,
       "valid_configs": 0,
       "started_at": 1756992453.816872,
-      "finished_at": null,
-      "progress": 0.0
+      "finished_at": "2025-09-10T12:09:43.872197",
+      "progress": 0.0,
+      "created_at": "2025-09-10T12:09:43.872197",
+      "error": "Job terminated on cleanup due to staleness"
     },
     {
       "id": "job_1756992454050",
@@ -579,12 +668,14 @@
         "http://example.local/a.txt",
         "http://example.local/b.txt"
       ],
-      "status": "pending",
+      "status": "failed",
       "total_configs": 0,
       "valid_configs": 0,
       "started_at": 1756992454.0505385,
-      "finished_at": null,
-      "progress": 0.0
+      "finished_at": "2025-09-10T12:09:43.872197",
+      "progress": 0.0,
+      "created_at": "2025-09-10T12:09:43.872197",
+      "error": "Job terminated on cleanup due to staleness"
     },
     {
       "id": "job_1756993409324",
@@ -596,7 +687,8 @@
       "valid_configs": 0,
       "started_at": 1756993409.324614,
       "finished_at": 1756993409.3312922,
-      "progress": 1.0
+      "progress": 1.0,
+      "created_at": "2025-09-10T12:09:43.872197"
     },
     {
       "id": "job_1756993409567",
@@ -609,7 +701,8 @@
       "valid_configs": 0,
       "started_at": 1756993409.5679343,
       "finished_at": 1756993409.5759337,
-      "progress": 1.0
+      "progress": 1.0,
+      "created_at": "2025-09-10T12:09:43.872197"
     },
     {
       "id": "job_1756994732296",
@@ -621,7 +714,8 @@
       "valid_configs": 1,
       "started_at": 1756994732.2962074,
       "finished_at": 1756994732.3032076,
-      "progress": 1.0
+      "progress": 1.0,
+      "created_at": "2025-09-10T12:09:43.872197"
     },
     {
       "id": "job_1756994732529",
@@ -634,7 +728,8 @@
       "valid_configs": 2,
       "started_at": 1756994732.529587,
       "finished_at": 1756994732.5356903,
-      "progress": 1.0
+      "progress": 1.0,
+      "created_at": "2025-09-10T12:09:43.872197"
     },
     {
       "id": "job_1757000357300",
@@ -646,7 +741,8 @@
       "valid_configs": 1,
       "started_at": 1757000357.300575,
       "finished_at": 1757000357.305572,
-      "progress": 1.0
+      "progress": 1.0,
+      "created_at": "2025-09-10T12:09:43.872197"
     },
     {
       "id": "job_1757000357551",
@@ -659,7 +755,8 @@
       "valid_configs": 2,
       "started_at": 1757000357.5512524,
       "finished_at": 1757000357.5572383,
-      "progress": 1.0
+      "progress": 1.0,
+      "created_at": "2025-09-10T12:09:43.872197"
     },
     {
       "id": "job_1757000894306",
@@ -671,7 +768,8 @@
       "valid_configs": 1,
       "started_at": 1757000894.3069456,
       "finished_at": 1757000894.3130465,
-      "progress": 1.0
+      "progress": 1.0,
+      "created_at": "2025-09-10T12:09:43.872197"
     },
     {
       "id": "job_1757000894554",
@@ -684,7 +782,8 @@
       "valid_configs": 2,
       "started_at": 1757000894.5545454,
       "finished_at": 1757000894.5625944,
-      "progress": 1.0
+      "progress": 1.0,
+      "created_at": "2025-09-10T12:09:43.872197"
     },
     {
       "id": "job_1757002356306",
@@ -696,7 +795,8 @@
       "valid_configs": 1,
       "started_at": 1757002356.306912,
       "finished_at": 1757002356.3119116,
-      "progress": 1.0
+      "progress": 1.0,
+      "created_at": "2025-09-10T12:09:43.872197"
     },
     {
       "id": "job_1757002356542",
@@ -709,7 +809,8 @@
       "valid_configs": 2,
       "started_at": 1757002356.5421925,
       "finished_at": 1757002356.549194,
-      "progress": 1.0
+      "progress": 1.0,
+      "created_at": "2025-09-10T12:09:43.872197"
     },
     {
       "id": "job_1757002648352",
@@ -721,7 +822,8 @@
       "valid_configs": 1,
       "started_at": 1757002648.3523004,
       "finished_at": 1757002648.3592055,
-      "progress": 1.0
+      "progress": 1.0,
+      "created_at": "2025-09-10T12:09:43.872197"
     },
     {
       "id": "job_1757002648600",
@@ -734,7 +836,8 @@
       "valid_configs": 2,
       "started_at": 1757002648.6002204,
       "finished_at": 1757002648.6062407,
-      "progress": 1.0
+      "progress": 1.0,
+      "created_at": "2025-09-10T12:09:43.872197"
     },
     {
       "id": "job_1757002898456",
@@ -746,7 +849,8 @@
       "valid_configs": 1,
       "started_at": 1757002898.4567518,
       "finished_at": 1757002898.462764,
-      "progress": 1.0
+      "progress": 1.0,
+      "created_at": "2025-09-10T12:09:43.872197"
     },
     {
       "id": "job_1757002898695",
@@ -759,7 +863,8 @@
       "valid_configs": 2,
       "started_at": 1757002898.6950185,
       "finished_at": 1757002898.7040203,
-      "progress": 1.0
+      "progress": 1.0,
+      "created_at": "2025-09-10T12:09:43.872197"
     },
     {
       "id": "job_1757003232328",
@@ -771,7 +876,8 @@
       "valid_configs": 1,
       "started_at": 1757003232.3284812,
       "finished_at": 1757003232.3344827,
-      "progress": 1.0
+      "progress": 1.0,
+      "created_at": "2025-09-10T12:09:43.872197"
     },
     {
       "id": "job_1757003232562",
@@ -784,7 +890,9 @@
       "valid_configs": 2,
       "started_at": 1757003232.5626519,
       "finished_at": 1757003232.569654,
-      "progress": 1.0
+      "progress": 1.0,
+      "created_at": "2025-09-10T12:09:43.872197"
     }
-  ]
+  ],
+  "last_cleanup": "2025-09-10T15:21:19.359081"
 }

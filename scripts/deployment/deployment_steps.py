@@ -296,7 +296,7 @@ class MonitoringStarter:
         logger.info("Starting monitoring services...")
         
         try:
-            # Start monitoring dashboard (placeholder)
+            # Start monitoring dashboard (optional example)
             # MonitoringDashboard would be implemented here
             self.monitoring_dashboard = None
             

@@ -6,9 +6,30 @@ from __future__ import annotations
 
 import asyncio
 import time
-from typing import Optional, Dict, Any
+from typing import Optional, Dict, Any, List
+import atexit
+import weakref
 
 import aiohttp
+
+
+# Track created sessions for best-effort cleanup in tests and at exit
+_SESSIONS: "weakref.WeakSet[aiohttp.ClientSession]" = weakref.WeakSet()
+
+
+def _track_session(sess: aiohttp.ClientSession) -> None:
+    try:
+        _SESSIONS.add(sess)
+    except Exception:
+        pass
+
+
+def get_tracked_sessions() -> List[aiohttp.ClientSession]:
+    """Return a snapshot of tracked sessions (for test cleanup)."""
+    try:
+        return [s for s in list(_SESSIONS) if s is not None]
+    except Exception:
+        return []
 
 
 def make_session(
@@ -21,7 +42,7 @@ def make_session(
         use_dns_cache=True,
     )
     timeout = aiohttp.ClientTimeout(total=timeout_seconds)
-    return aiohttp.ClientSession(
+    session = aiohttp.ClientSession(
         connector=connector,
         timeout=timeout,
         headers={
@@ -30,6 +51,8 @@ def make_session(
             "Accept-Encoding": "gzip, deflate",
         },
     )
+    _track_session(session)
+    return session
 
 
 async def execute_request(
@@ -81,3 +104,38 @@ async def execute_request(
                 break
     assert last_exc is not None
     raise last_exc
+
+
+def _cleanup_sessions_at_exit() -> None:  # pragma: no cover - best-effort
+    try:
+        sessions = [s for s in _SESSIONS if not s.closed]
+        if not sessions:
+            return
+        try:
+            loop = asyncio.get_event_loop()
+        except RuntimeError:
+            loop = None
+
+        async def _close_all():
+            for s in sessions:
+                try:
+                    await s.close()
+                except Exception:
+                    pass
+
+        if loop and loop.is_running():
+            for s in sessions:
+                try:
+                    loop.create_task(s.close())
+                except Exception:
+                    pass
+        else:
+            try:
+                asyncio.run(_close_all())
+            except Exception:
+                pass
+    except Exception:
+        pass
+
+
+atexit.register(_cleanup_sessions_at_exit)

@@ -3,6 +3,11 @@
 Enhanced Deployment Script - Refactored
 ======================================
 
+Notes:
+- API server entrypoint (when running directly): run_unified.py
+- Web interface entrypoint: run_web.py
+- Containerized deployments handle these via docker-compose.
+
 Refactored production deployment script with modular architecture.
 """
 

@@ -2,7 +2,7 @@ openapi: 3.0.3
 info:
   title: VPN Subscription Merger API
   description: |
-    Comprehensive API for VPN subscription merging, configuration generation, and management.
+    API for VPN subscription merging, configuration generation, and management.
     
     ## Features
     - Multi-source VPN subscription aggregation

@@ -18,6 +18,7 @@ from ...constants import (
 )
 from .l1_cache import L1ApplicationCache
 from .redis_client import RedisClusterClient
+from .l3_sqlite import L3DatabaseCache
 from .invalidation import CacheInvalidationService
 
 logger = get_logger(__name__)
@@ -30,6 +31,7 @@ class VPNCacheService:
         self,
         redis_nodes: List[Dict[str, str]],
         l1_cache_size: int = DEFAULT_L1_CACHE_SIZE,
+        l3_db_path: Optional[str] = None,
     ):
         """Initialize VPN cache service.
 
@@ -40,6 +42,8 @@ class VPNCacheService:
         self.l1_cache = L1ApplicationCache(max_size=l1_cache_size)
         self.redis_client = RedisClusterClient(redis_nodes)
         self.invalidation_service = CacheInvalidationService()
+        # L3 SQLite fallback (optional)
+        self.l3_cache = L3DatabaseCache(l3_db_path or "vpn_configs.db")
         self.circuit_breaker_threshold = DEFAULT_CIRCUIT_BREAKER_THRESHOLD
         self.circuit_breaker_failures = 0
         self.circuit_breaker_last_failure = None
@@ -83,7 +87,20 @@ class VPNCacheService:
                 logger.error(f"Redis cache error for key {key}: {e}")
                 self._record_circuit_breaker_failure()
 
-        # L3 database fallback would be implemented here
+        # L3 database fallback
+        try:
+            db_value = await self.l3_cache.get(key)
+            if db_value is not None:
+                try:
+                    parsed_value = json.loads(db_value)
+                except json.JSONDecodeError:
+                    parsed_value = db_value
+                # Hydrate L1 for faster subsequent accesses
+                await self.l1_cache.set(key, parsed_value, ttl=DEFAULT_CACHE_TTL)
+                return parsed_value
+        except Exception as e:
+            logger.warning(f"L3 cache get error for key {key}: {e}")
+
         return None
 
     async def set(
@@ -117,13 +134,19 @@ class VPNCacheService:
                     )
                     if success:
                         self._reset_circuit_breaker()
-                        return True
                     else:
                         self._record_circuit_breaker_failure()
 
                 except Exception as e:
                     logger.error(f"Redis cache set error for key {key}: {e}")
                     self._record_circuit_breaker_failure()
+
+            # Set in L3 database cache regardless of CB state
+            try:
+                json_value = json.dumps(value)
+                await self.l3_cache.set(key, json_value, ttl=ttl)
+            except Exception as e:
+                logger.warning(f"L3 cache set error for key {key}: {e}")
 
             return True
 
@@ -147,6 +170,12 @@ class VPNCacheService:
                         f"Redis cache delete error for key {key}: {e}"
                     )
                     self._record_circuit_breaker_failure()
+
+            # Delete from L3 database cache
+            try:
+                await self.l3_cache.delete(key)
+            except Exception as e:
+                logger.warning(f"L3 cache delete error for key {key}: {e}")
 
             return True
 

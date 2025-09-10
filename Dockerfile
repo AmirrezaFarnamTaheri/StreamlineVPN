@@ -55,5 +55,5 @@ ENV HOST=0.0.0.0
 ENV API_PORT=8080
 ENV WEB_PORT=8000
 
-# Default command - run the API server
-CMD ["python", "run_server.py"]
+# Default command - run the unified API server
+CMD ["python", "run_unified.py"]

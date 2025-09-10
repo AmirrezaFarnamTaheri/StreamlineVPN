@@ -8,7 +8,7 @@ sys.path.insert(0, str(Path(__file__).parent / "src"))
 
 from streamline_vpn.utils.logging import get_logger
 from streamline_vpn.web.settings import Settings
-from streamline_vpn.web.static_server import EnhancedStaticServer
+from streamline_vpn.web.static_server import StaticControlServer
 
 logger = get_logger(__name__)
 
@@ -23,10 +23,10 @@ def main() -> None:
     api_port = int(os.getenv("API_PORT", "8080"))
 
     # Inject API configuration into static files
-    server = EnhancedStaticServer(settings=settings)
+    server = StaticControlServer(settings=settings)
 
-    # Add API base configuration
-    server.app.state.api_base = f"http://localhost:{api_port}"
+    # Prefer explicit env override, otherwise use settings-derived base
+    server.app.state.api_base = os.getenv("API_BASE_URL", settings.API_BASE)
 
     @server.app.middleware("http")
     async def add_security_headers(request, call_next):  # noqa: ANN001
@@ -37,15 +37,38 @@ def main() -> None:
         response.headers["Strict-Transport-Security"] = (
             "max-age=31536000; includeSubDomains"
         )
-        api_host = f"{host}:{api_port}"
+        # Build connect-src targets from configured API base
+        from urllib.parse import urlparse
+        import os as _os
+        api_base = getattr(server.app.state, "api_base", f"http://{host}:{api_port}")
+        parsed = urlparse(api_base)
+        netloc = parsed.netloc or (parsed.hostname or host)
+        if parsed.port and ":" not in netloc:
+            netloc = f"{netloc}:{parsed.port}"
+        # Derive ws scheme counterpart
+        http_scheme = "https" if parsed.scheme == "https" else "http"
+        ws_scheme = "wss" if http_scheme == "https" else "ws"
         localhost_api_host = f"localhost:{api_port}"
+
+        # Optional extra connect-src entries via env (space/comma separated)
+        extras_raw = _os.getenv("WEB_CONNECT_SRC_EXTRA", "")
+        extra_tokens = []
+        if extras_raw:
+            for tok in [t.strip() for t in extras_raw.replace(",", " ").split() if t.strip()]:
+                if "://" in tok:
+                    extra_tokens.append(tok)
+                else:
+                    extra_tokens.append(f"{http_scheme}://{tok}")
+                    extra_tokens.append(f"{ws_scheme}://{tok}")
+        extra_part = (" " + " ".join(extra_tokens)) if extra_tokens else ""
+
         response.headers["Content-Security-Policy"] = (
             "default-src 'self'; "
             "script-src 'self' 'unsafe-inline' cdn.jsdelivr.net cdn.tailwindcss.com; "
             "style-src 'self' 'unsafe-inline' cdn.jsdelivr.net fonts.googleapis.com; "
             "font-src 'self' data: fonts.gstatic.com; "
-            f"connect-src 'self' http://{api_host} ws://{api_host} wss://{api_host} "
-            f"http://{localhost_api_host} ws://{localhost_api_host} wss://{localhost_api_host}; "
+            f"connect-src 'self' {http_scheme}://{netloc} {ws_scheme}://{netloc} "
+            f"http://{localhost_api_host} ws://{localhost_api_host} wss://{localhost_api_host}{extra_part}; "
             "img-src 'self' data:; "
             "object-src 'none'; frame-ancestors 'none';"
         )

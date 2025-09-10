@@ -2,7 +2,7 @@
 
 ## 🚀 Complete Production Deployment Configuration
 
-This guide provides comprehensive deployment configurations for StreamlineVPN in production environments.
+This guide provides deployment configurations for StreamlineVPN in production environments.
 
 ## 📋 Table of Contents
 
@@ -39,6 +39,19 @@ docker-compose -f docker-compose.production.yml logs -f streamline
 
 # Scale the application
 docker-compose -f docker-compose.production.yml up -d --scale streamline=3
+```
+
+### Entrypoints (non-containerized)
+
+For direct process runs during staging or diagnostics:
+
+```bash
+# API server (respects API_HOST, API_PORT)
+python run_api.py
+
+# Web interface (respects WEB_HOST, WEB_PORT)
+# Optionally set API_BASE_URL and WEB_CONNECT_SRC_EXTRA
+python run_web.py
 ```
 
 **Services included:**
@@ -348,3 +361,4 @@ kubectl rollout status deployment/streamline-deployment -n streamline-vpn
 ---
 
 **🎉 Congratulations!** You now have a complete, production-ready deployment configuration for StreamlineVPN with enterprise-grade monitoring, security, and scalability features.
+

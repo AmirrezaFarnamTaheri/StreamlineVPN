@@ -2,7 +2,7 @@
 
 ## Overview
 
-The VPN Subscription Merger uses environment variables for configuration management, allowing flexible deployment across different environments without modifying configuration files. This document provides a comprehensive reference for all supported environment variables.
+The VPN Subscription Merger uses environment variables for configuration management, allowing flexible deployment across different environments without modifying configuration files. This page lists supported environment variables.
 
 ## Core Configuration
 
@@ -10,7 +10,7 @@ The VPN Subscription Merger uses environment variables for configuration managem
 
 **Description:** Path to the main sources configuration file  
 **Type:** String (file path)  
-**Default:** `config/sources.unified.yaml`  
+**Default:** `config/sources.yaml`  
 **Required:** No  
 **Example:** `VPN_SOURCES_CONFIG=/etc/vpn-merger/sources.yaml`
 
@@ -787,7 +787,7 @@ def load_configuration() -> Dict[str, Any]:
     
     config = {
         # Core configuration
-        'sources_config': os.environ.get('VPN_SOURCES_CONFIG', 'config/sources.unified.yaml'),
+        'sources_config': os.environ.get('VPN_SOURCES_CONFIG', 'config/sources.yaml'),
         'concurrent_limit': int(os.environ.get('VPN_CONCURRENT_LIMIT', '50')),
         'timeout': int(os.environ.get('VPN_TIMEOUT', '30')),
         'max_retries': int(os.environ.get('VPN_MAX_RETRIES', '3')),
@@ -828,6 +828,38 @@ def load_configuration() -> Dict[str, Any]:
     
     return config
 ```
+
+## Web UI Integration
+
+### API_BASE_URL
+
+Points the Web UI to the API server.
+
+- Type: URL
+- Default: `http://localhost:8080`
+
+Examples:
+
+```bash
+export API_BASE_URL="https://api.example.com"
+python run_web.py
+```
+
+### WEB_CONNECT_SRC_EXTRA
+
+Optional extra CSP `connect-src` origins for the Web UI (space or comma separated). If a token omits a scheme, both http(s) and ws(s) variants are added.
+
+Examples:
+
+```bash
+export WEB_CONNECT_SRC_EXTRA="https://api.example.com wss://ws.example.com"
+# or
+export WEB_CONNECT_SRC_EXTRA="api.example.com:8443, ws.example.com:8443"
+python run_web.py
+```
+
+See also: Web Interface security and CSP details in
+`docs/web-interface.md#security-headers--csp`.
 
 ## Best Practices
 
@@ -884,7 +916,7 @@ class VPNMergerConfig:
     """Configuration class for VPN Merger."""
     
     # Core configuration
-    sources_config: str = 'config/sources.unified.yaml'
+    sources_config: str = 'config/sources.yaml'
     concurrent_limit: int = 50
     timeout: int = 30
     max_retries: int = 3
@@ -926,7 +958,7 @@ class VPNMergerConfig:
     def from_environment(cls) -> 'VPNMergerConfig':
         """Create configuration from environment variables."""
         return cls(
-            sources_config=os.environ.get('VPN_SOURCES_CONFIG', 'config/sources.unified.yaml'),
+            sources_config=os.environ.get('VPN_SOURCES_CONFIG', 'config/sources.yaml'),
             concurrent_limit=int(os.environ.get('VPN_CONCURRENT_LIMIT', '50')),
             timeout=int(os.environ.get('VPN_TIMEOUT', '30')),
             max_retries=int(os.environ.get('VPN_MAX_RETRIES', '3')),
@@ -954,4 +986,4 @@ class VPNMergerConfig:
         )
 ```
 
-This comprehensive environment variable documentation provides all the information needed to configure the VPN Subscription Merger system across different environments and deployment scenarios.
+This page summarizes the environment variables needed to configure the VPN Subscription Merger across different environments.

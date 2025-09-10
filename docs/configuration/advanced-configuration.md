@@ -1,203 +1,53 @@
-# Enhanced Configuration System
+---
+title: Advanced Configuration Guide
+---
 
-## Overview
+This page documents configuration keys supported by StreamlineVPN’s validator and processing engine.
 
-The Enhanced Configuration System provides advanced YAML structure with comprehensive settings for processing, quality controls, monitoring, and security. This system replaces the basic configuration with a more robust and feature-rich approach.
+## Sections
 
-## Table of Contents
+- `sources`: required; tiers and URL lists
+- `processing`: concurrency and retry settings
+- `output`: formats selection
+- `cache`: TTLs
+- `security`: reserved for future policy tuning
+- `monitoring`: basic enablement fields
 
-- [Configuration Structure](#configuration-structure)
-- [Enhanced YAML Format](#enhanced-yaml-format)
-- [Processing Settings](#processing-settings)
-- [Quality Configuration](#quality-configuration)
-- [Monitoring Configuration](#monitoring-configuration)
-- [Security Configuration](#security-configuration)
-- [Output Configuration](#output-configuration)
-- [Configuration Validation](#configuration-validation)
-- [Usage Examples](#usage-examples)
-- [Migration Guide](#migration-guide)
-
-## Configuration Structure
-
-### Enhanced YAML Format
-
-The enhanced configuration uses a structured YAML format with the following top-level sections:
+## Example
 
 ```yaml
-metadata:
-  version: "3.0.0"
-  description: "Enhanced VPN subscription sources"
-  last_updated: "2024-12-29"
-  maintainer: "vpn-merger-team"
-
 sources:
-  tier_1_premium:
-    description: "High-quality, reliable sources"
-    reliability_score: 0.95
-    priority: 1
+  premium:
     urls:
-      - url: "https://example.com/sources.txt"
-        weight: 1.0
-        protocols: ["vmess", "vless"]
-        expected_configs: 500
-        validation:
-          min_configs: 100
-          max_response_time: 5
-          required_protocols: ["vmess"]
-        monitoring:
-          health_check_interval: 300
-          failure_threshold: 2
+      - https://example.com/a.txt
+      - { url: https://example.com/b.txt, weight: 0.9, protocols: [vmess, vless] }
+  tier_1:
+    - https://example.com/c.txt
 
-settings:
-  processing:
-    concurrent_limit: 100
-    timeout: 30
-    retry_policy:
-      max_retries: 3
-      backoff_factor: 2
-  quality:
-    min_score: 0.5
-    deduplication: true
-    protocol_validation: strict
-  monitoring:
-    metrics_enabled: true
-    health_check_interval: 60
-    alert_thresholds:
-      error_rate: 0.1
-      response_time: 10
-```
-
-## Processing Settings
-
-### Concurrent Processing
-
-```yaml
 processing:
-  concurrent_limit: 100        # Maximum concurrent requests
-  timeout: 30                  # Request timeout in seconds
-  batch_size: 20               # Batch processing size
-  max_retries: 3               # Maximum retry attempts
-```
+  max_concurrent: 50     # 1..1000 (validator warns outside 1..1000)
+  timeout: 30            # seconds
+  retry_attempts: 3      # 0..10
+  retry_delay: 1         # seconds
+  batch_size: 20         # 1..100
 
-### Retry Policy
+output:
+  formats: [json, clash, singbox]  # allowed: raw, base64, json, csv, yaml, clash, singbox
 
-```yaml
-retry_policy:
-  max_retries: 3
-  backoff_factor: 2
-  backoff_max: 60
-  retry_on_errors: ["timeout", "connection_error", "server_error"]
-```
+cache:
+  ttl: 300               # seconds, >= 0
 
-### Rate Limiting
-
-```yaml
-rate_limiting:
-  enabled: true
-  requests_per_minute: 60
-  burst_limit: 10
-  per_host_limit: 20
-```
-
-### Memory Management
-
-```yaml
-memory_management:
-  max_memory_usage: "2GB"
-  cleanup_interval: 300
-  garbage_collection_threshold: 0.8
-```
-
-### Caching
-
-```yaml
-caching:
-  enabled: true
-  cache_size: 1000
-  cache_ttl: 3600
-  cache_backend: "memory"  # memory, redis, file
-```
-
-### Deduplication
-
-```yaml
-deduplication:
-  enabled: true
-  method: "bloom_filter"  # bloom_filter, hash_set, content_hash
-  bloom_filter_size: 1000000
-  hash_set_max_size: 100000
-```
-
-## Quality Configuration
-
-### Quality Scoring
-
-```yaml
-quality:
-  min_score: 0.5
-  scoring_weights:
-    historical_reliability: 0.25
-    ssl_certificate: 0.15
-    response_time: 0.15
-    content_quality: 0.20
-    protocol_diversity: 0.15
-    uptime_consistency: 0.10
-```
-
-### Protocol Validation
-
-```yaml
-protocol_validation: "strict"  # strict, moderate, basic
-```
-
-### Content Validation
-
-```yaml
-content_validation:
-  enabled: true
-  min_length: 10
-  max_length: 10000
-  allowed_chars: "a-zA-Z0-9:/?=&._-"
-  suspicious_patterns:
-    - ".*\\.xyz$"
-    - ".*\\.tk$"
-    - ".*\\.ml$"
-```
-
-### Source Filtering
-
-```yaml
-source_filtering:
-  enabled: true
-  min_configs: 10
-  max_response_time: 30
-  required_protocols: ["vmess"]
-  blocked_domains:
-    - "malicious.com"
-    - "spam.com"
-    - "fake-vpn.com"
-```
-
-### Quality Thresholds
-
-```yaml
-quality_thresholds:
-  excellent: 0.8
-  good: 0.6
-  fair: 0.4
-  poor: 0.0
-```
-
-## Monitoring Configuration
-
-### Metrics Collection
-
-```yaml
 monitoring:
-  metrics_enabled: true
-  health_check_interval: 60
-  metrics_collection_interval: 30
+  enabled: true
 ```
+
+## Deprecated fields
+
+- `vpn_sources` → `sources`
+- `output_directory` → manage output via CLI args and `output` dir
+- `enable_cache` → `cache.enabled`
+
+The validator reports deprecation warnings and issues where applicable.
 
 ### Alert Thresholds
 
@@ -401,136 +251,22 @@ if result.warnings:
     print(f"Found {len(result.warnings)} warnings")
 ```
 
-## Usage Examples
+## Usage
 
-### Basic Configuration Loading
-
-```python
-from vpn_merger.core import get_enhanced_config_manager
-
-# Get enhanced configuration manager
-config_manager = get_enhanced_config_manager()
-
-# Get processing settings
-concurrent_limit = config_manager.get_concurrent_limit()
-timeout = config_manager.get_timeout()
-max_retries = config_manager.get_max_retries()
-
-# Get quality settings
-min_quality = config_manager.get_min_quality_score()
-quality_weights = config_manager.get_quality_weights()
-
-# Get monitoring settings
-metrics_enabled = config_manager.is_metrics_enabled()
-health_interval = config_manager.get_health_check_interval()
-```
-
-### Advanced Configuration Usage
+- Define source tiers and URLs under `sources`.
+- Tune `processing`, `output`, and `cache` based on your environment.
+- Validate your YAML using the built‑in validator:
 
 ```python
-from vpn_merger.core import EnhancedConfigurationManager
+from streamline_vpn.core.config_validator import validate_config_file
 
-# Initialize with custom config path
-config_manager = EnhancedConfigurationManager("config/sources.enhanced.yaml")
-
-# Get processing configuration
-processing_config = config_manager.get_processing_config()
-print(f"Concurrent limit: {processing_config.concurrent_limit}")
-print(f"Timeout: {processing_config.timeout}")
-print(f"Batch size: {processing_config.batch_size}")
-
-# Get quality configuration
-quality_config = config_manager.get_quality_config()
-print(f"Min score: {quality_config.min_score}")
-print(f"Deduplication: {quality_config.deduplication}")
-print(f"Protocol validation: {quality_config.protocol_validation}")
-
-# Get monitoring configuration
-monitoring_config = config_manager.get_monitoring_config()
-print(f"Metrics enabled: {monitoring_config.metrics_enabled}")
-print(f"Health check interval: {monitoring_config.health_check_interval}")
-
-# Get security configuration
-security_config = config_manager.get_security_config()
-print(f"SSL validation: {security_config.ssl_validation}")
-
-# Get output configuration
-output_config = config_manager.get_output_config()
-print(f"Output directory: {output_config.directory}")
-print(f"Output formats: {output_config.formats}")
-```
-
-### Configuration Validation
-
-```python
-from vpn_merger.core import validate_config_file, validate_config_data
-
-# Validate configuration file
-result = validate_config_file("config/sources.enhanced.yaml")
-
-if result.is_valid:
-    print("✅ Configuration is valid")
-else:
-    print("❌ Configuration has errors:")
-    for error in result.errors:
-        print(f"  Error: {error.field} - {error.message}")
-        
-    if result.warnings:
-        print("⚠️  Warnings:")
-        for warning in result.warnings:
-            print(f"  Warning: {warning.field} - {warning.message}")
-
-# Validate configuration data
-config_data = {
-    "sources": {
-        "tier_1_premium": {
-            "urls": [
-                {
-                    "url": "https://example.com/sources.txt",
-                    "weight": 1.0,
-                    "protocols": ["vmess", "vless"]
-                }
-            ]
-        }
-    },
-    "settings": {
-        "processing": {
-            "concurrent_limit": 100,
-            "timeout": 30
-        }
-    }
-}
-
-result = validate_config_data(config_data)
-print(f"Configuration data is valid: {result.is_valid}")
-```
-
-### Environment Variable Integration
-
-```python
-import os
-from vpn_merger.core import get_enhanced_config_manager
-
-# Set environment variables
-os.environ["VPN_SOURCES_CONFIG"] = "config/sources.enhanced.yaml"
-os.environ["VPN_CONCURRENT_LIMIT"] = "150"
-os.environ["VPN_TIMEOUT"] = "45"
-os.environ["VPN_ALERT_WEBHOOK"] = "https://hooks.slack.com/..."
-os.environ["VPN_ALERT_EMAIL"] = "admin@example.com"
-
-# Configuration manager will use environment variables
-config_manager = get_enhanced_config_manager()
-
-# Get configuration summary
-summary = config_manager.get_config_summary()
-print("Configuration Summary:")
-for key, value in summary.items():
-    print(f"  {key}: {value}")
+res = validate_config_file("config/sources.yaml")
+print("valid:", res["valid"], "errors:", len(res["errors"]))
 ```
 
 ## Migration Guide
 
-### From Basic to Enhanced Configuration
+### Migration Tips
 
 1. **Update Configuration File**
    ```yaml
@@ -676,14 +412,14 @@ def migrate_config(old_config_path: str, new_config_path: str):
                         "source_type": "migrated"
                     })
     
-    # Save enhanced configuration
+    # Save configuration
     with open(new_config_path, 'w') as f:
         yaml.dump(enhanced_config, f, default_flow_style=False, indent=2)
     
     print(f"Configuration migrated from {old_config_path} to {new_config_path}")
 
 if __name__ == "__main__":
-    migrate_config("config/sources.unified.yaml", "config/sources.enhanced.yaml")
+    migrate_config("config/sources.yaml", "config/sources.yaml")
 ```
 
 ## Best Practices
@@ -717,7 +453,7 @@ if __name__ == "__main__":
 1. **Health Checks**: Configure health check intervals for all sources
 2. **Alert Thresholds**: Set appropriate alert thresholds
 3. **Multiple Channels**: Configure multiple alert channels for redundancy
-4. **Logging**: Enable comprehensive logging
+4. **Logging**: Enable logging
 5. **Performance Monitoring**: Monitor system performance metrics
 
 ## Troubleshooting
@@ -747,22 +483,10 @@ if __name__ == "__main__":
 ### Debug Configuration
 
 ```python
-from vpn_merger.core import get_enhanced_config_manager
+from streamline_vpn.core.config_validator import validate_config_file
 
-# Get configuration manager
-config_manager = get_enhanced_config_manager()
-
-# Get configuration summary
-summary = config_manager.get_config_summary()
-print("Configuration Summary:")
-for key, value in summary.items():
-    print(f"  {key}: {value}")
-
-# Validate configuration
-if config_manager.validate_config():
-    print("✅ Configuration is valid")
-else:
-    print("❌ Configuration validation failed")
+res = validate_config_file("config/sources.yaml")
+print("valid:", res["valid"]) 
 ```
 
 This enhanced configuration system provides a robust foundation for managing VPN subscription sources with advanced features for processing, quality control, monitoring, and security.

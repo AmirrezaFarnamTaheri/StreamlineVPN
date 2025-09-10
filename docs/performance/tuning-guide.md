@@ -2,7 +2,7 @@
 
 ## Overview
 
-This guide provides comprehensive performance tuning recommendations for the VPN Subscription Merger system. It covers system-level optimizations, application configuration, resource management, and monitoring strategies to achieve optimal performance.
+This guide provides performance tuning recommendations for the VPN Subscription Merger system. It covers system-level optimizations, application configuration, resource management, and monitoring strategies.
 
 ## System Requirements
 
@@ -139,7 +139,7 @@ import psutil
 from typing import Dict, Any
 
 class MemoryManager:
-    """Advanced memory management for VPN Merger."""
+    """Memory management for VPN Merger."""
     
     def __init__(self, max_memory_mb: int = 1024):
         self.max_memory_mb = max_memory_mb
@@ -913,4 +913,4 @@ sqlite3 database.db ".schema"
 sqlite3 database.db "EXPLAIN QUERY PLAN SELECT * FROM table"
 ```
 
-This comprehensive performance tuning guide provides all the tools and techniques needed to optimize the VPN Subscription Merger system for maximum performance across different deployment scenarios.
+This guide outlines the tools and techniques needed to optimize the VPN Subscription Merger system for performance across different deployment scenarios.

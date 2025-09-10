@@ -29,7 +29,10 @@ jobs:
           SKIP_DISCOVERY: '1'
           PYTHONPATH: src
         run: |
-          pytest -q --cov=streamline_vpn --cov-config=.coveragerc --cov-report=term-missing --cov-fail-under=50
+          pytest -q --cov=streamline_vpn --cov-config=.coveragerc --cov-report=term-missing --cov-report=xml:coverage.xml --cov-fail-under=50
+      - name: Enforce per-module coverage gates
+        run: |
+          python scripts/coverage_gate.py coverage.xml
       - name: Generate coverage badge
         if: always()
         run: |

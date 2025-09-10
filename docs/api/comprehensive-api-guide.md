@@ -1,4 +1,4 @@
-# Comprehensive API Guide
+# API Guide
 
 ## Table of Contents
 1. [Overview](#overview)
@@ -16,7 +16,7 @@
 
 ## Overview
 
-The VPN Subscription Merger API provides comprehensive endpoints for:
+The VPN Subscription Merger API provides endpoints for:
 - VPN configuration generation (VLESS, WireGuard, Shadowsocks, sing-box)
 - Utility functions (UUID generation, password generation, key generation)
 - Free VPN nodes aggregation and management
@@ -751,7 +751,7 @@ curl -X POST "http://localhost:8000/api/refresh?healthcheck=true"
 ### 5. Development
 - Use environment variables for configuration
 - Implement proper logging
-- Write comprehensive tests
+- Write tests
 - Follow RESTful conventions
 
 ### 6. Integration
@@ -762,7 +762,7 @@ curl -X POST "http://localhost:8000/api/refresh?healthcheck=true"
 
 ### 7. Documentation
 - Keep API documentation up to date
-- Provide comprehensive examples
+- Provide examples
 - Document all error codes
 - Include troubleshooting guides
 

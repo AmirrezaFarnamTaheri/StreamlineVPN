@@ -54,7 +54,14 @@ addCopyButtons();
   const statusEl = document.getElementById('status');
   const healthLink = document.getElementById('health-link');
   if (!statusEl || !healthLink) return;
-  const url = 'http://localhost:8000/health';
+  const getApiBase = () => {
+    if (typeof window !== 'undefined' && typeof window.__API_BASE__ === 'string') return window.__API_BASE__;
+    const hn = window.location.hostname;
+    const proto = window.location.protocol;
+    const isLocal = hn === 'localhost' || hn === '127.0.0.1';
+    return isLocal ? `${proto}//${hn}:8080` : `${proto}//${hn}`;
+  };
+  const url = `${getApiBase()}/health`;
   healthLink.addEventListener('click', function(e){ e.preventDefault(); window.open(url, '_blank'); });
   try {
     fetch(url, {mode: 'cors'})
@@ -90,7 +97,8 @@ addCopyButtons();
     outputFilesEl.innerHTML = '<p>Waiting for results...</p>';
 
     try {
-      const response = await fetch('/api/v1/pipeline/run', {
+      const API = (typeof window !== 'undefined' && window.__API_BASE__) ? window.__API_BASE__ : (window.location.protocol + '//' + (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1' ? window.location.hostname + ':8080' : window.location.host));
+      const response = await fetch(`${API}/api/v1/pipeline/run`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

@@ -1,4 +1,4 @@
-# Comprehensive Configuration Guide
+# Configuration Guide
 
 ## Table of Contents
 1. [Overview](#overview)
@@ -20,7 +20,7 @@ The VPN Subscription Merger supports multiple configuration formats and provides
 
 ### Primary Configuration
 - `config/sources.yaml` - Main source configuration
-- `config/sources.enhanced.yaml` - Enhanced configuration with advanced features
+- `config/sources.yaml` - Configuration with supported features
 - `config/sources.expanded.yaml` - Expanded source categories
 
 ### Environment Configuration
@@ -72,7 +72,7 @@ sources:
     - "https://backup.com/sources.txt"
 ```
 
-### Enhanced Source Configuration
+### Source Configuration
 ```yaml
 sources:
   community_maintained:
@@ -124,7 +124,7 @@ settings:
     cache_ttl: 3600
 ```
 
-### Advanced Processing
+### Processing
 ```yaml
 settings:
   processing:
@@ -135,7 +135,7 @@ settings:
     batch_size: 10
     cache_ttl: 3600
     
-    # Advanced features
+    # Features
     enable_ml_quality_prediction: true
     enable_source_validation: true
     enable_duplicate_detection: true
@@ -161,7 +161,7 @@ settings:
     health_check_interval: 300
 ```
 
-### Advanced Quality Controls
+### Quality Controls
 ```yaml
 settings:
   quality:
@@ -205,7 +205,7 @@ settings:
     log_level: INFO
 ```
 
-### Advanced Monitoring
+### Monitoring
 ```yaml
 settings:
   monitoring:
@@ -249,7 +249,7 @@ settings:
     enable_https: false
 ```
 
-### Advanced Security
+### Security
 ```yaml
 settings:
   security:
@@ -298,7 +298,7 @@ settings:
     encryption: false
 ```
 
-### Advanced Output
+### Output
 ```yaml
 settings:
   output:
@@ -609,4 +609,4 @@ spec:
           claimName: vpn-merger-data
 ```
 
-This comprehensive configuration guide provides all the necessary information for configuring the VPN Subscription Merger system with various deployment scenarios and advanced features.
+This configuration guide summarizes key settings for the VPN Subscription Merger system across common deployment scenarios.

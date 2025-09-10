@@ -1,7 +1,12 @@
 #!/usr/bin/env python3
 """
-Production Deployment Script for VPN Subscription Merger
-Sets up monitoring, health checks, and production deployment
+Production Deployment Script for StreamlineVPN
+
+Notes:
+- API server entrypoint (when running directly): run_unified.py
+- Web interface entrypoint: run_web.py
+- For containerized deployments, docker-compose invokes these internally.
+Sets up monitoring, health checks, and production deployment.
 """
 
 import asyncio

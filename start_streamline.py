@@ -15,7 +15,7 @@ def check_requirements():
     """Check if required files and directories exist"""
     required_files = [
         "config/sources.yaml",
-        "run_server.py",
+        "run_unified.py",
         "run_web.py",
         "docker-compose.yml"
     ]
@@ -117,7 +117,7 @@ def start_manual_services():
     # Start API server
     print("📡 Starting API server...")
     api_process = subprocess.Popen([
-        sys.executable, "run_server.py"
+        sys.executable, "run_unified.py"
     ], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
     
     time.sleep(3)
