@@ -40,8 +40,13 @@
                 <a href="#features" class="hover:text-purple-400 transition">Features</a>
                 <a href="#stats" class="hover:text-purple-400 transition">Statistics</a>
                 <a href="#sources" class="hover:text-purple-400 transition">Sources</a>
-                <a href="quick-start.html" class="hover:text-purple-400 transition">Documentation</a>
+                <a href="quick-start.md" class="hover:text-purple-400 transition">Documentation</a>
             </div>
+            <button id="mobile-menu-btn" class="md:hidden p-2">
+                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"></path>
+                </svg>
+            </button>
             <div class="flex space-x-4">
                 <a href="config_generator.html" class="px-4 py-2 bg-white/10 rounded-lg hover:bg-white/20 transition">
                     Generator
@@ -70,13 +75,13 @@
                 <a href="interactive.html" class="px-8 py-4 bg-gradient-to-r from-purple-600 to-pink-600 rounded-lg font-semibold text-lg hover:from-purple-700 hover:to-pink-700 transition hover-scale">
                     Launch Control Panel
                 </a>
-                <a href="quick-start.html" class="px-8 py-4 bg-white/10 rounded-lg font-semibold text-lg hover:bg-white/20 transition hover-scale">
+                <a href="quick-start.md" class="px-8 py-4 bg-white/10 rounded-lg font-semibold text-lg hover:bg-white/20 transition hover-scale">
                     Get Started
                 </a>
             </div>
             
             <!-- Live Stats -->
-            <div class="grid grid-cols-1 md:grid-cols-4 gap-6 max-w-4xl mx-auto">
+            <div id="stats" class="grid grid-cols-1 md:grid-cols-4 gap-6 max-w-4xl mx-auto">
                 <div class="glass rounded-xl p-6 hover-scale">
                     <div class="text-4xl font-bold text-purple-400 mb-2" id="liveSourceCount">523</div>
                     <div class="text-gray-300">Active Sources</div>
@@ -221,6 +226,32 @@
                 });
             });
         });
+
+        // Mobile menu functionality
+        const mobileMenuBtn = document.getElementById('mobile-menu-btn');
+        if (mobileMenuBtn) {
+            mobileMenuBtn.addEventListener('click', function() {
+                // Simple mobile menu toggle - could be enhanced with a proper mobile menu
+                const nav = document.querySelector('nav .container');
+                const mobileMenu = document.createElement('div');
+                mobileMenu.className = 'md:hidden absolute top-full left-0 right-0 bg-black/90 backdrop-blur-lg border-t border-white/10 p-4 space-y-4';
+                mobileMenu.innerHTML = `
+                    <a href="#features" class="block hover:text-purple-400 transition">Features</a>
+                    <a href="#stats" class="block hover:text-purple-400 transition">Statistics</a>
+                    <a href="#sources" class="block hover:text-purple-400 transition">Sources</a>
+                    <a href="quick-start.md" class="block hover:text-purple-400 transition">Documentation</a>
+                `;
+                
+                // Remove existing mobile menu if any
+                const existingMenu = nav.querySelector('.mobile-menu');
+                if (existingMenu) {
+                    existingMenu.remove();
+                } else {
+                    mobileMenu.classList.add('mobile-menu');
+                    nav.appendChild(mobileMenu);
+                }
+            });
+        }
     </script>
 </body>
 </html>

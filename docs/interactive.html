@@ -25,6 +25,10 @@
         .tab-btn { border-bottom-width: 2px; border-color: transparent; color: #9ca3af; }
         .tab-btn.active { color: #fff; border-color: rgb(129 140 248); }
         .terminal { font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace; background: rgba(0,0,0,0.5); border-radius: 0.75rem; padding: 1rem; height: 18rem; overflow: auto; }
+        @keyframes slide-in { from { transform: translateX(100%); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
+        @keyframes slide-out { from { transform: translateX(0); opacity: 1; } to { transform: translateX(100%); opacity: 0; } }
+        .animate-slide-in { animation: slide-in 0.3s ease-out; }
+        .animate-slide-out { animation: slide-out 0.3s ease-in; }
     </style>
 </head>
 <body class="bg-app text-white">
@@ -253,7 +257,6 @@
             
             // Update source count
             document.getElementById('activeSources').textContent = data.sources.filter(s => s.status === 'active').length;
-            document.getElementById('totalSourcesCount').textContent = data.total || data.sources.length;
             
         } catch (error) {
             console.error('Failed to load sources:', error);
@@ -401,7 +404,7 @@
             // Refresh sources and configurations
             await refreshSources();
             await refreshConfigurations();
-            await updateStatistics();
+            await refreshStats();
         }
     })();
 

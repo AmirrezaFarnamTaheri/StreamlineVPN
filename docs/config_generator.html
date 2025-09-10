@@ -152,6 +152,8 @@
             const protocols = Array.from(document.querySelectorAll('.protocol-filter:checked')).map(cb => cb.value);
             const quality = document.getElementById('qualityFilter').value / 100;
             
+            showLoading('Starting pipeline...');
+            
             try {
                 // Start pipeline
                 const response = await fetch(`${API_BASE}/api/v1/pipeline/run`, {
@@ -167,6 +169,7 @@
                 const result = await response.json();
                 
                 if (result.job_id) {
+                    showLoading('Processing configurations...');
                     // Poll for completion
                     await pollJobStatus(result.job_id);
                 }
@@ -176,7 +179,7 @@
                 
             } catch (error) {
                 console.error('Generation failed:', error);
-                alert('Failed to generate configurations');
+                showError('Failed to generate configurations: ' + error.message);
             }
         }
 
@@ -195,24 +198,30 @@
         }
 
         async function loadConfigurations(protocols, quality) {
-            const response = await fetch(`${API_BASE}/api/v1/configurations?limit=1000`);
-            const data = await response.json();
-            
-            allConfigs = data.configurations || [];
-            
-            // Apply filters
-            filteredConfigs = allConfigs.filter(config => {
-                if (protocols.length && !protocols.includes(config.protocol)) return false;
-                if (config.quality_score && config.quality_score < quality) return false;
-                return true;
-            });
-            
-            // Update stats
-            document.getElementById('totalConfigs').textContent = allConfigs.length;
-            document.getElementById('filteredConfigs').textContent = filteredConfigs.length;
-            
-            // Display configs
-            displayConfigurations();
+            try {
+                const response = await fetch(`${API_BASE}/api/v1/configurations?limit=1000`);
+                if (!response.ok) throw new Error(`HTTP ${response.status}`);
+                
+                const data = await response.json();
+                allConfigs = data.configurations || [];
+                
+                // Apply filters
+                filteredConfigs = allConfigs.filter(config => {
+                    if (protocols.length && !protocols.includes(config.protocol)) return false;
+                    if (config.quality_score && config.quality_score < quality) return false;
+                    return true;
+                });
+                
+                // Update stats
+                document.getElementById('totalConfigs').textContent = allConfigs.length;
+                document.getElementById('filteredConfigs').textContent = filteredConfigs.length;
+                
+                // Display configs
+                displayConfigurations();
+            } catch (error) {
+                console.error('Failed to load configurations:', error);
+                showError('Failed to load configurations: ' + error.message);
+            }
         }
 
         function displayConfigurations() {
@@ -325,6 +334,31 @@ ${configs.map(c => `  - name: "${c.server}"
         window.addEventListener('load', () => {
             loadConfigurations([], 0);
         });
+
+        // Add loading states and error handling
+        function showLoading(message = 'Loading...') {
+            const configList = document.getElementById('configList');
+            configList.innerHTML = `
+                <div class="text-center text-gray-400 py-8">
+                    <svg class="w-16 h-16 mx-auto mb-4 opacity-50 animate-spin" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/>
+                    </svg>
+                    <p>${message}</p>
+                </div>
+            `;
+        }
+
+        function showError(message) {
+            const configList = document.getElementById('configList');
+            configList.innerHTML = `
+                <div class="text-center text-red-400 py-8">
+                    <svg class="w-16 h-16 mx-auto mb-4 opacity-50" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                    </svg>
+                    <p>${message}</p>
+                </div>
+            `;
+        }
     </script>
 </body>
 </html>
