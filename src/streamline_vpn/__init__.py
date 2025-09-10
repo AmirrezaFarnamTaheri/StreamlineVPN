@@ -40,17 +40,12 @@ except ImportError:  # pragma: no cover
 
 try:
     from .web import (
-        create_unified_app,
-        UnifiedAPI,
-        JobManager,
-        ConfigManager,
         APIServer,
         IntegratedWebServer,
         StaticFileServer,
         VPNConfigGenerator,
     )
 except ImportError:
-    create_unified_app = UnifiedAPI = JobManager = ConfigManager = None
     APIServer = VPNConfigGenerator = IntegratedWebServer = StaticFileServer = (
         None
     )
@@ -121,9 +116,6 @@ for _name in [
     "QualityPredictionService",
     "GeographicOptimizer",
     "DiscoveryManager",
-    "create_unified_app",
-    "UnifiedAPI",
-    "ConfigManager",
     "APIServer",
     "VPNConfigGenerator",
     "IntegratedWebServer",

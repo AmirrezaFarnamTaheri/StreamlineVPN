@@ -19,7 +19,7 @@ from fastapi.responses import HTMLResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 
 from ..utils.logging import get_logger
-from .settings import get_settings
+from .settings import Settings
 
 logger = get_logger(__name__)
 
@@ -29,14 +29,14 @@ class EnhancedStaticServer:
 
     def __init__(
         self,
-        settings=None,
+        settings: Settings,
     ):
         """Initialize enhanced static server.
 
         Args:
-            settings: Configuration settings object. If None, will use get_settings().
+            settings: Configuration settings object.
         """
-        self.settings = settings or get_settings()
+        self.settings = settings
         self.static_dir = Path(self.settings.STATIC_DIR)
         self.api_base = self.settings.API_BASE
         self.update_interval = self.settings.UPDATE_INTERVAL
@@ -326,8 +326,8 @@ class EnhancedStaticServer:
                 timeout=30.0
             )
             
-            if response.status_code != 202:
-                logger.error(f"Failed to start pipeline: {response.status_code} {response.text}")
+            if response.status_code != 200:
+                logger.error(f"Failed to start pipeline: {response.status_code}")
                 return
             
             result = response.json()

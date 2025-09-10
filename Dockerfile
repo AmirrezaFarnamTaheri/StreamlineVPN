@@ -1,66 +1,59 @@
-# Multi-stage build for StreamlineVPN
+# VPN Merger - Production-ready Multi-stage Docker Build
+# ======================================================
 
-# Stage 1: Builder
+# Build stage for dependencies
 FROM python:3.11-slim as builder
 
-# Install build dependencies
-RUN apt-get update && apt-get install -y \
-    gcc \
-    g++ \
-    make \
-    libffi-dev \
-    libssl-dev \
-    && rm -rf /var/lib/apt/lists/*
-
-# Set working directory
 WORKDIR /build
 
-# Copy requirements
-COPY requirements.txt .
+# Install build dependencies
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    gcc \
+    python3-dev \
+    && rm -rf /var/lib/apt/lists/*
 
-# Install Python dependencies
-RUN pip install --no-cache-dir --user -r requirements.txt
+# Copy and install Python dependencies
+COPY requirements.txt requirements-prod.txt ./
+RUN pip install --no-cache-dir -r requirements-prod.txt
 
-# Stage 2: Runtime
+# Production stage
 FROM python:3.11-slim
 
+WORKDIR /app
+
 # Install runtime dependencies
-RUN apt-get update && apt-get install -y \
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    ca-certificates \
     curl \
     && rm -rf /var/lib/apt/lists/*
 
-# Create non-root user
-RUN useradd -m -s /bin/bash streamline
-
-# Set working directory
-WORKDIR /app
-
-# Copy Python dependencies from builder
-COPY --from=builder /root/.local /home/streamline/.local
+# Copy Python packages from builder stage
+COPY --from=builder /usr/local/lib/python3.11/site-packages /usr/local/lib/python3.11/site-packages
+COPY --from=builder /usr/local/bin /usr/local/bin
 
 # Copy application code
-COPY --chown=streamline:streamline . .
+COPY . .
 
-# Create necessary directories
-RUN mkdir -p /app/output /app/logs /app/data /app/cache \
-    && chown -R streamline:streamline /app
+# Create necessary directories with proper permissions
+RUN mkdir -p /app/output /app/logs && \
+    chmod 755 /app/output /app/logs
 
-# Switch to non-root user
-USER streamline
+# Health check against REST API endpoint
+HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
+    CMD curl -sf http://localhost:${API_PORT:-8080}/health || curl -sf http://localhost:${API_PORT:-8080}/api/v1/health || exit 1
 
-# Add local bin to PATH
-ENV PATH=/home/streamline/.local/bin:$PATH
-
-# Environment variables
-ENV PYTHONUNBUFFERED=1
-ENV VPN_ENVIRONMENT=production
-
-# Health check
-HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
-    CMD curl -f http://localhost:8080/health || exit 1
-
-# Expose ports
+# Expose all necessary ports
 EXPOSE 8080 8000
 
-# Default command
+# Create and switch to non-root user for security
+RUN useradd -m -u 1000 merger && \
+    chown -R merger:merger /app
+USER merger
+
+# Environment variables for dynamic configuration
+ENV HOST=0.0.0.0
+ENV API_PORT=8080
+ENV WEB_PORT=8000
+
+# Default command - run the API server
 CMD ["python", "run_server.py"]
