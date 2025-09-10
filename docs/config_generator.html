@@ -14,7 +14,12 @@
         .config-card { transition: all 0.3s; cursor: pointer; }
         .config-card:hover { transform: translateY(-2px); background: rgba(255,255,255,0.15); }
         @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+        @keyframes bounce { 0%, 20%, 53%, 80%, 100% { transform: translate3d(0,0,0); } 40%, 43% { transform: translate3d(0,-8px,0); } 70% { transform: translate3d(0,-4px,0); } 90% { transform: translate3d(0,-2px,0); } }
+        @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.5; } }
+        @keyframes fade-out { from { opacity: 1; transform: translateX(0); } to { opacity: 0; transform: translateX(100%); } }
         .animate-spin { animation: spin 1s linear infinite; }
+        .animate-bounce { animation: bounce 1s infinite; }
+        .animate-pulse { animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite; }
     </style>
 </head>
 <body class="bg-app text-white">
@@ -158,7 +163,7 @@
             
             try {
                 // Start pipeline
-                const response = await fetch(`${API_BASE}/api/v1/pipeline/run`, {
+                const response = await fetch(`${API_BASE}/api/process`, {
                     method: 'POST',
                     headers: {'Content-Type': 'application/json'},
                     body: JSON.stringify({
@@ -188,7 +193,7 @@
         async function pollJobStatus(jobId) {
             const maxAttempts = 30;
             for (let i = 0; i < maxAttempts; i++) {
-                const response = await fetch(`${API_BASE}/api/v1/pipeline/status/${jobId}`);
+                const response = await fetch(`${API_BASE}/api/status`);
                 const status = await response.json();
                 
                 if (status.status === 'completed') return true;
@@ -201,8 +206,12 @@
 
         async function loadConfigurations(protocols, quality) {
             try {
-                const response = await fetch(`${API_BASE}/api/v1/configurations?limit=1000`);
-                if (!response.ok) throw new Error(`HTTP ${response.status}`);
+                const response = await fetch(`${API_BASE}/api/configurations?limit=1000`);
+                if (!response.ok) {
+                    console.warn(`Config API returned: ${response.status}`);
+                    showError('Configuration service temporarily unavailable');
+                    return;
+                }
                 
                 const data = await response.json();
                 allConfigs = data.configurations || [];
@@ -221,8 +230,8 @@
                 // Display configs
                 displayConfigurations();
             } catch (error) {
-                console.error('Failed to load configurations:', error);
-                showError('Failed to load configurations: ' + error.message);
+                console.warn('Failed to load configurations:', error);
+                showError('Network error: Unable to load configurations');
             }
         }
 
@@ -231,8 +240,8 @@
             
             if (filteredConfigs.length === 0) {
                 listEl.innerHTML = '<div class="text-center text-gray-400 py-4">No configurations match filters</div>';
-                return;
-            }
+                        return;
+                    }
             
             listEl.innerHTML = filteredConfigs.slice(0, 100).map(config => `
                 <div class="config-card glass rounded-lg p-4" onclick="showConfigDetails('${config.id || config.server}')">
@@ -257,43 +266,59 @@
 
         async function exportFormat(format) {
             if (filteredConfigs.length === 0) {
-                alert('No configurations to export');
+                showNotification('No configurations to export', 'error');
                 return;
             }
             
-            let content = '';
-            let filename = `vpn_configs.${format}`;
-            let mimeType = 'application/json';
+            // Show loading state
+            const exportBtn = event.target;
+            const originalText = exportBtn.textContent;
+            exportBtn.textContent = 'Exporting...';
+            exportBtn.disabled = true;
             
-            switch(format) {
-                case 'json':
-                    content = JSON.stringify(filteredConfigs, null, 2);
-                    break;
-                case 'base64':
-                    const urls = filteredConfigs.map(c => `${c.protocol}://${btoa(JSON.stringify(c))}`).join('\n');
-                    content = btoa(urls);
-                    mimeType = 'text/plain';
-                    filename = 'vpn_configs.txt';
-                    break;
-                case 'clash':
-                    content = generateClashConfig(filteredConfigs);
-                    mimeType = 'text/yaml';
-                    filename = 'clash.yaml';
-                    break;
-                case 'singbox':
-                    content = generateSingBoxConfig(filteredConfigs);
-                    filename = 'singbox.json';
-                    break;
+            try {
+                let content = '';
+                let filename = `vpn_configs.${format}`;
+                let mimeType = 'application/json';
+                
+                switch(format) {
+                    case 'json':
+                        content = JSON.stringify(filteredConfigs, null, 2);
+                        break;
+                    case 'base64':
+                        const urls = filteredConfigs.map(c => `${c.protocol}://${btoa(JSON.stringify(c))}`).join('\n');
+                        content = btoa(urls);
+                        mimeType = 'text/plain';
+                        filename = 'vpn_configs.txt';
+                        break;
+                    case 'clash':
+                        content = generateClashConfig(filteredConfigs);
+                        mimeType = 'text/yaml';
+                        filename = 'clash.yaml';
+                        break;
+                    case 'singbox':
+                        content = generateSingBoxConfig(filteredConfigs);
+                        filename = 'singbox.json';
+                        break;
+                }
+                
+                // Download file
+                const blob = new Blob([content], {type: mimeType});
+                const url = URL.createObjectURL(blob);
+                    const a = document.createElement('a');
+                    a.href = url;
+                a.download = filename;
+                    a.click();
+                URL.revokeObjectURL(url);
+                
+                showNotification(`Exported ${filteredConfigs.length} configurations as ${format.toUpperCase()}`, 'success');
+            } catch (error) {
+                showNotification('Export failed: ' + error.message, 'error');
+            } finally {
+                // Restore button
+                exportBtn.textContent = originalText;
+                exportBtn.disabled = false;
             }
-            
-            // Download file
-            const blob = new Blob([content], {type: mimeType});
-            const url = URL.createObjectURL(blob);
-            const a = document.createElement('a');
-            a.href = url;
-            a.download = filename;
-            a.click();
-            URL.revokeObjectURL(url);
         }
 
         function generateClashConfig(configs) {
@@ -360,6 +385,26 @@ ${configs.map(c => `  - name: "${c.server}"
                     <p>${message}</p>
                 </div>
             `;
+        }
+
+        function showNotification(message, type) {
+            const notification = document.createElement('div');
+            notification.className = `fixed top-4 right-4 px-6 py-3 rounded-lg text-white z-50 shadow-lg ${
+                type === 'success' ? 'bg-green-600' : 'bg-red-600'
+            } animate-bounce`;
+            
+            // Add icon based on type
+            const icon = type === 'success' ? 
+                '<svg class="w-5 h-5 inline mr-2" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"></path></svg>' :
+                '<svg class="w-5 h-5 inline mr-2" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd"></path></svg>';
+            
+            notification.innerHTML = icon + message;
+            document.body.appendChild(notification);
+            
+            setTimeout(() => {
+                notification.style.animation = 'fade-out 0.3s ease-in forwards';
+                setTimeout(() => notification.remove(), 300);
+            }, 3000);
         }
     </script>
 </body>

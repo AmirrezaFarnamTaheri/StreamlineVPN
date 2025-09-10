@@ -31,8 +31,21 @@
         .hover-scale:hover { transform: scale(1.05); }
         @keyframes slide-in { from { transform: translateX(100%); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
         @keyframes slide-out { from { transform: translateX(0); opacity: 1; } to { transform: translateX(100%); opacity: 0; } }
+        @keyframes fade-in-up { from { transform: translateY(30px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+        @keyframes fade-in { from { opacity: 0; } to { opacity: 1; } }
+        @keyframes typewriter { from { width: 0; } to { width: 100%; } }
+        @keyframes blink { 0%, 50% { border-color: transparent; } 51%, 100% { border-color: #667eea; } }
         .animate-slide-in { animation: slide-in 0.3s ease-out; }
         .animate-slide-out { animation: slide-out 0.3s ease-in; }
+        .animate-fade-in-up { animation: fade-in-up 0.6s ease-out; }
+        .animate-fade-in { animation: fade-in 0.8s ease-out; }
+        .animate-typewriter { animation: typewriter 3s steps(40, end), blink 0.75s step-end infinite; }
+        .stagger-1 { animation-delay: 0.1s; }
+        .stagger-2 { animation-delay: 0.2s; }
+        .stagger-3 { animation-delay: 0.3s; }
+        .stagger-4 { animation-delay: 0.4s; }
+        .stagger-5 { animation-delay: 0.5s; }
+        .stagger-6 { animation-delay: 0.6s; }
     </style>
 </head>
 <body class="bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 min-h-screen text-white">
@@ -64,7 +77,7 @@
             </div>
         </div>
     </nav>
-
+    
     <!-- Hero Section -->
     <section class="pt-32 pb-20 px-6">
         <div class="container mx-auto text-center">
@@ -115,37 +128,37 @@
             <h2 class="text-4xl font-bold text-center mb-12">Core Features</h2>
             
             <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
-                <div class="glass rounded-xl p-8 hover-scale">
+                <div class="glass rounded-xl p-8 hover-scale animate-fade-in-up stagger-1">
                     <div class="text-3xl mb-4">🚀</div>
                     <h3 class="text-xl font-semibold mb-3">High Performance</h3>
                     <p class="text-gray-300">Async processing with 100+ concurrent connections, multi-level caching, and optimized parsing</p>
                 </div>
                 
-                <div class="glass rounded-xl p-8 hover-scale">
+                <div class="glass rounded-xl p-8 hover-scale animate-fade-in-up stagger-2">
                     <div class="text-3xl mb-4">🤖</div>
                     <h3 class="text-xl font-semibold mb-3">ML Quality Prediction</h3>
                     <p class="text-gray-300">LSTM neural networks predict connection quality with 92% accuracy</p>
                 </div>
                 
-                <div class="glass rounded-xl p-8 hover-scale">
+                <div class="glass rounded-xl p-8 hover-scale animate-fade-in-up stagger-3">
                     <div class="text-3xl mb-4">🌍</div>
                     <h3 class="text-xl font-semibold mb-3">Global Coverage</h3>
                     <p class="text-gray-300">500+ curated sources from premium and community providers worldwide</p>
                 </div>
                 
-                <div class="glass rounded-xl p-8 hover-scale">
+                <div class="glass rounded-xl p-8 hover-scale animate-fade-in-up stagger-4">
                     <div class="text-3xl mb-4">🔒</div>
                     <h3 class="text-xl font-semibold mb-3">Security First</h3>
                     <p class="text-gray-300">Zero-trust architecture, content validation, and threat analysis</p>
                 </div>
                 
-                <div class="glass rounded-xl p-8 hover-scale">
+                <div class="glass rounded-xl p-8 hover-scale animate-fade-in-up stagger-5">
                     <div class="text-3xl mb-4">📊</div>
                     <h3 class="text-xl font-semibold mb-3">Real-time Analytics</h3>
                     <p class="text-gray-300">Live metrics, performance monitoring, and health checks</p>
                 </div>
                 
-                <div class="glass rounded-xl p-8 hover-scale">
+                <div class="glass rounded-xl p-8 hover-scale animate-fade-in-up stagger-6">
                     <div class="text-3xl mb-4">🔧</div>
                     <h3 class="text-xl font-semibold mb-3">Multi-format Export</h3>
                     <p class="text-gray-300">JSON, Clash, Sing-Box, Base64, CSV with compression</p>
@@ -160,25 +173,25 @@
             <h2 class="text-4xl font-bold text-center mb-12">Source Tiers</h2>
             
             <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-                <div class="glass rounded-xl p-6 border-t-4 border-yellow-400">
+                <div class="glass rounded-xl p-6 border-t-4 border-yellow-400 hover-scale animate-fade-in-up stagger-1">
                     <h3 class="text-xl font-semibold text-yellow-400 mb-3">Premium</h3>
                     <div class="text-3xl font-bold mb-2">50+</div>
                     <p class="text-gray-300 text-sm">High-reliability paid services with SLA guarantees</p>
                 </div>
                 
-                <div class="glass rounded-xl p-6 border-t-4 border-blue-400">
+                <div class="glass rounded-xl p-6 border-t-4 border-blue-400 hover-scale animate-fade-in-up stagger-2">
                     <h3 class="text-xl font-semibold text-blue-400 mb-3">Reliable</h3>
                     <div class="text-3xl font-bold mb-2">120+</div>
                     <p class="text-gray-300 text-sm">Verified community sources with consistent uptime</p>
                 </div>
                 
-                <div class="glass rounded-xl p-6 border-t-4 border-green-400">
+                <div class="glass rounded-xl p-6 border-t-4 border-green-400 hover-scale animate-fade-in-up stagger-3">
                     <h3 class="text-xl font-semibold text-green-400 mb-3">Community</h3>
                     <div class="text-3xl font-bold mb-2">300+</div>
                     <p class="text-gray-300 text-sm">Open-source aggregators and public lists</p>
                 </div>
                 
-                <div class="glass rounded-xl p-6 border-t-4 border-purple-400">
+                <div class="glass rounded-xl p-6 border-t-4 border-purple-400 hover-scale animate-fade-in-up stagger-4">
                     <h3 class="text-xl font-semibold text-purple-400 mb-3">Experimental</h3>
                     <div class="text-3xl font-bold mb-2">50+</div>
                     <p class="text-gray-300 text-sm">New sources under evaluation</p>
@@ -206,7 +219,7 @@
         
         async function loadLiveStats() {
             try {
-                const response = await fetch(`${API_BASE}/api/v1/statistics`);
+                const response = await fetch(`${API_BASE}/api/statistics`);
                 if (response.ok) {
                     const stats = await response.json();
                     document.getElementById('liveSourceCount').textContent = stats.active_sources || '523';
@@ -214,9 +227,18 @@
                         stats.total_configs > 1000 ? `${(stats.total_configs/1000).toFixed(1)}K+` : stats.total_configs;
                     document.getElementById('liveSuccessRate').textContent = 
                         `${((stats.success_rate || 0.999) * 100).toFixed(1)}%`;
+                    
+                    // Add subtle animation when stats update
+                    document.querySelectorAll('#stats > div').forEach(card => {
+                        card.style.transform = 'scale(1.05)';
+                        setTimeout(() => card.style.transform = 'scale(1)', 200);
+                    });
+                } else {
+                    console.warn('Stats API returned:', response.status);
                 }
             } catch (error) {
-                console.error('Failed to load stats:', error);
+                console.warn('Failed to load live stats:', error);
+                // Keep default values displayed
             }
         }
         

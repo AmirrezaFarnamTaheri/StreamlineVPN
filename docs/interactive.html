@@ -28,9 +28,13 @@
         @keyframes slide-in { from { transform: translateX(100%); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
         @keyframes slide-out { from { transform: translateX(0); opacity: 1; } to { transform: translateX(100%); opacity: 0; } }
         @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+        @keyframes shimmer { 0% { background-position: -200px 0; } 100% { background-position: calc(200px + 100%) 0; } }
+        @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.5; } }
         .animate-slide-in { animation: slide-in 0.3s ease-out; }
         .animate-slide-out { animation: slide-out 0.3s ease-in; }
         .animate-spin { animation: spin 1s linear infinite; }
+        .animate-pulse { animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite; }
+        .skeleton { background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%); background-size: 200px 100%; animation: shimmer 1.5s infinite; }
     </style>
 </head>
 <body class="bg-app text-white">
@@ -179,15 +183,23 @@
     const qsa = (sel) => Array.from(document.querySelectorAll(sel));
 
     async function fetchJSON(url) {
-        const resp = await fetch(url);
-        if (!resp.ok) throw new Error(`${resp.status}`);
-        return await resp.json();
+        try {
+            const resp = await fetch(url);
+            if (!resp.ok) {
+                console.warn(`API call failed: ${url} - ${resp.status}`);
+                return {}; // Return empty object instead of throwing
+            }
+            return await resp.json();
+        } catch (error) {
+            console.warn(`Network error for ${url}:`, error);
+            return {}; // Return empty object for graceful degradation
+        }
     }
 
     async function refreshStats() {
         try {
             const health = await fetchJSON(`${API_BASE}/health`);
-            const stats = await fetchJSON(`${API_BASE}/api/v1/statistics`);
+            const stats = await fetchJSON(`${API_BASE}/api/statistics`);
             el('uptime').textContent = `${Math.floor(health.uptime)}s`;
             el('lastUpdate').textContent = stats.last_update || '-';
             el('totalConfigs').textContent = stats.total_configs ?? 0;
@@ -214,7 +226,7 @@
         `;
         
         try {
-            const response = await fetch(`${API_BASE}/api/v1/sources`);
+            const response = await fetch(`${API_BASE}/api/sources`);
             const data = await response.json();
             
             // Group sources by tier
@@ -275,7 +287,7 @@
 
     async function refreshSources() {
         try {
-            const data = await fetchJSON(`${API_BASE}/api/v1/sources`);
+            const data = await fetchJSON(`${API_BASE}/api/sources`);
             const items = (data.sources || []).map(s => `
                 <div class="glass rounded-xl p-4 flex items-center justify-between">
                     <div>
@@ -293,7 +305,7 @@
 
     async function refreshConfigurations() {
         try {
-            const data = await fetchJSON(`${API_BASE}/api/v1/configurations?limit=60`);
+            const data = await fetchJSON(`${API_BASE}/api/configurations?limit=60`);
             const items = (data.configurations || []).map(c => `
                 <div class="glass rounded-xl p-4">
                     <div class="text-sm text-gray-400">${c.protocol}</div>
@@ -324,7 +336,7 @@
                 const formats = Array.from(document.querySelectorAll('.format-cb:checked')).map(cb => cb.value);
                 
                 // Call API
-                const response = await fetch(`${API_BASE}/api/v1/pipeline/run`, {
+                const response = await fetch(`${API_BASE}/api/process`, {
                     method: 'POST',
                     headers: {'Content-Type': 'application/json'},
                     body: JSON.stringify({
@@ -366,7 +378,7 @@
             
             const checkStatus = async () => {
                 try {
-                    const response = await fetch(`${API_BASE}/api/v1/pipeline/status/${jobId}`);
+                    const response = await fetch(`${API_BASE}/api/status`);
                     const status = await response.json();
                     
                     if (status.progress) {
@@ -396,16 +408,22 @@
         
         function showNotification(message, type) {
             const notification = document.createElement('div');
-            notification.className = `fixed top-4 right-4 px-6 py-3 rounded-lg text-white z-50 ${
+            notification.className = `fixed top-4 right-4 px-6 py-3 rounded-lg text-white z-50 shadow-lg ${
                 type === 'success' ? 'bg-green-600' : 'bg-red-600'
             } animate-slide-in`;
-            notification.textContent = message;
+            
+            // Add icon based on type
+            const icon = type === 'success' ? 
+                '<svg class="w-5 h-5 inline mr-2" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"></path></svg>' :
+                '<svg class="w-5 h-5 inline mr-2" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd"></path></svg>';
+            
+            notification.innerHTML = icon + message;
             document.body.appendChild(notification);
             
             setTimeout(() => {
                 notification.classList.add('animate-slide-out');
                 setTimeout(() => notification.remove(), 300);
-            }, 3000);
+            }, 4000);
         }
         
         async function refreshData() {
