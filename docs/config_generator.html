@@ -4,192 +4,327 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>StreamlineVPN Config Generator</title>
-    <script src="/api-base.js"></script>
+    <script src="api-base.js"></script>
     <script src="https://cdn.tailwindcss.com"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700;800&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap" rel="stylesheet">
     <style>
         body { font-family: 'Inter', system-ui, -apple-system, sans-serif; }
-        .bg-app { background: linear-gradient(125deg, #0b1020 0%, #1b1030 50%, #0b1020 100%); min-height: 100vh; }
-        .glass { background: rgba(255,255,255,0.06); backdrop-filter: blur(10px); border: 1px solid rgba(255,255,255,0.08); }
+        .bg-app { background: linear-gradient(135deg, #667eea 0%, #764ba2 50%, #f093fb 100%); min-height: 100vh; }
+        .glass { background: rgba(255,255,255,0.1); backdrop-filter: blur(12px); border: 1px solid rgba(255,255,255,0.2); }
+        .config-card { transition: all 0.3s; cursor: pointer; }
+        .config-card:hover { transform: translateY(-2px); background: rgba(255,255,255,0.15); }
     </style>
 </head>
 <body class="bg-app text-white">
-    <div class="container mx-auto px-4 py-10 max-w-5xl">
+    <div class="container mx-auto px-4 py-10 max-w-6xl">
+        <!-- Header -->
         <header class="flex items-center justify-between mb-8">
-            <div class="flex items-center space-x-3">
-                <img src="/assets/logo.svg" class="h-10 w-10" alt="Logo">
+            <div class="flex items-center space-x-4">
+                <img src="assets/logo.svg" class="h-12 w-12" alt="Logo">
                 <div>
-                    <h1 class="text-2xl font-bold">StreamlineVPN Config Generator</h1>
-                    <p class="text-gray-400 text-sm">Generate and download VPN configurations</p>
+                    <h1 class="text-3xl font-bold">Config Generator</h1>
+                    <p class="text-gray-300">Generate and export VPN configurations</p>
                 </div>
             </div>
-            <a href="/index.html" class="text-sm text-indigo-300 hover:text-indigo-200">Back to Home</a>
+            <a href="index.html" class="px-4 py-2 bg-white/20 rounded-lg hover:bg-white/30 transition">
+                ← Back to Home
+            </a>
         </header>
 
-        <div class="grid md:grid-cols-2 gap-6">
+        <!-- Controls -->
+        <div class="grid md:grid-cols-2 gap-6 mb-8">
             <div class="glass rounded-xl p-6">
-                <h2 class="text-xl font-semibold mb-4">Controls</h2>
+                <h2 class="text-xl font-semibold mb-4">Generation Options</h2>
+                
                 <div class="space-y-4">
                     <div>
-                        <label class="block text-sm text-gray-300 mb-2">Configuration Path</label>
-                        <input id="cfgPath" class="w-full px-4 py-2 rounded-lg bg-gray-900 border border-gray-700 focus:ring-indigo-400 focus:border-indigo-400" value="config/sources.unified.yaml" />
+                        <label class="block text-sm mb-2">Configuration Source</label>
+                        <select id="configSource" class="w-full px-4 py-2 rounded-lg bg-black/30 border border-white/20">
+                            <option value="config/sources.yaml">Default (500+ sources)</option>
+                            <option value="config/sources.premium.yaml">Premium Only</option>
+                            <option value="config/sources.community.yaml">Community Only</option>
+                        </select>
                     </div>
+                    
                     <div>
-                        <label class="block text-sm text-gray-300 mb-2">Formats</label>
-                        <div class="grid grid-cols-2 gap-3">
-                            <label class="flex items-center space-x-2"><input type="checkbox" value="json" class="fmt" checked><span>JSON</span></label>
-                            <label class="flex items-center space-x-2"><input type="checkbox" value="clash" class="fmt" checked><span>Clash</span></label>
-                            <label class="flex items-center space-x-2"><input type="checkbox" value="singbox" class="fmt" checked><span>Singbox</span></label>
-                            <label class="flex items-center space-x-2"><input type="checkbox" value="base64" class="fmt"><span>Base64</span></label>
+                        <label class="block text-sm mb-2">Protocols</label>
+                        <div class="grid grid-cols-2 gap-2">
+                            <label class="flex items-center space-x-2">
+                                <input type="checkbox" class="protocol-filter" value="vless" checked>
+                                <span>VLESS</span>
+                            </label>
+                            <label class="flex items-center space-x-2">
+                                <input type="checkbox" class="protocol-filter" value="vmess" checked>
+                                <span>VMess</span>
+                            </label>
+                            <label class="flex items-center space-x-2">
+                                <input type="checkbox" class="protocol-filter" value="trojan" checked>
+                                <span>Trojan</span>
+                            </label>
+                            <label class="flex items-center space-x-2">
+                                <input type="checkbox" class="protocol-filter" value="ss" checked>
+                                <span>Shadowsocks</span>
+                            </label>
                         </div>
                     </div>
-                    <div class="flex gap-3">
-                        <button id="btnLoad" class="px-4 py-2 rounded-lg bg-gray-800 hover:bg-gray-700">Load Configurations</button>
-                        <button id="btnGenerate" class="px-4 py-2 rounded-lg bg-indigo-600 hover:bg-indigo-500">Generate New</button>
+                    
+                    <div>
+                        <label class="block text-sm mb-2">Quality Filter</label>
+                        <input type="range" id="qualityFilter" min="0" max="100" value="50" 
+                               class="w-full" oninput="document.getElementById('qualityValue').textContent = this.value + '%'">
+                        <div class="text-right text-sm">
+                            Minimum: <span id="qualityValue">50%</span>
+                        </div>
                     </div>
-                    <div id="msg" class="text-sm text-gray-300"></div>
+                    
+                    <button onclick="generateConfigs()" 
+                            class="w-full py-3 bg-gradient-to-r from-purple-600 to-pink-600 rounded-lg font-semibold hover:from-purple-700 hover:to-pink-700 transition">
+                        Generate Configurations
+                    </button>
                 </div>
             </div>
+            
             <div class="glass rounded-xl p-6">
-                <h2 class="text-xl font-semibold mb-4">Available Configurations</h2>
-                <div id="configList" class="space-y-3"></div>
+                <h2 class="text-xl font-semibold mb-4">Export Options</h2>
+                
+                <div class="space-y-4">
+                    <div>
+                        <label class="block text-sm mb-2">Export Formats</label>
+                        <div class="space-y-2">
+                            <label class="flex items-center justify-between p-3 bg-black/20 rounded-lg hover:bg-black/30">
+                                <span>JSON</span>
+                                <button onclick="exportFormat('json')" class="px-3 py-1 bg-blue-600 rounded text-sm">Export</button>
+                            </label>
+                            <label class="flex items-center justify-between p-3 bg-black/20 rounded-lg hover:bg-black/30">
+                                <span>Clash</span>
+                                <button onclick="exportFormat('clash')" class="px-3 py-1 bg-blue-600 rounded text-sm">Export</button>
+                            </label>
+                            <label class="flex items-center justify-between p-3 bg-black/20 rounded-lg hover:bg-black/30">
+                                <span>Sing-Box</span>
+                                <button onclick="exportFormat('singbox')" class="px-3 py-1 bg-blue-600 rounded text-sm">Export</button>
+                            </label>
+                            <label class="flex items-center justify-between p-3 bg-black/20 rounded-lg hover:bg-black/30">
+                                <span>Base64</span>
+                                <button onclick="exportFormat('base64')" class="px-3 py-1 bg-blue-600 rounded text-sm">Export</button>
+                            </label>
+                        </div>
+                    </div>
+                    
+                    <div class="pt-4 border-t border-white/20">
+                        <div class="text-sm text-gray-300 mb-2">Statistics</div>
+                        <div class="grid grid-cols-2 gap-4">
+                            <div>
+                                <div class="text-2xl font-bold" id="totalConfigs">0</div>
+                                <div class="text-xs text-gray-400">Total Configs</div>
+                            </div>
+                            <div>
+                                <div class="text-2xl font-bold" id="filteredConfigs">0</div>
+                                <div class="text-xs text-gray-400">After Filter</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
             </div>
         </div>
 
-        <div class="glass rounded-xl p-6 mt-6">
-            <h2 class="text-xl font-semibold mb-4">Downloads</h2>
-            <div class="flex flex-wrap gap-3">
-                <button class="px-3 py-2 rounded-lg bg-gray-800 hover:bg-gray-700" onclick="downloadConfigs('json')">Preview JSON</button>
-                <button class="px-3 py-2 rounded-lg bg-gray-800 hover:bg-gray-700" onclick="downloadConfigs('text')">Preview Text</button>
-                <button class="px-3 py-2 rounded-lg bg-indigo-600 hover:bg-indigo-500" onclick="downloadConfigs('download')">Download JSON</button>
+        <!-- Configuration List -->
+        <div class="glass rounded-xl p-6">
+            <h2 class="text-xl font-semibold mb-4">Generated Configurations</h2>
+            <div id="configList" class="space-y-2 max-h-96 overflow-y-auto">
+                <div class="text-center text-gray-400 py-8">
+                    <svg class="w-16 h-16 mx-auto mb-4 opacity-50" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+                    </svg>
+                    <p>No configurations generated yet</p>
+                    <p class="text-sm mt-2">Click "Generate Configurations" to start</p>
+                </div>
             </div>
         </div>
     </div>
 
     <script>
-        const API_BASE = (() => {
-            const injected = window.__API_BASE__;
-            if (typeof injected === 'string' && injected.startsWith('http')) return injected;
-            const hostname = window.location.hostname;
-            if (hostname === 'localhost' || hostname === '127.0.0.1') return `http://${hostname}:8080`;
-            return `${window.location.protocol}//${window.location.host}`;
-        })();
-
-        const $ = (id) => document.getElementById(id);
-        const qs = (sel) => document.querySelector(sel);
-        const qsa = (sel) => Array.from(document.querySelectorAll(sel));
-
-        async function loadConfigs() {
-            $('msg').textContent = 'Loading configurations...';
-            $('btnLoad').disabled = true; $('btnGenerate').disabled = true;
-            try {
-                const response = await fetch(`${API_BASE}/api/v1/configurations?limit=100`);
-                const data = await response.json();
-                const configs = data.configurations || [];
-                $('configList').innerHTML = configs.map(c => `
-                    <div class="glass rounded-lg p-3">
-                        <div class="text-sm text-gray-400">${c.protocol}</div>
-                        <div class="font-semibold">${c.server}:${c.port}</div>
-                    </div>
-                `).join('') || '<div class="text-gray-400">No configurations available</div>';
-                $('msg').textContent = '';
-            } catch (err) {
-                $('msg').textContent = 'Error loading configurations';
-            } finally { $('btnLoad').disabled = false; $('btnGenerate').disabled = false; }
-        }
+        const API_BASE = window.__API_BASE__ || 'http://localhost:8080';
+        let allConfigs = [];
+        let filteredConfigs = [];
 
         async function generateConfigs() {
-            $('msg').textContent = 'Starting pipeline...';
-            $('btnGenerate').disabled = true; $('btnLoad').disabled = true;
-            const fmts = qsa('.fmt:checked').map(el => el.value);
+            const source = document.getElementById('configSource').value;
+            const protocols = Array.from(document.querySelectorAll('.protocol-filter:checked')).map(cb => cb.value);
+            const quality = document.getElementById('qualityFilter').value / 100;
+            
             try {
+                // Start pipeline
                 const response = await fetch(`${API_BASE}/api/v1/pipeline/run`, {
                     method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
+                    headers: {'Content-Type': 'application/json'},
                     body: JSON.stringify({
-                        config_path: $('cfgPath').value || 'config/sources.unified.yaml',
+                        config_path: source,
                         output_dir: 'output',
-                        formats: fmts.length ? fmts : ['json']
+                        formats: ['json']
                     })
                 });
-                const data = await response.json();
-                if (![200,202].includes(response.status)) throw new Error(data.detail || 'Pipeline start failed');
-                $('msg').textContent = data.message || 'Pipeline accepted';
-                loadConfigs();
-            } catch (err) {
-                $('msg').textContent = `Error: ${err.message}`;
-            } finally { $('btnGenerate').disabled = false; $('btnLoad').disabled = false; }
-        }
-
-        async function downloadConfigs(format) {
-            const fallbackFromApi = async () => {
-                try {
-                    const resp = await fetch(`${API_BASE}/api/v1/configurations?limit=1000`);
-                    const data = await resp.json();
-                    const configs = data.configurations || [];
-                    if (format === 'text') {
-                        const text = configs.map(c => `${c.protocol}://${c.server}:${c.port}`).join('\n');
-                        const blob = new Blob([text], { type: 'text/plain' });
-                        const url = URL.createObjectURL(blob);
-                        window.open(url, '_blank');
-                        setTimeout(() => URL.revokeObjectURL(url), 4000);
-                        return;
-                    }
-                    const jsonStr = JSON.stringify({ configurations: configs, exported_at: new Date().toISOString(), total: configs.length }, null, 2);
-                    const blob = new Blob([jsonStr], { type: 'application/json' });
-                    const url = URL.createObjectURL(blob);
-                    if (format === 'download') {
-                        const a = document.createElement('a');
-                        a.href = url;
-                        a.download = `vpn_configs_${new Date().toISOString().replace(/[-:T\.Z]/g,'').slice(0,14)}.json`;
-                        document.body.appendChild(a);
-                        a.click();
-                        a.remove();
-                    } else {
-                        window.open(url, '_blank');
-                    }
-                    setTimeout(() => URL.revokeObjectURL(url), 4000);
-                } catch (e) {
-                    $('msg').textContent = 'Export unavailable (no static server). Loaded from API instead.';
+                
+                const result = await response.json();
+                
+                if (result.job_id) {
+                    // Poll for completion
+                    await pollJobStatus(result.job_id);
                 }
-            };
-
-            try {
-                // Prefer static server export if available on the current origin
-                const resp = await fetch(`/api/export/${format}`);
-                if (!resp.ok) throw new Error('no-static-export');
-                if (format === 'text') {
-                    const text = await resp.text();
-                    const blob = new Blob([text], { type: 'text/plain' });
-                    const url = URL.createObjectURL(blob);
-                    window.open(url, '_blank');
-                    setTimeout(() => URL.revokeObjectURL(url), 4000);
-                    return;
-                }
-                const content = await resp.text();
-                const blob = new Blob([content], { type: 'application/json' });
-                const url = URL.createObjectURL(blob);
-                if (format === 'download') {
-                    const a = document.createElement('a');
-                    a.href = url;
-                    a.download = `vpn_configs_${new Date().toISOString().replace(/[-:T\.Z]/g,'').slice(0,14)}.json`;
-                    document.body.appendChild(a);
-                    a.click();
-                    a.remove();
-                } else {
-                    window.open(url, '_blank');
-                }
-                setTimeout(() => URL.revokeObjectURL(url), 4000);
-            } catch (_) {
-                await fallbackFromApi();
+                
+                // Load configurations
+                await loadConfigurations(protocols, quality);
+                
+            } catch (error) {
+                console.error('Generation failed:', error);
+                alert('Failed to generate configurations');
             }
         }
 
-        $('btnLoad').addEventListener('click', loadConfigs);
-        $('btnGenerate').addEventListener('click', generateConfigs);
-        loadConfigs();
+        async function pollJobStatus(jobId) {
+            const maxAttempts = 30;
+            for (let i = 0; i < maxAttempts; i++) {
+                const response = await fetch(`${API_BASE}/api/v1/pipeline/status/${jobId}`);
+                const status = await response.json();
+                
+                if (status.status === 'completed') return true;
+                if (status.status === 'failed') throw new Error('Pipeline failed');
+                
+                await new Promise(resolve => setTimeout(resolve, 1000));
+            }
+            throw new Error('Pipeline timeout');
+        }
+
+        async function loadConfigurations(protocols, quality) {
+            const response = await fetch(`${API_BASE}/api/v1/configurations?limit=1000`);
+            const data = await response.json();
+            
+            allConfigs = data.configurations || [];
+            
+            // Apply filters
+            filteredConfigs = allConfigs.filter(config => {
+                if (protocols.length && !protocols.includes(config.protocol)) return false;
+                if (config.quality_score && config.quality_score < quality) return false;
+                return true;
+            });
+            
+            // Update stats
+            document.getElementById('totalConfigs').textContent = allConfigs.length;
+            document.getElementById('filteredConfigs').textContent = filteredConfigs.length;
+            
+            // Display configs
+            displayConfigurations();
+        }
+
+        function displayConfigurations() {
+            const listEl = document.getElementById('configList');
+            
+            if (filteredConfigs.length === 0) {
+                listEl.innerHTML = '<div class="text-center text-gray-400 py-4">No configurations match filters</div>';
+                return;
+            }
+            
+            listEl.innerHTML = filteredConfigs.slice(0, 100).map(config => `
+                <div class="config-card glass rounded-lg p-4" onclick="showConfigDetails('${config.id || config.server}')">
+                    <div class="flex items-center justify-between">
+                        <div>
+                            <span class="text-sm px-2 py-1 rounded bg-purple-600/30">${config.protocol}</span>
+                            <span class="ml-2 font-medium">${config.server}</span>
+                            <span class="text-gray-400">:${config.port}</span>
+                        </div>
+                        <div class="text-right">
+                            ${config.quality_score ? `
+                                <div class="text-sm">Quality: ${(config.quality_score * 100).toFixed(0)}%</div>
+                            ` : ''}
+                            ${config.location ? `
+                                <div class="text-xs text-gray-400">${config.location.country}</div>
+                            ` : ''}
+                        </div>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        async function exportFormat(format) {
+            if (filteredConfigs.length === 0) {
+                alert('No configurations to export');
+                return;
+            }
+            
+            let content = '';
+            let filename = `vpn_configs.${format}`;
+            let mimeType = 'application/json';
+            
+            switch(format) {
+                case 'json':
+                    content = JSON.stringify(filteredConfigs, null, 2);
+                    break;
+                case 'base64':
+                    const urls = filteredConfigs.map(c => `${c.protocol}://${btoa(JSON.stringify(c))}`).join('\n');
+                    content = btoa(urls);
+                    mimeType = 'text/plain';
+                    filename = 'vpn_configs.txt';
+                    break;
+                case 'clash':
+                    content = generateClashConfig(filteredConfigs);
+                    mimeType = 'text/yaml';
+                    filename = 'clash.yaml';
+                    break;
+                case 'singbox':
+                    content = generateSingBoxConfig(filteredConfigs);
+                    filename = 'singbox.json';
+                    break;
+            }
+            
+            // Download file
+            const blob = new Blob([content], {type: mimeType});
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = filename;
+            a.click();
+            URL.revokeObjectURL(url);
+        }
+
+        function generateClashConfig(configs) {
+            // Simplified Clash config generation
+            return `mixed-port: 7890
+allow-lan: true
+mode: rule
+proxies:
+${configs.map(c => `  - name: "${c.server}"
+    type: ${c.protocol}
+    server: ${c.server}
+    port: ${c.port}
+    uuid: ${c.user_id || 'unknown'}
+    alterId: 0
+    cipher: auto`).join('\n')}`;
+        }
+
+        function generateSingBoxConfig(configs) {
+            // Simplified Sing-Box config generation
+            return JSON.stringify({
+                "outbounds": configs.map(c => ({
+                    "type": c.protocol,
+                    "tag": c.server,
+                    "server": c.server,
+                    "server_port": c.port,
+                    "uuid": c.user_id || "unknown"
+                }))
+            }, null, 2);
+        }
+
+        function showConfigDetails(configId) {
+            const config = filteredConfigs.find(c => (c.id || c.server) === configId);
+            if (!config) return;
+            
+            // Show detailed modal (simplified for space)
+            alert(JSON.stringify(config, null, 2));
+        }
+
+        // Load initial data
+        window.addEventListener('load', () => {
+            loadConfigurations([], 0);
+        });
     </script>
 </body>
 </html>
-
-

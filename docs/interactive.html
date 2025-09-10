@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>StreamlineVPN Control Center</title>
-    <script src="/api-base.js"></script>
+    <script src="api-base.js"></script>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
     <style>
@@ -33,13 +33,23 @@
     <!-- Header -->
     <header class="flex items-center justify-between mb-8">
         <div class="flex items-center space-x-4">
-            <img src="/assets/logo.svg" alt="StreamlineVPN Logo" class="h-10 w-10">
-            <div>
-                <h1 class="text-2xl font-bold">StreamlineVPN Control Center</h1>
-                <p class="text-sm text-gray-400">Enterprise VPN Configuration Platform</p>
-            </div>
+            <a href="index.html" class="flex items-center space-x-4 group">
+                <img src="assets/logo.svg" alt="StreamlineVPN Logo" class="h-12 w-12 group-hover:scale-110 transition-transform">
+                <div>
+                    <h1 class="text-2xl font-bold group-hover:text-purple-400 transition-colors">StreamlineVPN Control Center</h1>
+                    <p class="text-sm text-gray-400">Enterprise VPN Configuration Platform</p>
+                </div>
+            </a>
         </div>
-        <div class="text-sm text-gray-300">Status: <span id="systemStatus" class="badge badge-success">Operational</span></div>
+        <div class="flex items-center space-x-4">
+            <a href="index.html" class="px-4 py-2 text-gray-300 hover:text-white transition">
+                <svg class="w-5 h-5 inline mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"/>
+                </svg>
+                Return Home
+            </a>
+            <span class="text-sm text-gray-300">Status: <span id="systemStatus" class="badge badge-success">Operational</span></span>
+        </div>
     </header>
 
     <!-- Stats -->
@@ -182,6 +192,72 @@
             el('systemStatus').className = `badge ${health.status === 'healthy' ? 'badge-success' : ''}`;
         } catch (e) {
             // Keep UI tolerant
+        }
+    }
+
+    // Load and display all 500+ backend sources
+    async function loadAllSources() {
+        const sourcesList = document.getElementById('sourcesList');
+        sourcesList.innerHTML = '<div class="text-gray-400">Loading sources...</div>';
+        
+        try {
+            const response = await fetch(`${API_BASE}/api/v1/sources`);
+            const data = await response.json();
+            
+            // Group sources by tier
+            const tiers = {};
+            (data.sources || []).forEach(source => {
+                const tier = source.tier || 'community';
+                if (!tiers[tier]) tiers[tier] = [];
+                tiers[tier].push(source);
+            });
+            
+            let html = '';
+            Object.entries(tiers).forEach(([tier, sources]) => {
+                const tierColors = {
+                    'premium': 'text-yellow-400 border-yellow-400',
+                    'reliable': 'text-blue-400 border-blue-400',
+                    'community': 'text-green-400 border-green-400',
+                    'experimental': 'text-purple-400 border-purple-400'
+                };
+                
+                html += `
+                    <div class="mb-6">
+                        <h3 class="text-lg font-semibold mb-3 ${tierColors[tier] || 'text-gray-400'}">
+                            ${tier.toUpperCase()} (${sources.length} sources)
+                        </h3>
+                        <div class="space-y-2 max-h-60 overflow-y-auto">
+                            ${sources.map(s => `
+                                <div class="glass rounded-lg p-3 flex items-center justify-between hover:bg-white/10 transition">
+                                    <div class="flex-1">
+                                        <div class="font-medium text-sm truncate">${s.url}</div>
+                                        <div class="text-xs text-gray-400 mt-1">
+                                            Success: ${((s.success_rate || 0) * 100).toFixed(1)}% | 
+                                            Configs: ~${s.avg_configs || 0} | 
+                                            Response: ${s.avg_response_time || 0}ms
+                                        </div>
+                                    </div>
+                                    <div class="ml-4">
+                                        <span class="badge ${s.status === 'active' ? 'badge-success' : 'bg-red-500/20 text-red-400'}">
+                                            ${s.status || 'unknown'}
+                                        </span>
+                                    </div>
+                                </div>
+                            `).join('')}
+                        </div>
+                    </div>
+                `;
+            });
+            
+            sourcesList.innerHTML = html || '<div class="text-gray-400">No sources configured</div>';
+            
+            // Update source count
+            document.getElementById('activeSources').textContent = data.sources.filter(s => s.status === 'active').length;
+            document.getElementById('totalSourcesCount').textContent = data.total || data.sources.length;
+            
+        } catch (error) {
+            console.error('Failed to load sources:', error);
+            sourcesList.innerHTML = '<div class="text-red-400">Failed to load sources</div>';
         }
     }
 
@@ -348,6 +424,11 @@
             if (id === 'sources') refreshSources();
         }));
     }
+
+    // Auto-refresh sources every 30 seconds
+    setInterval(loadAllSources, 30000);
+    // Load initially when sources tab is clicked
+    document.querySelector('[data-tab="sources"]').addEventListener('click', loadAllSources);
 
     // Init
     setupTabs();

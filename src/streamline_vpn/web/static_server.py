@@ -147,7 +147,26 @@ class StaticControlServer:
 
         @app.get("/api/configurations")
         async def get_configurations() -> JSONResponse:
-            return JSONResponse(self.cached_data.get("configurations", []))
+            """Get configurations with proper JSON response."""
+            try:
+                configs = self.cached_data.get("configurations", [])
+                return JSONResponse(
+                    content={
+                        "success": True,
+                        "total": len(configs),
+                        "configurations": configs[:100]  # Limit for performance
+                    },
+                    headers={
+                        "Content-Type": "application/json",
+                        "Cache-Control": "max-age=30"
+                    }
+                )
+            except Exception as e:
+                logger.error(f"Error getting configurations: {e}")
+                return JSONResponse(
+                    content={"success": False, "error": str(e)},
+                    status_code=500
+                )
 
         @app.get("/api/statistics")
         async def get_statistics() -> JSONResponse:
