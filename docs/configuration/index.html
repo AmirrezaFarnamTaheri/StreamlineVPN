@@ -1,0 +1,685 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>StreamlineVPN Configuration Guide</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="../api-base.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/themes/prism-tomorrow.min.css" rel="stylesheet">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-core.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/plugins/autoloader/prism-autoloader.min.js"></script>
+    <style>
+        body { font-family: 'Inter', system-ui, -apple-system, sans-serif; }
+        .bg-app {
+            background: linear-gradient(135deg, #0f172a 0%, #1e293b 50%, #334155 100%);
+            min-height: 100vh;
+        }
+        .animated-bg {
+            position: fixed; inset: 0; background: linear-gradient(125deg, #667eea, #764ba2, #f093fb, #667eea);
+            background-size: 400% 400%; animation: gradientShift 18s ease infinite; opacity: 0.05; z-index: -1;
+        }
+        @keyframes gradientShift { 0%,100%{background-position:0% 50%} 50%{background-position:100% 50%} }
+        .glass { background: rgba(255,255,255,0.08); backdrop-filter: blur(12px); border: 1px solid rgba(255,255,255,0.12); }
+        .glass-dark { background: rgba(0,0,0,0.4); backdrop-filter: blur(16px); border: 1px solid rgba(255,255,255,0.08); }
+        @keyframes fade-in-up { from { transform: translateY(30px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+        @keyframes slide-in { from { transform: translateX(-20px); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
+        @keyframes glow { 0%, 100% { box-shadow: 0 0 20px rgba(102, 126, 234, 0.3); } 50% { box-shadow: 0 0 40px rgba(102, 126, 234, 0.6); } }
+        @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.7; } }
+        @keyframes bounce { 0%, 20%, 53%, 80%, 100% { transform: translate3d(0,0,0); } 40%, 43% { transform: translate3d(0,-8px,0); } 70% { transform: translate3d(0,-4px,0); } 90% { transform: translate3d(0,-2px,0); } }
+        .animate-fade-in-up { animation: fade-in-up 0.6s ease-out; }
+        .animate-slide-in { animation: slide-in 0.4s ease-out; }
+        .animate-glow { animation: glow 2s ease-in-out infinite; }
+        .animate-pulse { animation: pulse 2s ease-in-out infinite; }
+        .animate-bounce { animation: bounce 1s ease-in-out; }
+        .stagger-1 { animation-delay: 0.1s; }
+        .stagger-2 { animation-delay: 0.2s; }
+        .stagger-3 { animation-delay: 0.3s; }
+        .stagger-4 { animation-delay: 0.4s; }
+        .stagger-5 { animation-delay: 0.5s; }
+        .stagger-6 { animation-delay: 0.6s; }
+        .code-block { background: rgba(0,0,0,0.6); border-radius: 8px; padding: 1rem; font-family: 'Fira Code', monospace; }
+        .config-card { transition: all 0.3s ease; cursor: pointer; }
+        .config-card:hover { transform: translateY(-4px); background: rgba(255,255,255,0.12); }
+        .sidebar { position: sticky; top: 2rem; height: fit-content; }
+        .nav-link { transition: all 0.3s ease; }
+        .nav-link:hover { background: rgba(102, 126, 234, 0.1); transform: translateX(4px); }
+        .nav-link.active { background: rgba(102, 126, 234, 0.2); border-left: 3px solid #667eea; }
+        .tab-btn { border-bottom-width: 2px; border-color: transparent; color: #9ca3af; }
+        .tab-btn.active { color: #fff; border-color: rgb(129 140 248); }
+        .feature-badge { background: linear-gradient(135deg, #667eea, #764ba2); }
+        .config-preview { background: rgba(0,0,0,0.8); border: 1px solid rgba(255,255,255,0.1); }
+    </style>
+</head>
+<body class="bg-app text-white">
+<div class="animated-bg"></div>
+
+<!-- Header -->
+<header class="glass border-b border-white/10 sticky top-0 z-50">
+    <div class="container mx-auto px-6 py-4">
+        <div class="flex items-center justify-between">
+            <div class="flex items-center space-x-4">
+                <a href="../index.html" class="flex items-center space-x-3 group">
+                    <img src="../assets/logo.svg" alt="StreamlineVPN Logo" class="h-10 w-10 group-hover:scale-110 transition-transform">
+                    <div>
+                        <h1 class="text-xl font-bold group-hover:text-purple-400 transition-colors">StreamlineVPN Config</h1>
+                        <p class="text-sm text-gray-400">Configuration Management</p>
+                    </div>
+                </a>
+            </div>
+            <div class="flex items-center space-x-4">
+                <a href="../index.html" class="px-4 py-2 text-gray-300 hover:text-white transition">
+                    <svg class="w-5 h-5 inline mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"/>
+                    </svg>
+                    Back to Home
+                </a>
+                <div class="px-3 py-1 bg-green-500/20 text-green-400 rounded-full text-sm">
+                    v2.0
+                </div>
+            </div>
+        </div>
+    </div>
+</header>
+
+<div class="container mx-auto px-6 py-8 max-w-7xl">
+    <div class="grid grid-cols-1 lg:grid-cols-4 gap-8">
+        <!-- Sidebar Navigation -->
+        <div class="lg:col-span-1">
+            <div class="sidebar glass rounded-xl p-6">
+                <h3 class="text-lg font-semibold mb-4 animate-fade-in-up">⚙️ Configuration Guide</h3>
+                <nav class="space-y-2">
+                    <a href="#overview" class="nav-link block px-4 py-2 rounded-lg text-sm animate-slide-in stagger-1">🚀 Overview</a>
+                    <a href="#quick-start" class="nav-link block px-4 py-2 rounded-lg text-sm animate-slide-in stagger-2">⚡ Quick Start</a>
+                    <a href="#sources" class="nav-link block px-4 py-2 rounded-lg text-sm animate-slide-in stagger-3">🌐 Source Config</a>
+                    <a href="#processing" class="nav-link block px-4 py-2 rounded-lg text-sm animate-slide-in stagger-4">🔄 Processing</a>
+                    <a href="#outputs" class="nav-link block px-4 py-2 rounded-lg text-sm animate-slide-in stagger-5">📤 Output Formats</a>
+                    <a href="#advanced" class="nav-link block px-4 py-2 rounded-lg text-sm animate-slide-in stagger-6">🔧 Advanced</a>
+                </nav>
+                
+                <div class="mt-8 p-4 bg-blue-500/10 rounded-lg border border-blue-500/20">
+                    <h4 class="font-semibold text-blue-400 mb-2">🛠️ Interactive Config</h4>
+                    <p class="text-sm text-gray-300 mb-3">Test configurations in real-time</p>
+                    <button onclick="openConfigGenerator()" class="w-full px-4 py-2 bg-blue-600 hover:bg-blue-700 rounded-lg text-sm transition">
+                        Open Generator
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Main Content -->
+        <div class="lg:col-span-3">
+            <!-- Overview Section -->
+            <section id="overview" class="mb-12">
+                <div class="glass rounded-xl p-8 animate-fade-in-up">
+                    <h2 class="text-3xl font-bold mb-6 flex items-center">
+                        🚀 Configuration Overview
+                        <span class="ml-3 px-3 py-1 feature-badge text-white rounded-full text-sm">v2.0</span>
+                    </h2>
+                    <p class="text-lg text-gray-300 mb-6">
+                        StreamlineVPN uses YAML-based configuration files to manage VPN sources, processing pipelines, 
+                        and output formats. This guide covers all configuration options and best practices.
+                    </p>
+                    
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+                        <div class="glass-dark rounded-lg p-6 text-center">
+                            <div class="text-3xl mb-3">📝</div>
+                            <h3 class="font-semibold mb-2">YAML Based</h3>
+                            <p class="text-sm text-gray-400">Human-readable configuration format</p>
+                        </div>
+                        <div class="glass-dark rounded-lg p-6 text-center">
+                            <div class="text-3xl mb-3">🔧</div>
+                            <h3 class="font-semibold mb-2">Flexible</h3>
+                            <p class="text-sm text-gray-400">Highly customizable processing options</p>
+                        </div>
+                        <div class="glass-dark rounded-lg p-6 text-center">
+                            <div class="text-3xl mb-3">⚡</div>
+                            <h3 class="font-semibold mb-2">Fast</h3>
+                            <p class="text-sm text-gray-400">Optimized for high-performance processing</p>
+                        </div>
+                    </div>
+
+                    <div class="bg-gray-800/50 rounded-lg p-6">
+                        <h4 class="font-semibold mb-3">📁 Configuration Structure</h4>
+                        <div class="code-block">
+                            <pre><code class="language-yaml">config/
+├── sources.yaml          # VPN source definitions
+├── processing.yaml       # Processing pipeline config
+├── outputs.yaml          # Output format settings
+└── advanced.yaml         # Advanced options</code></pre>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Quick Start Section -->
+            <section id="quick-start" class="mb-12">
+                <div class="glass rounded-xl p-8 animate-fade-in-up">
+                    <h2 class="text-3xl font-bold mb-6">⚡ Quick Start Configuration</h2>
+                    
+                    <div class="space-y-6">
+                        <div class="config-card glass-dark rounded-lg p-6">
+                            <h3 class="text-xl font-semibold mb-4">1️⃣ Basic Sources Configuration</h3>
+                            <p class="text-gray-300 mb-4">Create your first sources configuration file:</p>
+                            <div class="code-block">
+                                <pre><code class="language-yaml"># config/sources.yaml
+sources:
+  - name: "Premium Provider"
+    url: "https://example.com/configs.txt"
+    tier: "premium"
+    enabled: true
+    timeout: 30
+    retry_count: 3
+    
+  - name: "Community Source"
+    url: "https://community.example.com/vpn.txt"
+    tier: "community"
+    enabled: true
+    timeout: 15
+    retry_count: 2
+
+processing:
+  max_concurrent: 10
+  quality_threshold: 0.7
+  deduplication: true</code></pre>
+                            </div>
+                        </div>
+
+                        <div class="config-card glass-dark rounded-lg p-6">
+                            <h3 class="text-xl font-semibold mb-4">2️⃣ Processing Pipeline Configuration</h3>
+                            <p class="text-gray-300 mb-4">Configure the processing pipeline:</p>
+                            <div class="code-block">
+                                <pre><code class="language-yaml"># config/processing.yaml
+pipeline:
+  name: "default"
+  enabled: true
+  
+  steps:
+    - name: "fetch"
+      timeout: 60
+      retry_count: 3
+      
+    - name: "parse"
+      protocols: ["vless", "vmess", "trojan", "ss"]
+      validate: true
+      
+    - name: "quality_check"
+      enabled: true
+      threshold: 0.8
+      
+    - name: "deduplicate"
+      enabled: true
+      method: "hash"
+
+output:
+  formats: ["json", "clash", "singbox"]
+  compression: true
+  directory: "output"</code></pre>
+                            </div>
+                        </div>
+
+                        <div class="config-card glass-dark rounded-lg p-6">
+                            <h3 class="text-xl font-semibold mb-4">3️⃣ Run the Pipeline</h3>
+                            <p class="text-gray-300 mb-4">Start processing with your configuration:</p>
+                            <div class="code-block">
+                                <pre><code class="language-bash"># Using the API
+curl -X POST http://localhost:8080/api/process \
+  -H "Content-Type: application/json" \
+  -d '{
+    "config_path": "config/sources.yaml",
+    "output_dir": "output",
+    "formats": ["json", "clash"]
+  }'
+
+# Using the CLI
+streamlinevpn process --config config/sources.yaml --output output</code></pre>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Sources Configuration Section -->
+            <section id="sources" class="mb-12">
+                <div class="glass rounded-xl p-8 animate-fade-in-up">
+                    <h2 class="text-3xl font-bold mb-6">🌐 Source Configuration</h2>
+                    
+                    <div class="space-y-6">
+                        <div class="config-card glass-dark rounded-lg p-6">
+                            <h3 class="text-xl font-semibold mb-4">📋 Source Definition Schema</h3>
+                            <div class="code-block">
+                                <pre><code class="language-yaml">sources:
+  - name: string              # Human-readable name
+    url: string               # Source URL
+    tier: string              # premium|reliable|community|experimental
+    enabled: boolean          # Enable/disable source
+    timeout: integer          # Request timeout in seconds
+    retry_count: integer      # Number of retry attempts
+    headers:                  # Custom HTTP headers
+      User-Agent: string
+      Authorization: string
+    filters:                  # Source-specific filters
+      protocols: [string]     # Allowed protocols
+      countries: [string]     # Allowed countries
+      quality_min: float      # Minimum quality score</code></pre>
+                            </div>
+                        </div>
+
+                        <div class="config-card glass-dark rounded-lg p-6">
+                            <h3 class="text-xl font-semibold mb-4">🏆 Tier Configuration</h3>
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <div class="p-4 bg-yellow-500/10 rounded-lg border border-yellow-500/20">
+                                    <h4 class="font-semibold text-yellow-400 mb-2">Premium</h4>
+                                    <ul class="text-sm text-gray-300 space-y-1">
+                                        <li>• High reliability sources</li>
+                                        <li>• SLA guarantees</li>
+                                        <li>• Priority processing</li>
+                                        <li>• Advanced features</li>
+                                    </ul>
+                                </div>
+                                <div class="p-4 bg-blue-500/10 rounded-lg border border-blue-500/20">
+                                    <h4 class="font-semibold text-blue-400 mb-2">Reliable</h4>
+                                    <ul class="text-sm text-gray-300 space-y-1">
+                                        <li>• Verified community sources</li>
+                                        <li>• Consistent uptime</li>
+                                        <li>• Good performance</li>
+                                        <li>• Regular updates</li>
+                                    </ul>
+                                </div>
+                                <div class="p-4 bg-green-500/10 rounded-lg border border-green-500/20">
+                                    <h4 class="font-semibold text-green-400 mb-2">Community</h4>
+                                    <ul class="text-sm text-gray-300 space-y-1">
+                                        <li>• Open-source aggregators</li>
+                                        <li>• Public lists</li>
+                                        <li>• Variable quality</li>
+                                        <li>• Free access</li>
+                                    </ul>
+                                </div>
+                                <div class="p-4 bg-purple-500/10 rounded-lg border border-purple-500/20">
+                                    <h4 class="font-semibold text-purple-400 mb-2">Experimental</h4>
+                                    <ul class="text-sm text-gray-300 space-y-1">
+                                        <li>• New sources under test</li>
+                                        <li>• Unstable performance</li>
+                                        <li>• Limited support</li>
+                                        <li>• Use with caution</li>
+                                    </ul>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="config-card glass-dark rounded-lg p-6">
+                            <h3 class="text-xl font-semibold mb-4">🔧 Advanced Source Options</h3>
+                            <div class="code-block">
+                                <pre><code class="language-yaml">sources:
+  - name: "Advanced Source"
+    url: "https://api.example.com/vpn-configs"
+    tier: "premium"
+    enabled: true
+    timeout: 45
+    retry_count: 5
+    
+    # Custom headers for authentication
+    headers:
+      Authorization: "Bearer your-token"
+      User-Agent: "StreamlineVPN/2.0"
+      Accept: "application/json"
+    
+    # Source-specific filters
+    filters:
+      protocols: ["vless", "vmess"]
+      countries: ["US", "UK", "DE"]
+      quality_min: 0.85
+      exclude_keywords: ["test", "demo"]
+    
+    # Processing options
+    processing:
+      parse_format: "json"  # json|yaml|text|base64
+      encoding: "utf-8"
+      compression: "gzip"
+      
+    # Quality assessment
+    quality:
+      enabled: true
+      weight: 1.0
+      custom_metrics: true</code></pre>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Processing Configuration Section -->
+            <section id="processing" class="mb-12">
+                <div class="glass rounded-xl p-8 animate-fade-in-up">
+                    <h2 class="text-3xl font-bold mb-6">🔄 Processing Configuration</h2>
+                    
+                    <div class="space-y-6">
+                        <div class="config-card glass-dark rounded-lg p-6">
+                            <h3 class="text-xl font-semibold mb-4">⚙️ Pipeline Configuration</h3>
+                            <div class="code-block">
+                                <pre><code class="language-yaml">pipeline:
+  name: "production"
+  enabled: true
+  max_concurrent: 20
+  timeout: 300
+  
+  steps:
+    # Step 1: Fetch configurations
+    - name: "fetch"
+      timeout: 60
+      retry_count: 3
+      rate_limit: 10  # requests per minute
+      
+    # Step 2: Parse and validate
+    - name: "parse"
+      protocols: ["vless", "vmess", "trojan", "ss", "ssr"]
+      validate: true
+      strict_mode: false
+      
+    # Step 3: Quality assessment
+    - name: "quality_check"
+      enabled: true
+      threshold: 0.7
+      ml_model: "lstm_v2"
+      
+    # Step 4: Deduplication
+    - name: "deduplicate"
+      enabled: true
+      method: "hash"  # hash|similarity|exact
+      threshold: 0.95
+      
+    # Step 5: Filtering
+    - name: "filter"
+      enabled: true
+      rules:
+        - type: "country"
+          action: "include"
+          values: ["US", "UK", "DE", "JP"]
+        - type: "protocol"
+          action: "exclude"
+          values: ["ssr"]
+        - type: "quality"
+          action: "include"
+          min_value: 0.8</code></pre>
+                            </div>
+                        </div>
+
+                        <div class="config-card glass-dark rounded-lg p-6">
+                            <h3 class="text-xl font-semibold mb-4">🤖 ML Quality Assessment</h3>
+                            <div class="code-block">
+                                <pre><code class="language-yaml">quality:
+  enabled: true
+  model: "lstm_v2"
+  features:
+    - "latency"
+    - "bandwidth"
+    - "uptime"
+    - "location"
+    - "protocol"
+  
+  thresholds:
+    excellent: 0.9
+    good: 0.7
+    fair: 0.5
+    poor: 0.3
+  
+  weights:
+    latency: 0.3
+    bandwidth: 0.25
+    uptime: 0.2
+    location: 0.15
+    protocol: 0.1</code></pre>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Output Formats Section -->
+            <section id="outputs" class="mb-12">
+                <div class="glass rounded-xl p-8 animate-fade-in-up">
+                    <h2 class="text-3xl font-bold mb-6">📤 Output Formats</h2>
+                    
+                    <div class="space-y-6">
+                        <div class="config-card glass-dark rounded-lg p-6">
+                            <h3 class="text-xl font-semibold mb-4">📋 Supported Formats</h3>
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <div class="p-4 bg-blue-500/10 rounded-lg border border-blue-500/20">
+                                    <h4 class="font-semibold text-blue-400 mb-2">JSON</h4>
+                                    <p class="text-sm text-gray-300">Structured data format for APIs and applications</p>
+                                </div>
+                                <div class="p-4 bg-green-500/10 rounded-lg border border-green-500/20">
+                                    <h4 class="font-semibold text-green-400 mb-2">Clash</h4>
+                                    <p class="text-sm text-gray-300">Clash proxy configuration format</p>
+                                </div>
+                                <div class="p-4 bg-purple-500/10 rounded-lg border border-purple-500/20">
+                                    <h4 class="font-semibold text-purple-400 mb-2">Sing-Box</h4>
+                                    <p class="text-sm text-gray-300">Sing-Box universal proxy format</p>
+                                </div>
+                                <div class="p-4 bg-yellow-500/10 rounded-lg border border-yellow-500/20">
+                                    <h4 class="font-semibold text-yellow-400 mb-2">Base64</h4>
+                                    <p class="text-sm text-gray-300">Base64 encoded configuration strings</p>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="config-card glass-dark rounded-lg p-6">
+                            <h3 class="text-xl font-semibold mb-4">⚙️ Output Configuration</h3>
+                            <div class="code-block">
+                                <pre><code class="language-yaml">output:
+  directory: "output"
+  formats: ["json", "clash", "singbox", "base64"]
+  compression: true
+  compression_level: 6
+  
+  # Format-specific options
+  json:
+    pretty: true
+    include_metadata: true
+    sort_keys: true
+    
+  clash:
+    template: "clash_template.yaml"
+    include_proxies: true
+    include_proxy_groups: true
+    
+  singbox:
+    template: "singbox_template.json"
+    include_rules: true
+    include_dns: true
+    
+  base64:
+    encoding: "utf-8"
+    line_length: 76
+    separator: "\n"</code></pre>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Advanced Configuration Section -->
+            <section id="advanced" class="mb-12">
+                <div class="glass rounded-xl p-8 animate-fade-in-up">
+                    <h2 class="text-3xl font-bold mb-6">🔧 Advanced Configuration</h2>
+                    
+                    <div class="space-y-6">
+                        <div class="config-card glass-dark rounded-lg p-6">
+                            <h3 class="text-xl font-semibold mb-4">🚀 Performance Tuning</h3>
+                            <div class="code-block">
+                                <pre><code class="language-yaml">performance:
+  # Concurrency settings
+  max_concurrent_sources: 20
+  max_concurrent_requests: 100
+  connection_pool_size: 50
+  
+  # Timeout settings
+  global_timeout: 300
+  source_timeout: 60
+  parse_timeout: 30
+  
+  # Memory management
+  max_memory_usage: "2GB"
+  gc_threshold: 0.8
+  cache_size: "512MB"
+  
+  # CPU optimization
+  worker_threads: 8
+  io_threads: 4
+  enable_async: true</code></pre>
+                            </div>
+                        </div>
+
+                        <div class="config-card glass-dark rounded-lg p-6">
+                            <h3 class="text-xl font-semibold mb-4">🔒 Security Configuration</h3>
+                            <div class="code-block">
+                                <pre><code class="language-yaml">security:
+  # SSL/TLS settings
+  verify_ssl: true
+  ssl_timeout: 30
+  custom_ca_bundle: "/path/to/ca-bundle.pem"
+  
+  # Rate limiting
+  rate_limit:
+    enabled: true
+    requests_per_minute: 100
+    burst_size: 20
+  
+  # Content validation
+  content_validation:
+    enabled: true
+    max_file_size: "10MB"
+    allowed_mime_types: ["text/plain", "application/json", "application/yaml"]
+    scan_for_malware: true
+  
+  # Access control
+  access_control:
+    allowed_ips: ["127.0.0.1", "192.168.1.0/24"]
+    blocked_domains: ["malicious.com", "spam.net"]</code></pre>
+                            </div>
+                        </div>
+
+                        <div class="config-card glass-dark rounded-lg p-6">
+                            <h3 class="text-xl font-semibold mb-4">📊 Monitoring & Logging</h3>
+                            <div class="code-block">
+                                <pre><code class="language-yaml">monitoring:
+  # Metrics collection
+  metrics:
+    enabled: true
+    endpoint: "http://localhost:9090/metrics"
+    interval: 30
+  
+  # Health checks
+  health_check:
+    enabled: true
+    interval: 60
+    timeout: 10
+  
+  # Logging configuration
+  logging:
+    level: "INFO"  # DEBUG|INFO|WARN|ERROR
+    format: "json"
+    output: "stdout"
+    file: "/var/log/streamlinevpn.log"
+    max_size: "100MB"
+    max_files: 5
+    
+    # Structured logging
+    fields:
+      service: "streamlinevpn"
+      version: "2.0.0"
+      environment: "production"</code></pre>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+        </div>
+    </div>
+</div>
+
+<script>
+    // Smooth scrolling for navigation links
+    document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+        anchor.addEventListener('click', function (e) {
+            e.preventDefault();
+            const target = document.querySelector(this.getAttribute('href'));
+            if (target) {
+                target.scrollIntoView({ behavior: 'smooth' });
+                
+                // Update active nav link
+                document.querySelectorAll('.nav-link').forEach(link => {
+                    link.classList.remove('active');
+                });
+                this.classList.add('active');
+            }
+        });
+    });
+
+    // Open config generator
+    function openConfigGenerator() {
+        window.open('../config_generator.html', '_blank');
+    }
+
+    // Intersection Observer for active nav highlighting
+    const observerOptions = {
+        root: null,
+        rootMargin: '-20% 0px -70% 0px',
+        threshold: 0
+    };
+
+    const observer = new IntersectionObserver((entries) => {
+        entries.forEach(entry => {
+            if (entry.isIntersecting) {
+                const id = entry.target.getAttribute('id');
+                document.querySelectorAll('.nav-link').forEach(link => {
+                    link.classList.remove('active');
+                    if (link.getAttribute('href') === `#${id}`) {
+                        link.classList.add('active');
+                    }
+                });
+            }
+        });
+    }, observerOptions);
+
+    // Observe all sections
+    document.querySelectorAll('section[id]').forEach(section => {
+        observer.observe(section);
+    });
+
+    // Add hover effects to config cards
+    document.querySelectorAll('.config-card').forEach(card => {
+        card.addEventListener('mouseenter', function() {
+            this.style.transform = 'translateY(-4px)';
+        });
+        
+        card.addEventListener('mouseleave', function() {
+            this.style.transform = 'translateY(0)';
+        });
+    });
+
+    // Copy code blocks functionality
+    document.querySelectorAll('.code-block').forEach(block => {
+        const button = document.createElement('button');
+        button.className = 'absolute top-2 right-2 px-2 py-1 bg-gray-700 hover:bg-gray-600 rounded text-xs transition';
+        button.textContent = 'Copy';
+        button.style.position = 'relative';
+        
+        button.addEventListener('click', async () => {
+            const code = block.querySelector('code').textContent;
+            try {
+                await navigator.clipboard.writeText(code);
+                button.textContent = 'Copied!';
+                setTimeout(() => button.textContent = 'Copy', 2000);
+            } catch (err) {
+                console.error('Failed to copy:', err);
+            }
+        });
+        
+        block.style.position = 'relative';
+        block.appendChild(button);
+    });
+</script>
+</body>
+</html>

@@ -227,6 +227,9 @@
         
         try {
             const response = await fetch(`${API_BASE}/api/sources`);
+            if (!response.ok) {
+                throw new Error(`HTTP ${response.status}`);
+            }
             const data = await response.json();
             
             // Group sources by tier
@@ -281,7 +284,15 @@
             
         } catch (error) {
             console.error('Failed to load sources:', error);
-            sourcesList.innerHTML = '<div class="text-red-400">Failed to load sources</div>';
+            sourcesList.innerHTML = `
+                <div class="text-center text-red-400 py-8">
+                    <svg class="w-16 h-16 mx-auto mb-4 opacity-50" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                    </svg>
+                    <p>Failed to load sources</p>
+                    <p class="text-sm mt-2">API endpoint may be unavailable</p>
+                </div>
+            `;
         }
     }
 
@@ -345,6 +356,10 @@
                         formats: formats.length ? formats : ['json']
                     })
                 });
+                
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                }
                 
                 const result = await response.json();
                 

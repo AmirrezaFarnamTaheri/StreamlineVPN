@@ -35,25 +35,39 @@
         @keyframes fade-in { from { opacity: 0; } to { opacity: 1; } }
         @keyframes typewriter { from { width: 0; } to { width: 100%; } }
         @keyframes blink { 0%, 50% { border-color: transparent; } 51%, 100% { border-color: #667eea; } }
+        @keyframes glow { 0%, 100% { box-shadow: 0 0 20px rgba(102, 126, 234, 0.3); } 50% { box-shadow: 0 0 40px rgba(102, 126, 234, 0.6); } }
+        @keyframes rotate { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+        @keyframes bounce-in { 0% { transform: scale(0.3); opacity: 0; } 50% { transform: scale(1.05); } 70% { transform: scale(0.9); } 100% { transform: scale(1); opacity: 1; } }
+        @keyframes slide-up { from { transform: translateY(100px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+        @keyframes zoom-in { from { transform: scale(0.8); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+        @keyframes wiggle { 0%, 7% { transform: rotateZ(0); } 15% { transform: rotateZ(-15deg); } 20% { transform: rotateZ(10deg); } 25% { transform: rotateZ(-10deg); } 30% { transform: rotateZ(6deg); } 35% { transform: rotateZ(-4deg); } 40%, 100% { transform: rotateZ(0); } }
         .animate-slide-in { animation: slide-in 0.3s ease-out; }
         .animate-slide-out { animation: slide-out 0.3s ease-in; }
         .animate-fade-in-up { animation: fade-in-up 0.6s ease-out; }
         .animate-fade-in { animation: fade-in 0.8s ease-out; }
         .animate-typewriter { animation: typewriter 3s steps(40, end), blink 0.75s step-end infinite; }
+        .animate-glow { animation: glow 2s ease-in-out infinite; }
+        .animate-rotate { animation: rotate 20s linear infinite; }
+        .animate-bounce-in { animation: bounce-in 0.8s ease-out; }
+        .animate-slide-up { animation: slide-up 0.8s ease-out; }
+        .animate-zoom-in { animation: zoom-in 0.6s ease-out; }
+        .animate-wiggle { animation: wiggle 1s ease-in-out; }
         .stagger-1 { animation-delay: 0.1s; }
         .stagger-2 { animation-delay: 0.2s; }
         .stagger-3 { animation-delay: 0.3s; }
         .stagger-4 { animation-delay: 0.4s; }
         .stagger-5 { animation-delay: 0.5s; }
         .stagger-6 { animation-delay: 0.6s; }
+        .stagger-7 { animation-delay: 0.7s; }
+        .stagger-8 { animation-delay: 0.8s; }
     </style>
 </head>
 <body class="bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 min-h-screen text-white">
     <!-- Navigation -->
-    <nav class="glass fixed top-0 left-0 right-0 z-50 px-6 py-4">
+    <nav class="glass fixed top-0 left-0 right-0 z-50 px-6 py-4 animate-slide-up">
         <div class="container mx-auto flex justify-between items-center">
-            <div class="flex items-center space-x-3">
-                <img src="assets/logo.svg" alt="Logo" class="h-10 w-10">
+            <div class="flex items-center space-x-3 animate-bounce-in">
+                <img src="assets/logo.svg" alt="Logo" class="h-10 w-10 animate-rotate hover:animate-wiggle transition-all">
                 <span class="text-xl font-bold">StreamlineVPN</span>
             </div>
             <div class="hidden md:flex space-x-8">
@@ -81,42 +95,42 @@
     <!-- Hero Section -->
     <section class="pt-32 pb-20 px-6">
         <div class="container mx-auto text-center">
-            <div class="float-animation">
-                <h1 class="text-6xl font-bold mb-6 gradient-text">
+            <div class="float-animation animate-zoom-in">
+                <h1 class="text-6xl font-bold mb-6 gradient-text animate-glow">
                     StreamlineVPN
                 </h1>
             </div>
-            <p class="text-2xl text-gray-300 mb-8 max-w-3xl mx-auto">
+            <p class="text-2xl text-gray-300 mb-8 max-w-3xl mx-auto animate-fade-in-up stagger-1">
                 Enterprise-grade VPN configuration aggregator with ML-powered quality prediction
                 and real-time processing of 500+ sources
             </p>
             
-            <div class="flex justify-center space-x-4 mb-12">
-                <a href="interactive.html" class="px-8 py-4 bg-gradient-to-r from-purple-600 to-pink-600 rounded-lg font-semibold text-lg hover:from-purple-700 hover:to-pink-700 transition hover-scale">
-                    Launch Control Panel
+            <div class="flex justify-center space-x-4 mb-12 animate-bounce-in stagger-2">
+                <a href="interactive.html" class="px-8 py-4 bg-gradient-to-r from-purple-600 to-pink-600 rounded-lg font-semibold text-lg hover:from-purple-700 hover:to-pink-700 transition hover-scale animate-glow">
+                    🚀 Launch Control Panel
                 </a>
                 <a href="quick-start.md" class="px-8 py-4 bg-white/10 rounded-lg font-semibold text-lg hover:bg-white/20 transition hover-scale">
-                    Get Started
+                    📚 Get Started
                 </a>
             </div>
             
             <!-- Live Stats -->
             <div id="stats" class="grid grid-cols-1 md:grid-cols-4 gap-6 max-w-4xl mx-auto">
-                <div class="glass rounded-xl p-6 hover-scale pulse-scale">
-                    <div class="text-4xl font-bold text-purple-400 mb-2" id="liveSourceCount">523</div>
-                    <div class="text-gray-300">Active Sources</div>
+                <div class="glass rounded-xl p-6 hover-scale pulse-scale animate-bounce-in stagger-3">
+                    <div class="text-4xl font-bold text-purple-400 mb-2 animate-glow" id="liveSourceCount">523</div>
+                    <div class="text-gray-300">🌐 Active Sources</div>
                 </div>
-                <div class="glass rounded-xl p-6 hover-scale pulse-scale">
-                    <div class="text-4xl font-bold text-blue-400 mb-2" id="liveConfigCount">15K+</div>
-                    <div class="text-gray-300">Configurations</div>
+                <div class="glass rounded-xl p-6 hover-scale pulse-scale animate-bounce-in stagger-4">
+                    <div class="text-4xl font-bold text-blue-400 mb-2 animate-glow" id="liveConfigCount">15K+</div>
+                    <div class="text-gray-300">⚙️ Configurations</div>
                 </div>
-                <div class="glass rounded-xl p-6 hover-scale pulse-scale">
-                    <div class="text-4xl font-bold text-green-400 mb-2" id="liveSuccessRate">99.9%</div>
-                    <div class="text-gray-300">Uptime</div>
+                <div class="glass rounded-xl p-6 hover-scale pulse-scale animate-bounce-in stagger-5">
+                    <div class="text-4xl font-bold text-green-400 mb-2 animate-glow" id="liveSuccessRate">99.9%</div>
+                    <div class="text-gray-300">📈 Uptime</div>
                 </div>
-                <div class="glass rounded-xl p-6 hover-scale pulse-scale">
-                    <div class="text-4xl font-bold text-yellow-400 mb-2" id="liveLatency">125ms</div>
-                    <div class="text-gray-300">Avg Latency</div>
+                <div class="glass rounded-xl p-6 hover-scale pulse-scale animate-bounce-in stagger-6">
+                    <div class="text-4xl font-bold text-yellow-400 mb-2 animate-glow" id="liveLatency">125ms</div>
+                    <div class="text-gray-300">⚡ Avg Latency</div>
                 </div>
             </div>
         </div>
@@ -125,7 +139,7 @@
     <!-- Features Section -->
     <section id="features" class="py-20 px-6">
         <div class="container mx-auto">
-            <h2 class="text-4xl font-bold text-center mb-12">Core Features</h2>
+            <h2 class="text-4xl font-bold text-center mb-12 animate-fade-in-up">✨ Core Features</h2>
             
             <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
                 <div class="glass rounded-xl p-8 hover-scale animate-fade-in-up stagger-1">
@@ -170,7 +184,7 @@
     <!-- Source Tiers Section -->
     <section id="sources" class="py-20 px-6 bg-black/20">
         <div class="container mx-auto">
-            <h2 class="text-4xl font-bold text-center mb-12">Source Tiers</h2>
+            <h2 class="text-4xl font-bold text-center mb-12 animate-fade-in-up">🎯 Source Tiers</h2>
             
             <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
                 <div class="glass rounded-xl p-6 border-t-4 border-yellow-400 hover-scale animate-fade-in-up stagger-1">
@@ -201,15 +215,15 @@
     </section>
 
     <!-- Footer -->
-    <footer class="py-12 px-6 border-t border-white/10">
+    <footer class="py-12 px-6 border-t border-white/10 animate-fade-in-up">
         <div class="container mx-auto text-center">
             <div class="flex justify-center space-x-8 mb-6">
-                <a href="api/index.html" class="hover:text-purple-400 transition">API Docs</a>
-                <a href="configuration/index.html" class="hover:text-purple-400 transition">Configuration</a>
-                <a href="https://github.com/yourusername/streamlinevpn" class="hover:text-purple-400 transition">GitHub</a>
-                <a href="troubleshooting.html" class="hover:text-purple-400 transition">Support</a>
+                <a href="api/index.html" class="hover:text-purple-400 transition hover:animate-wiggle">📚 API Docs</a>
+                <a href="configuration/index.html" class="hover:text-purple-400 transition hover:animate-wiggle">⚙️ Configuration</a>
+                <a href="https://github.com/streamlinevpn/streamlinevpn" class="hover:text-purple-400 transition hover:animate-wiggle">🐙 GitHub</a>
+                <a href="troubleshooting.html" class="hover:text-purple-400 transition hover:animate-wiggle">🆘 Support</a>
             </div>
-            <p class="text-gray-400">&copy; 2025 StreamlineVPN. Open source under GPL-3.0</p>
+            <p class="text-gray-400 animate-glow">&copy; 2025 StreamlineVPN. Open source under GPL-3.0</p>
         </div>
     </footer>
 
