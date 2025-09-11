@@ -92,9 +92,10 @@ class FetcherService:
     async def initialize(self) -> None:
         """Initialize fetcher service."""
         if self.session is None or self.session.closed:
-            from .io_client import make_session
+            # Acquire a pooled session asynchronously to avoid event-loop reentrancy
+            from .io_client import _SESSION_MANAGER  # type: ignore
 
-            self.session = make_session(self.max_concurrent, self.timeout)
+            self.session = await _SESSION_MANAGER.get_session("default")
 
         logger.info("Fetcher service initialized")
 

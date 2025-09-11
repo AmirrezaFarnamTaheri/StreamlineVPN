@@ -245,44 +245,33 @@ class TestDiscoveryManager:
 
     @pytest.mark.asyncio
     async def test_source_discovery(self, discovery_manager):
-        with patch("aiohttp.ClientSession") as mock_session:
-            # Async context manager for the top-level ClientSession
-            session_cm = AsyncMock()
-            session = session_cm.__aenter__.return_value
-            mock_session.return_value = session_cm
+        """Test discovery with properly mocked async session methods to avoid warnings."""
+        # Create mock response object
+        mock_response = AsyncMock()
+        mock_response.status = 200
+        mock_response.json = AsyncMock(return_value={"items": [{"full_name": "user/repo"}]})
+        mock_response.text = AsyncMock(return_value="vmess://test")
 
-            # Helper to build a response context manager
-            def make_get_cm(url, *args, **kwargs):
-                cm = AsyncMock()
-                resp = AsyncMock()
-                resp.status = 200
-                if url.endswith("/search/repositories"):
-                    resp.json = AsyncMock(
-                        return_value={
-                            "items": [
-                                {"full_name": "user/vpn-configs"},
-                                {"full_name": "org/free-nodes"},
-                            ]
-                        }
-                    )
-                else:
-                    resp.json = AsyncMock(return_value=[])
-                cm.__aenter__.return_value = resp
-                cm.__aexit__.return_value = None
-                return cm
+        # Async context manager for .get/.head
+        async_get_cm = AsyncMock()
+        async_get_cm.__aenter__ = AsyncMock(return_value=mock_response)
+        async_get_cm.__aexit__ = AsyncMock(return_value=None)
 
-            session.get = AsyncMock(side_effect=lambda url, *a, **k: make_get_cm(url, *a, **k))
+        async_head_cm = AsyncMock()
+        async_head_cm.__aenter__ = AsyncMock(return_value=mock_response)
+        async_head_cm.__aexit__ = AsyncMock(return_value=None)
 
-            def make_head_cm(*args, **kwargs):
-                cm = AsyncMock()
-                resp = AsyncMock()
-                resp.status = 200
-                cm.__aenter__.return_value = resp
-                cm.__aexit__.return_value = None
-                return cm
+        # Mock session with async methods returning async context managers
+        mock_session = AsyncMock()
+        mock_session.get = AsyncMock(return_value=async_get_cm)
+        mock_session.head = AsyncMock(return_value=async_head_cm)
 
-            session.head = AsyncMock(side_effect=make_head_cm)
+        # Mock ClientSession() as an async context manager
+        session_cm = AsyncMock()
+        session_cm.__aenter__ = AsyncMock(return_value=mock_session)
+        session_cm.__aexit__ = AsyncMock(return_value=None)
 
+        with patch("aiohttp.ClientSession", return_value=session_cm):
             sources = await discovery_manager.discover_sources()
             assert isinstance(sources, list)
 

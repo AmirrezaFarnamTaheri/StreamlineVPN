@@ -147,6 +147,21 @@ class SessionManager:
 
     async def get_session(self, key: str = "default") -> aiohttp.ClientSession:
         sess = self._sessions.get(key)
+        # If an existing session is bound to a different (closed) event loop, recreate it
+        try:
+            current_loop = asyncio.get_running_loop()
+        except RuntimeError:
+            current_loop = None
+        if sess and not sess.closed:
+            sess_loop = getattr(sess, "_loop", None)
+            if current_loop is not None and sess_loop is not current_loop:
+                try:
+                    await sess.close()
+                except Exception:
+                    pass
+                self._sessions.pop(key, None)
+                sess = None
+
         if not sess or sess.closed:
             connector = aiohttp.TCPConnector(**self._limits)
             timeout = aiohttp.ClientTimeout(total=self._timeout_total)

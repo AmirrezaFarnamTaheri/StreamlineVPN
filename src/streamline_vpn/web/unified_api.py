@@ -377,43 +377,45 @@ class UnifiedAPI:
         return app
 
     def _setup_cors(self, app: FastAPI) -> None:
-        def _parse_list(val: str, default: List[str]) -> List[str]:
-            try:
-                if val.strip().startswith("["):
-                    import json as _json
+        """Setup CORS middleware with proper configuration."""
+        allowed_origins = self._parse_env_list(
+            "ALLOWED_ORIGINS",
+            [
+                "http://localhost:3000",
+                "http://localhost:8080",
+            ],
+        )
+        allowed_methods = self._parse_env_list(
+            "ALLOWED_METHODS",
+            ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+        )
+        allowed_headers = self._parse_env_list(
+            "ALLOWED_HEADERS",
+            ["Content-Type", "Authorization"],
+        )
+        allow_credentials = os.getenv("ALLOW_CREDENTIALS", "false").lower() == "true"
 
-                    parsed = _json.loads(val)
-                    if isinstance(parsed, list):
-                        return [str(x) for x in parsed]
-            except Exception:
-                pass
-            return [s.strip() for s in val.split(",") if s.strip()] or default
-
-        # Production-ready CORS configuration
-        settings = get_settings()
-        
-        # Parse allowed origins from environment or use defaults
-        allowed_origins = os.getenv("ALLOWED_ORIGINS", "").split(",") if os.getenv("ALLOWED_ORIGINS") else [
-            "http://localhost:3000",
-            "http://localhost:8000",
-            "http://localhost:8080",
-            "https://app.streamlinevpn.io"  # Production domain
-        ]
-        
-        # Remove empty strings and strip whitespace
-        allowed_origins = [origin.strip() for origin in allowed_origins if origin.strip()]
-        
         app.add_middleware(
             CORSMiddleware,
             allow_origins=allowed_origins,
-            allow_credentials=False,  # Disable credentials in production unless needed
-            allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],
-            allow_headers=["Content-Type", "Authorization", "X-Request-ID"],
-            max_age=3600,
-            expose_headers=["X-Request-ID", "X-Process-Time"],
+            allow_credentials=allow_credentials,
+            allow_methods=allowed_methods,
+            allow_headers=allowed_headers,
         )
-        
-        logger.info(f"CORS configured with origins: {allowed_origins}")
+
+        logger.info(
+            f"CORS configured: origins={allowed_origins}, credentials={allow_credentials}"
+        )
+
+    def _parse_env_list(self, env_var: str, default: List[str]) -> List[str]:
+        """Parse environment variable as JSON array or comma-separated list."""
+        value = os.getenv(env_var)
+        if not value:
+            return default
+        try:
+            return json.loads(value)  # type: ignore[return-value]
+        except Exception:
+            return [item.strip() for item in value.split(",") if item.strip()]
 
     def _setup_routes(self, app: FastAPI) -> None:
         @app.get("/", tags=["General"])
@@ -605,79 +607,131 @@ class UnifiedAPI:
 
     def _setup_exception_handlers(self, app: FastAPI) -> None:
         @app.exception_handler(RequestValidationError)
-        async def validation_exception_handler(request: Request, exc: RequestValidationError) -> JSONResponse:
-            return JSONResponse(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, content={"detail": exc.errors(), "body": getattr(exc, "body", None)})
+        async def validation_exception_handler(
+            request: Request, exc: RequestValidationError
+        ) -> JSONResponse:
+            return JSONResponse(
+                status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+                content={"detail": exc.errors(), "body": getattr(exc, "body", None)},
+            )
 
         @app.exception_handler(HTTPException)
-        async def http_exception_handler(request: Request, exc: HTTPException) -> JSONResponse:
-            return JSONResponse(status_code=exc.status_code, content={"detail": exc.detail})
+        async def http_exception_handler(
+            request: Request, exc: HTTPException
+        ) -> JSONResponse:
+            return JSONResponse(
+                status_code=exc.status_code, content={"detail": exc.detail}
+            )
+
+        # Friendly 404s: API JSON, UI fallback to index.html
+        @app.exception_handler(404)
+        async def not_found_handler(
+            request: Request, exc: HTTPException
+        ) -> JSONResponse | FileResponse:
+            if request.url.path.startswith("/api/"):
+                return JSONResponse(
+                    {"detail": "API endpoint not found"}, status_code=404
+                )
+            docs_path = Path(__file__).resolve().parents[3] / "docs"
+            index_file = docs_path / "index.html"
+            if index_file.exists():
+                return FileResponse(str(index_file), media_type="text/html")
+            return JSONResponse({"detail": "Page not found"}, status_code=404)
 
         @app.exception_handler(Exception)
-        async def general_exception_handler(request: Request, exc: Exception) -> JSONResponse:
+        async def general_exception_handler(
+            request: Request, exc: Exception
+        ) -> JSONResponse:
             logger.error("Unhandled exception: %s", exc, exc_info=True)
-            return JSONResponse(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, content={"detail": "Internal server error"})
+            return JSONResponse(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                content={"detail": "Internal server error"},
+            )
 
     def _setup_static_files(self, app: FastAPI) -> None:
+        """Setup static file serving with proper error handling."""
         docs_path = Path(__file__).resolve().parents[3] / "docs"
-        if docs_path.exists():
-            # Serve the entire docs folder under /static to avoid clobbering API routes
-            app.mount("/static", StaticFiles(directory=str(docs_path)), name="static")
 
-            # Also expose /assets to match absolute references used by docs HTML
+        if not docs_path.exists():
+            logger.warning(f"Docs directory not found at {docs_path}")
+            return
+
+        try:
+            # Serve the entire docs folder under /static
+            app.mount("/static", StaticFiles(directory=str(docs_path)), name="static")
+            logger.info(f"Mounted static files from {docs_path}")
+
+            # Also expose /assets for absolute references
             assets_dir = docs_path / "assets"
             if assets_dir.exists():
                 app.mount("/assets", StaticFiles(directory=str(assets_dir)), name="assets")
+                logger.info(f"Mounted assets from {assets_dir}")
 
-            # Minimal convenience routes to serve primary pages directly
+            # Direct file serving routes
+            @app.get("/api-base.js", include_in_schema=False)
+            async def serve_api_base():
+                """Serve the API base configuration file."""
+                api_base_file = docs_path / "api-base.js"
+                if api_base_file.exists():
+                    return FileResponse(
+                        str(api_base_file),
+                        media_type="application/javascript",
+                        headers={"Cache-Control": "no-cache"},
+                    )
+                return JSONResponse(
+                    {"detail": "api-base.js not found"},
+                    status_code=status.HTTP_404_NOT_FOUND,
+                )
+
+            # Main page routes
+            @app.get("/", include_in_schema=False)
             @app.get("/web", include_in_schema=False)
-            async def serve_web():
-                index_file = docs_path / "index.html"
-                if index_file.exists():
-                    return FileResponse(str(index_file))
-                return JSONResponse({"message": "Web interface not found"}, status_code=status.HTTP_404_NOT_FOUND)
-
             @app.get("/index.html", include_in_schema=False)
             async def serve_index():
+                """Serve the main index page."""
                 index_file = docs_path / "index.html"
                 if index_file.exists():
-                    return FileResponse(str(index_file))
-                return JSONResponse({"detail": "index.html not found"}, status_code=status.HTTP_404_NOT_FOUND)
+                    return FileResponse(str(index_file), media_type="text/html")
+                return JSONResponse(
+                    {"message": "Web interface not found"},
+                    status_code=status.HTTP_404_NOT_FOUND,
+                )
 
             @app.get("/interactive.html", include_in_schema=False)
             async def serve_interactive():
+                """Serve the interactive control panel."""
                 page = docs_path / "interactive.html"
                 if page.exists():
-                    return FileResponse(str(page))
-                return JSONResponse({"detail": "interactive.html not found"}, status_code=status.HTTP_404_NOT_FOUND)
+                    return FileResponse(str(page), media_type="text/html")
+                return JSONResponse(
+                    {"detail": "interactive.html not found"},
+                    status_code=status.HTTP_404_NOT_FOUND,
+                )
 
             @app.get("/config_generator.html", include_in_schema=False)
             async def serve_config_generator():
+                """Serve the configuration generator page."""
                 page = docs_path / "config_generator.html"
                 if page.exists():
-                    return FileResponse(str(page))
-                return JSONResponse({"detail": "config_generator.html not found"}, status_code=status.HTTP_404_NOT_FOUND)
-
-            # Provide api-base bootstrapper at root for consistency with the static server
-            @app.get("/api-base.js", include_in_schema=False)
-            async def api_base_script() -> Response:
-                js_file = docs_path / "api-base.js"
-                if js_file.exists():
-                    return FileResponse(str(js_file), media_type="application/javascript")
-                # Fallback inline value if file not found (mirrors docs/api-base.js semantics)
-                content = (
-                    "/* Fallback API base bootstrapper */\n"
-                    "(function(){\n"
-                    "  try {\n"
-                    "    if (typeof window === 'undefined') return;\n"
-                    "    if (typeof window.__API_BASE__ === 'string' && window.__API_BASE__.startsWith('http')) return;\n"
-                    "    var host = window.location.hostname;\n"
-                    "    var proto = window.location.protocol;\n"
-                    "    var isLocal = host === 'localhost' || host === '127.0.0.1';\n"
-                    "    window.__API_BASE__ = isLocal ? (proto + '//' + host + ':8080') : (proto + '//' + host);\n"
-                    "  } catch (e) { }\n"
-                    "})();\n"
+                    return FileResponse(str(page), media_type="text/html")
+                return JSONResponse(
+                    {"detail": "config_generator.html not found"},
+                    status_code=status.HTTP_404_NOT_FOUND,
                 )
-                return Response(content=content, media_type="application/javascript")
+
+            @app.get("/troubleshooting.html", include_in_schema=False)
+            async def serve_troubleshooting():
+                """Serve the troubleshooting page."""
+                page = docs_path / "troubleshooting.html"
+                if page.exists():
+                    return FileResponse(str(page), media_type="text/html")
+                return JSONResponse(
+                    {"detail": "troubleshooting.html not found"},
+                    status_code=status.HTTP_404_NOT_FOUND,
+                )
+
+        except Exception as e:  # pragma: no cover - mount errors only
+            logger.error(f"Failed to setup static files: {e}")
 
 
 # =======================

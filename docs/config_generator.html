@@ -1,425 +1,204 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>StreamlineVPN Config Generator</title>
-    <script src="api-base.js"></script>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <script src="assets/js/errors.js"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap" rel="stylesheet">
-    <style>
-        body { font-family: 'Inter', system-ui, -apple-system, sans-serif; }
-        .bg-app { background: radial-gradient(1100px 520px at 18% 12%, rgba(99,102,241,0.14), transparent 60%), radial-gradient(900px 480px at 82% 18%, rgba(236,72,153,0.10), transparent 55%), #0b1020; min-height: 100vh; }
-        .glass { background: rgba(255,255,255,0.1); backdrop-filter: blur(12px); border: 1px solid rgba(255,255,255,0.2); }
-        .config-card { transition: all 0.3s; cursor: pointer; }
-        .config-card:hover { transform: translateY(-2px); background: rgba(255,255,255,0.15); }
-        @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
-        @keyframes bounce { 0%, 20%, 53%, 80%, 100% { transform: translate3d(0,0,0); } 40%, 43% { transform: translate3d(0,-8px,0); } 70% { transform: translate3d(0,-4px,0); } 90% { transform: translate3d(0,-2px,0); } }
-        @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.5; } }
-        @keyframes fade-out { from { opacity: 1; transform: translateX(0); } to { opacity: 0; transform: translateX(100%); } }
-        /* Slow animations */
-        .animate-spin { animation: spin 2.5s linear infinite; }
-        .animate-bounce { animation: bounce 1.8s infinite; }
-        .animate-pulse { animation: pulse 4s cubic-bezier(0.4, 0, 0.6, 1) infinite; }
-    </style>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>StreamlineVPN Config Generator</title>
+  <meta name="description" content="Generate custom VPN configurations with StreamlineVPN">
+  <script src="/api-base.js"></script>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="/assets/css/style.css" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap" rel="stylesheet">
 </head>
-<body class="bg-app text-white">
-    <div class="container mx-auto px-4 py-10 max-w-6xl">
-        <!-- Header -->
-        <header class="flex items-center justify-between mb-8">
-            <div class="flex items-center space-x-4">
-                <img src="assets/logo.svg" class="h-12 w-12" alt="Logo">
-                <div>
-                    <h1 class="text-3xl font-bold">Config Generator</h1>
-                    <p class="text-gray-300">Generate and export VPN configurations</p>
-                </div>
-            </div>
-            <a href="index.html" class="px-4 py-2 bg-white/20 rounded-lg hover:bg-white/30 transition">
-                ← Back to Home
-            </a>
-        </header>
-
-        <!-- Controls -->
-        <div class="grid md:grid-cols-2 gap-6 mb-8">
-            <div class="glass rounded-xl p-6">
-                <h2 class="text-xl font-semibold mb-4">Generation Options</h2>
-                
-                <div class="space-y-4">
-                    <div>
-                        <label class="block text-sm mb-2">Configuration Source</label>
-                        <select id="configSource" class="w-full px-4 py-2 rounded-lg bg-black/30 border border-white/20">
-                            <option value="config/sources.yaml">Default (500+ sources)</option>
-                            <option value="config/sources.premium.yaml">Premium Only</option>
-                            <option value="config/sources.community.yaml">Community Only</option>
-                        </select>
-                    </div>
-                    
-                    <div>
-                        <label class="block text-sm mb-2">Protocols</label>
-                        <div class="grid grid-cols-2 gap-2">
-                            <label class="flex items-center space-x-2">
-                                <input type="checkbox" class="protocol-filter" value="vless" checked>
-                                <span>VLESS</span>
-                            </label>
-                            <label class="flex items-center space-x-2">
-                                <input type="checkbox" class="protocol-filter" value="vmess" checked>
-                                <span>VMess</span>
-                            </label>
-                            <label class="flex items-center space-x-2">
-                                <input type="checkbox" class="protocol-filter" value="trojan" checked>
-                                <span>Trojan</span>
-                            </label>
-                            <label class="flex items-center space-x-2">
-                                <input type="checkbox" class="protocol-filter" value="ss" checked>
-                                <span>Shadowsocks</span>
-                            </label>
-                        </div>
-                    </div>
-                    
-                    <div>
-                        <label class="block text-sm mb-2">Quality Filter</label>
-                        <input type="range" id="qualityFilter" min="0" max="100" value="50" 
-                               class="w-full" oninput="document.getElementById('qualityValue').textContent = this.value + '%'">
-                        <div class="text-right text-sm">
-                            Minimum: <span id="qualityValue">50%</span>
-                        </div>
-                    </div>
-                    
-                    <button onclick="generateConfigs()" 
-                            class="w-full py-3 bg-gradient-to-r from-purple-600 to-pink-600 rounded-lg font-semibold hover:from-purple-700 hover:to-pink-700 transition">
-                        Generate Configurations
-                    </button>
-                </div>
-            </div>
-            
-            <div class="glass rounded-xl p-6">
-                <h2 class="text-xl font-semibold mb-4">Export Options</h2>
-                
-                <div class="space-y-4">
-                    <div>
-                        <label class="block text-sm mb-2">Export Formats</label>
-                        <div class="space-y-2">
-                            <label class="flex items-center justify-between p-3 bg-black/20 rounded-lg hover:bg-black/30">
-                                <span>JSON</span>
-                                <button onclick="exportFormat('json')" class="px-3 py-1 bg-blue-600 rounded text-sm">Export</button>
-                            </label>
-                            <label class="flex items-center justify-between p-3 bg-black/20 rounded-lg hover:bg-black/30">
-                                <span>Clash</span>
-                                <button onclick="exportFormat('clash')" class="px-3 py-1 bg-blue-600 rounded text-sm">Export</button>
-                            </label>
-                            <label class="flex items-center justify-between p-3 bg-black/20 rounded-lg hover:bg-black/30">
-                                <span>Sing-Box</span>
-                                <button onclick="exportFormat('singbox')" class="px-3 py-1 bg-blue-600 rounded text-sm">Export</button>
-                            </label>
-                            <label class="flex items-center justify-between p-3 bg-black/20 rounded-lg hover:bg-black/30">
-                                <span>Base64</span>
-                                <button onclick="exportFormat('base64')" class="px-3 py-1 bg-blue-600 rounded text-sm">Export</button>
-                            </label>
-                        </div>
-                    </div>
-                    
-                    <div class="pt-4 border-t border-white/20">
-                        <div class="text-sm text-gray-300 mb-2">Statistics</div>
-                        <div class="grid grid-cols-2 gap-4">
-                            <div>
-                                <div class="text-2xl font-bold" id="totalConfigs">0</div>
-                                <div class="text-xs text-gray-400">Total Configs</div>
-                            </div>
-                            <div>
-                                <div class="text-2xl font-bold" id="filteredConfigs">0</div>
-                                <div class="text-xs text-gray-400">After Filter</div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
+<body class="bg-app text-white" style="background:#0b1020">
+  <div class="container mx-auto px-4 py-10 max-w-5xl">
+    <header class="flex items-center justify-between mb-8">
+      <div class="flex items-center space-x-3">
+        <div class="w-10 h-10 rounded-lg bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center font-bold">S</div>
+        <div>
+          <h1 class="text-2xl font-bold">Config Generator</h1>
+          <p class="text-sm text-gray-300">Create and export VPN configurations</p>
         </div>
-
-        <!-- Configuration List -->
-        <div class="glass rounded-xl p-6">
-            <h2 class="text-xl font-semibold mb-4">Generated Configurations</h2>
-            <div id="configList" class="space-y-2 max-h-96 overflow-y-auto">
-                <div class="text-center text-gray-400 py-8">
-                    <svg class="w-16 h-16 mx-auto mb-4 opacity-50" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
-                    </svg>
-                    <p>No configurations generated yet</p>
-                    <p class="text-sm mt-2">Click "Generate Configurations" to start</p>
-                </div>
-            </div>
+      </div>
+      <div class="flex items-center space-x-4">
+        <div id="connectionStatus" class="flex items-center text-sm">
+          <span class="status-dot status-warning"></span>
+          <span class="ml-2">Checking...</span>
         </div>
+        <a href="/interactive.html" class="glass rounded-lg px-4 py-2 text-sm hover:bg-white/20 transition">← Control Panel</a>
+      </div>
+    </header>
+
+    <div class="glass rounded-xl p-6 mb-6">
+      <div class="flex items-center justify-between mb-4">
+        <h3 class="text-lg font-semibold">Wizard</h3>
+        <div class="text-sm text-gray-400">Step <span id="currentStep">1</span> / 3</div>
+      </div>
+      <div class="grid grid-cols-3 gap-3 text-center">
+        <div class="p-2 rounded bg-blue-600" id="stepBadge1">1. Protocol</div>
+        <div class="p-2 rounded bg-gray-700" id="stepBadge2">2. Parameters</div>
+        <div class="p-2 rounded bg-gray-700" id="stepBadge3">3. Output</div>
+      </div>
     </div>
 
-<script>
-    // Ensure API base is set correctly
-    const API_BASE = (() => {
-        if (window.__API_BASE__ && window.__API_BASE__.startsWith('http')) {
-            return window.__API_BASE__;
-        }
-        const host = window.location.hostname;
-        if (host === 'localhost' || host === '127.0.0.1') {
-            return `http://${host}:8080`;
-        } else if (host.includes('github.io')) {
-            // Force localhost for GitHub pages
-            return 'http://localhost:8080';
-        }
-        return `${window.location.protocol}//${host}`;
-    })();
+    <!-- Step 1 -->
+    <section id="step1" class="glass rounded-xl p-6 mb-6">
+      <h2 class="text-xl font-semibold mb-4">Select Protocol</h2>
+      <div class="grid grid-cols-2 md:grid-cols-3 gap-4">
+        <button class="protocol-btn glass p-4 rounded-lg" data-protocol="vmess">VMess</button>
+        <button class="protocol-btn glass p-4 rounded-lg" data-protocol="vless">VLESS</button>
+        <button class="protocol-btn glass p-4 rounded-lg" data-protocol="trojan">Trojan</button>
+        <button class="protocol-btn glass p-4 rounded-lg" data-protocol="shadowsocks">Shadowsocks</button>
+        <button class="protocol-btn glass p-4 rounded-lg" data-protocol="hysteria">Hysteria</button>
+        <button class="protocol-btn glass p-4 rounded-lg" data-protocol="tuic">TUIC</button>
+      </div>
+    </section>
 
-    let allConfigs = [];
-    let filteredConfigs = [];
+    <!-- Step 2 -->
+    <section id="step2" class="glass rounded-xl p-6 mb-6 hidden">
+      <h2 class="text-xl font-semibold mb-4">Parameters</h2>
+      <div class="grid md:grid-cols-2 gap-4">
+        <div>
+          <label class="block text-sm mb-1">Server</label>
+          <input id="server" class="w-full px-3 py-2 bg-gray-700 rounded" placeholder="example.com" />
+        </div>
+        <div>
+          <label class="block text-sm mb-1">Port</label>
+          <input id="port" type="number" class="w-full px-3 py-2 bg-gray-700 rounded" placeholder="443" />
+        </div>
+        <div>
+          <label class="block text-sm mb-1">User ID / Password</label>
+          <div class="flex space-x-2">
+            <input id="userId" class="w-full px-3 py-2 bg-gray-700 rounded" placeholder="Auto-generated" />
+            <button id="genUserId" class="btn btn-secondary">Generate</button>
+          </div>
+        </div>
+        <div>
+          <label class="block text-sm mb-1">Network</label>
+          <select id="network" class="w-full px-3 py-2 bg-gray-700 rounded">
+            <option value="tcp">TCP</option>
+            <option value="ws">WebSocket</option>
+            <option value="grpc">gRPC</option>
+            <option value="quic">QUIC</option>
+          </select>
+        </div>
+        <div>
+          <label class="block text-sm mb-1">Encryption</label>
+          <select id="encryption" class="w-full px-3 py-2 bg-gray-700 rounded">
+            <option value="auto">Auto</option>
+            <option value="aes-128-gcm">AES-128-GCM</option>
+            <option value="aes-256-gcm">AES-256-GCM</option>
+            <option value="chacha20-ietf-poly1305">ChaCha20-Poly1305</option>
+          </select>
+        </div>
+        <div class="flex items-center space-x-4">
+          <label class="flex items-center space-x-2"><input id="tls" type="checkbox" class="rounded" checked /><span>TLS</span></label>
+          <label class="flex items-center space-x-2"><input id="insecure" type="checkbox" class="rounded" /><span>Skip Verify</span></label>
+        </div>
+      </div>
+    </section>
 
-    const el = (id) => document.getElementById(id);
-    const qsa = (sel) => Array.from(document.querySelectorAll(sel));
+    <!-- Step 3 -->
+    <section id="step3" class="glass rounded-xl p-6 mb-6 hidden">
+      <h2 class="text-xl font-semibold mb-4">Output</h2>
+      <div class="grid md:grid-cols-3 gap-4 mb-4">
+        <label class="flex items-center space-x-2"><input class="fmt" type="checkbox" value="url" checked /><span>Share URL</span></label>
+        <label class="flex items-center space-x-2"><input class="fmt" type="checkbox" value="json" /><span>JSON</span></label>
+        <label class="flex items-center space-x-2"><input class="fmt" type="checkbox" value="clash" /><span>Clash</span></label>
+        <label class="flex items-center space-x-2"><input class="fmt" type="checkbox" value="singbox" /><span>Sing-Box</span></label>
+        <label class="flex items-center space-x-2"><input class="fmt" type="checkbox" value="subscription" /><span>Subscription</span></label>
+      </div>
+      <div class="format-preview" id="preview">Select formats and click Generate</div>
+    </section>
 
-    // --- Data Fetching and Processing ---
+    <div class="flex items-center justify-between">
+      <button id="prev" class="px-4 py-2 border border-gray-600 rounded" disabled>Previous</button>
+      <div class="space-x-2">
+        <button id="reset" class="px-4 py-2 text-gray-300 hover:text-white">Reset</button>
+      </div>
+      <button id="next" class="px-4 py-2 bg-blue-600 hover:bg-blue-700 rounded">Next</button>
+    </div>
+  </div>
 
-    async function generateConfigs() {
-        const btn = event.target;
-        const originalText = btn.innerHTML;
-        btn.disabled = true;
-        btn.innerHTML = `<span class="flex items-center justify-center"><svg class="animate-spin h-5 w-5 mr-2" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4" fill="none"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>Generating...</span>`;
+  <script>
+  const API_BASE = window.__API_BASE__ || 'http://localhost:8080';
+  const connectionStatus = document.getElementById('connectionStatus');
+  fetch(`${API_BASE}/health`).then(r=>{
+    const ok = r.ok; connectionStatus.querySelector('.status-dot').className = 'status-dot ' + (ok?'status-active':'status-inactive');
+    connectionStatus.querySelector('span:last-child').textContent = ok?'Connected':'Disconnected';
+  }).catch(()=>{
+    connectionStatus.querySelector('.status-dot').className = 'status-dot status-inactive';
+    connectionStatus.querySelector('span:last-child').textContent = 'Disconnected';
+  });
 
-        try {
-            const configPath = el('configSource').value;
-            const response = await fetch(`${API_BASE}/api/v1/pipeline/run`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    config_path: configPath,
-                    output_dir: 'output',
-                    formats: ['json', 'clash', 'singbox', 'base64'] // Generate all formats
-                })
-            });
-            
-            if (!response.ok) {
-                const errorData = await response.json().catch(() => ({ detail: 'An unknown error occurred.' }));
-                throw new Error(errorData.detail || `HTTP Error ${response.status}`);
-            }
-            
-            const result = await response.json();
-            showNotification(`Processing started! Job ID: ${result.job_id}. Configs will refresh shortly.`, 'success');
-            
-            // Poll for completion and then reload
-            pollJobStatus(result.job_id);
+  let step = 1; let protocol = null;
+  const currentStep = document.getElementById('currentStep');
+  const stepEls = [null, document.getElementById('step1'), document.getElementById('step2'), document.getElementById('step3')];
+  const badges = [null, document.getElementById('stepBadge1'), document.getElementById('stepBadge2'), document.getElementById('stepBadge3')];
 
-        } catch (error) {
-            console.error('Generate error:', error);
-            showNotification(`Failed to start generation: ${error.message}`, 'error');
-        } finally {
-            btn.disabled = false;
-            btn.innerHTML = originalText.replace('Generating...', 'Generate Configurations');
-        }
-    }
+  function showStep(n){
+    step = n; currentStep.textContent = n;
+    stepEls.forEach((el,i)=>{ if(!el) return; el.classList.toggle('hidden', i!==n); });
+    badges.forEach((b,i)=>{ if(!b) return; b.className = 'p-2 rounded ' + (i===n? 'bg-blue-600' : 'bg-gray-700'); });
+    document.getElementById('prev').disabled = n===1;
+    document.getElementById('next').textContent = n===3? 'Generate' : 'Next';
+  }
 
-    async function pollJobStatus(jobId) {
-        const interval = setInterval(async () => {
-            try {
-                const response = await fetch(`${API_BASE}/api/v1/pipeline/status/${jobId}`);
-                if (!response.ok) return; // Silently fail
-                const status = await response.json();
-                if (status.status === 'completed') {
-                    clearInterval(interval);
-                    showNotification('Generation complete! Reloading configurations...', 'success');
-                    await loadConfigs();
-                } else if (status.status === 'failed') {
-                    clearInterval(interval);
-                    showNotification('Generation job failed.', 'error');
-                }
-            } catch (e) {
-                // Ignore polling errors
-            }
-        }, 3000);
-    }
+  document.querySelectorAll('.protocol-btn').forEach(btn=>{
+    btn.addEventListener('click',()=>{ protocol = btn.dataset.protocol; showStep(2); });
+  });
 
-    async function loadConfigs() {
-        const configList = el('configList');
-        configList.innerHTML = '<div class="text-center text-gray-400 py-8">Loading...</div>';
+  function uuid(){return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g,c=>{const r=Math.random()*16|0,v=c==='x'?r:(r&0x3|0x8);return v.toString(16);});}
+  document.getElementById('genUserId').addEventListener('click',(e)=>{ e.preventDefault(); document.getElementById('userId').value = uuid(); });
 
-        try {
-            const response = await fetch(`${API_BASE}/api/v1/configurations?limit=2000`); // Fetch a large number
-            if (!response.ok) throw new Error(`HTTP ${response.status}`);
-            
-            const data = await response.json();
-            allConfigs = data.configurations || [];
-            applyFilters();
+  document.getElementById('reset').addEventListener('click',()=>{ protocol=null; document.getElementById('server').value=''; document.getElementById('port').value=''; document.getElementById('userId').value=''; showStep(1); });
+  document.getElementById('prev').addEventListener('click',()=>showStep(Math.max(1, step-1)));
+  document.getElementById('next').addEventListener('click',()=>{
+    if(step===1){ if(!protocol){alert('Select a protocol'); return;} showStep(2); return; }
+    if(step===2){ showStep(3); return; }
+    if(step===3){ generate(); }
+  });
 
-        } catch (error) {
-            console.error('Load configs error:', error);
-            configList.innerHTML = `<div class="text-center text-red-500 py-8">Error loading configurations: ${error.message}</div>`;
-        }
-    }
+  function generate(){
+    const cfg = {
+      protocol,
+      server: document.getElementById('server').value,
+      port: parseInt(document.getElementById('port').value||'0',10),
+      userId: document.getElementById('userId').value || uuid(),
+      network: document.getElementById('network').value,
+      encryption: document.getElementById('encryption').value,
+      tls: document.getElementById('tls').checked,
+      insecure: document.getElementById('insecure').checked
+    };
+    const formats = Array.from(document.querySelectorAll('.fmt:checked')).map(x=>x.value);
+    if(formats.length===0){ alert('Select at least one format'); return; }
+    const out = [];
+    if(formats.includes('url')) out.push(url(cfg));
+    if(formats.includes('json')) out.push('JSON\n'+json(cfg));
+    if(formats.includes('clash')) out.push('Clash\n'+clash(cfg));
+    if(formats.includes('singbox')) out.push('Sing-Box\n'+singbox(cfg));
+    if(formats.includes('subscription')) out.push('Subscription\n'+btoa(url(cfg)));
+    document.getElementById('preview').textContent = out.join('\n\n');
+  }
 
-    // --- Filtering and Rendering ---
+  function url(c){
+    const b = btoa(JSON.stringify({v:'2', ps:`${c.server}:${c.port}`, add:c.server, port:c.port, id:c.userId, aid:0, net:c.network, type:'none', host:'', path:'', tls:c.tls?'tls':'' }));
+    return `${c.protocol}://${b}`;
+  }
+  function json(c){
+    return JSON.stringify({ outbounds: [{ protocol:c.protocol, settings:{ vnext:[{ address:c.server, port:c.port, users:[{id:c.userId, alterId:0, security:c.encryption}]}]}, streamSettings:{ network:c.network, security:c.tls?'tls':'none' } }]}, null, 2);
+  }
+  function clash(c){
+    return `proxies:\n  - name: "${c.server}"\n    type: ${c.protocol}\n    server: ${c.server}\n    port: ${c.port}\n    uuid: ${c.userId}\n    alterId: 0\n    cipher: ${c.encryption}\n    tls: ${c.tls}\n    network: ${c.network}`;
+  }
+  function singbox(c){
+    const o = { outbounds:[{ type:c.protocol, tag:'proxy', server:c.server, server_port:c.port, uuid:c.userId, security:c.encryption, transport:{type:c.network} }]};
+    if(c.tls) o.outbounds[0].tls = { enabled:true, insecure:c.insecure };
+    return JSON.stringify(o, null, 2);
+  }
 
-    function applyFilters() {
-        const qualityThreshold = parseInt(el('qualityFilter').value, 10) / 100;
-        const allowedProtocols = qsa('.protocol-filter:checked').map(cb => cb.value);
-
-        filteredConfigs = allConfigs.filter(config => {
-            const qualityMatch = (config.quality_score || 0) >= qualityThreshold;
-            const protocolMatch = allowedProtocols.includes(config.protocol);
-            return qualityMatch && protocolMatch;
-        });
-
-        renderConfigs();
-    }
-
-    function renderConfigs() {
-        el('totalConfigs').textContent = allConfigs.length;
-        el('filteredConfigs').textContent = filteredConfigs.length;
-
-        const configList = el('configList');
-        if (filteredConfigs.length === 0) {
-            configList.innerHTML = `
-                <div class="text-center text-gray-400 py-8">
-                    <svg class="w-16 h-16 mx-auto mb-4 opacity-50" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
-                    <p>No configurations match your filters.</p>
-                    <p class="text-sm mt-2">Try adjusting the quality slider or selecting more protocols.</p>
-                </div>`;
-            return;
-        }
-
-        configList.innerHTML = filteredConfigs.map(config => `
-            <div class="config-card glass p-3 rounded-lg flex justify-between items-center">
-                <div>
-                    <span class="text-xs px-2 py-1 rounded-full bg-purple-600/50">${config.protocol || 'N/A'}</span>
-                    <span class="ml-3 font-mono text-sm">${config.server || 'Unknown'}:${config.port || 0}</span>
-                </div>
-                <div class="text-sm text-gray-300">
-                    Quality: <span class="font-semibold text-green-400">${(config.quality_score * 100).toFixed(0)}%</span>
-                </div>
-            </div>
-        `).join('');
-    }
-
-    // --- Exporting ---
-
-    function exportFormat(format) {
-        if (filteredConfigs.length === 0) {
-            showNotification('No configurations to export. Adjust filters first.', 'error');
-            return;
-        }
-
-        let content = '';
-        let filename = `streamline-configs-${new Date().toISOString().split('T')[0]}`;
-        let mimeType = 'text/plain';
-
-        try {
-            switch(format) {
-                case 'json':
-                    content = JSON.stringify(filteredConfigs, null, 2);
-                    filename += '.json';
-                    mimeType = 'application/json';
-                    break;
-                case 'clash':
-                    const clashData = {
-                        proxies: filteredConfigs.map(c => {
-                            let proxy = {
-                                name: `${c.protocol}-${c.server}:${c.port}`,
-                                type: c.protocol,
-                                server: c.server,
-                                port: c.port,
-                            };
-                            if (c.password) proxy.password = c.password;
-                            if (c.ws_path) proxy['ws-opts'] = { path: c.ws_path };
-                            if (c.tls) proxy.tls = c.tls;
-                            return proxy;
-                        })
-                    };
-                    // A proper YAML serializer would be better, but this is a simple approximation
-                    content = `proxies:\n${clashData.proxies.map(p => `  - ${JSON.stringify(p)}`).join('\n')}`;
-                    filename += '.yaml';
-                    mimeType = 'application/x-yaml';
-                    break;
-                case 'singbox':
-                     content = JSON.stringify({
-                        outbounds: filteredConfigs.map(c => ({
-                            type: c.protocol,
-                            tag: `${c.protocol}-${c.server}`,
-                            server: c.server,
-                            server_port: c.port
-                        }))
-                    }, null, 2);
-                    filename += '.json';
-                    mimeType = 'application/json';
-                    break;
-                case 'base64':
-                    const subLinks = filteredConfigs.map(c => `${c.protocol}://${c.server}:${c.port}`); // Simplified
-                    content = btoa(subLinks.join('\n'));
-                    filename += '.txt';
-                    mimeType = 'text/plain';
-                    break;
-            }
-            downloadFile(content, filename, mimeType);
-            showNotification(`Exported ${filteredConfigs.length} configs as ${format}.`, 'success');
-        } catch (e) {
-            console.error(`Export failed for format ${format}:`, e);
-            showNotification(`Export failed: ${e.message}`, 'error');
-        }
-    }
-
-    function downloadFile(content, filename, mimeType) {
-        const blob = new Blob([content], { type: mimeType });
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = filename;
-        document.body.appendChild(a);
-        a.click();
-        document.body.removeChild(a);
-        URL.revokeObjectURL(url);
-    }
-
-    // --- UI Utilities ---
-
-    function showNotification(message, type = 'info') {
-        const container = el('notification-container') || createNotificationContainer();
-        const color = type === 'success' ? 'bg-green-600' : type === 'error' ? 'bg-red-600' : 'bg-blue-600';
-
-        const notification = document.createElement('div');
-        notification.className = `p-4 rounded-lg text-white shadow-lg mb-2 ${color} transition-all duration-300 transform translate-x-full`;
-        notification.textContent = message;
-
-        container.prepend(notification);
-
-        // Animate in
-        setTimeout(() => notification.classList.remove('translate-x-full'), 10);
-
-        // Animate out and remove
-        setTimeout(() => {
-            notification.classList.add('opacity-0', 'translate-y-[-20px]');
-            setTimeout(() => notification.remove(), 500);
-        }, 4000);
-    }
-
-    function createNotificationContainer() {
-        let container = el('notification-container');
-        if (!container) {
-            container = document.createElement('div');
-            container.id = 'notification-container';
-            container.className = 'fixed top-4 right-4 w-80 z-50';
-            document.body.appendChild(container);
-        }
-        return container;
-    }
-
-
-    // --- Initialization ---
-
-    window.addEventListener('DOMContentLoaded', () => {
-        loadConfigs();
-
-        // Add event listeners to filter controls
-        qsa('.protocol-filter').forEach(cb => cb.addEventListener('change', applyFilters));
-
-        const qualitySlider = el('qualityFilter');
-        qualitySlider.addEventListener('input', () => {
-            el('qualityValue').textContent = qualitySlider.value + '%';
-            applyFilters();
-        });
-    });
-</script>
+  // Defaults
+  document.getElementById('userId').value = uuid();
+  </script>
 </body>
 </html>
