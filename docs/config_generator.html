@@ -163,7 +163,7 @@
             
             try {
                 // Start pipeline
-                const response = await fetch(`${API_BASE}/api/process`, {
+                const response = await fetch(`${API_BASE}/api/v1/pipeline/run`, {
                     method: 'POST',
                     headers: {'Content-Type': 'application/json'},
                     body: JSON.stringify({
@@ -193,7 +193,7 @@
         async function pollJobStatus(jobId) {
             const maxAttempts = 30;
             for (let i = 0; i < maxAttempts; i++) {
-                const response = await fetch(`${API_BASE}/api/status`);
+                const response = await fetch(`${API_BASE}/api/v1/pipeline/status/${jobId}`);
                 const status = await response.json();
                 
                 if (status.status === 'completed') return true;
@@ -206,7 +206,7 @@
 
         async function loadConfigurations(protocols, quality) {
             try {
-                const response = await fetch(`${API_BASE}/api/configurations?limit=1000`);
+                const response = await fetch(`${API_BASE}/api/v1/configurations?limit=1000`);
                 if (!response.ok) {
                     console.warn(`Config API returned: ${response.status}`);
                     showError('Configuration service temporarily unavailable');

@@ -55,15 +55,25 @@ class StreamlineVPNMerger(BaseMerger):
 
         # Loaded source URLs
         self.sources: List[str] = []
+        self.initialized: bool = False
 
         logger.info(
             f"StreamlineVPN merger initialized with config: {config_path}"
         )
 
     async def initialize(self):
-        """Initialize the merger."""
-        await super().initialize()
-        await self.fetcher_service.initialize()
+        """Initialize the merger and preload components."""
+        try:
+            await super().initialize()
+            await self.fetcher_service.initialize()
+            # Preload sources to validate configuration early
+            await self._load_sources()
+            self.initialized = True
+            logger.info("Merger initialization complete")
+        except Exception as e:
+            logger.error(f"Failed to initialize merger: {e}")
+            self.initialized = False
+            raise
 
     async def shutdown(self):
         """Shutdown the merger and save performance data."""
@@ -71,6 +81,7 @@ class StreamlineVPNMerger(BaseMerger):
             logger.info("Saving source performance data...")
             await self.source_manager.save_performance_data()
         await self.fetcher_service.close()
+        self.initialized = False
 
     async def __aenter__(self):
         """Async context manager entry."""

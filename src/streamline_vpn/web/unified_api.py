@@ -259,6 +259,7 @@ class HealthResponse(BaseModel):
     timestamp: str
     version: str
     uptime: float
+    merger_initialized: bool
 
 
 class PipelineRequest(BaseModel):
@@ -427,6 +428,7 @@ class UnifiedAPI:
                 timestamp=datetime.now().isoformat(),
                 version="3.0.0",
                 uptime=uptime,
+                merger_initialized=self.merger is not None,
             )
 
         @app.post(
