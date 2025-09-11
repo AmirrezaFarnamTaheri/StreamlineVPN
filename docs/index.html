@@ -55,6 +55,13 @@
         /* Remove typewriter blinking caret effect globally */
         .animate-typewriter { animation: typewriter 3s steps(40, end); overflow: hidden; white-space: nowrap; }
         .animate-glow { animation: glow 4s ease-in-out infinite; }
+        
+        /* Explicitly remove any glow effects from copyright and description text */
+        .text-gray-400, .text-gray-300 {
+            filter: none !important;
+            box-shadow: none !important;
+            text-shadow: none !important;
+        }
         .animate-rotate { animation: rotate 30s linear infinite; }
         .animate-bounce-in { animation: bounce-in 0.9s ease-out; }
         .animate-slide-up { animation: slide-up 0.9s ease-out; }
@@ -270,7 +277,7 @@
     </section>
 
     <!-- Footer -->
-    <footer class="py-12 px-6 border-t border-white/10 animate-fade-in-up">
+    <footer class="py-12 px-6 border-t border-white/10">
         <div class="container mx-auto text-center">
             <div class="flex justify-center space-x-8 mb-6">
                 <a href="api/index.html" class="hover:text-purple-400 transition hover:animate-wiggle">📚 API Docs</a>
