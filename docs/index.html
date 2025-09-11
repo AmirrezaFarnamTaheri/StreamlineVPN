@@ -16,13 +16,6 @@
         .float-animation { animation: float 10s ease-in-out infinite; }
         .pulse-glow { animation: pulse-glow 6s ease-in-out infinite; }
         .pulse-scale { animation: pulse-scale 4s ease-in-out infinite; }
-        .gradient-text {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 50%, #f093fb 100%);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-            background-clip: text;
-            filter: drop-shadow(0 0 20px rgba(102, 126, 234, 0.3));
-        }
         .glass {
             background: rgba(255,255,255,0.05);
             backdrop-filter: blur(10px);
@@ -36,7 +29,6 @@
         @keyframes fade-in { from { opacity: 0; } to { opacity: 1; } }
         @keyframes typewriter { from { width: 0; } to { width: 100%; } }
         @keyframes blink { 0%, 50% { border-color: transparent; } 51%, 100% { border-color: #667eea; } }
-        @keyframes glow { 0%, 20%, 100% { box-shadow: 0 0 16px rgba(102, 126, 234, 0.25); } 50% { box-shadow: 0 0 28px rgba(102, 126, 234, 0.5); } 80% { box-shadow: 0 0 18px rgba(102, 126, 234, 0.3); } }
         @keyframes rotate { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
         @keyframes bounce-in { 0% { transform: scale(0.85); opacity: 0; } 60% { transform: scale(1.03); } 80% { transform: scale(0.98); } 100% { transform: scale(1); opacity: 1; } }
         @keyframes slide-up { from { transform: translateY(80px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
@@ -54,10 +46,31 @@
         .animate-fade-in { animation: fade-in 0.9s ease-out; }
         /* Remove typewriter blinking caret effect globally */
         .animate-typewriter { animation: typewriter 3s steps(40, end); overflow: hidden; white-space: nowrap; }
-        .animate-glow { animation: glow 4s ease-in-out infinite; }
         
         /* Explicitly remove any glow effects from copyright and description text */
         .text-gray-400, .text-gray-300 {
+            filter: none !important;
+            box-shadow: none !important;
+            text-shadow: none !important;
+        }
+        
+        /* Additional specific overrides for our target elements */
+        footer p.text-gray-400 {
+            filter: none !important;
+            box-shadow: none !important;
+            text-shadow: none !important;
+            animation: none !important;
+        }
+        
+        .hero-section p.text-gray-300 {
+            filter: none !important;
+            box-shadow: none !important;
+            text-shadow: none !important;
+            animation: none !important;
+        }
+        
+        /* Override any potential inherited glow effects */
+        p[class*="text-gray"] {
             filter: none !important;
             box-shadow: none !important;
             text-shadow: none !important;
