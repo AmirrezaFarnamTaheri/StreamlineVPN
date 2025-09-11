@@ -37,21 +37,25 @@
         return;
     }
     
-    // Auto-detect based on hostname
+    // Auto-detect based on hostname - FIXED to prevent GitHub Pages issues
     const hostname = window.location.hostname;
     const protocol = window.location.protocol;
-    
-    // Default API port is 8080
+
+    // Force localhost for GitHub Pages and other static hosts
     let apiBase;
     if (hostname === 'localhost' || hostname === '127.0.0.1') {
         // Local development
         apiBase = `${protocol}//${hostname}:8080`;
+    } else if (hostname.includes('github.io') || hostname.includes('gitlab.io') || hostname.includes('netlify') || hostname.includes('vercel')) {
+        // Static hosting - always use localhost API
+        console.warn('Static hosting detected, defaulting to localhost API');
+        apiBase = 'http://localhost:8080';
     } else if (hostname.includes('localhost') || hostname.includes('127.0.0.1')) {
         // Docker or WSL
         apiBase = `${protocol}//${hostname.split(':')[0]}:8080`;
     } else {
-        // Production - assume same host
-        apiBase = `${protocol}//${hostname}`;
+        // Production - check if API exists on same host, otherwise localhost
+        apiBase = `${protocol}//${hostname}:8080`;
     }
     
     // Probe health on both default and current host, choose the first that answers
