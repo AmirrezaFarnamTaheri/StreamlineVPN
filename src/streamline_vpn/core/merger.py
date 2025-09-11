@@ -196,7 +196,9 @@ class StreamlineVPNMerger(BaseMerger):
         """Load sources from configuration.
         
         Loads active sources from the source manager and validates them.
-        Updates internal sources list for processing.
+        Updates internal sources list for processing. If no active sources are
+        returned from the manager, attempts to parse them directly from the
+        configuration file as a fallback.
         
         Raises:
             RuntimeError: If source loading fails
@@ -204,10 +206,43 @@ class StreamlineVPNMerger(BaseMerger):
         try:
             if not self.source_manager:
                 raise RuntimeError("Source manager not initialized")
-                
+
+            # Primary: use source manager's active sources
             self.sources = await self.source_manager.get_active_sources()
-            logger.info(f"Successfully loaded {len(self.sources)} active sources")
-            
+
+            # Fallback: parse directly from config if empty
+            if not self.sources:
+                try:
+                    from pathlib import Path as _Path
+                    import yaml as _yaml  # type: ignore
+
+                    cfg_path = _Path(self.config_path)
+                    if cfg_path.exists():
+                        with open(cfg_path, "r", encoding="utf-8") as f:
+                            cfg = _yaml.safe_load(f) or {}
+
+                        srcs = []
+                        sources_data = cfg.get("sources", {})
+                        for tier_name, tier_sources in sources_data.items():
+                            # Support both { tier: { urls: [...] } } and { tier: [...] }
+                            urls = None
+                            if isinstance(tier_sources, dict):
+                                urls = tier_sources.get("urls")
+                            elif isinstance(tier_sources, list):
+                                urls = tier_sources
+                            if not urls:
+                                continue
+                            for entry in urls:
+                                if isinstance(entry, str):
+                                    srcs.append(entry)
+                                elif isinstance(entry, dict) and "url" in entry:
+                                    srcs.append(entry["url"])
+                        self.sources = srcs
+                except Exception as parse_err:
+                    logger.warning(f"Config fallback parsing failed: {parse_err}")
+
+            logger.info(f"Loaded {len(self.sources)} sources")
+
         except Exception as e:
             logger.error(f"Failed to load sources: {e}")
             self.sources = []
