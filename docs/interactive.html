@@ -330,6 +330,75 @@
         }
     }
 
+    // Load sources function
+    async function loadSources() {
+        const sourcesList = document.getElementById('sourcesList');
+        if (!sourcesList) return;
+        
+        try {
+            const response = await fetch(`${API_BASE}/api/v1/sources`);
+            if (!response.ok) throw new Error('Failed to fetch sources');
+            
+            const data = await response.json();
+            const sources = data.sources || [];
+            
+            if (sources.length > 0) {
+                sourcesList.innerHTML = sources.map(source => `
+                    <div class="glass rounded-lg p-3 mb-2">
+                        <div class="text-sm font-medium">${source.url}</div>
+                        <div class="text-xs text-gray-400">
+                            Status: ${source.status} | Success: ${(source.success_rate * 100).toFixed(1)}%
+                        </div>
+                    </div>
+                `).join('');
+            } else {
+                sourcesList.innerHTML = '<div class="text-gray-400">No sources available</div>';
+            }
+        } catch (error) {
+            console.error('Error loading sources:', error);
+            sourcesList.innerHTML = '<div class="text-red-400">Failed to load sources</div>';
+        }
+    }
+
+    // Load configurations function  
+    async function loadConfigurations() {
+        const configsList = document.getElementById('configsList');
+        if (!configsList) return;
+        
+        try {
+            const response = await fetch(`${API_BASE}/api/v1/configurations?limit=10`);
+            if (!response.ok) throw new Error('Failed to fetch configurations');
+            
+            const data = await response.json();
+            const configs = data.configurations || [];
+            
+            if (configs.length > 0) {
+                configsList.innerHTML = configs.map(config => `
+                    <div class="glass rounded-lg p-3 mb-2">
+                        <div class="text-sm">
+                            <span class="font-medium">${config.protocol}</span>
+                            ${config.server}:${config.port}
+                        </div>
+                        <div class="text-xs text-gray-400">
+                            Quality: ${((config.quality_score || 0) * 100).toFixed(0)}%
+                        </div>
+                    </div>
+                `).join('');
+            } else {
+                configsList.innerHTML = '<div class="text-gray-400">No configurations available</div>';
+            }
+        } catch (error) {
+            console.error('Error loading configurations:', error);
+            configsList.innerHTML = '<div class="text-red-400">Failed to load configurations</div>';
+        }
+    }
+
+    // Auto-load data on page load
+    window.addEventListener('DOMContentLoaded', () => {
+        loadSources();
+        loadConfigurations();
+    });
+
     // Fully integrated backend connection
     (function() {
         
@@ -346,7 +415,7 @@
                 const configPath = document.getElementById('configPath').value || 'config/sources.yaml';
                 const formats = Array.from(document.querySelectorAll('.format-cb:checked')).map(cb => cb.value);
                 
-                // Call API
+                // Call API - Use correct v1 endpoint
                 const response = await fetch(`${API_BASE}/api/v1/pipeline/run`, {
                     method: 'POST',
                     headers: {'Content-Type': 'application/json'},
@@ -464,10 +533,41 @@
             btn.classList.add('active');
             const id = btn.getAttribute('data-tab');
             contents[id].classList.remove('hidden');
-            if (id === 'configs') refreshConfigurations();
-            if (id === 'sources') refreshSources();
+            if (id === 'configs') loadConfigurations();
+            if (id === 'sources') loadSources();
         }));
     }
+
+    // Tab switching functionality
+    document.querySelectorAll('.tab-btn').forEach(btn => {
+        btn.addEventListener('click', function() {
+            const tabName = this.dataset.tab;
+            
+            // Update active tab button
+            document.querySelectorAll('.tab-btn').forEach(b => {
+                b.classList.remove('active', 'text-white', 'border-indigo-400');
+                b.classList.add('text-gray-400');
+            });
+            this.classList.add('active', 'text-white', 'border-indigo-400');
+            this.classList.remove('text-gray-400');
+            
+            // Show/hide tab content
+            document.querySelectorAll('.tab-content').forEach(content => {
+                content.classList.add('hidden');
+            });
+            const tabContent = document.getElementById(`${tabName}-tab`);
+            if (tabContent) {
+                tabContent.classList.remove('hidden');
+            }
+            
+            // Load data for specific tabs
+            if (tabName === 'configs') {
+                loadConfigurations();
+            } else if (tabName === 'sources') {
+                loadSources();
+            }
+        });
+    });
 
     // Auto-refresh sources every 30 seconds
     setInterval(loadAllSources, 30000);

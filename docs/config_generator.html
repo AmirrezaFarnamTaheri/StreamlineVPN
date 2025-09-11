@@ -206,6 +206,7 @@
 
         async function loadConfigurations(protocols, quality) {
             try {
+                const API_BASE = window.__API_BASE__ || 'http://localhost:8080';
                 const response = await fetch(`${API_BASE}/api/v1/configurations?limit=1000`);
                 if (!response.ok) {
                     console.warn(`Config API returned: ${response.status}`);
@@ -232,6 +233,30 @@
             } catch (error) {
                 console.warn('Failed to load configurations:', error);
                 showError('Network error: Unable to load configurations');
+            }
+        }
+
+        async function generateConfigs() {
+            const API_BASE = window.__API_BASE__ || 'http://localhost:8080';
+            try {
+                const response = await fetch(`${API_BASE}/api/v1/pipeline/run`, {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({
+                        config_path: 'config/sources.yaml',
+                        output_dir: 'output',
+                        formats: ['json']
+                    })
+                });
+                
+                const result = await response.json();
+                if (result.job_id) {
+                    alert(`Pipeline started! Job ID: ${result.job_id}`);
+                    // Wait a bit then reload configs
+                    setTimeout(() => loadConfigurations([], 0), 3000);
+                }
+            } catch (error) {
+                alert('Failed to generate configs: ' + error.message);
             }
         }
 

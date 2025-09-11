@@ -423,8 +423,9 @@ class UnifiedAPI:
         @app.get("/health", response_model=HealthResponse, tags=["General"])
         async def health() -> HealthResponse:
             uptime = (datetime.now() - self.start_time).total_seconds()
+            merger_status = "healthy" if self.merger else "degraded"
             return HealthResponse(
-                status="healthy" if self.merger else "degraded",
+                status=merger_status,
                 timestamp=datetime.now().isoformat(),
                 version="3.0.0",
                 uptime=uptime,

@@ -62,26 +62,42 @@ class StreamlineVPNMerger(BaseMerger):
         )
 
     async def initialize(self):
-        """Initialize the merger and preload components."""
+        """Initialize the merger and all components."""
         try:
+            logger.info("Initializing StreamlineVPN Merger...")
+            
             await super().initialize()
             await self.fetcher_service.initialize()
-            # Preload sources to validate configuration early
+            
+            # Load sources
             await self._load_sources()
+            
+            # Initialize cache if available
+            if hasattr(self, 'cache_manager') and self.cache_manager:
+                await self.cache_manager.initialize()
+            
+            # Initialize other components
             self.initialized = True
             logger.info("Merger initialization complete")
+            
         except Exception as e:
             logger.error(f"Failed to initialize merger: {e}")
             self.initialized = False
             raise
 
     async def shutdown(self):
-        """Shutdown the merger and save performance data."""
-        if self.source_manager:
-            logger.info("Saving source performance data...")
-            await self.source_manager.save_performance_data()
-        await self.fetcher_service.close()
-        self.initialized = False
+        """Cleanup resources on shutdown."""
+        try:
+            if self.source_manager:
+                logger.info("Saving source performance data...")
+                await self.source_manager.save_performance_data()
+            if hasattr(self, 'cache_manager') and self.cache_manager:
+                await self.cache_manager.close()
+            await self.fetcher_service.close()
+            self.initialized = False
+            logger.info("Merger shutdown complete")
+        except Exception as e:
+            logger.error(f"Error during shutdown: {e}")
 
     async def __aenter__(self):
         """Async context manager entry."""
