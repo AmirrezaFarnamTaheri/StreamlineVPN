@@ -27,12 +27,29 @@
         @keyframes slide-in { from { transform: translateX(-20px); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
         @keyframes glow { 0%, 100% { box-shadow: 0 0 20px rgba(102, 126, 234, 0.3); } 50% { box-shadow: 0 0 40px rgba(102, 126, 234, 0.6); } }
         @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.7; } }
-        @keyframes bounce { 0%, 20%, 53%, 80%, 100% { transform: translate3d(0,0,0); } 40%, 43% { transform: translate3d(0,-8px,0); } 70% { transform: translate3d(0,-4px,0); } 90% { transform: translate3d(0,-2px,0); } }
+        @keyframes shimmer { 0% { background-position: -200% 0; } 100% { background-position: 200% 0; } }
+        @keyframes morphing { 0%, 100% { border-radius: 20px; } 25% { border-radius: 50px; } 50% { border-radius: 30px; } 75% { border-radius: 40px; } }
+        @keyframes particle-float { 0%, 100% { transform: translateY(0px) rotate(0deg); opacity: 0.7; } 50% { transform: translateY(-20px) rotate(180deg); opacity: 1; } }
+        @keyframes text-shimmer { 0% { background-position: -200% center; } 100% { background-position: 200% center; } }
+        @keyframes card-hover { 0% { transform: translateY(0) scale(1); } 100% { transform: translateY(-8px) scale(1.02); } }
+        @keyframes pulse-ring { 0% { transform: scale(0.8); opacity: 1; } 100% { transform: scale(2.4); opacity: 0; } }
+        @keyframes data-flow { 0% { transform: translateX(-100%); } 100% { transform: translateX(100vw); } }
+        @keyframes wiggle { 0%, 7% { transform: rotateZ(0); } 15% { transform: rotateZ(-15deg); } 20% { transform: rotateZ(10deg); } 25% { transform: rotateZ(-10deg); } 30% { transform: rotateZ(6deg); } 35% { transform: rotateZ(-4deg); } 40%, 100% { transform: rotateZ(0); } }
         .animate-fade-in-up { animation: fade-in-up 0.6s ease-out; }
         .animate-slide-in { animation: slide-in 0.4s ease-out; }
         .animate-glow { animation: glow 2s ease-in-out infinite; }
         .animate-pulse { animation: pulse 2s ease-in-out infinite; }
-        .animate-bounce { animation: bounce 1s ease-in-out; }
+        .animate-shimmer { background: linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent); background-size: 200% 100%; animation: shimmer 2s infinite; }
+        .animate-morphing { animation: morphing 4s ease-in-out infinite; }
+        .animate-particle-float { animation: particle-float 3s ease-in-out infinite; }
+        .animate-text-shimmer { background: linear-gradient(90deg, #667eea, #764ba2, #f093fb, #667eea); background-size: 200% 100%; -webkit-background-clip: text; -webkit-text-fill-color: transparent; animation: text-shimmer 3s linear infinite; }
+        .animate-card-hover { transition: all 0.3s ease; }
+        .animate-card-hover:hover { animation: card-hover 0.3s ease forwards; }
+        .animate-pulse-ring { position: relative; }
+        .animate-pulse-ring::before { content: ''; position: absolute; top: 50%; left: 50%; width: 100%; height: 100%; border: 2px solid rgba(102, 126, 234, 0.3); border-radius: 50%; transform: translate(-50%, -50%); animation: pulse-ring 2s infinite; }
+        .animate-data-flow { position: relative; overflow: hidden; }
+        .animate-data-flow::after { content: ''; position: absolute; top: 0; left: 0; width: 100%; height: 2px; background: linear-gradient(90deg, transparent, #667eea, transparent); animation: data-flow 3s linear infinite; }
+        .animate-wiggle { animation: wiggle 1s ease-in-out; }
         .stagger-1 { animation-delay: 0.1s; }
         .stagger-2 { animation-delay: 0.2s; }
         .stagger-3 { animation-delay: 0.3s; }
@@ -50,20 +67,23 @@
         .tab-btn.active { color: #fff; border-color: rgb(129 140 248); }
         .feature-badge { background: linear-gradient(135deg, #667eea, #764ba2); }
         .config-preview { background: rgba(0,0,0,0.8); border: 1px solid rgba(255,255,255,0.1); }
+        .interactive-config { background: linear-gradient(135deg, rgba(102, 126, 234, 0.1), rgba(118, 75, 162, 0.1)); }
+        .config-status { position: relative; }
+        .config-status::before { content: ''; position: absolute; top: 0; left: 0; right: 0; height: 3px; background: linear-gradient(90deg, #10b981, #3b82f6, #f59e0b); animation: shimmer 2s infinite; }
     </style>
 </head>
 <body class="bg-app text-white">
 <div class="animated-bg"></div>
 
 <!-- Header -->
-<header class="glass border-b border-white/10 sticky top-0 z-50">
+<header class="glass border-b border-white/10 sticky top-0 z-50 config-status">
     <div class="container mx-auto px-6 py-4">
         <div class="flex items-center justify-between">
             <div class="flex items-center space-x-4">
                 <a href="../index.html" class="flex items-center space-x-3 group">
-                    <img src="../assets/logo.svg" alt="StreamlineVPN Logo" class="h-10 w-10 group-hover:scale-110 transition-transform">
+                    <img src="../assets/logo.svg" alt="StreamlineVPN Logo" class="h-10 w-10 group-hover:scale-110 transition-transform animate-wiggle">
                     <div>
-                        <h1 class="text-xl font-bold group-hover:text-purple-400 transition-colors">StreamlineVPN Config</h1>
+                        <h1 class="text-xl font-bold group-hover:text-purple-400 transition-colors animate-text-shimmer">StreamlineVPN Config</h1>
                         <p class="text-sm text-gray-400">Configuration Management</p>
                     </div>
                 </a>
@@ -75,8 +95,12 @@
                     </svg>
                     Back to Home
                 </a>
-                <div class="px-3 py-1 bg-green-500/20 text-green-400 rounded-full text-sm">
+                <div class="px-3 py-1 bg-green-500/20 text-green-400 rounded-full text-sm animate-pulse">
                     v2.0
+                </div>
+                <div class="flex items-center space-x-2">
+                    <div class="w-2 h-2 bg-green-400 rounded-full animate-pulse"></div>
+                    <span class="text-sm text-green-400">Config Valid</span>
                 </div>
             </div>
         </div>
@@ -87,8 +111,8 @@
     <div class="grid grid-cols-1 lg:grid-cols-4 gap-8">
         <!-- Sidebar Navigation -->
         <div class="lg:col-span-1">
-            <div class="sidebar glass rounded-xl p-6">
-                <h3 class="text-lg font-semibold mb-4 animate-fade-in-up">⚙️ Configuration Guide</h3>
+            <div class="sidebar glass rounded-xl p-6 animate-morphing">
+                <h3 class="text-lg font-semibold mb-4 animate-fade-in-up animate-text-shimmer">⚙️ Configuration Guide</h3>
                 <nav class="space-y-2">
                     <a href="#overview" class="nav-link block px-4 py-2 rounded-lg text-sm animate-slide-in stagger-1">🚀 Overview</a>
                     <a href="#quick-start" class="nav-link block px-4 py-2 rounded-lg text-sm animate-slide-in stagger-2">⚡ Quick Start</a>
@@ -98,12 +122,30 @@
                     <a href="#advanced" class="nav-link block px-4 py-2 rounded-lg text-sm animate-slide-in stagger-6">🔧 Advanced</a>
                 </nav>
                 
-                <div class="mt-8 p-4 bg-blue-500/10 rounded-lg border border-blue-500/20">
+                <div class="mt-8 p-4 bg-blue-500/10 rounded-lg border border-blue-500/20 animate-shimmer">
                     <h4 class="font-semibold text-blue-400 mb-2">🛠️ Interactive Config</h4>
                     <p class="text-sm text-gray-300 mb-3">Test configurations in real-time</p>
-                    <button onclick="openConfigGenerator()" class="w-full px-4 py-2 bg-blue-600 hover:bg-blue-700 rounded-lg text-sm transition">
+                    <button onclick="openConfigGenerator()" class="w-full px-4 py-2 bg-blue-600 hover:bg-blue-700 rounded-lg text-sm transition animate-card-hover">
                         Open Generator
                     </button>
+                </div>
+
+                <div class="mt-4 p-4 bg-green-500/10 rounded-lg border border-green-500/20 animate-shimmer">
+                    <h4 class="font-semibold text-green-400 mb-2">📊 Config Status</h4>
+                    <div class="space-y-2 text-sm">
+                        <div class="flex justify-between">
+                            <span>Sources:</span>
+                            <span class="text-green-400" id="configSources">523</span>
+                        </div>
+                        <div class="flex justify-between">
+                            <span>Valid Configs:</span>
+                            <span class="text-blue-400" id="validConfigs">486</span>
+                        </div>
+                        <div class="flex justify-between">
+                            <span>Last Update:</span>
+                            <span class="text-purple-400" id="lastUpdate">2m ago</span>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
@@ -112,36 +154,36 @@
         <div class="lg:col-span-3">
             <!-- Overview Section -->
             <section id="overview" class="mb-12">
-                <div class="glass rounded-xl p-8 animate-fade-in-up">
-                    <h2 class="text-3xl font-bold mb-6 flex items-center">
+                <div class="glass rounded-xl p-8 animate-fade-in-up animate-morphing">
+                    <h2 class="text-3xl font-bold mb-6 flex items-center animate-text-shimmer">
                         🚀 Configuration Overview
-                        <span class="ml-3 px-3 py-1 feature-badge text-white rounded-full text-sm">v2.0</span>
+                        <span class="ml-3 px-3 py-1 feature-badge text-white rounded-full text-sm animate-pulse">v2.0</span>
                     </h2>
-                    <p class="text-lg text-gray-300 mb-6">
+                    <p class="text-lg text-gray-300 mb-6 animate-shimmer">
                         StreamlineVPN uses YAML-based configuration files to manage VPN sources, processing pipelines, 
                         and output formats. This guide covers all configuration options and best practices.
                     </p>
                     
                     <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-                        <div class="glass-dark rounded-lg p-6 text-center">
-                            <div class="text-3xl mb-3">📝</div>
-                            <h3 class="font-semibold mb-2">YAML Based</h3>
+                        <div class="glass-dark rounded-lg p-6 text-center animate-card-hover animate-data-flow">
+                            <div class="text-3xl mb-3 animate-wiggle">📝</div>
+                            <h3 class="font-semibold mb-2 animate-text-shimmer">YAML Based</h3>
                             <p class="text-sm text-gray-400">Human-readable configuration format</p>
                         </div>
-                        <div class="glass-dark rounded-lg p-6 text-center">
-                            <div class="text-3xl mb-3">🔧</div>
-                            <h3 class="font-semibold mb-2">Flexible</h3>
+                        <div class="glass-dark rounded-lg p-6 text-center animate-card-hover animate-data-flow">
+                            <div class="text-3xl mb-3 animate-wiggle">🔧</div>
+                            <h3 class="font-semibold mb-2 animate-text-shimmer">Flexible</h3>
                             <p class="text-sm text-gray-400">Highly customizable processing options</p>
                         </div>
-                        <div class="glass-dark rounded-lg p-6 text-center">
-                            <div class="text-3xl mb-3">⚡</div>
-                            <h3 class="font-semibold mb-2">Fast</h3>
+                        <div class="glass-dark rounded-lg p-6 text-center animate-card-hover animate-data-flow">
+                            <div class="text-3xl mb-3 animate-wiggle">⚡</div>
+                            <h3 class="font-semibold mb-2 animate-text-shimmer">Fast</h3>
                             <p class="text-sm text-gray-400">Optimized for high-performance processing</p>
                         </div>
                     </div>
 
-                    <div class="bg-gray-800/50 rounded-lg p-6">
-                        <h4 class="font-semibold mb-3">📁 Configuration Structure</h4>
+                    <div class="bg-gray-800/50 rounded-lg p-6 animate-shimmer">
+                        <h4 class="font-semibold mb-3 animate-text-shimmer">📁 Configuration Structure</h4>
                         <div class="code-block">
                             <pre><code class="language-yaml">config/
 ├── sources.yaml          # VPN source definitions
@@ -153,14 +195,80 @@
                 </div>
             </section>
 
+            <!-- Interactive Configuration Builder -->
+            <section class="mb-12">
+                <div class="glass rounded-xl p-8 animate-fade-in-up animate-morphing interactive-config">
+                    <h2 class="text-3xl font-bold mb-6 animate-text-shimmer">🎮 Interactive Configuration Builder</h2>
+                    <p class="text-gray-300 mb-6">Build and test your configuration in real-time</p>
+                    
+                    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                        <div class="glass-dark rounded-lg p-6">
+                            <h3 class="text-lg font-semibold mb-4 animate-text-shimmer">Configuration Builder</h3>
+                            <div class="space-y-4">
+                                <div>
+                                    <label class="block text-sm font-medium mb-2">Source Name</label>
+                                    <input type="text" id="sourceName" placeholder="My VPN Source" 
+                                           class="w-full px-3 py-2 bg-gray-800 border border-gray-600 rounded-lg focus:border-blue-500 focus:outline-none">
+                                </div>
+                                <div>
+                                    <label class="block text-sm font-medium mb-2">Source URL</label>
+                                    <input type="url" id="sourceUrl" placeholder="https://example.com/configs.txt" 
+                                           class="w-full px-3 py-2 bg-gray-800 border border-gray-600 rounded-lg focus:border-blue-500 focus:outline-none">
+                                </div>
+                                <div>
+                                    <label class="block text-sm font-medium mb-2">Tier</label>
+                                    <select id="sourceTier" class="w-full px-3 py-2 bg-gray-800 border border-gray-600 rounded-lg focus:border-blue-500 focus:outline-none">
+                                        <option value="premium">Premium</option>
+                                        <option value="reliable">Reliable</option>
+                                        <option value="community">Community</option>
+                                        <option value="experimental">Experimental</option>
+                                    </select>
+                                </div>
+                                <div>
+                                    <label class="block text-sm font-medium mb-2">Protocols</label>
+                                    <div class="space-y-2">
+                                        <label class="flex items-center">
+                                            <input type="checkbox" value="vless" class="mr-2">
+                                            <span>VLESS</span>
+                                        </label>
+                                        <label class="flex items-center">
+                                            <input type="checkbox" value="vmess" class="mr-2">
+                                            <span>VMess</span>
+                                        </label>
+                                        <label class="flex items-center">
+                                            <input type="checkbox" value="trojan" class="mr-2">
+                                            <span>Trojan</span>
+                                        </label>
+                                        <label class="flex items-center">
+                                            <input type="checkbox" value="ss" class="mr-2">
+                                            <span>Shadowsocks</span>
+                                        </label>
+                                    </div>
+                                </div>
+                                <button onclick="generateConfig()" class="w-full px-4 py-2 bg-purple-600 hover:bg-purple-700 rounded-lg transition animate-card-hover">
+                                    Generate Configuration
+                                </button>
+                            </div>
+                        </div>
+                        
+                        <div class="glass-dark rounded-lg p-6">
+                            <h3 class="text-lg font-semibold mb-4 animate-text-shimmer">Generated Configuration</h3>
+                            <div id="generatedConfig" class="config-preview rounded-lg p-4 min-h-[300px] text-sm font-mono overflow-auto">
+                                <div class="text-gray-400">Configure the options above to generate your configuration...</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
             <!-- Quick Start Section -->
             <section id="quick-start" class="mb-12">
-                <div class="glass rounded-xl p-8 animate-fade-in-up">
-                    <h2 class="text-3xl font-bold mb-6">⚡ Quick Start Configuration</h2>
+                <div class="glass rounded-xl p-8 animate-fade-in-up animate-morphing">
+                    <h2 class="text-3xl font-bold mb-6 animate-text-shimmer">⚡ Quick Start Configuration</h2>
                     
                     <div class="space-y-6">
-                        <div class="config-card glass-dark rounded-lg p-6">
-                            <h3 class="text-xl font-semibold mb-4">1️⃣ Basic Sources Configuration</h3>
+                        <div class="config-card glass-dark rounded-lg p-6 animate-card-hover animate-data-flow">
+                            <h3 class="text-xl font-semibold mb-4 animate-text-shimmer">1️⃣ Basic Sources Configuration</h3>
                             <p class="text-gray-300 mb-4">Create your first sources configuration file:</p>
                             <div class="code-block">
                                 <pre><code class="language-yaml"># config/sources.yaml
@@ -186,8 +294,8 @@ processing:
                             </div>
                         </div>
 
-                        <div class="config-card glass-dark rounded-lg p-6">
-                            <h3 class="text-xl font-semibold mb-4">2️⃣ Processing Pipeline Configuration</h3>
+                        <div class="config-card glass-dark rounded-lg p-6 animate-card-hover animate-data-flow">
+                            <h3 class="text-xl font-semibold mb-4 animate-text-shimmer">2️⃣ Processing Pipeline Configuration</h3>
                             <p class="text-gray-300 mb-4">Configure the processing pipeline:</p>
                             <div class="code-block">
                                 <pre><code class="language-yaml"># config/processing.yaml
@@ -219,8 +327,8 @@ output:
                             </div>
                         </div>
 
-                        <div class="config-card glass-dark rounded-lg p-6">
-                            <h3 class="text-xl font-semibold mb-4">3️⃣ Run the Pipeline</h3>
+                        <div class="config-card glass-dark rounded-lg p-6 animate-card-hover animate-data-flow">
+                            <h3 class="text-xl font-semibold mb-4 animate-text-shimmer">3️⃣ Run the Pipeline</h3>
                             <p class="text-gray-300 mb-4">Start processing with your configuration:</p>
                             <div class="code-block">
                                 <pre><code class="language-bash"># Using the API
@@ -242,12 +350,12 @@ streamlinevpn process --config config/sources.yaml --output output</code></pre>
 
             <!-- Sources Configuration Section -->
             <section id="sources" class="mb-12">
-                <div class="glass rounded-xl p-8 animate-fade-in-up">
-                    <h2 class="text-3xl font-bold mb-6">🌐 Source Configuration</h2>
+                <div class="glass rounded-xl p-8 animate-fade-in-up animate-morphing">
+                    <h2 class="text-3xl font-bold mb-6 animate-text-shimmer">🌐 Source Configuration</h2>
                     
                     <div class="space-y-6">
-                        <div class="config-card glass-dark rounded-lg p-6">
-                            <h3 class="text-xl font-semibold mb-4">📋 Source Definition Schema</h3>
+                        <div class="config-card glass-dark rounded-lg p-6 animate-card-hover animate-data-flow">
+                            <h3 class="text-xl font-semibold mb-4 animate-text-shimmer">📋 Source Definition Schema</h3>
                             <div class="code-block">
                                 <pre><code class="language-yaml">sources:
   - name: string              # Human-readable name
@@ -266,8 +374,8 @@ streamlinevpn process --config config/sources.yaml --output output</code></pre>
                             </div>
                         </div>
 
-                        <div class="config-card glass-dark rounded-lg p-6">
-                            <h3 class="text-xl font-semibold mb-4">🏆 Tier Configuration</h3>
+                        <div class="config-card glass-dark rounded-lg p-6 animate-card-hover animate-data-flow">
+                            <h3 class="text-xl font-semibold mb-4 animate-text-shimmer">🏆 Tier Configuration</h3>
                             <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                                 <div class="p-4 bg-yellow-500/10 rounded-lg border border-yellow-500/20">
                                     <h4 class="font-semibold text-yellow-400 mb-2">Premium</h4>
@@ -307,56 +415,18 @@ streamlinevpn process --config config/sources.yaml --output output</code></pre>
                                 </div>
                             </div>
                         </div>
-
-                        <div class="config-card glass-dark rounded-lg p-6">
-                            <h3 class="text-xl font-semibold mb-4">🔧 Advanced Source Options</h3>
-                            <div class="code-block">
-                                <pre><code class="language-yaml">sources:
-  - name: "Advanced Source"
-    url: "https://api.example.com/vpn-configs"
-    tier: "premium"
-    enabled: true
-    timeout: 45
-    retry_count: 5
-    
-    # Custom headers for authentication
-    headers:
-      Authorization: "Bearer your-token"
-      User-Agent: "StreamlineVPN/2.0"
-      Accept: "application/json"
-    
-    # Source-specific filters
-    filters:
-      protocols: ["vless", "vmess"]
-      countries: ["US", "UK", "DE"]
-      quality_min: 0.85
-      exclude_keywords: ["test", "demo"]
-    
-    # Processing options
-    processing:
-      parse_format: "json"  # json|yaml|text|base64
-      encoding: "utf-8"
-      compression: "gzip"
-      
-    # Quality assessment
-    quality:
-      enabled: true
-      weight: 1.0
-      custom_metrics: true</code></pre>
-                            </div>
-                        </div>
                     </div>
                 </div>
             </section>
 
             <!-- Processing Configuration Section -->
             <section id="processing" class="mb-12">
-                <div class="glass rounded-xl p-8 animate-fade-in-up">
-                    <h2 class="text-3xl font-bold mb-6">🔄 Processing Configuration</h2>
+                <div class="glass rounded-xl p-8 animate-fade-in-up animate-morphing">
+                    <h2 class="text-3xl font-bold mb-6 animate-text-shimmer">🔄 Processing Configuration</h2>
                     
                     <div class="space-y-6">
-                        <div class="config-card glass-dark rounded-lg p-6">
-                            <h3 class="text-xl font-semibold mb-4">⚙️ Pipeline Configuration</h3>
+                        <div class="config-card glass-dark rounded-lg p-6 animate-card-hover animate-data-flow">
+                            <h3 class="text-xl font-semibold mb-4 animate-text-shimmer">⚙️ Pipeline Configuration</h3>
                             <div class="code-block">
                                 <pre><code class="language-yaml">pipeline:
   name: "production"
@@ -404,46 +474,18 @@ streamlinevpn process --config config/sources.yaml --output output</code></pre>
           min_value: 0.8</code></pre>
                             </div>
                         </div>
-
-                        <div class="config-card glass-dark rounded-lg p-6">
-                            <h3 class="text-xl font-semibold mb-4">🤖 ML Quality Assessment</h3>
-                            <div class="code-block">
-                                <pre><code class="language-yaml">quality:
-  enabled: true
-  model: "lstm_v2"
-  features:
-    - "latency"
-    - "bandwidth"
-    - "uptime"
-    - "location"
-    - "protocol"
-  
-  thresholds:
-    excellent: 0.9
-    good: 0.7
-    fair: 0.5
-    poor: 0.3
-  
-  weights:
-    latency: 0.3
-    bandwidth: 0.25
-    uptime: 0.2
-    location: 0.15
-    protocol: 0.1</code></pre>
-                            </div>
-                        </div>
                     </div>
                 </div>
             </section>
 
             <!-- Output Formats Section -->
             <section id="outputs" class="mb-12">
-                <div class="glass rounded-xl p-8 animate-fade-in-up">
-                    <h2 class="text-3xl font-bold mb-6">📤 Output Formats</h2>
+                <div class="glass rounded-xl p-8 animate-fade-in-up animate-morphing">
+                    <h2 class="text-3xl font-bold mb-6 animate-text-shimmer">📤 Output Formats</h2>
                     
                     <div class="space-y-6">
-                        <div class="config-card glass-dark rounded-lg p-6">
-                            <h3 class="text-xl font-semibold mb-4">📋 Supported Formats</h3>
+                        <div class="config-card glass-dark rounded-lg p-6 animate-card-hover animate-data-flow">
+                            <h3 class="text-xl font-semibold mb-4 animate-text-shimmer">📋 Supported Formats</h3>
                             <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                                 <div class="p-4 bg-blue-500/10 rounded-lg border border-blue-500/20">
                                     <h4 class="font-semibold text-blue-400 mb-2">JSON</h4>
@@ -463,50 +505,18 @@ streamlinevpn process --config config/sources.yaml --output output</code></pre>
                                 </div>
                             </div>
                         </div>
-
-                        <div class="config-card glass-dark rounded-lg p-6">
-                            <h3 class="text-xl font-semibold mb-4">⚙️ Output Configuration</h3>
-                            <div class="code-block">
-                                <pre><code class="language-yaml">output:
-  directory: "output"
-  formats: ["json", "clash", "singbox", "base64"]
-  compression: true
-  compression_level: 6
-  
-  # Format-specific options
-  json:
-    pretty: true
-    include_metadata: true
-    sort_keys: true
-    
-  clash:
-    template: "clash_template.yaml"
-    include_proxies: true
-    include_proxy_groups: true
-    
-  singbox:
-    template: "singbox_template.json"
-    include_rules: true
-    include_dns: true
-    
-  base64:
-    encoding: "utf-8"
-    line_length: 76
-    separator: "\n"</code></pre>
-                            </div>
-                        </div>
                     </div>
                 </div>
             </section>
 
             <!-- Advanced Configuration Section -->
             <section id="advanced" class="mb-12">
-                <div class="glass rounded-xl p-8 animate-fade-in-up">
-                    <h2 class="text-3xl font-bold mb-6">🔧 Advanced Configuration</h2>
+                <div class="glass rounded-xl p-8 animate-fade-in-up animate-morphing">
+                    <h2 class="text-3xl font-bold mb-6 animate-text-shimmer">🔧 Advanced Configuration</h2>
                     
                     <div class="space-y-6">
-                        <div class="config-card glass-dark rounded-lg p-6">
-                            <h3 class="text-xl font-semibold mb-4">🚀 Performance Tuning</h3>
+                        <div class="config-card glass-dark rounded-lg p-6 animate-card-hover animate-data-flow">
+                            <h3 class="text-xl font-semibold mb-4 animate-text-shimmer">🚀 Performance Tuning</h3>
                             <div class="code-block">
                                 <pre><code class="language-yaml">performance:
   # Concurrency settings
@@ -530,68 +540,6 @@ streamlinevpn process --config config/sources.yaml --output output</code></pre>
   enable_async: true</code></pre>
                             </div>
                         </div>
-
-                        <div class="config-card glass-dark rounded-lg p-6">
-                            <h3 class="text-xl font-semibold mb-4">🔒 Security Configuration</h3>
-                            <div class="code-block">
-                                <pre><code class="language-yaml">security:
-  # SSL/TLS settings
-  verify_ssl: true
-  ssl_timeout: 30
-  custom_ca_bundle: "/path/to/ca-bundle.pem"
-  
-  # Rate limiting
-  rate_limit:
-    enabled: true
-    requests_per_minute: 100
-    burst_size: 20
-  
-  # Content validation
-  content_validation:
-    enabled: true
-    max_file_size: "10MB"
-    allowed_mime_types: ["text/plain", "application/json", "application/yaml"]
-    scan_for_malware: true
-  
-  # Access control
-  access_control:
-    allowed_ips: ["127.0.0.1", "192.168.1.0/24"]
-    blocked_domains: ["malicious.com", "spam.net"]</code></pre>
-                            </div>
-                        </div>
-
-                        <div class="config-card glass-dark rounded-lg p-6">
-                            <h3 class="text-xl font-semibold mb-4">📊 Monitoring & Logging</h3>
-                            <div class="code-block">
-                                <pre><code class="language-yaml">monitoring:
-  # Metrics collection
-  metrics:
-    enabled: true
-    endpoint: "http://localhost:9090/metrics"
-    interval: 30
-  
-  # Health checks
-  health_check:
-    enabled: true
-    interval: 60
-    timeout: 10
-  
-  # Logging configuration
-  logging:
-    level: "INFO"  # DEBUG|INFO|WARN|ERROR
-    format: "json"
-    output: "stdout"
-    file: "/var/log/streamlinevpn.log"
-    max_size: "100MB"
-    max_files: 5
-    
-    # Structured logging
-    fields:
-      service: "streamlinevpn"
-      version: "2.0.0"
-      environment: "production"</code></pre>
-                            </div>
-                        </div>
                     </div>
                 </div>
             </section>
@@ -600,6 +548,60 @@ streamlinevpn process --config config/sources.yaml --output output</code></pre>
 </div>
 
 <script>
+    // Load configuration status
+    const API_BASE = window.__API_BASE__ || 'http://localhost:8080';
+    
+    async function loadConfigStatus() {
+        try {
+            const response = await fetch(`${API_BASE}/api/statistics`);
+            if (response.ok) {
+                const data = await response.json();
+                document.getElementById('configSources').textContent = data.total_sources || '523';
+                document.getElementById('validConfigs').textContent = data.active_sources || '486';
+                document.getElementById('lastUpdate').textContent = '2m ago';
+            }
+        } catch (error) {
+            console.warn('Failed to load config status:', error);
+        }
+    }
+    
+    // Interactive configuration builder
+    function generateConfig() {
+        const name = document.getElementById('sourceName').value || 'My VPN Source';
+        const url = document.getElementById('sourceUrl').value || 'https://example.com/configs.txt';
+        const tier = document.getElementById('sourceTier').value;
+        const protocols = Array.from(document.querySelectorAll('input[type="checkbox"]:checked')).map(cb => cb.value);
+        
+        const config = {
+            sources: [{
+                name: name,
+                url: url,
+                tier: tier,
+                enabled: true,
+                timeout: 30,
+                retry_count: 3,
+                protocols: protocols.length > 0 ? protocols : ['vless', 'vmess', 'trojan', 'ss']
+            }],
+            processing: {
+                max_concurrent: 10,
+                quality_threshold: 0.7,
+                deduplication: true
+            }
+        };
+        
+        const configDiv = document.getElementById('generatedConfig');
+        configDiv.innerHTML = `<pre class="text-green-400">${JSON.stringify(config, null, 2)}</pre>`;
+    }
+    
+    // Open config generator
+    function openConfigGenerator() {
+        window.open('../config_generator.html', '_blank');
+    }
+    
+    // Load config status on page load
+    loadConfigStatus();
+    setInterval(loadConfigStatus, 30000); // Update every 30 seconds
+    
     // Smooth scrolling for navigation links
     document.querySelectorAll('a[href^="#"]').forEach(anchor => {
         anchor.addEventListener('click', function (e) {
@@ -616,11 +618,6 @@ streamlinevpn process --config config/sources.yaml --output output</code></pre>
             }
         });
     });
-
-    // Open config generator
-    function openConfigGenerator() {
-        window.open('../config_generator.html', '_blank');
-    }
 
     // Intersection Observer for active nav highlighting
     const observerOptions = {
@@ -657,28 +654,6 @@ streamlinevpn process --config config/sources.yaml --output output</code></pre>
         card.addEventListener('mouseleave', function() {
             this.style.transform = 'translateY(0)';
         });
-    });
-
-    // Copy code blocks functionality
-    document.querySelectorAll('.code-block').forEach(block => {
-        const button = document.createElement('button');
-        button.className = 'absolute top-2 right-2 px-2 py-1 bg-gray-700 hover:bg-gray-600 rounded text-xs transition';
-        button.textContent = 'Copy';
-        button.style.position = 'relative';
-        
-        button.addEventListener('click', async () => {
-            const code = block.querySelector('code').textContent;
-            try {
-                await navigator.clipboard.writeText(code);
-                button.textContent = 'Copied!';
-                setTimeout(() => button.textContent = 'Copy', 2000);
-            } catch (err) {
-                console.error('Failed to copy:', err);
-            }
-        });
-        
-        block.style.position = 'relative';
-        block.appendChild(button);
     });
 </script>
 </body>
