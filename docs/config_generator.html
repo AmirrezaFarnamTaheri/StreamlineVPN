@@ -151,298 +151,155 @@
         </div>
     </div>
 
-    <script>
-        const API_BASE = window.__API_BASE__ || 'http://localhost:8080';
-        let allConfigs = [];
-        let filteredConfigs = [];
-
-        async function generateConfigs() {
-            const source = document.getElementById('configSource').value;
-            const protocols = Array.from(document.querySelectorAll('.protocol-filter:checked')).map(cb => cb.value);
-            const quality = document.getElementById('qualityFilter').value / 100;
-            
-            showLoading('Starting pipeline...');
-            
-            try {
-                // Start pipeline
-                const response = await fetch(`${API_BASE}/api/v1/pipeline/run`, {
-                    method: 'POST',
-                    headers: {'Content-Type': 'application/json'},
-                    body: JSON.stringify({
-                        config_path: source,
-                        output_dir: 'output',
-                        formats: ['json']
-                    })
-                });
-                
-                const ct = response.headers.get('content-type') || '';
-                if (!ct.includes('application/json')) {
-                    throw new Error('Invalid JSON response from API');
-                }
-                const result = await response.json();
-                
-                if (result.job_id) {
-                    showLoading('Processing configurations...');
-                    // Poll for completion
-                    await pollJobStatus(result.job_id);
-                }
-                
-                // Load configurations
-                await loadConfigurations(protocols, quality);
-                
-            } catch (error) {
-                console.error('Generation failed:', error);
-                showError('Failed to generate configurations. ' + (error && error.message ? error.message : 'Unknown error'));
-            }
+<script>
+    // Ensure API base is set correctly
+    const API_BASE = (() => {
+        if (window.__API_BASE__ && window.__API_BASE__.startsWith('http')) {
+            return window.__API_BASE__;
         }
-
-        async function pollJobStatus(jobId) {
-            const maxAttempts = 30;
-            for (let i = 0; i < maxAttempts; i++) {
-                const url = `${API_BASE}/api/v1/pipeline/status/${jobId}`;
-                const response = await fetch(url);
-                const ct = response.headers.get('content-type') || '';
-                if (!ct.includes('application/json')) {
-                    await new Promise(r => setTimeout(r, 1200));
-                    continue;
-                }
-                const status = await response.json();
-                
-                if (status.status === 'completed') return true;
-                if (status.status === 'failed') throw new Error('Pipeline failed');
-                
-                await new Promise(resolve => setTimeout(resolve, 1200));
-            }
-            throw new Error('Pipeline timeout. The job did not complete in the expected time window.');
+        const host = window.location.hostname;
+        if (host === 'localhost' || host === '127.0.0.1') {
+            return `http://${host}:8080`;
+        } else if (host.includes('github.io')) {
+            // Force localhost for GitHub pages
+            return 'http://localhost:8080';
         }
+        return `${window.location.protocol}//${host}`;
+    })();
 
-        async function loadConfigurations(protocols, quality) {
-            try {
-                const API_BASE = window.__API_BASE__ || 'http://localhost:8080';
-                const response = await fetch(`${API_BASE}/api/v1/configurations?limit=1000`);
-                if (!response.ok) {
-                    console.warn(`Config API returned: ${response.status}`);
-                    showError('Configuration service temporarily unavailable');
-                    return;
-                }
-                
-                const data = await response.json();
-                allConfigs = data.configurations || [];
-                
-                // Apply filters
-                filteredConfigs = allConfigs.filter(config => {
-                    if (protocols.length && !protocols.includes(config.protocol)) return false;
-                    if (config.quality_score && config.quality_score < quality) return false;
-                    return true;
-                });
-                
-                // Update stats
-                document.getElementById('totalConfigs').textContent = allConfigs.length;
-                document.getElementById('filteredConfigs').textContent = filteredConfigs.length;
-                
-                // Display configs
-                displayConfigurations();
-            } catch (error) {
-                console.warn('Failed to load configurations:', error);
-                showError('Unable to load configurations. ' + (error && error.message ? error.message : 'Network error'));
-            }
-        }
+    async function loadConfigs() {
+        const configList = document.getElementById('configList');
+        configList.innerHTML = '<p>Loading configurations...</p>';
 
-        async function generateConfigs() {
-            const API_BASE = window.__API_BASE__ || 'http://localhost:8080';
-            try {
-                const response = await fetch(`${API_BASE}/api/v1/pipeline/run`, {
-                    method: 'POST',
-                    headers: {'Content-Type': 'application/json'},
-                    body: JSON.stringify({
-                        config_path: 'config/sources.yaml',
-                        output_dir: 'output',
-                        formats: ['json']
-                    })
-                });
-                
-                const result = await response.json();
-                if (result.job_id) {
-                    alert(`Pipeline started! Job ID: ${result.job_id}`);
-                    // Wait a bit then reload configs
-                    setTimeout(() => loadConfigurations([], 0), 3000);
-                }
-            } catch (error) {
-                alert('Failed to generate configs: ' + error.message);
-            }
-        }
-
-        function displayConfigurations() {
-            const listEl = document.getElementById('configList');
+        try {
+            const response = await fetch(`${API_BASE}/api/v1/configurations?limit=100`);
+            if (!response.ok) throw new Error(`HTTP ${response.status}`);
             
-            if (filteredConfigs.length === 0) {
-                listEl.innerHTML = '<div class="text-center text-gray-400 py-4">No configurations match filters</div>';
-                        return;
-                    }
+            const data = await response.json();
+            const configs = data.configurations || [];
             
-            listEl.innerHTML = filteredConfigs.slice(0, 100).map(config => `
-                <div class="config-card glass rounded-lg p-4" onclick="showConfigDetails('${config.id || config.server}')">
-                    <div class="flex items-center justify-between">
-                        <div>
-                            <span class="text-sm px-2 py-1 rounded bg-purple-600/30">${config.protocol}</span>
-                            <span class="ml-2 font-medium">${config.server}</span>
-                            <span class="text-gray-400">:${config.port}</span>
-                        </div>
-                        <div class="text-right">
-                            ${config.quality_score ? `
-                                <div class="text-sm">Quality: ${(config.quality_score * 100).toFixed(0)}%</div>
-                            ` : ''}
-                            ${config.location ? `
-                                <div class="text-xs text-gray-400">${config.location.country}</div>
-                            ` : ''}
-                        </div>
-                    </div>
+            if (configs.length === 0) {
+                configList.innerHTML = '<p>No configurations available. Click "Generate New" to create some.</p>';
+                return;
+            }
+
+            configList.innerHTML = configs.map(config => `
+                <div class="config-item">
+                    <strong>${config.protocol || 'Unknown'}</strong>
+                    - ${config.server || 'Unknown'}:${config.port || 0}
+                    <br><small>Quality: ${config.quality_score ? (config.quality_score * 100).toFixed(0) + '%' : 'N/A'}</small>
                 </div>
             `).join('');
+        } catch (error) {
+            console.error('Load configs error:', error);
+            configList.innerHTML = `<p style="color: red;">Unable to load configurations. ${error.message}</p>`;
         }
+    }
 
-        async function exportFormat(format) {
-            if (filteredConfigs.length === 0) {
-                showNotification('No configurations to export', 'error');
+    async function generateConfigs() {
+        const btn = event.target;
+        const originalText = btn.textContent;
+        btn.disabled = true;
+        btn.textContent = 'Generating...';
+
+        try {
+            const response = await fetch(`${API_BASE}/api/v1/pipeline/run`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    config_path: 'config/sources.yaml',
+                    output_dir: 'output',
+                    formats: ['json', 'clash', 'singbox']
+                })
+            });
+            
+            if (!response.ok) throw new Error(`HTTP ${response.status}`);
+            
+            const result = await response.json();
+            alert(`Processing started! Job ID: ${result.job_id}\n\nConfigurations will be available shortly.`);
+            
+            // Reload configs after a delay
+            setTimeout(loadConfigs, 5000);
+        } catch (error) {
+            console.error('Generate error:', error);
+            alert(`Failed to generate configurations: ${error.message}`);
+        } finally {
+            btn.disabled = false;
+            btn.textContent = originalText;
+        }
+    }
+
+    async function downloadConfigs(format) {
+        try {
+            const response = await fetch(`${API_BASE}/api/v1/configurations?limit=1000`);
+            if (!response.ok) throw new Error(`HTTP ${response.status}`);
+            
+            const data = await response.json();
+            const configs = data.configurations || [];
+            
+            if (configs.length === 0) {
+                alert('No configurations to export');
                 return;
             }
             
-            // Show loading state
-            const exportBtn = event.target;
-            const originalText = exportBtn.textContent;
-            exportBtn.textContent = 'Exporting...';
-            exportBtn.disabled = true;
-            
-            try {
-                let content = '';
-                let filename = `vpn_configs.${format}`;
-                let mimeType = 'application/json';
-                
-                switch(format) {
-                    case 'json':
-                        content = JSON.stringify(filteredConfigs, null, 2);
-                        break;
-                    case 'base64':
-                        const urls = filteredConfigs.map(c => `${c.protocol}://${btoa(JSON.stringify(c))}`).join('\n');
-                        content = btoa(urls);
-                        mimeType = 'text/plain';
-                        filename = 'vpn_configs.txt';
-                        break;
-                    case 'clash':
-                        content = generateClashConfig(filteredConfigs);
-                        mimeType = 'text/yaml';
-                        filename = 'clash.yaml';
-                        break;
-                    case 'singbox':
-                        content = generateSingBoxConfig(filteredConfigs);
-                        filename = 'singbox.json';
-                        break;
-                }
-                
-                // Download file
-                const blob = new Blob([content], {type: mimeType});
-                const url = URL.createObjectURL(blob);
-                    const a = document.createElement('a');
-                    a.href = url;
-                a.download = filename;
-                    a.click();
-                URL.revokeObjectURL(url);
-                
-                showNotification(`Exported ${filteredConfigs.length} configurations as ${format.toUpperCase()}`, 'success');
-            } catch (error) {
-                showNotification('Export failed: ' + error.message, 'error');
-            } finally {
-                // Restore button
-                exportBtn.textContent = originalText;
-                exportBtn.disabled = false;
+            let content = '';
+            let filename = '';
+            let mimeType = '';
+
+            switch(format) {
+                case 'json':
+                    content = JSON.stringify(configs, null, 2);
+                    filename = 'configs.json';
+                    mimeType = 'application/json';
+                    break;
+                case 'clash':
+                    // Generate Clash YAML format
+                    content = 'proxies:\n' + configs.map(c =>
+                        `  - name: "${c.server}"\n    type: ${c.protocol}\n    server: ${c.server}\n    port: ${c.port}\n`
+                    ).join('');
+                    filename = 'clash.yaml';
+                    mimeType = 'text/yaml';
+                    break;
+                case 'singbox':
+                    content = JSON.stringify({
+                        outbounds: configs.map(c => ({
+                            type: c.protocol,
+                            tag: c.server,
+                            server: c.server,
+                            server_port: c.port
+                        }))
+                    }, null, 2);
+                    filename = 'singbox.json';
+                    mimeType = 'application/json';
+                    break;
+                case 'raw':
+                    content = configs.map(c =>
+                        `${c.protocol}://${c.server}:${c.port}`
+                    ).join('\n');
+                    filename = 'configs.txt';
+                    mimeType = 'text/plain';
+                    break;
             }
-        }
 
-        function generateClashConfig(configs) {
-            // Simplified Clash config generation
-            return `mixed-port: 7890
-allow-lan: true
-mode: rule
-proxies:
-${configs.map(c => `  - name: "${c.server}"
-    type: ${c.protocol}
-    server: ${c.server}
-    port: ${c.port}
-    uuid: ${c.user_id || 'unknown'}
-    alterId: 0
-    cipher: auto`).join('\n')}`;
-        }
+            // Create download
+            const blob = new Blob([content], { type: mimeType });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = filename;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
 
-        function generateSingBoxConfig(configs) {
-            // Simplified Sing-Box config generation
-            return JSON.stringify({
-                "outbounds": configs.map(c => ({
-                    "type": c.protocol,
-                    "tag": c.server,
-                    "server": c.server,
-                    "server_port": c.port,
-                    "uuid": c.user_id || "unknown"
-                }))
-            }, null, 2);
+        } catch (error) {
+            console.error('Download error:', error);
+            alert(`Failed to download: ${error.message}`);
         }
+    }
 
-        function showConfigDetails(configId) {
-            const config = filteredConfigs.find(c => (c.id || c.server) === configId);
-            if (!config) return;
-            
-            // Show detailed modal (simplified for space)
-            alert(JSON.stringify(config, null, 2));
-        }
-
-        // Load initial data
-        window.addEventListener('load', () => {
-            loadConfigurations([], 0);
-        });
-
-        // Add loading states and error handling
-        function showLoading(message = 'Loading...') {
-            const configList = document.getElementById('configList');
-            configList.innerHTML = `
-                <div class="text-center text-gray-400 py-8">
-                    <svg class="w-16 h-16 mx-auto mb-4 opacity-50 animate-spin" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/>
-                    </svg>
-                    <p>${message}</p>
-                </div>
-            `;
-        }
-
-        function showError(message) {
-            const configList = document.getElementById('configList');
-            configList.innerHTML = `
-                <div class="text-center text-red-400 py-8">
-                    <svg class="w-16 h-16 mx-auto mb-4 opacity-50" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
-                    </svg>
-                    <p>${message}</p>
-                </div>
-            `;
-        }
-
-        function showNotification(message, type) {
-            const notification = document.createElement('div');
-            notification.className = `fixed top-4 right-4 px-6 py-3 rounded-lg text-white z-50 shadow-lg ${
-                type === 'success' ? 'bg-green-600' : 'bg-red-600'
-            } animate-bounce`;
-            
-            // Add icon based on type
-            const icon = type === 'success' ? 
-                '<svg class="w-5 h-5 inline mr-2" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"></path></svg>' :
-                '<svg class="w-5 h-5 inline mr-2" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd"></path></svg>';
-            
-            notification.innerHTML = icon + message;
-            document.body.appendChild(notification);
-            
-            setTimeout(() => {
-                notification.style.animation = 'fade-out 0.3s ease-in forwards';
-                setTimeout(() => notification.remove(), 300);
-            }, 3000);
-        }
-    </script>
+    // Load configs on page load
+    window.addEventListener('DOMContentLoaded', loadConfigs);
+</script>
 </body>
 </html>
