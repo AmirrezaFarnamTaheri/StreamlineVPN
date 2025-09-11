@@ -167,139 +167,259 @@
         return `${window.location.protocol}//${host}`;
     })();
 
-    async function loadConfigs() {
-        const configList = document.getElementById('configList');
-        configList.innerHTML = '<p>Loading configurations...</p>';
+    let allConfigs = [];
+    let filteredConfigs = [];
 
-        try {
-            const response = await fetch(`${API_BASE}/api/v1/configurations?limit=100`);
-            if (!response.ok) throw new Error(`HTTP ${response.status}`);
-            
-            const data = await response.json();
-            const configs = data.configurations || [];
-            
-            if (configs.length === 0) {
-                configList.innerHTML = '<p>No configurations available. Click "Generate New" to create some.</p>';
-                return;
-            }
+    const el = (id) => document.getElementById(id);
+    const qsa = (sel) => Array.from(document.querySelectorAll(sel));
 
-            configList.innerHTML = configs.map(config => `
-                <div class="config-item">
-                    <strong>${config.protocol || 'Unknown'}</strong>
-                    - ${config.server || 'Unknown'}:${config.port || 0}
-                    <br><small>Quality: ${config.quality_score ? (config.quality_score * 100).toFixed(0) + '%' : 'N/A'}</small>
-                </div>
-            `).join('');
-        } catch (error) {
-            console.error('Load configs error:', error);
-            configList.innerHTML = `<p style="color: red;">Unable to load configurations. ${error.message}</p>`;
-        }
-    }
+    // --- Data Fetching and Processing ---
 
     async function generateConfigs() {
         const btn = event.target;
-        const originalText = btn.textContent;
+        const originalText = btn.innerHTML;
         btn.disabled = true;
-        btn.textContent = 'Generating...';
+        btn.innerHTML = `<span class="flex items-center justify-center"><svg class="animate-spin h-5 w-5 mr-2" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4" fill="none"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>Generating...</span>`;
 
         try {
+            const configPath = el('configSource').value;
             const response = await fetch(`${API_BASE}/api/v1/pipeline/run`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
-                    config_path: 'config/sources.yaml',
+                    config_path: configPath,
                     output_dir: 'output',
-                    formats: ['json', 'clash', 'singbox']
+                    formats: ['json', 'clash', 'singbox', 'base64'] // Generate all formats
                 })
             });
             
-            if (!response.ok) throw new Error(`HTTP ${response.status}`);
+            if (!response.ok) {
+                const errorData = await response.json().catch(() => ({ detail: 'An unknown error occurred.' }));
+                throw new Error(errorData.detail || `HTTP Error ${response.status}`);
+            }
             
             const result = await response.json();
-            alert(`Processing started! Job ID: ${result.job_id}\n\nConfigurations will be available shortly.`);
+            showNotification(`Processing started! Job ID: ${result.job_id}. Configs will refresh shortly.`, 'success');
             
-            // Reload configs after a delay
-            setTimeout(loadConfigs, 5000);
+            // Poll for completion and then reload
+            pollJobStatus(result.job_id);
+
         } catch (error) {
             console.error('Generate error:', error);
-            alert(`Failed to generate configurations: ${error.message}`);
+            showNotification(`Failed to start generation: ${error.message}`, 'error');
         } finally {
             btn.disabled = false;
-            btn.textContent = originalText;
+            btn.innerHTML = originalText.replace('Generating...', 'Generate Configurations');
         }
     }
 
-    async function downloadConfigs(format) {
+    async function pollJobStatus(jobId) {
+        const interval = setInterval(async () => {
+            try {
+                const response = await fetch(`${API_BASE}/api/v1/pipeline/status/${jobId}`);
+                if (!response.ok) return; // Silently fail
+                const status = await response.json();
+                if (status.status === 'completed') {
+                    clearInterval(interval);
+                    showNotification('Generation complete! Reloading configurations...', 'success');
+                    await loadConfigs();
+                } else if (status.status === 'failed') {
+                    clearInterval(interval);
+                    showNotification('Generation job failed.', 'error');
+                }
+            } catch (e) {
+                // Ignore polling errors
+            }
+        }, 3000);
+    }
+
+    async function loadConfigs() {
+        const configList = el('configList');
+        configList.innerHTML = '<div class="text-center text-gray-400 py-8">Loading...</div>';
+
         try {
-            const response = await fetch(`${API_BASE}/api/v1/configurations?limit=1000`);
+            const response = await fetch(`${API_BASE}/api/v1/configurations?limit=2000`); // Fetch a large number
             if (!response.ok) throw new Error(`HTTP ${response.status}`);
             
             const data = await response.json();
-            const configs = data.configurations || [];
-            
-            if (configs.length === 0) {
-                alert('No configurations to export');
-                return;
-            }
-            
-            let content = '';
-            let filename = '';
-            let mimeType = '';
+            allConfigs = data.configurations || [];
+            applyFilters();
 
+        } catch (error) {
+            console.error('Load configs error:', error);
+            configList.innerHTML = `<div class="text-center text-red-500 py-8">Error loading configurations: ${error.message}</div>`;
+        }
+    }
+
+    // --- Filtering and Rendering ---
+
+    function applyFilters() {
+        const qualityThreshold = parseInt(el('qualityFilter').value, 10) / 100;
+        const allowedProtocols = qsa('.protocol-filter:checked').map(cb => cb.value);
+
+        filteredConfigs = allConfigs.filter(config => {
+            const qualityMatch = (config.quality_score || 0) >= qualityThreshold;
+            const protocolMatch = allowedProtocols.includes(config.protocol);
+            return qualityMatch && protocolMatch;
+        });
+
+        renderConfigs();
+    }
+
+    function renderConfigs() {
+        el('totalConfigs').textContent = allConfigs.length;
+        el('filteredConfigs').textContent = filteredConfigs.length;
+
+        const configList = el('configList');
+        if (filteredConfigs.length === 0) {
+            configList.innerHTML = `
+                <div class="text-center text-gray-400 py-8">
+                    <svg class="w-16 h-16 mx-auto mb-4 opacity-50" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
+                    <p>No configurations match your filters.</p>
+                    <p class="text-sm mt-2">Try adjusting the quality slider or selecting more protocols.</p>
+                </div>`;
+            return;
+        }
+
+        configList.innerHTML = filteredConfigs.map(config => `
+            <div class="config-card glass p-3 rounded-lg flex justify-between items-center">
+                <div>
+                    <span class="text-xs px-2 py-1 rounded-full bg-purple-600/50">${config.protocol || 'N/A'}</span>
+                    <span class="ml-3 font-mono text-sm">${config.server || 'Unknown'}:${config.port || 0}</span>
+                </div>
+                <div class="text-sm text-gray-300">
+                    Quality: <span class="font-semibold text-green-400">${(config.quality_score * 100).toFixed(0)}%</span>
+                </div>
+            </div>
+        `).join('');
+    }
+
+    // --- Exporting ---
+
+    function exportFormat(format) {
+        if (filteredConfigs.length === 0) {
+            showNotification('No configurations to export. Adjust filters first.', 'error');
+            return;
+        }
+
+        let content = '';
+        let filename = `streamline-configs-${new Date().toISOString().split('T')[0]}`;
+        let mimeType = 'text/plain';
+
+        try {
             switch(format) {
                 case 'json':
-                    content = JSON.stringify(configs, null, 2);
-                    filename = 'configs.json';
+                    content = JSON.stringify(filteredConfigs, null, 2);
+                    filename += '.json';
                     mimeType = 'application/json';
                     break;
                 case 'clash':
-                    // Generate Clash YAML format
-                    content = 'proxies:\n' + configs.map(c =>
-                        `  - name: "${c.server}"\n    type: ${c.protocol}\n    server: ${c.server}\n    port: ${c.port}\n`
-                    ).join('');
-                    filename = 'clash.yaml';
-                    mimeType = 'text/yaml';
+                    const clashData = {
+                        proxies: filteredConfigs.map(c => {
+                            let proxy = {
+                                name: `${c.protocol}-${c.server}:${c.port}`,
+                                type: c.protocol,
+                                server: c.server,
+                                port: c.port,
+                            };
+                            if (c.password) proxy.password = c.password;
+                            if (c.ws_path) proxy['ws-opts'] = { path: c.ws_path };
+                            if (c.tls) proxy.tls = c.tls;
+                            return proxy;
+                        })
+                    };
+                    // A proper YAML serializer would be better, but this is a simple approximation
+                    content = `proxies:\n${clashData.proxies.map(p => `  - ${JSON.stringify(p)}`).join('\n')}`;
+                    filename += '.yaml';
+                    mimeType = 'application/x-yaml';
                     break;
                 case 'singbox':
-                    content = JSON.stringify({
-                        outbounds: configs.map(c => ({
+                     content = JSON.stringify({
+                        outbounds: filteredConfigs.map(c => ({
                             type: c.protocol,
-                            tag: c.server,
+                            tag: `${c.protocol}-${c.server}`,
                             server: c.server,
                             server_port: c.port
                         }))
                     }, null, 2);
-                    filename = 'singbox.json';
+                    filename += '.json';
                     mimeType = 'application/json';
                     break;
-                case 'raw':
-                    content = configs.map(c =>
-                        `${c.protocol}://${c.server}:${c.port}`
-                    ).join('\n');
-                    filename = 'configs.txt';
+                case 'base64':
+                    const subLinks = filteredConfigs.map(c => `${c.protocol}://${c.server}:${c.port}`); // Simplified
+                    content = btoa(subLinks.join('\n'));
+                    filename += '.txt';
                     mimeType = 'text/plain';
                     break;
             }
-
-            // Create download
-            const blob = new Blob([content], { type: mimeType });
-            const url = URL.createObjectURL(blob);
-            const a = document.createElement('a');
-            a.href = url;
-            a.download = filename;
-            document.body.appendChild(a);
-            a.click();
-            document.body.removeChild(a);
-            URL.revokeObjectURL(url);
-
-        } catch (error) {
-            console.error('Download error:', error);
-            alert(`Failed to download: ${error.message}`);
+            downloadFile(content, filename, mimeType);
+            showNotification(`Exported ${filteredConfigs.length} configs as ${format}.`, 'success');
+        } catch (e) {
+            console.error(`Export failed for format ${format}:`, e);
+            showNotification(`Export failed: ${e.message}`, 'error');
         }
     }
 
-    // Load configs on page load
-    window.addEventListener('DOMContentLoaded', loadConfigs);
+    function downloadFile(content, filename, mimeType) {
+        const blob = new Blob([content], { type: mimeType });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = filename;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+    }
+
+    // --- UI Utilities ---
+
+    function showNotification(message, type = 'info') {
+        const container = el('notification-container') || createNotificationContainer();
+        const color = type === 'success' ? 'bg-green-600' : type === 'error' ? 'bg-red-600' : 'bg-blue-600';
+
+        const notification = document.createElement('div');
+        notification.className = `p-4 rounded-lg text-white shadow-lg mb-2 ${color} transition-all duration-300 transform translate-x-full`;
+        notification.textContent = message;
+
+        container.prepend(notification);
+
+        // Animate in
+        setTimeout(() => notification.classList.remove('translate-x-full'), 10);
+
+        // Animate out and remove
+        setTimeout(() => {
+            notification.classList.add('opacity-0', 'translate-y-[-20px]');
+            setTimeout(() => notification.remove(), 500);
+        }, 4000);
+    }
+
+    function createNotificationContainer() {
+        let container = el('notification-container');
+        if (!container) {
+            container = document.createElement('div');
+            container.id = 'notification-container';
+            container.className = 'fixed top-4 right-4 w-80 z-50';
+            document.body.appendChild(container);
+        }
+        return container;
+    }
+
+
+    // --- Initialization ---
+
+    window.addEventListener('DOMContentLoaded', () => {
+        loadConfigs();
+
+        // Add event listeners to filter controls
+        qsa('.protocol-filter').forEach(cb => cb.addEventListener('change', applyFilters));
+
+        const qualitySlider = el('qualityFilter');
+        qualitySlider.addEventListener('input', () => {
+            el('qualityValue').textContent = qualitySlider.value + '%';
+            applyFilters();
+        });
+    });
 </script>
 </body>
 </html>
