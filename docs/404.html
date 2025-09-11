@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Page Not Found</title>
+    <meta http-equiv="refresh" content="3; url=index.html">
+    <style>
+        body { margin:0; font-family: system-ui, -apple-system, Segoe UI, Roboto, Inter, sans-serif; background:#0b1020; color:#e5e7eb; }
+        .wrap { min-height:100vh; display:flex; align-items:center; justify-content:center; padding:24px; }
+        .card { background: rgba(255,255,255,0.06); border:1px solid rgba(255,255,255,0.08); border-radius:12px; padding:24px 28px; max-width:720px; }
+        .muted { color:#9ca3af; }
+        a { color:#93c5fd; }
+    </style>
+    <script>
+        // GitHub Pages SPA fallback: redirect any deep link to index.html preserving path as hash
+        (function() {
+            try {
+                var path = window.location.pathname;
+                if (!/\/index\.html$/.test(path)) {
+                    // If the project root serves index.html, navigate there
+                    setTimeout(function(){ window.location.replace('index.html'); }, 0);
+                }
+            } catch (e) {}
+        })();
+    </script>
+    </head>
+<body>
+    <div class="wrap">
+        <div class="card">
+            <h1 style="margin:0 0 8px 0; font-size:22px;">404 — Page Not Found</h1>
+            <p class="muted" style="margin:0 0 16px 0;">We couldn't find that page. Redirecting you to the main documentation…</p>
+            <p style="margin:0;">If you're not redirected automatically, <a href="index.html">click here</a>.</p>
+        </div>
+    </div>
+</body>
+</html>
+
+

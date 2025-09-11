@@ -6,11 +6,14 @@
     <title>StreamlineVPN Control Center</title>
     <script src="api-base.js"></script>
     <script src="https://cdn.tailwindcss.com"></script>
+    <script src="assets/js/errors.js"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
     <style>
         body { font-family: 'Inter', system-ui, -apple-system, sans-serif; }
         .bg-app {
-            background: linear-gradient(125deg, #0b1020 0%, #1b1030 50%, #0b1020 100%);
+            background: radial-gradient(1100px 520px at 18% 12%, rgba(99,102,241,0.14), transparent 60%),
+                        radial-gradient(900px 480px at 82% 18%, rgba(236,72,153,0.10), transparent 55%),
+                        #0b1020;
             min-height: 100vh;
         }
         /* Background animation removed per UX request */
@@ -196,30 +199,11 @@
     const el = (id) => document.getElementById(id);
     const qsa = (sel) => Array.from(document.querySelectorAll(sel));
 
-    // Build detailed error messages for fetch failures
-    async function buildErrorMessage(actionLabel, response, url) {
-        try {
-            const status = response && typeof response.status === 'number' ? response.status : 'N/A';
-            const statusText = response && response.statusText ? response.statusText : '';
-            let bodyPreview = '';
-            if (response && response.text) {
-                const raw = await response.text();
-                bodyPreview = raw ? (raw.slice(0, 200) + (raw.length > 200 ? '…' : '')) : '';
-            }
-            return `${actionLabel} failed\n` +
-                   `URL: ${url}\n` +
-                   `Status: ${status} ${statusText}\n` +
-                   (bodyPreview ? `Response preview: ${bodyPreview}` : '');
-        } catch (_) {
-            return `${actionLabel} failed\nURL: ${url}`;
-        }
-    }
-
     async function fetchJSON(url) {
         try {
             const resp = await fetch(url);
             if (!resp.ok) {
-                const msg = await buildErrorMessage('Fetch JSON', resp, url);
+                const msg = await __ERR__.buildErrorMessage('Fetch JSON', resp, url);
                 console.warn(msg);
                 return {};
             }
@@ -238,7 +222,7 @@
     async function requestJSON(action, url, options) {
         const resp = await fetch(url, options);
         if (!resp.ok) {
-            throw new Error(await buildErrorMessage(action, resp, url));
+            throw new Error(await __ERR__.buildErrorMessage(action, resp, url));
         }
         const ct = resp.headers.get('content-type') || '';
         if (!ct.includes('application/json')) {
