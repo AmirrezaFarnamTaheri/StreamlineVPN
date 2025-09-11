@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>StreamlineVPN Control Center</title>
-    <script src="/api-base.js"></script>
+    <script src="api-base.js"></script>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
     <style>
@@ -13,10 +13,8 @@
             background: linear-gradient(125deg, #0b1020 0%, #1b1030 50%, #0b1020 100%);
             min-height: 100vh;
         }
-        .animated-bg {
-            position: fixed; inset: 0; background: linear-gradient(125deg, #667eea, #764ba2, #f093fb, #667eea);
-            background-size: 400% 400%; animation: gradientShift 18s ease infinite; opacity: 0.08; z-index: -1;
-        }
+        /* Background animation removed per UX request */
+        .animated-bg { display: none; }
         @keyframes gradientShift { 0%,100%{background-position:0% 50%} 50%{background-position:100% 50%} }
         .glass { background: rgba(255,255,255,0.06); backdrop-filter: blur(10px); border: 1px solid rgba(255,255,255,0.08); }
         .glass-dark { background: rgba(0,0,0,0.35); backdrop-filter: blur(14px); border: 1px solid rgba(255,255,255,0.08); }
@@ -32,9 +30,27 @@
         @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.5; } }
         .animate-slide-in { animation: slide-in 0.3s ease-out; }
         .animate-slide-out { animation: slide-out 0.3s ease-in; }
-        .animate-spin { animation: spin 1s linear infinite; }
-        .animate-pulse { animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite; }
-        .skeleton { background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%); background-size: 200px 100%; animation: shimmer 1.5s infinite; }
+        /* Slow down animations and add cooldown feel */
+        .animate-spin { animation: spin 2.5s linear infinite; }
+        .animate-pulse { animation: pulse 4s cubic-bezier(0.4, 0, 0.6, 1) infinite; }
+        .skeleton { background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%); background-size: 200px 100%; animation: shimmer 4s infinite; }
+
+        /* One-time neon survey effect for tier cards */
+        .neon-border { position: relative; }
+        .neon-border::after {
+            content: ""; position: absolute; inset: 0; border-radius: 0.5rem;
+            border: 1px solid rgba(129,140,248,0.0); filter: drop-shadow(0 0 0 rgba(129,140,248,0));
+            animation: neon-scan 1.2s ease-out both; /* once */
+            pointer-events: none;
+        }
+        @keyframes neon-scan {
+            0%   { border-color: rgba(129,140,248,0.0); filter: drop-shadow(0 0 0 rgba(129,140,248,0)); }
+            10%  { border-color: rgba(129,140,248,0.6); }
+            50%  { filter: drop-shadow(0 0 10px rgba(129,140,248,0.8)) drop-shadow(0 0 20px rgba(99,102,241,0.6)); }
+            100% { border-color: rgba(129,140,248,0.15); filter: drop-shadow(0 0 0 rgba(129,140,248,0)); }
+        }
+        .content-reveal { opacity: 0; transform: translateY(6px); animation: reveal 420ms ease-out both; }
+        @keyframes reveal { to { opacity: 1; transform: translateY(0); } }
     </style>
 </head>
 <body class="bg-app text-white">
@@ -164,9 +180,7 @@
         <!-- Terminal Tab -->
         <div id="terminal-tab" class="tab-content hidden" role="tabpanel">
             <h2 class="text-2xl font-bold mb-6">Logs</h2>
-            <div class="terminal" id="terminal" role="log" aria-live="polite" aria-atomic="false">
-                <div class="text-green-400">StreamlineVPN Terminal :: Ready</div>
-            </div>
+            <div class="terminal" id="terminal" role="log" aria-live="polite" aria-atomic="false"></div>
         </div>
     </div>
 </div>
@@ -182,18 +196,55 @@
     const el = (id) => document.getElementById(id);
     const qsa = (sel) => Array.from(document.querySelectorAll(sel));
 
+    // Build detailed error messages for fetch failures
+    async function buildErrorMessage(actionLabel, response, url) {
+        try {
+            const status = response && typeof response.status === 'number' ? response.status : 'N/A';
+            const statusText = response && response.statusText ? response.statusText : '';
+            let bodyPreview = '';
+            if (response && response.text) {
+                const raw = await response.text();
+                bodyPreview = raw ? (raw.slice(0, 200) + (raw.length > 200 ? '…' : '')) : '';
+            }
+            return `${actionLabel} failed\n` +
+                   `URL: ${url}\n` +
+                   `Status: ${status} ${statusText}\n` +
+                   (bodyPreview ? `Response preview: ${bodyPreview}` : '');
+        } catch (_) {
+            return `${actionLabel} failed\nURL: ${url}`;
+        }
+    }
+
     async function fetchJSON(url) {
         try {
             const resp = await fetch(url);
             if (!resp.ok) {
-                console.warn(`API call failed: ${url} - ${resp.status}`);
-                return {}; // Return empty object instead of throwing
+                const msg = await buildErrorMessage('Fetch JSON', resp, url);
+                console.warn(msg);
+                return {};
+            }
+            const ct = resp.headers.get('content-type') || '';
+            if (!ct.includes('application/json')) {
+                console.warn(`Fetch JSON failed (invalid content-type) for ${url}: ${ct}`);
+                return {};
             }
             return await resp.json();
         } catch (error) {
             console.warn(`Network error for ${url}:`, error);
-            return {}; // Return empty object for graceful degradation
+            return {};
         }
+    }
+
+    async function requestJSON(action, url, options) {
+        const resp = await fetch(url, options);
+        if (!resp.ok) {
+            throw new Error(await buildErrorMessage(action, resp, url));
+        }
+        const ct = resp.headers.get('content-type') || '';
+        if (!ct.includes('application/json')) {
+            throw new Error(`${action} returned non-JSON content for ${url}`);
+        }
+        return await resp.json();
     }
 
     async function refreshStats() {
@@ -226,11 +277,7 @@
         `;
         
         try {
-            const response = await fetch(`${API_BASE}/api/v1/sources`);
-            if (!response.ok) {
-                throw new Error(`HTTP ${response.status}`);
-            }
-            const data = await response.json();
+            const data = await requestJSON('Load all sources', `${API_BASE}/api/v1/sources`);
             
             // Group sources by tier
             const tiers = {};
@@ -255,8 +302,8 @@
                             ${tier.toUpperCase()} (${sources.length} sources)
                         </h3>
                         <div class="space-y-2 max-h-60 overflow-y-auto">
-                            ${sources.map(s => `
-                                <div class="glass rounded-lg p-3 flex items-center justify-between hover:bg-white/10 transition">
+                            ${sources.map((s, i) => `
+                                <div class="glass rounded-lg p-3 flex items-center justify-between hover:bg-white/10 transition neon-border content-reveal" style="animation-delay:${i*120}ms">
                                     <div class="flex-1">
                                         <div class="font-medium text-sm truncate">${s.url}</div>
                                         <div class="text-xs text-gray-400 mt-1">
@@ -298,7 +345,7 @@
 
     async function refreshSources() {
         try {
-            const data = await fetchJSON(`${API_BASE}/api/v1/sources`);
+            const data = await requestJSON('Refresh sources', `${API_BASE}/api/v1/sources`);
             const items = (data.sources || []).map(s => `
                 <div class="glass rounded-xl p-4 flex items-center justify-between">
                     <div>
@@ -316,7 +363,7 @@
 
     async function refreshConfigurations() {
         try {
-            const data = await fetchJSON(`${API_BASE}/api/v1/configurations?limit=50`);
+            const data = await requestJSON('Refresh configurations', `${API_BASE}/api/v1/configurations?limit=50`);
             const items = (data.configurations || []).map(c => `
                 <div class="glass rounded-xl p-4">
                     <div class="text-sm text-gray-400">${c.protocol}</div>
@@ -339,6 +386,8 @@
             const response = await fetch(`${API_BASE}/api/v1/sources`);
             if (!response.ok) throw new Error('Failed to fetch sources');
             
+            const ct = response.headers.get('content-type') || '';
+            if (!ct.includes('application/json')) throw new Error('Invalid response');
             const data = await response.json();
             const sources = data.sources || [];
             
@@ -369,6 +418,8 @@
             const response = await fetch(`${API_BASE}/api/v1/configurations?limit=10`);
             if (!response.ok) throw new Error('Failed to fetch configurations');
             
+            const ct = response.headers.get('content-type') || '';
+            if (!ct.includes('application/json')) throw new Error('Invalid response');
             const data = await response.json();
             const configs = data.configurations || [];
             
@@ -393,10 +444,14 @@
         }
     }
 
-    // Auto-load data on page load
+    // Auto-load with retry if API not ready yet
     window.addEventListener('DOMContentLoaded', () => {
-        loadSources();
-        loadConfigurations();
+        const retry = (fn, attempts = 4, delay = 1000) => {
+            const run = async (i) => { try { await fn(); } catch(e) { if (i < attempts) setTimeout(() => run(i+1), delay); } };
+            run(0);
+        };
+        retry(loadSources);
+        retry(loadConfigurations);
     });
 
     // Fully integrated backend connection
@@ -427,10 +482,20 @@
                 });
                 
                 if (!response.ok) {
-                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                    const msg = await buildErrorMessage('Start pipeline', response, `${API_BASE}/api/v1/pipeline/run`);
+                    throw new Error(msg);
                 }
                 
-                const result = await response.json();
+                let result;
+                const ct = response.headers.get('content-type') || '';
+                if (!ct.includes('application/json')) {
+                    throw new Error('Invalid JSON response from API');
+                }
+                try {
+                    result = await response.json();
+                } catch (e) {
+                    throw new Error('Invalid JSON response from API for /api/v1/pipeline/run');
+                }
                 
                 if (response.ok) {
                     // Show success
@@ -445,7 +510,7 @@
                 }
                 
             } catch (error) {
-                showNotification(error.message, 'error');
+                showNotification(error.message || 'Pipeline start failed', 'error');
             } finally {
                 // Restore button
                 btn.disabled = false;
@@ -462,7 +527,12 @@
             
             const checkStatus = async () => {
                 try {
-                    const response = await fetch(`${API_BASE}/api/v1/pipeline/status/${jobId}`);
+                    const url = `${API_BASE}/api/v1/pipeline/status/${jobId}`;
+                    const response = await fetch(url);
+                    if (!response.ok) {
+                        const msg = await buildErrorMessage('Check job status', response, url);
+                        throw new Error(msg);
+                    }
                     const status = await response.json();
                     
                     if (status.progress) {
@@ -483,7 +553,7 @@
                     }
                 } catch (error) {
                     statusEl.textContent = 'Error checking status';
-                    showNotification('Failed to check job status', 'error');
+                    showNotification(error.message || 'Failed to check job status', 'error');
                 }
             };
             
