@@ -1,0 +1,60 @@
+        logger.info(
+            f"CORS configured: origins={allowed_origins}, credentials={allow_credentials}"
+        )
+
+    def _parse_env_list(self, env_var: str, default: List[str]) -> List[str]:
+        """Parse environment variable as JSON array or comma-separated list."""
+        value = os.getenv(env_var)
+        if not value:
+            return default
+        try:
+            return json.loads(value)  # type: ignore[return-value]
+        except Exception:
+            return [item.strip() for item in value.split(",") if item.strip()]
+
+        def _setup_routes(self, app: FastAPI) -> None:
+        @app.get("/", tags=["General"], response_model=None)
+        async def root(request: Request) -> Response:
+            """Root endpoint with simple content negotiation.
+
+            - If a browser requests HTML (Accept contains text/html), serve docs/index.html
+            - Otherwise return a JSON status payload
+            """
+            accept = request.headers.get("accept", "")
+            if "text/html" in accept:
+                docs_path = Path(__file__).resolve().parents[3] / "docs"
+                index_file = docs_path / "index.html"
+                if index_file.exists():
+                    return FileResponse(str(index_file), media_type="text/html")
+            # Default JSON
+            return JSONResponse({
+                "message": "StreamlineVPN Unified API",
+                "version": "3.0.0",
+                "docs": "/docs",
+                "web": "/web"
+            })
+
+        @app.get("/health", response_model=HealthResponse, tags=["General"])
+        async def health() -> HealthResponse:
+            uptime = (datetime.now() - self.start_time).total_seconds()
+            merger_status = "healthy" if self.merger else "degraded"
+            return HealthResponse(
+                status=merger_status,
+                timestamp=datetime.now().isoformat(),
+                version="3.0.0",
+                uptime=uptime,
+                merger_initialized=self.merger is not None,
+            )
+
+        @app.post(
+            "/api/v1/pipeline/run",
+            response_model=PipelineResponse,
+            status_code=status.HTTP_202_ACCEPTED,
+            tags=["Pipeline"],
+        )
+        async def run_pipeline(request: PipelineRequest, background_tasks: BackgroundTasks) -> PipelineResponse:
+            # Validate formats before any other checks so clients get consistent 400s
+            valid_formats = {f.value for f in OutputFormat}
+            invalid = [f for f in request.formats if f not in valid_formats]
+            if invalid:
+                raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=f"Invalid formats: {', '.join(invalid)}")

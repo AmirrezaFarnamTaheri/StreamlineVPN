@@ -665,6 +665,66 @@ class UnifiedAPI:
                 raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid payload")
             return {"status": "ok", "message": "Configuration looks valid"}
 
+        @app.post("/api/v1/sources/validate-urls", tags=["Sources"])
+        async def validate_urls(payload: Dict[str, Any]) -> Dict[str, Any]:
+            """Validate a list of source URLs provided by the user.
+
+            Payload example: {"urls": ["https://example.com/sub.txt", ...]}
+
+            Validation rules (fast, offline):
+            - Must be http(s) URL with a host
+            - If security_manager is available, use its validate_source() to check safety
+            """
+            try:
+                urls = payload.get("urls", []) if isinstance(payload, dict) else []
+            except Exception:
+                urls = []
+            if not isinstance(urls, list) or not urls:
+                raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Provide a non-empty 'urls' list")
+
+            from urllib.parse import urlparse
+
+            results: list[dict[str, Any]] = []
+            valid_count = 0
+            invalid_count = 0
+
+            for raw in urls:
+                url = str(raw or "").strip()
+                ok = False
+                reason = ""
+                try:
+                    p = urlparse(url)
+                    if p.scheme in {"http", "https"} and p.netloc:
+                        ok = True
+                    else:
+                        ok = False
+                        reason = "URL must start with http(s) and include a host"
+                    # Optional safety check via security manager
+                    if ok and self.merger and getattr(self.merger, "security_manager", None):
+                        try:
+                            verdict = self.merger.security_manager.validate_source(url)  # type: ignore[attr-defined]
+                            if isinstance(verdict, dict) and not verdict.get("is_safe", True):
+                                ok = False
+                                reason = verdict.get("reason", "URL deemed unsafe")
+                        except Exception:
+                            # If security check fails, skip hard fail here
+                            pass
+                except Exception as e:
+                    ok = False
+                    reason = str(e)
+                if ok:
+                    valid_count += 1
+                else:
+                    invalid_count += 1
+                results.append({"url": url, "valid": ok, "reason": reason})
+
+            return {
+                "checked": len(urls),
+                "valid": valid_count,
+                "invalid": invalid_count,
+                "results": results,
+            }
+
         @app.websocket("/ws")
         async def websocket_endpoint(websocket: WebSocket) -> None:
             try:

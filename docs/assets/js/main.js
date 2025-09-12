@@ -168,17 +168,37 @@ class StreamlineVPNApp {
      * Check API connection
      */
     async checkConnection() {
+        const ctrl = new AbortController();
+        const to = setTimeout(() => ctrl.abort(), 5000);
         try {
-            const response = await this.makeRequest('/health');
+            // Primary: direct /health on API base
+            const r = await fetch(`${this.apiBase}/health`, { signal: ctrl.signal });
+            clearTimeout(to);
+            if (!r.ok) throw new Error(`HTTP ${r.status}`);
             this.state.isConnected = true;
             this.setApiConnectivityFlag(true);
-            this.addTerminalLine(`API connection successful: ${response.status}`, 'success');
+            this.addTerminalLine(`API connection successful: ${r.status}`, 'success');
             this.showNotification('API connection established!', 'success');
             return true;
         } catch (error) {
+            clearTimeout(to);
+            // Fallback: relative /api/v1/statistics via proxy (when served by static web)
+            try {
+                const c2 = new AbortController();
+                const t2 = setTimeout(() => c2.abort(), 5000);
+                const r2 = await fetch('/api/v1/statistics', { signal: c2.signal });
+                clearTimeout(t2);
+                if (r2.ok) {
+                    this.state.isConnected = true;
+                    this.setApiConnectivityFlag(true);
+                    this.addTerminalLine('API proxy reachable via /api (fallback)', 'success');
+                    this.showNotification('API reachable via proxy', 'success');
+                    return true;
+                }
+            } catch(_) {}
             this.state.isConnected = false;
             this.setApiConnectivityFlag(false);
-            this.addTerminalLine(`API connection failed: ${error.message}`, 'error');
+            this.addTerminalLine(`API connection failed: ${error?.message || 'unknown'}`, 'error');
             this.showNotification('API connection failed!', 'error');
             return false;
         }
