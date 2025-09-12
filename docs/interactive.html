@@ -11,7 +11,7 @@
   <script src="https://cdn.tailwindcss.com"></script>
 </head>
 <body class="bg-gradient-to-br from-gray-900 via-blue-900 to-purple-900 min-h-screen text-white">
-  <header class="glass p-4 border-b border-white/10">
+  <header class="glassmorphism p-4 border-b border-white/10">
     <div class="container flex items-center justify-between">
       <div class="flex items-center space-x-3">
         <div class="w-8 h-8 rounded-lg bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center font-bold">S</div>
@@ -31,14 +31,13 @@
   </header>
 
   <main class="container px-6 py-8">
-    <div class="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
-      <div class="glass rounded-xl p-4"><p class="text-sm text-gray-300">Total Sources</p><p id="totalSources" class="text-2xl font-bold">-</p></div>
+    <div class="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8"><div class="glass stat-card bar-blue rounded-xl p-4"><p class="text-sm text-gray-300">Total Sources</p><p id="totalSources" class="text-2xl font-bold">-</p></div><div class="glass stat-card bar-green rounded-xl p-4"><p class="text-sm text-gray-300">Configurations</p><p id="totalConfigs" class="text-2xl font-bold">-</p></div><div class="glass stat-card bar-purple rounded-xl p-4"><p class="text-sm text-gray-300">Active Sources</p><p id="activeSources" class="text-2xl font-bold">-</p></div><div class="glass stat-card bar-orange rounded-xl p-4"><p class="text-sm text-gray-300">Last Updated</p><p id="lastUpdated" class="text-sm">-</p></div></div><div class="glass stat-card bar-green rounded-xl p-4"><p class="text-sm text-gray-300">Configurations</p><p id="totalConfigs" class="text-2xl font-bold">-</p></div><div class="glass stat-card bar-purple rounded-xl p-4"><p class="text-sm text-gray-300">Active Sources</p><p id="activeSources" class="text-2xl font-bold">-</p></div><div class="glass stat-card bar-orange rounded-xl p-4"><p class="text-sm text-gray-300">Last Updated</p><p id="lastUpdated" class="text-sm">-</p></div></div>
       <div class="glass rounded-xl p-4"><p class="text-sm text-gray-300">Configurations</p><p id="totalConfigs" class="text-2xl font-bold">-</p></div>
       <div class="glass rounded-xl p-4"><p class="text-sm text-gray-300">Active Sources</p><p id="activeSources" class="text-2xl font-bold">-</p></div>
       <div class="glass rounded-xl p-4"><p class="text-sm text-gray-300">Last Updated</p><p id="lastUpdated" class="text-sm">-</p></div>
     </div>
 
-    <div class="glass rounded-xl overflow-hidden">
+    <div class="glassmorphism rounded-xl overflow-hidden">
       <div id="tablist" class="flex space-x-6 px-6 border-b border-white/10">
         <button class="tab-btn py-3 text-sm" data-tab="dashboard" aria-selected="true" tabindex="0">📊 Dashboard</button>
         <button class="tab-btn py-3 text-sm text-gray-400" data-tab="processing" aria-selected="false" tabindex="-1">⚙️ Processing</button>
@@ -137,6 +136,64 @@
 
   <script src="/assets/js/main.js"></script>
   <script src="/assets/js/app.js"></script>
+
+  <!-- API Base Debug Banner -->
+  <div id="api-debug-banner" style="position: fixed; bottom: 14px; right: 14px; z-index: 10000;">
+    <div class="glass rounded-lg px-3 py-2 text-xs text-gray-200 border border-white/10 shadow-md" style="backdrop-filter: blur(10px)">
+      <span>API:</span>
+      <span id="api-debug-current" class="font-medium"></span>
+      <span class="opacity-50 mx-1">&bull;</span>
+      <button id="api-debug-change" class="text-blue-300 hover:text-blue-200">Change</button>
+      <span class="opacity-50 mx-1">&bull;</span>
+      <button id="api-debug-clear" class="text-red-300 hover:text-red-200">Clear</button>
+      <span class="opacity-50 mx-1">&bull;</span>
+      <a id="api-debug-meta" href="#" class="text-gray-300 hover:text-white" title="How to override via meta tag">Meta override</a>
+    </div>
+  </div>
+
+  <script>
+    (function(){
+      // One-time neon animation for stat cards (left-to-right, first load per session)
+      try {
+        if (!sessionStorage.getItem('statsNeonDone')) {
+          var cards = Array.prototype.slice.call(document.querySelectorAll('.stat-card'));
+          cards.forEach(function(card, idx){
+            setTimeout(function(){ card.classList.add('do-neon'); }, idx * 350);
+            setTimeout(function(){ card.classList.remove('do-neon'); }, idx * 350 + 1400);
+          });
+          // Mark done after sequence completes
+          setTimeout(function(){ sessionStorage.setItem('statsNeonDone','1'); }, cards.length * 350 + 1500);
+        }
+      } catch(_) {}
+
+      function updateBanner(){
+        var el = document.getElementById('api-debug-current');
+        var base = window.__API_BASE__ || (window.location.protocol + '//' + window.location.host);
+        if (el) el.textContent = base;
+      }
+      document.getElementById('api-debug-change').addEventListener('click', function(){
+        var current = window.__API_BASE__ || '';
+        var input = prompt('Enter API Base URL (e.g., https://api.example.com)', current);
+        if (input) { window.setApiBaseOverride(input); }
+      });
+      document.getElementById('api-debug-clear').addEventListener('click', function(){
+        window.clearApiBaseOverride();
+      });
+      document.getElementById('api-debug-meta').addEventListener('click', function(e){
+        e.preventDefault();
+        var snippet = '<meta name="api-base" content="' + (window.__API_BASE__ || 'http://localhost:8080') + '">';
+        var msg = 'Add this to <head> to hard-set API base:\n\n' + snippet + '\n\nThen reload the page.';
+        if (navigator.clipboard) {
+          navigator.clipboard.writeText(snippet).then(function(){ alert(msg + '\n\n(Snippet copied to clipboard)'); });
+        } else {
+          alert(msg);
+        }
+      });
+      window.addEventListener('api-base-changed', updateBanner);
+      window.addEventListener('api-base-cleared', updateBanner);
+      updateBanner();
+    })();
+  </script>
   <footer class='mt-12 opacity-90'>
     <div class='container mx-auto px-6 py-6'>
       <div class='flex items-center justify-center space-x-6 text-sm text-gray-300'>

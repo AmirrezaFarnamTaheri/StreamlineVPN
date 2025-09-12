@@ -10,33 +10,39 @@
      * Determine the API base URL based on environment and configuration
      */
     function getApiBaseUrl() {
-        // Check if API_BASE_URL is set by the server
+        // 0) Developer override persisted in localStorage
+        try {
+            if (typeof localStorage !== 'undefined') {
+                const saved = localStorage.getItem('API_BASE_OVERRIDE');
+                if (saved && /^https?:\/\//i.test(saved)) {
+                    return saved;
+                }
+            }
+        } catch (e) {
+            // ignore storage errors
+        }
+
+        // 1) Explicit injection wins
         if (typeof window.__API_BASE_URL__ !== 'undefined' && window.__API_BASE_URL__) {
             return window.__API_BASE_URL__;
         }
 
-        // Check for environment variable or meta tag
+        // 2) Meta tag override
         const metaApiBase = document.querySelector('meta[name="api-base"]');
         if (metaApiBase && metaApiBase.getAttribute('content')) {
             return metaApiBase.getAttribute('content');
         }
 
-        // Auto-detect based on current location
-        const hostname = window.location.hostname;
-        const protocol = window.location.protocol;
-        
-        // Development environments
-        if (hostname === 'localhost' || hostname === '127.0.0.1' || hostname.startsWith('192.168.')) {
-            return `${protocol}//${hostname}:8080`;
+        // 3) Prefer same-origin when served over HTTP(S)
+        const { protocol, hostname, port } = window.location;
+        if (protocol === 'http:' || protocol === 'https:') {
+            const portSegment = port ? `:${port}` : '';
+            const originBase = `${protocol}//${hostname}${portSegment}`;
+            return originBase;
         }
-        
-        // Production environments
-        if (hostname.includes('streamlinevpn') || hostname.includes('vpn-api')) {
-            return `${protocol}//api.${hostname}`;
-        }
-        
-        // Default fallback
-        return `${protocol}//${hostname}:8080`;
+
+        // 4) file:// or other schemes -> fall back to common dev port
+        return 'http://localhost:8080';
     }
 
     /**
@@ -49,8 +55,8 @@
         window.__API_BASE__ = apiBase;
         window.API_BASE = apiBase; // Legacy compatibility
         
-        // Log configuration for debugging
-        if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
+        // Log configuration for debugging (dev only)
+        if (['localhost', '127.0.0.1'].includes(window.location.hostname)) {
             console.log('[StreamlineVPN] API Base URL:', apiBase);
         }
         
@@ -180,5 +186,33 @@
 
     // Export for manual initialization if needed
     window.initializeStreamlineVPN = initializeApiConfig;
+
+    // Developer helpers: set/clear persistent override and broadcast change
+    window.setApiBaseOverride = function(url) {
+        try {
+            if (!/^https?:\/\//i.test(url)) throw new Error('Invalid URL');
+            localStorage.setItem('API_BASE_OVERRIDE', url);
+            window.__API_BASE_URL__ = url;
+            // Re-init and reload to ensure all modules pick up the change
+            initializeApiConfig();
+            try { window.dispatchEvent(new CustomEvent('api-base-changed', { detail: { apiBase: url } })); } catch(_) {}
+            location.reload();
+        } catch (e) {
+            alert('Invalid API base URL. Please include http(s) scheme.');
+        }
+    };
+
+    window.clearApiBaseOverride = function() {
+        try {
+            localStorage.removeItem('API_BASE_OVERRIDE');
+            delete window.__API_BASE_URL__;
+            initializeApiConfig();
+            try { window.dispatchEvent(new CustomEvent('api-base-cleared')); } catch(_) {}
+            location.reload();
+        } catch (e) {
+            // best-effort
+            location.reload();
+        }
+    };
 })();
 

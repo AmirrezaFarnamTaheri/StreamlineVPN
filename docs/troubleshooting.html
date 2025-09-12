@@ -725,6 +725,49 @@
       </div>
     </div>
   </footer>
+  <!-- API Base Debug Banner -->
+  <div id="api-debug-banner" style="position: fixed; bottom: 14px; right: 14px; z-index: 10000;">
+    <div class="glassmorphism rounded-lg px-3 py-2 text-xs text-gray-200 border border-white/10 shadow-md" style="backdrop-filter: blur(10px)">
+      <span>API:</span>
+      <span id="api-debug-current" class="font-medium"></span>
+      <span class="opacity-50 mx-1">|</span>
+      <button id="api-debug-change" class="text-blue-300 hover:text-blue-200">Change</button>
+      <span class="opacity-50 mx-1">•</span>
+      <button id="api-debug-clear" class="text-red-300 hover:text-red-200">Clear</button>
+      <span class="opacity-50 mx-1">•</span>
+      <a id="api-debug-meta" href="#" class="text-gray-300 hover:text-white" title="How to override via meta tag">Meta override</a>
+    </div>
+  </div>
+  <script>
+    (function(){
+      function updateBanner(){
+        var el = document.getElementById('api-debug-current');
+        var base = window.__API_BASE__ || (window.location.protocol + '//' + window.location.host);
+        if (el) el.textContent = base;
+      }
+      document.getElementById('api-debug-change').addEventListener('click', function(){
+        var current = window.__API_BASE__ || '';
+        var input = prompt('Enter API Base URL (e.g., https://api.example.com)', current);
+        if (input) { window.setApiBaseOverride(input); }
+      });
+      document.getElementById('api-debug-clear').addEventListener('click', function(){
+        window.clearApiBaseOverride();
+      });
+      document.getElementById('api-debug-meta').addEventListener('click', function(e){
+        e.preventDefault();
+        var snippet = '<meta name="api-base" content="' + (window.__API_BASE__ || 'http://localhost:8080') + '">';
+        var msg = 'Add this to <head> to hard-set API base:\n\n' + snippet + '\n\nThen reload the page.';
+        if (navigator.clipboard) {
+          navigator.clipboard.writeText(snippet).then(function(){ alert(msg + '\n\n(Snippet copied to clipboard)'); });
+        } else {
+          alert(msg);
+        }
+      });
+      window.addEventListener('api-base-changed', updateBanner);
+      window.addEventListener('api-base-cleared', updateBanner);
+      updateBanner();
+    })();
+  </script>
 </body>
 </html>
 
