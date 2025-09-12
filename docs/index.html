@@ -47,30 +47,23 @@
         /* Remove typewriter blinking caret effect globally */
         .animate-typewriter { animation: typewriter 3s steps(40, end); overflow: hidden; white-space: nowrap; }
         
-        /* Explicitly remove any glow effects from copyright and description text */
-        .text-gray-400, .text-gray-300 {
-            filter: none !important;
-            box-shadow: none !important;
-            text-shadow: none !important;
-        }
-        
-        /* Additional specific overrides for our target elements */
-        footer p.text-gray-400 {
+        /* Utility to remove any neon/glow/box effects */
+        .no-neon {
+            background: transparent !important;
+            border: 0 !important;
+            outline: 0 !important;
             filter: none !important;
             box-shadow: none !important;
             text-shadow: none !important;
             animation: none !important;
         }
-        
-        .hero-section p.text-gray-300 {
-            filter: none !important;
-            box-shadow: none !important;
-            text-shadow: none !important;
-            animation: none !important;
-        }
-        
-        /* Override any potential inherited glow effects */
-        p[class*="text-gray"] {
+        /* Explicitly remove any glow effects for gray text commonly used here */
+        .text-gray-400.no-neon,
+        .text-gray-300.no-neon,
+        footer p.text-gray-400,
+        p.no-neon {
+            background: transparent !important;
+            border: 0 !important;
             filter: none !important;
             box-shadow: none !important;
             text-shadow: none !important;
@@ -155,7 +148,7 @@
                     StreamlineVPN
                 </h1>
             </div>
-            <p class="text-2xl text-gray-300 mb-8 max-w-3xl mx-auto animate-fade-in-up stagger-1">
+            <p class="text-2xl text-gray-300 no-neon mb-8 max-w-3xl mx-auto animate-fade-in-up stagger-1">
                 Enterprise-grade VPN configuration aggregator with ML-powered quality prediction
                 and real-time processing of 500+ sources
             </p>
@@ -298,7 +291,7 @@
                 <a href="https://github.com/your-username/CleanConfigs-SubMerger-" class="hover:text-purple-400 transition hover:animate-wiggle">🐙 GitHub</a>
                 <a href="troubleshooting.html" class="hover:text-purple-400 transition hover:animate-wiggle">🆘 Support</a>
             </div>
-            <p class="text-gray-400">&copy; 2025 StreamlineVPN. Open source under GPL-3.0</p>
+            <p class="text-gray-400 no-neon">&copy; 2025 StreamlineVPN. Open source under GPL-3.0</p>
         </div>
     </footer>
 

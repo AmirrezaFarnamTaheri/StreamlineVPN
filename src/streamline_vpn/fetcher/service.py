@@ -79,6 +79,8 @@ class FetcherService:
             "rate_limit_hits": 0,
             "retry_attempts": 0,
         }
+        # Last error details for diagnostics
+        self.last_error: Optional[str] = None
 
     async def __aenter__(self):
         """Async context manager entry."""
@@ -154,16 +156,19 @@ class FetcherService:
             )
 
             self.stats["successful_requests"] += 1
+            self.last_error = None
             return result
 
         except CircuitBreakerOpenException:
             self.stats["circuit_breaker_trips"] += 1
             logger.warning(f"Circuit breaker open for domain {domain}")
+            self.last_error = f"Circuit breaker open for {domain} while fetching {url}"
             return None
 
         except Exception as e:
             self.stats["failed_requests"] += 1
-            logger.error(f"Request failed for {url}: {e}")
+            self.last_error = f"Request failed for {url}: {type(e).__name__}: {e}"
+            logger.error(self.last_error)
             return None
 
         finally:
@@ -314,6 +319,10 @@ class FetcherService:
             "rate_limiters": len(self.rate_limiters),
             "active_connections": self.semaphore._value,
         }
+
+    def get_last_error(self) -> Optional[str]:
+        """Return last error string captured by the service (if any)."""
+        return self.last_error
 
     def reset_circuit_breaker(self, domain: str) -> None:
         """Reset circuit breaker for domain.

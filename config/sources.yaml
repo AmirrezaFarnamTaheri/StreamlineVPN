@@ -2,7 +2,7 @@ sources:
   tier_1_premium:
     description: High-quality, reliable sources with excellent uptime
     urls:
-    - url: https://raw.githubusercontent.com/mahdibland/V2RayAggregator/master/sub/sub_merge_yaml.txt
+    - url: https://raw.githubusercontent.com/mahdibland/V2RayAggregator/master/sub/sub_merge.txt
       weight: 0.9
       protocols:
       - vmess
@@ -12,7 +12,7 @@ sources:
       metadata:
         description: Premium source with high-quality configurations
         region: global
-    - url: https://raw.githubusercontent.com/awesome-vpn/awesome-vpn/master/all.txt
+    - url: https://raw.githubusercontent.com/vveg26/get_proxy/main/dist/v2ray.config.txt
       weight: 0.85
       protocols:
       - vmess
@@ -45,24 +45,7 @@ sources:
       metadata:
         description: SubCrawler aggregated sources
         region: global
-    - url: https://example.com/
-      weight: 0.5
-      protocols:
-      - all
-      update: 24h
-      metadata: {}
-    - url: https://dup.com/
-      weight: 0.5
-      protocols:
-      - all
-      update: 24h
-      metadata: {}
-    - url: https://example.com/
-      weight: 0.5
-      protocols:
-      - all
-      update: 24h
-      metadata: {}
+    # Removed duplicates and placeholder example URLs
   tier_3_bulk:
     description: Bulk sources with many configurations
     urls:

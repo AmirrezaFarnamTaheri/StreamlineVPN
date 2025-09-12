@@ -410,37 +410,134 @@ class SourceManager:
                     config_count=len(configs),
                 )
             else:
+                # Surface last error from fetcher (if available) for better diagnostics
+                detail = None
+                try:
+                    detail = getattr(self.fetcher_service, "get_last_error", lambda: None)()
+                except Exception:
+                    detail = None
                 return ProcessingResult(
                     url=source_url,
                     success=False,
-                    error="Failed to fetch content",
+                    error=(
+                        f"Failed to fetch content from {source_url}. "
+                        + (f"Detail: {detail}" if detail else "See server logs for details.")
+                    ),
                     response_time=response_time,
                 )
 
         except Exception as e:
-            logger.error(f"Unexpected error fetching source {source_url}: {e}")
+            logger.error(
+                "Unexpected error fetching source %s: %s", source_url, e, exc_info=True
+            )
             return ProcessingResult(
                 url=source_url,
                 success=False,
-                error=f"Unexpected error: {str(e)}",
+                error=(
+                    f"Unexpected error while fetching {source_url}: "
+                    f"{type(e).__name__}: {e}"
+                ),
                 response_time=(datetime.now() - start_time).total_seconds(),
             )
 
     def _parse_configs(self, content: str) -> List[str]:
-        """Parse configurations from content.
+        """Parse configurations from raw content, with fallbacks.
+
+        Tries direct line-by-line extraction first. If no configs are found,
+        attempts to decode Base64-encoded subscriptions and re-parse. Finally,
+        applies minimal heuristics to extract embedded configuration lines.
 
         Args:
-            content: Raw content from source
+            content: Raw content fetched from a source.
 
         Returns:
-            List of configuration lines
+            A list of configuration share lines (vmess://, vless://, etc.).
         """
-        configs = []
-        for line in content.splitlines():
-            line = line.strip()
-            if self._is_valid_config_line(line):
-                configs.append(line)
-        return configs
+        try:
+            text = (content or "").replace("\ufeff", "").strip()
+            if not text:
+                return []
+
+            # Pass 1: direct extraction from lines
+            configs: List[str] = []
+            for line in text.splitlines():
+                s = line.strip()
+                if self._is_valid_config_line(s):
+                    configs.append(s)
+            if configs:
+                return configs
+
+            # Pass 2: whole-body Base64 decoding (common subscription format)
+            decoded = self._try_b64_decode(text)
+            if decoded:
+                for line in decoded.splitlines():
+                    s = line.strip()
+                    if self._is_valid_config_line(s):
+                        configs.append(s)
+                if configs:
+                    return configs
+
+            # Pass 3: handle accidental Base64 with missing padding by adding '='
+            if not decoded and self._looks_like_b64(text):
+                padded = self._pad_b64(text)
+                decoded2 = self._try_b64_decode(padded)
+                if decoded2:
+                    for line in decoded2.splitlines():
+                        s = line.strip()
+                        if self._is_valid_config_line(s):
+                            configs.append(s)
+                    if configs:
+                        return configs
+
+            # Fallback: scan inline tokens (e.g., pasted content with separators)
+            tokens = [t for t in text.replace("\\n", "\n").split() if t]
+            for t in tokens:
+                if self._is_valid_config_line(t.strip()):
+                    configs.append(t.strip())
+
+            return configs
+
+        except Exception as parse_error:
+            logger.error("Failed to parse configs: %s", parse_error, exc_info=True)
+            return []
+
+    def _looks_like_b64(self, s: str) -> bool:
+        try:
+            import re
+            s = s.strip()
+            if not s or any(ch in s for ch in ("\n", "\r", "\t", " ")):
+                # Multi-line or spaced content can still be Base64; allow
+                s = re.sub(r"\s+", "", s)
+            return re.fullmatch(r"[A-Za-z0-9+/=]+", s) is not None and len(s) >= 16
+        except Exception:
+            return False
+
+    def _pad_b64(self, s: str) -> str:
+        try:
+            import re
+            s = re.sub(r"\s+", "", s)
+            missing = (-len(s)) % 4
+            return s + ("=" * missing)
+        except Exception:
+            return s
+
+    def _try_b64_decode(self, s: str) -> Optional[str]:
+        try:
+            import base64, re
+            raw = re.sub(r"\s+", "", s)
+            # Attempt URL-safe first, then standard
+            for decoder in (base64.urlsafe_b64decode, base64.b64decode):
+                try:
+                    missing = (-len(raw)) % 4
+                    data = decoder(raw + ("=" * missing))
+                    text = data.decode("utf-8", errors="ignore")
+                    if text and any(proto in text for proto in ("vmess://", "vless://", "trojan://", "ss://", "ssr://")):
+                        return text
+                except Exception:
+                    continue
+            return None
+        except Exception:
+            return None
 
     def _is_valid_config_line(self, line: str) -> bool:
         """Check if line is a valid configuration.

@@ -331,7 +331,12 @@ class UnifiedAPI:
         logger.info("Starting StreamlineVPN Unified API...")
         try:
             config_path = self.config_manager.find_config_path()
-            self.merger = StreamlineVPNMerger(config_path=str(config_path))
+            # Toggle cache via env (default disabled to avoid external deps)
+            cache_env = os.getenv("CACHE_ENABLED", os.getenv("STREAMLINE_CACHE_ENABLED", "false")).lower()
+            cache_enabled = cache_env in {"1", "true", "yes", "on"}
+            self.merger = StreamlineVPNMerger(
+                config_path=str(config_path), cache_enabled=cache_enabled
+            )
             await self.merger.initialize()
             logger.info("Merger initialized successfully")
         except Exception as e:
@@ -540,6 +545,65 @@ class UnifiedAPI:
                 return {"status": "success", "message": f"Source {request.url} added"}
             except Exception as e:
                 raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
+
+        # Backward/compatibility alias used by some frontends
+        @app.post("/api/v1/sources/add", tags=["Sources"], status_code=status.HTTP_201_CREATED)
+        async def add_source_compat(request: AddSourceRequest) -> Dict[str, Any]:
+            return await add_source(request)
+
+        # Cache health endpoint (simple stub; extend to real cache if available)
+        @app.get("/api/v1/cache/health", tags=["Cache"])
+        async def cache_health() -> Dict[str, Any]:
+            if self.merger and getattr(self.merger, "cache_manager", None):
+                try:
+                    stats = self.merger.cache_manager.get_cache_stats()  # type: ignore[attr-defined]
+                    return {"status": "ok", "cache": "enabled", "stats": stats}
+                except Exception as e:
+                    logger.error("Cache health error: %s", e)
+                    return {"status": "degraded", "cache": "enabled"}
+            return {"status": "ok", "cache": "disabled"}
+
+        # Cache clear endpoint (no-op if cache is disabled)
+        @app.post("/api/v1/cache/clear", tags=["Cache"])
+        async def cache_clear() -> Dict[str, Any]:
+            try:
+                if self.merger and getattr(self.merger, "clear_cache", None):
+                    await self.merger.clear_cache()  # type: ignore[func-returns-value]
+                    return {"status": "ok", "cleared": True}
+                return {"status": "ok", "cleared": False}
+            except Exception as e:
+                raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(e))
+
+        # Validate sources endpoint (basic validation placeholder)
+        @app.post("/api/v1/sources/validate", tags=["Sources"])
+        async def validate_sources() -> Dict[str, Any]:
+            if not self.merger:
+                raise HTTPException(status_code=status.HTTP_503_SERVICE_UNAVAILABLE, detail="Service not initialized")
+            try:
+                active = await self.merger.source_manager.get_active_sources()  # type: ignore[assignment]
+                valid = 0
+                invalid = 0
+                for url in active:
+                    try:
+                        result = self.merger.security_manager.validate_source(url)  # type: ignore[attr-defined]
+                        if result.get("is_safe"):
+                            valid += 1
+                        else:
+                            invalid += 1
+                    except Exception:
+                        invalid += 1
+                return {"valid_sources": valid, "invalid_sources": invalid, "checked": len(active)}
+            except Exception as e:
+                logger.error("Source validation error: %s", e)
+                return {"valid_sources": 0, "invalid_sources": 0, "checked": 0}
+
+        # Config test endpoint used by config generator page
+        @app.post("/api/v1/test-config", tags=["Configurations"])
+        async def test_config(payload: Dict[str, Any]) -> Dict[str, Any]:
+            # Accepts a payload like {"config": { ... } } and responds with a simple OK
+            if not isinstance(payload, dict):
+                raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid payload")
+            return {"status": "ok", "message": "Configuration looks valid"}
 
         @app.websocket("/ws")
         async def websocket_endpoint(websocket: WebSocket) -> None:

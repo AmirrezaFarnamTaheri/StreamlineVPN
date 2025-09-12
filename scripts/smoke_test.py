@@ -1,117 +1,145 @@
+#!/usr/bin/env python3
+"""
+StreamlineVPN Unified API Smoke Test
+====================================
+
+Verifies core endpoints of the unified API. Can either:
+- Test an already running server via --url
+- Start a temporary server (uvicorn) via --start
+
+Examples:
+  python scripts/smoke_test.py --start --cache --port 8082
+  python scripts/smoke_test.py --url http://127.0.0.1:8080
+"""
+
+from __future__ import annotations
+
+import argparse
 import json
+import os
+import signal
+import subprocess
+import sys
 import time
-from urllib.request import urlopen, Request
-import urllib.request
+from typing import Dict, Tuple
+
+import httpx
 
 
-def get(url: str, timeout: float = 5.0, headers: dict | None = None):
+def wait_for_health(base_url: str, timeout: float = 20.0) -> bool:
+    end = time.time() + timeout
+    while time.time() < end:
+        try:
+            r = httpx.get(f"{base_url}/health", timeout=2.0)
+            if r.status_code == 200:
+                return True
+        except Exception:
+            pass
+        time.sleep(0.25)
+    return False
+
+
+def check_endpoint(method: str, url: str, expect_ok: bool = True, **kwargs) -> Tuple[bool, str]:
     try:
-        req = Request(url, headers=headers or {})
-        with urlopen(req, timeout=timeout) as r:
-            return r.status, r.headers.get("content-type", ""), r.read()
-    except Exception as e:  # noqa: BLE001 - simple smoke test
-        return None, None, str(e).encode()
+        r = httpx.request(method.upper(), url, timeout=5.0, **kwargs)
+        ok = (r.status_code == 200) if expect_ok else True
+        return ok, f"{r.status_code} {r.text[:200]}"
+    except Exception as e:
+        return False, f"ERR: {e}"
+
+
+def run_checks(base_url: str) -> Dict[str, Dict[str, str]]:
+    results: Dict[str, Dict[str, str]] = {}
+
+    def record(name: str, ok: bool, info: str) -> None:
+        results[name] = {"ok": str(ok), "info": info}
+
+    # Core API
+    ok, info = check_endpoint("GET", f"{base_url}/health")
+    record("health", ok, info)
+
+    ok, info = check_endpoint("GET", f"{base_url}/api/v1/cache/health")
+    record("cache_health", ok, info)
+
+    ok, info = check_endpoint("POST", f"{base_url}/api/v1/cache/clear")
+    record("cache_clear", ok, info)
+
+    ok, info = check_endpoint("GET", f"{base_url}/api/v1/statistics")
+    record("statistics", ok, info)
+
+    ok, info = check_endpoint("GET", f"{base_url}/api/v1/sources")
+    record("sources", ok, info)
+
+    ok, info = check_endpoint("POST", f"{base_url}/api/v1/sources/validate")
+    record("sources_validate", ok, info)
+
+    # Static assets/UI
+    ok, info = check_endpoint("GET", f"{base_url}/api-base.js")
+    record("api_base_js", ok, info)
+
+    ok, info = check_endpoint("GET", f"{base_url}/interactive.html")
+    record("interactive_html", ok, info)
+
+    return results
+
+
+def start_server(port: int, cache: bool) -> subprocess.Popen:
+    env = os.environ.copy()
+    if cache:
+        env["CACHE_ENABLED"] = "1"
+    cmd = [
+        sys.executable,
+        "-m",
+        "uvicorn",
+        "streamline_vpn.web.unified_api:app",
+        "--host",
+        "127.0.0.1",
+        "--port",
+        str(port),
+    ]
+    return subprocess.Popen(cmd, env=env, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
 
 
 def main() -> int:
-    api = "http://127.0.0.1:8080"
-    web = "http://127.0.0.1:8000"
+    parser = argparse.ArgumentParser(description="StreamlineVPN Unified API smoke test")
+    parser.add_argument("--url", default=None, help="Base URL (e.g., http://127.0.0.1:8080)")
+    parser.add_argument("--start", action="store_true", help="Start a temporary server")
+    parser.add_argument("--port", type=int, default=8082, help="Port to use when starting a server")
+    parser.add_argument("--cache", action="store_true", help="Enable cache when starting a server")
+    parser.add_argument("--timeout", type=float, default=20.0, help="Health wait timeout (seconds)")
+    args = parser.parse_args()
 
-    # Wait for API
-    api_ok = False
-    for _ in range(40):
-        s, _, _ = get(f"{api}/health")
-        if s == 200:
-            api_ok = True
-            break
-        time.sleep(0.5)
-    print("API /health:", api_ok)
+    proc: subprocess.Popen | None = None
+    base_url = args.url or f"http://127.0.0.1:{args.port}"
 
-    # Web api-base.js
-    s, _, _ = get(f"{web}/api-base.js")
-    print("WEB /api-base.js:", s)
-
-    # Core API endpoints
-    for path in [
-        "/api/v1/statistics",
-        "/api/v1/configurations?limit=1",
-        "/api/v1/sources",
-    ]:
-        s, ct, content = get(f"{api}{path}")
-        note = ""
-        if s is None:
-            note = f" error: {content[:80]!r}"
-        print(f"GET {path} -> {s}{note}")
-
-    # Try versioned pipeline run
-    payload = json.dumps(
-        {
-            "config_path": "config/sources.unified.yaml",
-            "output_dir": "output",
-            "formats": ["json"],
-        }
-    ).encode()
-
-    def post(url: str):
-        try:
-            r = urllib.request.urlopen(
-                urllib.request.Request(
-                    url,
-                    data=payload,
-                    headers={"Content-Type": "application/json"},
-                    method="POST",
-                ),
-                timeout=15,
-            )
-            body = r.read().decode("utf-8", "ignore")
-            return r.status, body
-        except Exception as e:  # noqa: BLE001
-            return None, str(e)
-
-    status, body = post(f"{api}/api/v1/pipeline/run")
-    print("POST /api/v1/pipeline/run ->", status)
-    if status != 200:
-        status2, body2 = post(f"{api}/pipeline/run")
-        print("POST /pipeline/run ->", status2)
-        if status2 == 200:
-            body = body2
-            status = status2
-
-    job_id = None
     try:
-        data = json.loads(body)
-        job_id = data.get("job_id") if isinstance(data, dict) else None
-    except Exception:
-        pass
+        if args.start:
+            proc = start_server(args.port, args.cache)
+            if not wait_for_health(base_url, timeout=args.timeout):
+                print(json.dumps({"error": "server did not become healthy", "url": base_url}))
+                return 2
 
-    # Poll job if available
-    if job_id:
-        # try v1 status first, then legacy /jobs/{id}
-        for _ in range(30):
-            s, _, content = get(f"{api}/api/v1/pipeline/status/{job_id}")
-            if s != 200:
-                s2, _, content2 = get(f"{api}/jobs/{job_id}")
-                print("status poll v1:", s, " legacy:", s2)
-                if s2 == 200:
-                    content = content2
-                    s = s2
-                else:
-                    time.sleep(1)
-                    continue
+        results = run_checks(base_url)
+        print(json.dumps({"base_url": base_url, "results": results}, indent=2))
+
+        # Determine overall success
+        all_ok = all(v.get("ok") == "True" for v in results.values())
+        return 0 if all_ok else 1
+
+    finally:
+        if proc is not None:
             try:
-                st = json.loads(content)
+                if os.name == "nt":
+                    proc.send_signal(signal.CTRL_BREAK_EVENT)  # type: ignore[attr-defined]
+                proc.terminate()
+                try:
+                    proc.wait(timeout=3)
+                except Exception:
+                    proc.kill()
             except Exception:
-                print("status parse error")
-                break
-            print("status:", st.get("status"), "progress:", st.get("progress"), "msg:", st.get("message"))
-            if st.get("status") in {"completed", "failed"}:
-                break
-            time.sleep(2)
-
-    return 0
+                pass
 
 
 if __name__ == "__main__":
     raise SystemExit(main())
-
 
