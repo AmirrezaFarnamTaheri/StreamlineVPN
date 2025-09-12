@@ -423,9 +423,26 @@ class UnifiedAPI:
             return [item.strip() for item in value.split(",") if item.strip()]
 
     def _setup_routes(self, app: FastAPI) -> None:
-        @app.get("/", tags=["General"])
-        async def root() -> Dict[str, str]:
-            return {"message": "StreamlineVPN Unified API", "version": "3.0.0", "docs": "/docs"}
+        @app.get("/", tags=["General"], response_model=None)
+        async def root(request: Request) -> Response:
+            """Root endpoint with simple content negotiation.
+
+            - If a browser requests HTML (Accept contains text/html), serve docs/index.html
+            - Otherwise return a JSON status payload
+            """
+            accept = request.headers.get("accept", "")
+            if "text/html" in accept:
+                docs_path = Path(__file__).resolve().parents[3] / "docs"
+                index_file = docs_path / "index.html"
+                if index_file.exists():
+                    return FileResponse(str(index_file), media_type="text/html")
+            # Default JSON
+            return JSONResponse({
+                "message": "StreamlineVPN Unified API",
+                "version": "3.0.0",
+                "docs": "/docs",
+                "web": "/web"
+            })
 
         @app.get("/health", response_model=HealthResponse, tags=["General"])
         async def health() -> HealthResponse:
@@ -747,8 +764,7 @@ class UnifiedAPI:
                     status_code=status.HTTP_404_NOT_FOUND,
                 )
 
-            # Main page routes
-            @app.get("/", include_in_schema=False)
+            # Main page routes (avoid duplicating root, keep /web and /index.html)
             @app.get("/web", include_in_schema=False)
             @app.get("/index.html", include_in_schema=False)
             async def serve_index():
