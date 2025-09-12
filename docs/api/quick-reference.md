@@ -71,7 +71,8 @@ curl -X POST -H "Content-Type: application/json" \
 ## WebSocket
 
 - WS `/ws` — periodic server‑pushed updates (e.g., statistics)
+  - Tip: pass a query parameter to identify the client without using subpaths, e.g. `ws://HOST/ws?client_id=dashboard`
+  - This avoids environments that restrict WebSocket handshakes on subpaths like `/ws/xyz`
 
 Notes:
 - The Web UI reads `API_BASE_URL` to locate the API and may enforce CSP `connect-src` rules; see Web Interface docs.
-

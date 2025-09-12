@@ -222,7 +222,10 @@ function setupPeriodicUpdates() {
 async function loadStatistics() {
     try {
         const response = await fetch(`${API_BASE}/api/v1/statistics`);
-        if (!response.ok) throw new Error(`HTTP ${response.status}`);
+        if (!response.ok) {
+            const body = await response.text().catch(()=> '');
+            throw new Error(`HTTP ${response.status} ${response.statusText}${body?`\n${body.slice(0,200)}${body.length>200?'...':''}`:''}`);
+        }
         
         const stats = await response.json();
         updateStatisticsDisplay(stats);
@@ -230,7 +233,7 @@ async function loadStatistics() {
         
     } catch (error) {
         console.error('Failed to load statistics:', error);
-        showNotification('Failed to load statistics', 'error');
+        showNotification(`Failed to load statistics: ${error.message}`, 'error');
     }
 }
 
@@ -240,9 +243,9 @@ async function loadStatistics() {
 function updateStatisticsDisplay(stats) {
     const updates = {
         'totalSources': stats.total_sources || 0,
-        'totalConfigs': stats.total_configurations || 0,
+        'totalConfigs': (stats.total_configs || stats.total_configurations || 0),
         'activeSources': stats.active_sources || 0,
-        'validConfigs': stats.valid_configurations || 0
+        'validConfigs': (stats.valid_configs || stats.valid_configurations || 0)
     };
     
     Object.entries(updates).forEach(([id, value]) => {
@@ -256,7 +259,7 @@ function updateStatisticsDisplay(stats) {
     // Update last updated timestamp
     const lastUpdated = document.getElementById('lastUpdated');
     if (lastUpdated) {
-        lastUpdated.textContent = formatRelativeTime(stats.last_updated);
+        lastUpdated.textContent = formatRelativeTime(stats.last_update || stats.last_updated);
     }
 }
 
@@ -308,7 +311,10 @@ async function loadConfigurations() {
         configsList.innerHTML = getLoadingSpinner();
         
         const response = await fetch(`${API_BASE}/api/v1/configurations?limit=20`);
-        if (!response.ok) throw new Error(`HTTP ${response.status}`);
+        if (!response.ok) {
+            const body = await response.text().catch(()=> '');
+            throw new Error(`HTTP ${response.status} ${response.statusText}${body?`\n${body.slice(0,200)}${body.length>200?'...':''}`:''}`);
+        }
         
         const data = await response.json();
         const configs = data.configurations || [];
@@ -345,7 +351,7 @@ async function loadConfigurations() {
         configsList.innerHTML = items;
         
     } catch (error) {
-        configsList.innerHTML = '<div class="text-red-400 text-center py-8">Failed to load configurations</div>';
+        configsList.innerHTML = `<div class="text-red-400 text-center py-8">Failed to load configurations<br><span class='text-xs opacity-70'>${(error && error.message) ? error.message : ''}</span></div>`;
         console.error('Failed to load configurations:', error);
     }
 }
@@ -372,7 +378,10 @@ async function loadSources() {
         sourcesList.innerHTML = getLoadingSpinner();
         
         const response = await fetch(`${API_BASE}/api/v1/sources`);
-        if (!response.ok) throw new Error(`HTTP ${response.status}`);
+        if (!response.ok) {
+            const body = await response.text().catch(()=> '');
+            throw new Error(`HTTP ${response.status} ${response.statusText}${body?`\n${body.slice(0,200)}${body.length>200?'...':''}`:''}`);
+        }
         
         const data = await response.json();
         const sources = data.sources || [];
@@ -417,7 +426,7 @@ async function loadSources() {
         sourcesList.innerHTML = items.join('');
         
     } catch (error) {
-        sourcesList.innerHTML = '<div class="text-red-400 text-center py-8">Failed to load sources</div>';
+        sourcesList.innerHTML = `<div class="text-red-400 text-center py-8">Failed to load sources<br><span class='text-xs opacity-70'>${(error && error.message) ? error.message : ''}</span></div>`;
         console.error('Failed to load sources:', error);
     }
 }
@@ -475,7 +484,7 @@ async function startProcessing() {
     const startBtn = document.getElementById('startProcessingBtn');
     if (!startBtn) return;
     
-    const configPath = document.getElementById('configPath')?.value || 'config/sources.yaml';
+    const configPath = document.getElementById('configPath')?.value || 'config/sources.unified.yaml';
     const formats = Array.from(document.querySelectorAll('.format-cb:checked')).map(cb => cb.value);
     
     if (formats.length === 0) {
@@ -599,9 +608,9 @@ function resetProcessingUI() {
  * Show configuration details
  */
 function showConfigDetails(configId) {
-    // This would open a modal with detailed configuration info
-    console.log('Show config details for:', configId);
-    showNotification('Configuration details feature coming soon!', 'info');
+    // Basic inline detail until full modal is implemented
+    console.log('Configuration ID:', configId);
+    showNotification(`Configuration selected: ${configId}`, 'info');
 }
 
 /**
@@ -691,4 +700,3 @@ window.StreamlineVPN = {
     startProcessing,
     showNotification
 };
-

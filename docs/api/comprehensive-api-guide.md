@@ -511,11 +511,17 @@ mutation {
 
 **Endpoint**: `WS /ws`
 
+To support stricter environments that block WS subpaths (e.g., `/ws/abc`), prefer a single endpoint with a `client_id` query parameter:
+
+```js
+const ws = new WebSocket('ws://localhost:8080/ws?client_id=my_client');
+```
+
 **Description**: Real-time updates and monitoring.
 
 **Example**:
 ```javascript
-const ws = new WebSocket('ws://localhost:8000/ws');
+const ws = new WebSocket('ws://localhost:8000/ws?client_id=docs_example');
 
 ws.onmessage = function(event) {
   const data = JSON.parse(event.data);

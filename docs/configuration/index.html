@@ -18,7 +18,7 @@
         }
         .animated-bg {
             position: fixed; inset: 0; background: linear-gradient(125deg, #667eea, #764ba2, #f093fb, #667eea);
-            background-size: 400% 400%; animation: gradientShift 18s ease infinite; opacity: 0.05; z-index: -1;
+            background-size: 400% 400%; animation: gradientShift 24s ease-in-out infinite; opacity: 0.04; z-index: -1;
         }
         @keyframes gradientShift { 0%,100%{background-position:0% 50%} 50%{background-position:100% 50%} }
         .glass { background: rgba(255,255,255,0.08); backdrop-filter: blur(12px); border: 1px solid rgba(255,255,255,0.12); }
@@ -37,18 +37,26 @@
         @keyframes wiggle { 0%, 7% { transform: rotateZ(0); } 15% { transform: rotateZ(-15deg); } 20% { transform: rotateZ(10deg); } 25% { transform: rotateZ(-10deg); } 30% { transform: rotateZ(6deg); } 35% { transform: rotateZ(-4deg); } 40%, 100% { transform: rotateZ(0); } }
         .animate-fade-in-up { animation: fade-in-up 0.6s ease-out; }
         .animate-slide-in { animation: slide-in 0.4s ease-out; }
-        .animate-glow { animation: glow 2s ease-in-out infinite; }
-        .animate-pulse { animation: pulse 2s ease-in-out infinite; }
-        .animate-shimmer { background: linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent); background-size: 200% 100%; animation: shimmer 2s infinite; }
-        .animate-morphing { animation: morphing 4s ease-in-out infinite; }
-        .animate-particle-float { animation: particle-float 3s ease-in-out infinite; }
-        .animate-text-shimmer { background: linear-gradient(90deg, #667eea, #764ba2, #f093fb, #667eea); background-size: 200% 100%; -webkit-background-clip: text; -webkit-text-fill-color: transparent; animation: text-shimmer 3s linear infinite; }
+        /* Calmer visuals (reduced neon / slower cooldowns like main page) */
+        .animate-glow { animation: glow 6s ease-in-out infinite; }
+        .animate-pulse { animation: pulse 6s ease-in-out infinite; }
+        .animate-shimmer { background: linear-gradient(90deg, transparent, rgba(255,255,255,0.10), transparent); background-size: 200% 100%; animation: shimmer 6s ease-in-out infinite; }
+        .animate-morphing { animation: morphing 6s ease-in-out infinite; }
+        .animate-particle-float { animation: particle-float 5s ease-in-out infinite; }
+        .animate-text-shimmer { background: linear-gradient(90deg, #667eea, #764ba2, #f093fb, #667eea); background-size: 240% 100%; -webkit-background-clip: text; -webkit-text-fill-color: transparent; animation: text-shimmer 8s linear infinite; }
         .animate-card-hover { transition: all 0.3s ease; }
         .animate-card-hover:hover { animation: card-hover 0.3s ease forwards; }
         .animate-pulse-ring { position: relative; }
         .animate-pulse-ring::before { content: ''; position: absolute; top: 50%; left: 50%; width: 100%; height: 100%; border: 2px solid rgba(102, 126, 234, 0.3); border-radius: 50%; transform: translate(-50%, -50%); animation: pulse-ring 2s infinite; }
         .animate-data-flow { position: relative; overflow: hidden; }
-        .animate-data-flow::after { content: ''; position: absolute; top: 0; left: 0; width: 100%; height: 2px; background: linear-gradient(90deg, transparent, #667eea, transparent); animation: data-flow 3s linear infinite; }
+        /* Clear moving scanline for a cleaner, non-neon look */
+        .animate-data-flow::after { content: none; }
+        
+        /* Remove neon rectangle backgrounds (tinted blocks) */
+        .bg-blue-500\/10 { background-color: transparent !important; }
+        .bg-green-500\/10 { background-color: transparent !important; }
+        .bg-yellow-500\/10 { background-color: transparent !important; }
+        .bg-purple-500\/10 { background-color: transparent !important; }
         .animate-wiggle { animation: wiggle 1s ease-in-out; }
         .stagger-1 { animation-delay: 0.1s; }
         .stagger-2 { animation-delay: 0.2s; }
@@ -59,6 +67,11 @@
         .code-block { background: rgba(0,0,0,0.6); border-radius: 8px; padding: 1rem; font-family: 'Fira Code', monospace; }
         .config-card { transition: all 0.3s ease; cursor: pointer; }
         .config-card:hover { transform: translateY(-4px); background: rgba(255,255,255,0.12); }
+        .border-blue-500\/20, .border-green-500\/20, .border-yellow-500\/20, .border-purple-500\/20 {
+          border-color: rgba(148,163,184,0.25) !important;
+        }
+        /* Slightly calmer glass */
+        .glass-dark { background: rgba(0,0,0,0.35); border: 1px solid rgba(255,255,255,0.08); }
         .sidebar { position: sticky; top: 2rem; height: fit-content; }
         .nav-link { transition: all 0.3s ease; }
         .nav-link:hover { background: rgba(102, 126, 234, 0.1); transform: translateX(4px); }

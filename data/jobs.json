@@ -1,10 +1,293 @@
 {
-  "jobs": [],
-  "metadata": {
-    "version": "2.0.0",
-    "created_at": "2024-01-01T00:00:00Z",
-    "last_cleanup": "2024-01-01T00:00:00Z",
-    "total_jobs_processed": 0
-  },
-  "last_cleanup": "2025-09-12T14:52:51.174314"
+  "jobs": [
+    {
+      "id": "job_f9853fe17423",
+      "type": "pipeline",
+      "config": {
+        "config_path": "config/sources.yaml",
+        "output_dir": "output",
+        "formats": [
+          "json",
+          "clash"
+        ]
+      },
+      "status": "completed",
+      "progress": 100,
+      "created_at": "2025-09-12T19:01:24.009680",
+      "updated_at": "2025-09-12T19:01:40.515222",
+      "started_at": "2025-09-12T19:01:24.012737",
+      "result": {
+        "success": true,
+        "sources_processed": 6,
+        "configurations_found": 116,
+        "processing_duration": 16.502485,
+        "statistics": {
+          "total_sources": 6,
+          "successful_sources": 0,
+          "failed_sources": 0,
+          "total_configs": 116,
+          "avg_response_time": 0.0,
+          "total_processing_time": 0.0,
+          "success_rate": 0.0,
+          "configs_per_source": 0.0,
+          "start_time": "2025-09-12T15:16:54.346926",
+          "end_time": null
+        }
+      },
+      "finished_at": "2025-09-12T19:01:40.515222"
+    },
+    {
+      "id": "job_8ff25d25aa5d",
+      "type": "pipeline",
+      "config": {
+        "config_path": "config/sources.yaml",
+        "output_dir": "output",
+        "formats": [
+          "json",
+          "clash"
+        ]
+      },
+      "status": "completed",
+      "progress": 100,
+      "created_at": "2025-09-12T19:02:44.293426",
+      "updated_at": "2025-09-12T19:03:01.102989",
+      "started_at": "2025-09-12T19:02:44.295428",
+      "result": {
+        "success": true,
+        "sources_processed": 6,
+        "configurations_found": 116,
+        "processing_duration": 16.807561,
+        "statistics": {
+          "total_sources": 6,
+          "successful_sources": 0,
+          "failed_sources": 0,
+          "total_configs": 116,
+          "avg_response_time": 0.0,
+          "total_processing_time": 0.0,
+          "success_rate": 0.0,
+          "configs_per_source": 0.0,
+          "start_time": "2025-09-12T15:16:54.346926",
+          "end_time": null
+        }
+      },
+      "finished_at": "2025-09-12T19:03:01.102989"
+    },
+    {
+      "id": "job_10eaa9841a60",
+      "type": "pipeline",
+      "config": {
+        "config_path": "config/sources.yaml",
+        "output_dir": "output",
+        "formats": [
+          "json",
+          "clash"
+        ]
+      },
+      "status": "completed",
+      "progress": 100,
+      "created_at": "2025-09-12T19:04:01.801579",
+      "updated_at": "2025-09-12T19:04:18.701390",
+      "started_at": "2025-09-12T19:04:01.803580",
+      "result": {
+        "success": true,
+        "sources_processed": 6,
+        "configurations_found": 116,
+        "processing_duration": 16.89781,
+        "statistics": {
+          "total_sources": 6,
+          "successful_sources": 0,
+          "failed_sources": 0,
+          "total_configs": 116,
+          "avg_response_time": 0.0,
+          "total_processing_time": 0.0,
+          "success_rate": 0.0,
+          "configs_per_source": 0.0,
+          "start_time": "2025-09-12T15:16:54.346926",
+          "end_time": null
+        }
+      },
+      "finished_at": "2025-09-12T19:04:18.701390"
+    },
+    {
+      "id": "job_a8b2f1acdfbc",
+      "type": "pipeline",
+      "config": {
+        "config_path": "config/sources.yaml",
+        "output_dir": "output",
+        "formats": [
+          "json",
+          "clash"
+        ]
+      },
+      "status": "completed",
+      "progress": 100,
+      "created_at": "2025-09-12T19:04:36.655308",
+      "updated_at": "2025-09-12T19:04:53.101734",
+      "started_at": "2025-09-12T19:04:36.657587",
+      "result": {
+        "success": true,
+        "sources_processed": 6,
+        "configurations_found": 116,
+        "processing_duration": 16.44314,
+        "statistics": {
+          "total_sources": 6,
+          "successful_sources": 0,
+          "failed_sources": 0,
+          "total_configs": 116,
+          "avg_response_time": 0.0,
+          "total_processing_time": 0.0,
+          "success_rate": 0.0,
+          "configs_per_source": 0.0,
+          "start_time": "2025-09-12T15:16:54.346926",
+          "end_time": null
+        }
+      },
+      "finished_at": "2025-09-12T19:04:53.101734"
+    },
+    {
+      "id": "job_311b1a56e0a3",
+      "type": "pipeline",
+      "config": {
+        "config_path": "config/sources.yaml",
+        "output_dir": "output",
+        "formats": [
+          "json",
+          "clash"
+        ]
+      },
+      "status": "completed",
+      "progress": 100,
+      "created_at": "2025-09-12T19:05:36.517703",
+      "updated_at": "2025-09-12T19:05:54.181559",
+      "started_at": "2025-09-12T19:05:36.519709",
+      "result": {
+        "success": true,
+        "sources_processed": 6,
+        "configurations_found": 116,
+        "processing_duration": 17.66185,
+        "statistics": {
+          "total_sources": 6,
+          "successful_sources": 0,
+          "failed_sources": 0,
+          "total_configs": 116,
+          "avg_response_time": 0.0,
+          "total_processing_time": 0.0,
+          "success_rate": 0.0,
+          "configs_per_source": 0.0,
+          "start_time": "2025-09-12T15:16:54.346926",
+          "end_time": null
+        }
+      },
+      "finished_at": "2025-09-12T19:05:54.181559"
+    },
+    {
+      "id": "job_41f51d633cef",
+      "type": "pipeline",
+      "config": {
+        "config_path": "config/sources.yaml",
+        "output_dir": "output",
+        "formats": [
+          "json",
+          "clash"
+        ]
+      },
+      "status": "completed",
+      "progress": 100,
+      "created_at": "2025-09-12T19:06:21.304413",
+      "updated_at": "2025-09-12T19:06:38.704461",
+      "started_at": "2025-09-12T19:06:21.305305",
+      "result": {
+        "success": true,
+        "sources_processed": 6,
+        "configurations_found": 116,
+        "processing_duration": 17.398155,
+        "statistics": {
+          "total_sources": 6,
+          "successful_sources": 0,
+          "failed_sources": 0,
+          "total_configs": 116,
+          "avg_response_time": 0.0,
+          "total_processing_time": 0.0,
+          "success_rate": 0.0,
+          "configs_per_source": 0.0,
+          "start_time": "2025-09-12T15:16:54.346926",
+          "end_time": null
+        }
+      },
+      "finished_at": "2025-09-12T19:06:38.704461"
+    },
+    {
+      "id": "job_1b36c8e9eea2",
+      "type": "pipeline",
+      "config": {
+        "config_path": "config/sources.yaml",
+        "output_dir": "output",
+        "formats": [
+          "json",
+          "clash"
+        ]
+      },
+      "status": "completed",
+      "progress": 100,
+      "created_at": "2025-09-12T19:23:22.785121",
+      "updated_at": "2025-09-12T19:23:41.325333",
+      "started_at": "2025-09-12T19:23:22.788051",
+      "result": {
+        "success": true,
+        "sources_processed": 6,
+        "configurations_found": 116,
+        "processing_duration": 18.536184,
+        "statistics": {
+          "total_sources": 6,
+          "successful_sources": 0,
+          "failed_sources": 0,
+          "total_configs": 116,
+          "avg_response_time": 0.0,
+          "total_processing_time": 0.0,
+          "success_rate": 0.0,
+          "configs_per_source": 0.0,
+          "start_time": "2025-09-12T15:16:54.346926",
+          "end_time": null
+        }
+      },
+      "finished_at": "2025-09-12T19:23:41.325333"
+    },
+    {
+      "id": "job_7a8ec3b59ff5",
+      "type": "pipeline",
+      "config": {
+        "config_path": "config/sources.yaml",
+        "output_dir": "output",
+        "formats": [
+          "json",
+          "clash"
+        ]
+      },
+      "status": "completed",
+      "progress": 100,
+      "created_at": "2025-09-12T21:46:43.722873",
+      "updated_at": "2025-09-12T21:47:00.694475",
+      "started_at": "2025-09-12T21:46:43.724778",
+      "result": {
+        "success": true,
+        "sources_processed": 6,
+        "configurations_found": 116,
+        "processing_duration": 16.969697,
+        "statistics": {
+          "total_sources": 6,
+          "successful_sources": 0,
+          "failed_sources": 0,
+          "total_configs": 116,
+          "avg_response_time": 0.0,
+          "total_processing_time": 0.0,
+          "success_rate": 0.0,
+          "configs_per_source": 0.0,
+          "start_time": "2025-09-12T15:16:54.346926",
+          "end_time": null
+        }
+      },
+      "finished_at": "2025-09-12T21:47:00.694475"
+    }
+  ],
+  "last_cleanup": "2025-09-12T22:06:23.156062"
 }

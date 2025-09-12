@@ -14,6 +14,7 @@ from typing import Any, Dict, Optional
 import aiofiles
 import httpx
 from fastapi import BackgroundTasks, FastAPI, HTTPException, Request, Response
+from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import HTMLResponse, JSONResponse, FileResponse
 from fastapi.staticfiles import StaticFiles
@@ -72,6 +73,49 @@ class StaticControlServer:
         )
 
         self.static_dir.mkdir(parents=True, exist_ok=True)
+
+        # Descriptive error handlers
+        @app.exception_handler(RequestValidationError)
+        async def validation_exception_handler(request: Request, exc: RequestValidationError):
+            logger.warning("Validation error on %s %s: %s", request.method, request.url.path, exc)
+            return JSONResponse(
+                status_code=422,
+                content={
+                    "error": "Request validation failed",
+                    "path": request.url.path,
+                    "method": request.method,
+                    "timestamp": datetime.now().isoformat(),
+                    "details": exc.errors(),
+                },
+            )
+
+        @app.exception_handler(HTTPException)
+        async def http_exception_handler(request: Request, exc: HTTPException):
+            logger.info("HTTP error %s on %s %s: %s", exc.status_code, request.method, request.url.path, exc.detail)
+            return JSONResponse(
+                status_code=exc.status_code,
+                content={
+                    "error": "Request failed",
+                    "path": request.url.path,
+                    "method": request.method,
+                    "timestamp": datetime.now().isoformat(),
+                    "detail": exc.detail,
+                },
+            )
+
+        @app.exception_handler(Exception)
+        async def general_exception_handler(request: Request, exc: Exception):
+            logger.error("Unhandled exception on %s %s: %s", request.method, request.url.path, exc, exc_info=True)
+            return JSONResponse(
+                status_code=500,
+                content={
+                    "error": "Internal server error",
+                    "path": request.url.path,
+                    "method": request.method,
+                    "timestamp": datetime.now().isoformat(),
+                    "detail": str(exc),
+                },
+            )
 
         @app.on_event("startup")
         async def startup_event() -> None:
@@ -164,7 +208,11 @@ class StaticControlServer:
             except Exception as e:
                 logger.error(f"Error getting configurations: {e}")
                 return JSONResponse(
-                    content={"success": False, "error": str(e)},
+                    content={
+                        "success": False,
+                        "error": str(e),
+                        "hint": "Try refreshing the cache via /api/refresh and check backend availability.",
+                    },
                     status_code=500
                 )
 
@@ -234,7 +282,10 @@ class StaticControlServer:
                         ),
                     },
                 )
-            raise HTTPException(status_code=400, detail="Invalid format")
+            raise HTTPException(
+                status_code=400,
+                detail=f"Invalid format '{format}'. Supported: json, text, download",
+            )
 
         @app.get("/api-base.js")
         async def api_base_script() -> Response:
@@ -388,6 +439,15 @@ class StaticControlServer:
                         state = status_data.get("status") or status_data.get("state")
                         if state in {"completed", "failed"}:
                             logger.info("Pipeline finished with state: %s", state)
+                            # On success, refresh cached data immediately
+                            if state == "completed":
+                                try:
+                                    await self._refresh_cached_data()
+                                    self.last_update = datetime.now()
+                                    self.cached_data["last_update"] = self.last_update.isoformat()
+                                    logger.info("Refreshed cache after pipeline completion")
+                                except Exception as e:
+                                    logger.warning("Cache refresh after pipeline failed: %s", e)
                             break
                     else:
                         logger.warning("Status check returned %s", status_resp.status_code)

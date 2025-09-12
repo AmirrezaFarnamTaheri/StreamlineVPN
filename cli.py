@@ -44,13 +44,22 @@ def process(config_path: str | None, output: str, formats: List[str]):
     """Process VPN configurations via merger."""
 
     async def run() -> None:
-        merger = StreamlineVPNMerger(config_path=config_path) if config_path else StreamlineVPNMerger()
-        await merger.initialize()
-        result = await merger.process_all(output_dir=output, formats=list(formats))  # type: ignore[arg-type]
-        if result.get("success"):
-            click.echo(json.dumps({k: v for k, v in result.items() if k != "details"}, indent=2))
-        else:
-            click.echo(f"Processing failed: {result.get('error', 'unknown error')}")
+        try:
+            merger = StreamlineVPNMerger(config_path=config_path) if config_path else StreamlineVPNMerger()
+            await merger.initialize()
+            result = await merger.process_all(output_dir=output, formats=list(formats))  # type: ignore[arg-type]
+            if result.get("success"):
+                click.echo(json.dumps({k: v for k, v in result.items() if k != "details"}, indent=2))
+            else:
+                err = result.get('error', 'unknown error')
+                details = result.get('details')
+                click.echo("Processing failed:\n- Error: " + str(err))
+                if details:
+                    click.echo("- Details: " + json.dumps(details, indent=2))
+                click.echo("- Hint: check your configuration file path and formats")
+        except Exception as exc:
+            click.echo("Processing aborted due to unexpected error:\n- Error: " + str(exc))
+            raise
 
     asyncio.run(run())
 
@@ -71,18 +80,19 @@ def serve(host: str, port: int, workers: int) -> None:
 @cli.command()
 def status() -> None:
     """Check API status and basic statistics."""
-    base = "http://localhost:8080"
+    base = os.getenv("API_BASE", "http://localhost:8080")
     try:
         with httpx.Client(timeout=5.0) as client:
             h = client.get(f"{base}/health").json()
             click.echo(f"API: {h.get('status', 'unknown')} - v{h.get('version')}")
             try:
                 s = client.get(f"{base}/api/v1/statistics").json()
-                click.echo(f"Sources: {s.get('total_sources', 0)} | Configs: {s.get('total_configs', 0)} | Success: {int((s.get('success_rate', 0.0))*100)}%")
+                total_cfg = s.get('total_configs') if 'total_configs' in s else s.get('total_configurations', 0)
+                click.echo(f"Sources: {s.get('total_sources', 0)} | Configs: {total_cfg} | Success: {int((s.get('success_rate', 0.0))*100)}%")
             except Exception:
                 pass
     except Exception as exc:
-        click.echo(f"API not available: {exc}")
+        click.echo(f"API not available at {base}: {exc}\nHint: ensure Unified API is running and reachable.")
 
 
 if __name__ == "__main__":

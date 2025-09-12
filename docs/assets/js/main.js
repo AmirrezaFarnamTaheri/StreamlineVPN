@@ -17,6 +17,10 @@ class StreamlineVPNApp {
         
         this.elements = {};
         this.intervals = {};
+        this.ws = null;
+        this.wsBackoff = 1000; // start with 1s
+        this.wsTimer = null;
+        this.flags = { apiConnected: false, wsConnected: false };
         
         this.init();
     }
@@ -29,6 +33,7 @@ class StreamlineVPNApp {
         this.setupEventListeners();
         await this.checkConnection();
         this.startPeriodicUpdates();
+        this.setupWebSocket();
         
         console.log('[StreamlineVPN] Application initialized');
     }
@@ -143,7 +148,8 @@ class StreamlineVPNApp {
             const response = await fetch(url, mergedOptions);
             
             if (!response.ok) {
-                throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                const body = await response.text().catch(() => '');
+                throw new Error(`Request to ${endpoint} failed (HTTP ${response.status} ${response.statusText})${body ? `\nResponse: ${body.slice(0,200)}${body.length>200?'...':''}` : ''}`);
             }
             
             const contentType = response.headers.get('content-type');
@@ -153,7 +159,7 @@ class StreamlineVPNApp {
             
             return await response.text();
         } catch (error) {
-            this.addTerminalLine(`API Request Failed: ${error.message}`, 'error');
+            this.addTerminalLine(`API request failed for ${endpoint}: ${error.message}`, 'error');
             throw error;
         }
     }
@@ -165,13 +171,13 @@ class StreamlineVPNApp {
         try {
             const response = await this.makeRequest('/health');
             this.state.isConnected = true;
-            this.updateConnectionStatus('connected', 'API Connected');
+            this.setApiConnectivityFlag(true);
             this.addTerminalLine(`API connection successful: ${response.status}`, 'success');
             this.showNotification('API connection established!', 'success');
             return true;
         } catch (error) {
             this.state.isConnected = false;
-            this.updateConnectionStatus('disconnected', 'API Disconnected');
+            this.setApiConnectivityFlag(false);
             this.addTerminalLine(`API connection failed: ${error.message}`, 'error');
             this.showNotification('API connection failed!', 'error');
             return false;
@@ -192,16 +198,42 @@ class StreamlineVPNApp {
     updateConnectionStatus(status, message) {
         if (!this.elements.apiStatus) return;
         
-        const indicator = this.elements.apiStatus.querySelector('.status-indicator');
+        const indicator = this.elements.apiStatus.querySelector('.status-dot');
         const text = this.elements.apiStatus.querySelector('span:last-child');
         
         if (indicator) {
-            indicator.className = `status-indicator status-${status === 'connected' ? 'active' : 'inactive'}`;
+            indicator.className = `status-dot status-${status === 'connected' ? 'active' : 'inactive'}`;
         }
         
         if (text) {
             text.textContent = message;
         }
+    }
+
+    /**
+     * Update WebSocket status UI
+     */
+    updateWsStatus(status, message) {
+        const container = document.getElementById('wsStatus');
+        if (!container) return;
+        const indicator = container.querySelector('.status-dot');
+        const text = container.querySelector('span:last-child');
+        if (indicator) {
+            indicator.className = `status-dot status-${status === 'connected' ? 'active' : status === 'warning' ? 'warning' : 'inactive'}`;
+        }
+        if (text) {
+            text.textContent = message;
+        }
+        // Tooltip for WS
+        try {
+            const tip = status === 'connected' ? 'WebSocket connected; live updates active'
+                : status === 'warning' ? 'WebSocket error; attempting to recover'
+                : 'WebSocket disconnected; using fallback polling';
+            container.setAttribute('title', tip);
+        } catch(_) {}
+        // Track WS connectivity and refresh combined API indicator
+        this.flags.wsConnected = (status === 'connected');
+        this.updateCombinedStatus();
     }
 
     /**
@@ -214,6 +246,7 @@ class StreamlineVPNApp {
             this.renderStatistics();
         } catch (error) {
             console.error('Failed to load statistics:', error);
+            this.addTerminalLine('Failed to load statistics: ' + (error?.message || 'unknown error'), 'error');
         }
     }
 
@@ -228,7 +261,7 @@ class StreamlineVPNApp {
         }
         
         if (this.elements.totalConfigs) {
-            this.elements.totalConfigs.textContent = stats.total_configurations || '0';
+            this.elements.totalConfigs.textContent = (stats.total_configs || stats.total_configurations || 0).toString();
         }
         
         if (this.elements.activeSources) {
@@ -236,7 +269,7 @@ class StreamlineVPNApp {
         }
         
         if (this.elements.lastUpdated) {
-            this.elements.lastUpdated.textContent = this.formatDate(stats.last_updated);
+            this.elements.lastUpdated.textContent = this.formatDate(stats.last_update || stats.last_updated);
         }
     }
 
@@ -253,8 +286,8 @@ class StreamlineVPNApp {
             this.state.configurations = response.configurations || [];
             this.renderConfigurations();
         } catch (error) {
-            this.elements.configList.innerHTML = this.getErrorHTML('Failed to load configurations');
-            console.error('Failed to load configurations:', error);
+            this.elements.configList.innerHTML = this.getErrorHTML('Failed to load configurations from /api/v1/configurations');
+            console.error('Failed to load configurations from /api/v1/configurations:', error);
         }
     }
 
@@ -307,8 +340,8 @@ class StreamlineVPNApp {
             this.state.sources = response.sources || [];
             this.renderSources();
         } catch (error) {
-            this.elements.sourceList.innerHTML = this.getErrorHTML('Failed to load sources');
-            console.error('Failed to load sources:', error);
+            this.elements.sourceList.innerHTML = this.getErrorHTML('Failed to load sources from /api/v1/sources');
+            console.error('Failed to load sources from /api/v1/sources:', error);
         }
     }
 
@@ -357,7 +390,7 @@ class StreamlineVPNApp {
     async startProcessing() {
         if (!this.elements.startProcessingBtn) return;
         
-        const configPath = this.elements.configPath?.value || 'config/sources.yaml';
+        const configPath = this.elements.configPath?.value || 'config/sources.unified.yaml';
         const formats = Array.from(this.elements.formatCheckboxes || [])
             .filter(cb => cb.checked)
             .map(cb => cb.value);
@@ -525,7 +558,7 @@ class StreamlineVPNApp {
         if (!this.elements.notificationArea) return;
         
         const notification = document.createElement('div');
-        notification.className = `notification glassmorphism rounded-lg p-4 mb-4 notification-${type}`;
+        notification.className = `notification glass rounded-lg p-4 mb-4 notification-${type}`;
         
         const colorMap = {
             'success': 'border-green-500',
@@ -584,6 +617,83 @@ class StreamlineVPNApp {
             clearInterval(interval);
         });
         this.intervals = {};
+    }
+
+    /**
+     * WebSocket: connect to /ws?client_id=...
+     * Uses helpers from api-base.js (openWebSocket, resolveClientId)
+     */
+    setupWebSocket() {
+        try {
+            const cid = (window.resolveClientId && window.resolveClientId()) || 'dashboard';
+            if (!window.openWebSocket) {
+                console.warn('[StreamlineVPN] openWebSocket helper not found; skipping WS.');
+                return;
+            }
+            this._connectWebSocket(cid);
+        } catch (e) {
+            console.warn('[StreamlineVPN] WS init failed:', e);
+        }
+    }
+
+    _connectWebSocket(clientId) {
+        try {
+            // Clear any previous timer
+            if (this.wsTimer) {
+                clearTimeout(this.wsTimer);
+                this.wsTimer = null;
+            }
+            const ws = window.openWebSocket(clientId);
+            this.ws = ws;
+            this.wsBackoff = 1000; // reset on successful start
+
+            ws.onopen = () => {
+                this.addTerminalLine('WebSocket connected', 'success');
+                this.updateWsStatus('connected', 'WS Connected');
+                // Ask for immediate pong to signal liveness
+                try { ws.send(JSON.stringify({ type: 'ping' })); } catch(_) {}
+            };
+
+            ws.onmessage = (evt) => {
+                try {
+                    const data = JSON.parse(evt.data);
+                    if (data && data.type === 'statistics' && data.data) {
+                        this.state.statistics = data.data;
+                        this.renderStatistics();
+                    } else if (data && data.type === 'pong') {
+                        this.addTerminalLine('WS pong received', 'info');
+                    }
+                } catch (e) {
+                    // Non-JSON or parse error — log and continue
+                    this.addTerminalLine('WS message parse error', 'warning');
+                }
+            };
+
+            ws.onerror = () => {
+                this.addTerminalLine('WebSocket error', 'warning');
+                this.updateWsStatus('warning', 'WS Error');
+            };
+
+            ws.onclose = () => {
+                this.addTerminalLine('WebSocket disconnected; will retry', 'warning');
+                this.updateWsStatus('inactive', 'WS Disconnected');
+                this._scheduleWsReconnect(clientId);
+            };
+        } catch (e) {
+            this.addTerminalLine('WebSocket connect failed', 'error');
+            this._scheduleWsReconnect(clientId);
+        }
+    }
+
+    _scheduleWsReconnect(clientId) {
+        if (this.wsTimer) return; // already scheduled
+        // Exponential backoff up to 30s
+        const delay = Math.min(this.wsBackoff, 30000);
+        this.wsBackoff = Math.min(this.wsBackoff * 2, 30000);
+        this.wsTimer = setTimeout(() => {
+            this.wsTimer = null;
+            this._connectWebSocket(clientId);
+        }, delay);
     }
 
     /**
@@ -648,6 +758,41 @@ class StreamlineVPNApp {
      */
     destroy() {
         this.stopPeriodicUpdates();
+        try { if (this.ws) { this.ws.close(); } } catch(_) {}
+        if (this.wsTimer) { clearTimeout(this.wsTimer); this.wsTimer = null; }
+    }
+
+    /**
+     * Combined API status derived from HTTP and WS flags
+     * - Green (active): API + WS connected
+     * - Yellow (warning): API connected, WS down
+     * - Red (inactive): API down
+     */
+    updateCombinedStatus() {
+        const container = this.elements.apiStatus;
+        if (!container) return;
+        const indicator = container.querySelector('.status-dot');
+        const text = container.querySelector('span:last-child');
+        let cls = 'inactive';
+        let msg = 'API Disconnected';
+        let tip = 'HTTP API unreachable';
+        if (this.flags.apiConnected && this.flags.wsConnected) {
+            cls = 'active';
+            msg = 'API+WS Connected';
+            tip = 'HTTP API reachable and WebSocket streaming live updates';
+        } else if (this.flags.apiConnected && !this.flags.wsConnected) {
+            cls = 'warning';
+            msg = 'API OK, WS Down';
+            tip = 'API reachable; WebSocket is down, updates may be slower';
+        }
+        if (indicator) indicator.className = `status-dot status-${cls}`;
+        if (text) text.textContent = msg;
+        try { container.setAttribute('title', tip); } catch(_) {}
+    }
+
+    setApiConnectivityFlag(isConnected) {
+        this.flags.apiConnected = !!isConnected;
+        this.updateCombinedStatus();
     }
 }
 

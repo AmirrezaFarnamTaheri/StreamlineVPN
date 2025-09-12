@@ -10,8 +10,8 @@
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
   <script src="https://cdn.tailwindcss.com"></script>
 </head>
-<body class="bg-gradient-to-br from-gray-900 via-blue-900 to-purple-900 min-h-screen text-white">
-  <header class="glassmorphism p-4 border-b border-white/10">
+<body class="bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 min-h-screen text-white">
+  <header class="glass p-4 border-b border-white/10">
     <div class="container flex items-center justify-between">
       <div class="flex items-center space-x-3">
         <div class="w-8 h-8 rounded-lg bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center font-bold">S</div>
@@ -20,10 +20,21 @@
           <p class="text-xs text-gray-300">Control Panel</p>
         </div>
       </div>
-      <div class="flex items-center space-x-4">
-        <div id="apiStatus" class="flex items-center text-sm">
-          <span class="status-indicator status-pending"></span>
-          <span>Connecting...</span>
+      <div class="flex items-center space-x-6">
+        <nav class="hidden md:flex items-center space-x-6 text-sm">
+          <a href="/index.html" class="hover:text-purple-300 transition">Home</a>
+          <a href="/config_generator.html" class="hover:text-purple-300 transition">Generator</a>
+          <a href="/configuration/index.html" class="hover:text-purple-300 transition">Docs</a>
+        </nav>
+        <div class="flex items-center space-x-4">
+          <div id="apiStatus" class="flex items-center text-sm" title="Checking API connectivity...">
+            <span class="status-dot status-pending"></span>
+            <span>API Connecting...</span>
+          </div>
+          <div id="wsStatus" class="flex items-center text-sm" title="Checking WebSocket connectivity...">
+            <span class="status-dot status-pending"></span>
+            <span>WS Connecting...</span>
+          </div>
         </div>
         <button id="testConnectionBtn" class="btn btn-ghost btn-sm" onclick="testConnection()">Test Connection</button>
       </div>
@@ -31,13 +42,26 @@
   </header>
 
   <main class="container px-6 py-8">
-    <div class="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8"><div class="glass stat-card bar-blue rounded-xl p-4"><p class="text-sm text-gray-300">Total Sources</p><p id="totalSources" class="text-2xl font-bold">-</p></div><div class="glass stat-card bar-green rounded-xl p-4"><p class="text-sm text-gray-300">Configurations</p><p id="totalConfigs" class="text-2xl font-bold">-</p></div><div class="glass stat-card bar-purple rounded-xl p-4"><p class="text-sm text-gray-300">Active Sources</p><p id="activeSources" class="text-2xl font-bold">-</p></div><div class="glass stat-card bar-orange rounded-xl p-4"><p class="text-sm text-gray-300">Last Updated</p><p id="lastUpdated" class="text-sm">-</p></div></div><div class="glass stat-card bar-green rounded-xl p-4"><p class="text-sm text-gray-300">Configurations</p><p id="totalConfigs" class="text-2xl font-bold">-</p></div><div class="glass stat-card bar-purple rounded-xl p-4"><p class="text-sm text-gray-300">Active Sources</p><p id="activeSources" class="text-2xl font-bold">-</p></div><div class="glass stat-card bar-orange rounded-xl p-4"><p class="text-sm text-gray-300">Last Updated</p><p id="lastUpdated" class="text-sm">-</p></div></div>
-      <div class="glass rounded-xl p-4"><p class="text-sm text-gray-300">Configurations</p><p id="totalConfigs" class="text-2xl font-bold">-</p></div>
-      <div class="glass rounded-xl p-4"><p class="text-sm text-gray-300">Active Sources</p><p id="activeSources" class="text-2xl font-bold">-</p></div>
-      <div class="glass rounded-xl p-4"><p class="text-sm text-gray-300">Last Updated</p><p id="lastUpdated" class="text-sm">-</p></div>
+    <div class="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
+      <div class="glass stat-card bar-blue rounded-xl p-4">
+        <p class="text-sm text-gray-300">Total Sources</p>
+        <p id="totalSources" class="text-2xl font-bold">-</p>
+      </div>
+      <div class="glass stat-card bar-green rounded-xl p-4">
+        <p class="text-sm text-gray-300">Configurations</p>
+        <p id="totalConfigs" class="text-2xl font-bold">-</p>
+      </div>
+      <div class="glass stat-card bar-purple rounded-xl p-4">
+        <p class="text-sm text-gray-300">Active Sources</p>
+        <p id="activeSources" class="text-2xl font-bold">-</p>
+      </div>
+      <div class="glass stat-card bar-orange rounded-xl p-4">
+        <p class="text-sm text-gray-300">Last Updated</p>
+        <p id="lastUpdated" class="text-sm">-</p>
+      </div>
     </div>
 
-    <div class="glassmorphism rounded-xl overflow-hidden">
+    <div class="glass rounded-xl overflow-hidden">
       <div id="tablist" class="flex space-x-6 px-6 border-b border-white/10">
         <button class="tab-btn py-3 text-sm" data-tab="dashboard" aria-selected="true" tabindex="0">📊 Dashboard</button>
         <button class="tab-btn py-3 text-sm text-gray-400" data-tab="processing" aria-selected="false" tabindex="-1">⚙️ Processing</button>
@@ -51,9 +75,9 @@
             <div class="glass rounded-xl p-4">
               <h3 class="text-lg font-semibold mb-4">System Health</h3>
               <div class="space-y-3 text-sm">
-                <div class="flex items-center justify-between"><span>API Server</span><span id="apiServerStatus"><span class="status-indicator status-pending"></span>Checking...</span></div>
-                <div class="flex items-center justify-between"><span>Redis Cache</span><span id="redisStatus"><span class="status-indicator status-pending"></span>Checking...</span></div>
-                <div class="flex items-center justify-between"><span>Source Fetcher</span><span id="fetcherStatus"><span class="status-indicator status-pending"></span>Checking...</span></div>
+                <div class="flex items-center justify-between"><span>API Server</span><span id="apiServerStatus"><span class="status-dot status-pending"></span>Checking...</span></div>
+                <div class="flex items-center justify-between"><span>Redis Cache</span><span id="redisStatus"><span class="status-dot status-pending"></span>Checking...</span></div>
+                <div class="flex items-center justify-between"><span>Source Fetcher</span><span id="fetcherStatus"><span class="status-dot status-pending"></span>Checking...</span></div>
               </div>
             </div>
             <div class="glass rounded-xl p-4">
@@ -135,6 +159,7 @@
   <div id="notificationArea"></div>
 
   <script src="/assets/js/main.js"></script>
+  <script src="/assets/js/errors.js"></script>
   <script src="/assets/js/app.js"></script>
 
   <!-- API Base Debug Banner -->

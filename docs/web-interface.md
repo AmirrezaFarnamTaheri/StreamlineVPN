@@ -37,7 +37,7 @@ The web interface exposes additional JSON APIs for orchestration and configurati
 - `GET /api/health` – health summary for main, generator, analytics, static
 - `GET /api/sources` – prioritized source URLs
 - `GET /api/configs` – sample configs from a quick merge
-- `GET /api/statistics` – processing stats and health summary
+- `GET /api/v1/statistics` - processing stats and health summary
 - `POST /api/merge` – run merge; accepts `{ "max_concurrent": number }`
 - `POST /api/export` – export results; accepts `{ "format": "all"|format, "output_dir": "output" }`
 - `GET /api/config` – current configuration snapshot

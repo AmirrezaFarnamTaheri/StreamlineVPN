@@ -39,6 +39,7 @@ from ..core.merger import StreamlineVPNMerger
 from ..models.formats import OutputFormat
 from ..utils.logging import get_logger
 from ..settings import get_settings
+from .ws_debug_middleware import WSLogMiddleware
 
 logger = get_logger(__name__)
 
@@ -375,6 +376,9 @@ class UnifiedAPI:
         )
 
         self._setup_cors(app)
+        # Add verbose WS handshake logging to diagnose pre-route rejections (opt-in)
+        if os.getenv("WS_DEBUG", "0").lower() in {"1", "true", "yes", "on"}:
+            app.add_middleware(WSLogMiddleware)
         self._setup_routes(app)
         self._setup_exception_handlers(app)
         self._setup_static_files(app)
@@ -390,6 +394,18 @@ class UnifiedAPI:
                 "http://localhost:8080",
             ],
         )
+        # Ensure ws/wss schemes are also permitted for WebSocket clients
+        try:
+            extra_ws_origins: List[str] = []
+            for origin in list(allowed_origins):
+                if origin.startswith("http://"):
+                    extra_ws_origins.append("ws://" + origin[len("http://"):])
+                elif origin.startswith("https://"):
+                    extra_ws_origins.append("wss://" + origin[len("https://"):])
+            # Deduplicate
+            allowed_origins = list(dict.fromkeys(allowed_origins + extra_ws_origins))
+        except Exception:
+            pass
         allowed_methods = self._parse_env_list(
             "ALLOWED_METHODS",
             ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
@@ -400,13 +416,16 @@ class UnifiedAPI:
         )
         allow_credentials = os.getenv("ALLOW_CREDENTIALS", "false").lower() == "true"
 
-        app.add_middleware(
-            CORSMiddleware,
-            allow_origins=allowed_origins,
-            allow_credentials=allow_credentials,
-            allow_methods=allowed_methods,
-            allow_headers=allowed_headers,
-        )
+        if os.getenv("DISABLE_CORS", "0").lower() in {"1", "true", "yes"}:
+            logger.warning("CORS middleware disabled via DISABLE_CORS env var")
+        else:
+            app.add_middleware(
+                CORSMiddleware,
+                allow_origins=allowed_origins,
+                allow_credentials=allow_credentials,
+                allow_methods=allowed_methods,
+                allow_headers=allowed_headers,
+            )
 
         logger.info(
             f"CORS configured: origins={allowed_origins}, credentials={allow_credentials}"
@@ -470,7 +489,13 @@ class UnifiedAPI:
                 raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=f"Invalid formats: {', '.join(invalid)}")
 
             if not self.merger:
-                raise HTTPException(status_code=status.HTTP_503_SERVICE_UNAVAILABLE, detail="Service not initialized")
+                raise HTTPException(
+                    status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+                    detail={
+                        "message": "Service not initialized",
+                        "hint": "Initialize merger before running pipeline; check server startup logs.",
+                    },
+                )
 
             job_id = self.job_manager.create_job("pipeline", request.dict())
 
@@ -505,13 +530,25 @@ class UnifiedAPI:
         async def get_job_status(job_id: str) -> Dict[str, Any]:
             job = self.job_manager.get_job(job_id)
             if not job:
-                raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"Job {job_id} not found")
+                raise HTTPException(
+                    status_code=status.HTTP_404_NOT_FOUND,
+                    detail={
+                        "message": f"Job {job_id} not found",
+                        "hint": "Ensure the job id is correct and the pipeline was started successfully.",
+                    },
+                )
             return job
 
         @app.get("/api/v1/statistics", response_model=StatisticsResponse, tags=["Statistics"])
         async def get_statistics() -> StatisticsResponse:
             if not self.merger:
-                raise HTTPException(status_code=status.HTTP_503_SERVICE_UNAVAILABLE, detail="Service not initialized")
+                raise HTTPException(
+                    status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+                    detail={
+                        "message": "Service not initialized",
+                        "hint": "Merger is not ready; verify configuration and startup logs.",
+                    },
+                )
             stats = await self.merger.get_statistics()
             return StatisticsResponse(
                 total_sources=stats.get("total_sources", 0),
@@ -524,7 +561,13 @@ class UnifiedAPI:
         @app.get("/api/v1/configurations", tags=["Configurations"])
         async def get_configurations(limit: int = 100, offset: int = 0, protocol: Optional[str] = None) -> Dict[str, Any]:
             if not self.merger:
-                raise HTTPException(status_code=status.HTTP_503_SERVICE_UNAVAILABLE, detail="Service not initialized")
+                raise HTTPException(
+                    status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+                    detail={
+                        "message": "Service not initialized",
+                        "hint": "Merger is not ready; verify configuration and startup logs.",
+                    },
+                )
             configs = await self.merger.get_configurations()
             if protocol:
                 p = str(protocol).lower()
@@ -624,17 +667,193 @@ class UnifiedAPI:
 
         @app.websocket("/ws")
         async def websocket_endpoint(websocket: WebSocket) -> None:
-            await websocket.accept()
             try:
+                try:
+                    root = Path(__file__).resolve().parents[3]
+                    (root/"logs").mkdir(parents=True, exist_ok=True)
+                    with open(root/"logs"/"ws_trace.log", "a", encoding="utf-8") as f:
+                        f.write(f"ENTER /ws at {datetime.now().isoformat()}\n")
+                except Exception:
+                    pass
+                await websocket.accept()
+                try:
+                    with open(root/"logs"/"ws_trace.log", "a", encoding="utf-8") as f:
+                        f.write(f"ACCEPTED /ws at {datetime.now().isoformat()}\n")
+                except Exception:
+                    pass
+            except Exception as e:
+                try:
+                    with open(root/"logs"/"ws_trace.log", "a", encoding="utf-8") as f:
+                        f.write(f"ERROR /ws before accept: {e}\n")
+                except Exception:
+                    pass
+                raise
+            try:
+                # Parse client_id from query string to support single-endpoint routing
+                qs = websocket.scope.get("query_string", b"")
+                client_id = None
+                try:
+                    from urllib.parse import parse_qs
+                    params = parse_qs(qs.decode("utf-8")) if isinstance(qs, (bytes, bytearray)) else {}
+                    cid = params.get("client_id", [None])[0]
+                    client_id = cid if cid else None
+                except Exception:
+                    client_id = None
+                # If client sends an immediate ping, respond with pong, then continue streaming
+                try:
+                    import json as _json
+                    import asyncio as _asyncio
+                    msg = await _asyncio.wait_for(websocket.receive_text(), timeout=0.05)
+                    try:
+                        data = _json.loads(msg)
+                    except Exception:
+                        data = {}
+                    if isinstance(data, dict) and data.get("type") == "ping":
+                        payload = {"type": "pong", "timestamp": datetime.now().isoformat()}
+                        if client_id:
+                            payload["client_id"] = client_id
+                        await websocket.send_json(payload)
+                except Exception:
+                    # Timeout or parse issue – proceed to stats stream
+                    pass
                 while True:
                     if self.merger:
                         stats = await self.merger.get_statistics()
-                        await websocket.send_json({"type": "statistics", "data": stats, "timestamp": datetime.now().isoformat()})
+                        payload = {"type": "statistics", "data": stats, "timestamp": datetime.now().isoformat()}
+                        if client_id:
+                            payload["client_id"] = client_id
+                        await websocket.send_json(payload)
                     await asyncio.sleep(5)
             except WebSocketDisconnect:  # pragma: no cover - depends on client
                 logger.info("WebSocket client disconnected")
             except Exception as e:  # pragma: no cover
                 logger.error("WebSocket error: %s", e)
+
+        # Catch-all WS under /ws/* to accept handshakes on environments with strict routing
+        @app.websocket("/ws/{rest:path}")
+        async def websocket_catch_all(websocket: WebSocket, rest: str) -> None:
+            # Accept and behave like /ws/{client_id} with minimal echo
+            await websocket.accept()
+            try:
+                while True:
+                    data = await websocket.receive_json()
+                    if isinstance(data, dict) and data.get("type") == "ping":
+                        await websocket.send_json({"type": "pong", "path": rest, "timestamp": datetime.now().isoformat()})
+                    else:
+                        await websocket.send_json({"type": "ack", "path": rest, "received": data, "timestamp": datetime.now().isoformat()})
+            except WebSocketDisconnect:
+                logger.info("WebSocket catch-all disconnected: %s", rest)
+
+        # Explicit test client endpoint used by some integration tests (register before {client_id} to ensure precedence)
+        @app.websocket("/ws/test_client")
+        async def websocket_test_client(websocket: WebSocket) -> None:
+            try:
+                try:
+                    root = Path(__file__).resolve().parents[3]
+                    (root/"logs").mkdir(parents=True, exist_ok=True)
+                    with open(root/"logs"/"ws_trace.log", "a", encoding="utf-8") as f:
+                        f.write(f"ENTER /ws/test_client at {datetime.now().isoformat()}\n")
+                except Exception:
+                    pass
+                await websocket.accept()
+                try:
+                    with open(root/"logs"/"ws_trace.log", "a", encoding="utf-8") as f:
+                        f.write(f"ACCEPTED /ws/test_client at {datetime.now().isoformat()}\n")
+                except Exception:
+                    pass
+            except Exception as e:
+                try:
+                    with open(root/"logs"/"ws_trace.log", "a", encoding="utf-8") as f:
+                        f.write(f"ERROR /ws/test_client before accept: {e}\n")
+                except Exception:
+                    pass
+                raise
+            try:
+                while True:
+                    message = await websocket.receive_text()
+                    try:
+                        data = json.loads(message)
+                    except Exception:
+                        data = {}
+                    if isinstance(data, dict) and data.get("type") == "ping":
+                        await websocket.send_json({
+                            "type": "pong",
+                            "timestamp": datetime.now().isoformat(),
+                        })
+                    else:
+                        await websocket.send_json({
+                            "type": "ack",
+                            "received": data,
+                            "timestamp": datetime.now().isoformat(),
+                        })
+            except WebSocketDisconnect:  # pragma: no cover
+                logger.info("WebSocket test client disconnected")
+            except Exception as e:  # pragma: no cover
+                logger.error("WebSocket test client error: %s", e)
+
+        # Alias without underscore to bypass strict path validators in some environments
+        @app.websocket("/ws/testclient")
+        async def websocket_testclient_alias(websocket: WebSocket) -> None:
+            await websocket_test_client(websocket)
+
+        # Compatibility: echo/ping endpoint used by tests and some clients
+        @app.websocket("/ws/{client_id}")
+        async def websocket_client_endpoint(websocket: WebSocket, client_id: str) -> None:
+            try:
+                try:
+                    root = Path(__file__).resolve().parents[3]
+                    (root/"logs").mkdir(parents=True, exist_ok=True)
+                    with open(root/"logs"/"ws_trace.log", "a", encoding="utf-8") as f:
+                        f.write(f"ENTER /ws/{{client_id}} id={client_id} at {datetime.now().isoformat()}\n")
+                except Exception:
+                    pass
+                await websocket.accept()
+                try:
+                    with open(root/"logs"/"ws_trace.log", "a", encoding="utf-8") as f:
+                        f.write(f"ACCEPTED /ws/{{client_id}} id={client_id} at {datetime.now().isoformat()}\n")
+                except Exception:
+                    pass
+            except Exception as e:
+                try:
+                    with open(root/"logs"/"ws_trace.log", "a", encoding="utf-8") as f:
+                        f.write(f"ERROR /ws/{{client_id}} id={client_id} before accept: {e}\n")
+                except Exception:
+                    pass
+                raise
+            try:
+                while True:
+                    message = await websocket.receive_text()
+                    try:
+                        data = json.loads(message)
+                    except Exception:
+                        data = {}
+                    if isinstance(data, dict) and data.get("type") == "ping":
+                        await websocket.send_json({
+                            "type": "pong",
+                            "client_id": client_id,
+                            "timestamp": datetime.now().isoformat(),
+                        })
+                    else:
+                        # Provide a useful default payload
+                        stats = None
+                        if self.merger:
+                            try:
+                                stats = await self.merger.get_statistics()
+                            except Exception:
+                                stats = None
+                        await websocket.send_json({
+                            "type": "ack",
+                            "client_id": client_id,
+                            "received": data,
+                            "statistics": stats,
+                            "timestamp": datetime.now().isoformat(),
+                        })
+            except WebSocketDisconnect:  # pragma: no cover
+                logger.info("WebSocket client %s disconnected", client_id)
+            except Exception as e:  # pragma: no cover
+                logger.error("WebSocket error for %s: %s", client_id, e)
+
+        # (test_client route moved above for precedence)
 
     def _setup_metrics(self, app: FastAPI) -> None:
         """Attach Prometheus /metrics endpoint and request metrics middleware."""
@@ -719,14 +938,48 @@ class UnifiedAPI:
                 return FileResponse(str(index_file), media_type="text/html")
             return JSONResponse({"detail": "Page not found"}, status_code=404)
 
+        @app.exception_handler(RequestValidationError)
+        async def validation_exception_handler(request: Request, exc: RequestValidationError) -> JSONResponse:
+            logger.warning("Validation error on %s %s: %s", request.method, request.url.path, exc)
+            return JSONResponse(
+                status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+                content={
+                    "error": "Request validation failed",
+                    "path": request.url.path,
+                    "method": request.method,
+                    "timestamp": datetime.now().isoformat(),
+                    "details": exc.errors(),
+                },
+            )
+
+        @app.exception_handler(HTTPException)
+        async def http_exception_handler(request: Request, exc: HTTPException) -> JSONResponse:
+            logger.info("HTTP error %s on %s %s: %s", exc.status_code, request.method, request.url.path, exc.detail)
+            return JSONResponse(
+                status_code=exc.status_code,
+                content={
+                    "error": "Request failed",
+                    "path": request.url.path,
+                    "method": request.method,
+                    "timestamp": datetime.now().isoformat(),
+                    "detail": exc.detail,
+                },
+            )
+
         @app.exception_handler(Exception)
         async def general_exception_handler(
             request: Request, exc: Exception
         ) -> JSONResponse:
-            logger.error("Unhandled exception: %s", exc, exc_info=True)
+            logger.error("Unhandled exception on %s %s: %s", request.method, request.url.path, exc, exc_info=True)
             return JSONResponse(
                 status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-                content={"detail": "Internal server error"},
+                content={
+                    "error": "Internal server error",
+                    "path": request.url.path,
+                    "method": request.method,
+                    "timestamp": datetime.now().isoformat(),
+                    "detail": str(exc),
+                },
             )
 
     def _setup_static_files(self, app: FastAPI) -> None:

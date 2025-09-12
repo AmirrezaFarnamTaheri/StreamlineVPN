@@ -186,9 +186,11 @@ Add a new configuration source.
 ### WS /ws
 Real-time updates via WebSocket.
 
+Use a query parameter to tag clients without relying on subpaths (recommended in environments that restrict WS subpaths):
+
 **Connection**:
 ```javascript
-const ws = new WebSocket('ws://localhost:8080/ws');
+const ws = new WebSocket('ws://localhost:8080/ws?client_id=quickref');
 
 ws.onmessage = (event) => {
   const data = JSON.parse(event.data);

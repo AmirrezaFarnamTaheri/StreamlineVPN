@@ -177,6 +177,43 @@
         }
     };
 
+    /**
+     * Open a WebSocket to the root /ws endpoint with optional client_id query parameter.
+     * Prefer this single-endpoint approach over subpaths to avoid environment restrictions.
+     */
+    window.openWebSocket = function(clientId, path) {
+        try {
+            var httpBase = window.__API_BASE__ || (window.location.protocol + '//' + window.location.host);
+            var wsBase = httpBase.replace(/^http/i, 'ws');
+            var p = (typeof path === 'string' && path.trim()) ? path.trim() : '/ws';
+            if (!p.startsWith('/ws')) p = '/ws';
+            var url = wsBase + p + (clientId ? (p.indexOf('?') === -1 ? '?' : '&') + 'client_id=' + encodeURIComponent(clientId) : '');
+            return new WebSocket(url);
+        } catch (e) {
+            console.error('[StreamlineVPN] openWebSocket error:', e);
+            throw e;
+        }
+    };
+
+    /**
+     * Resolve a client_id from context or persist one.
+     * Order: data-client-id on body -> localStorage CLIENT_ID -> generated and saved.
+     */
+    window.resolveClientId = function() {
+        try {
+            var cid = document.body && document.body.getAttribute('data-client-id');
+            if (cid && cid.trim()) return cid.trim();
+        } catch(_) {}
+        try {
+            var saved = localStorage.getItem('CLIENT_ID');
+            if (saved && saved.trim()) return saved;
+        } catch(_) {}
+        // Generate simple client id
+        var gen = 'client_' + Math.random().toString(36).slice(2, 10);
+        try { localStorage.setItem('CLIENT_ID', gen); } catch(_) {}
+        return gen;
+    };
+
     // Initialize when DOM is ready
     if (document.readyState === 'loading') {
         document.addEventListener('DOMContentLoaded', initializeApiConfig);

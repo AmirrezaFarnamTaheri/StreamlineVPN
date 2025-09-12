@@ -263,7 +263,7 @@
                                 <span class="method-get px-3 py-1 rounded-full text-white text-sm font-medium">GET</span>
                             </div>
                             <div class="mb-4">
-                                <code class="text-blue-400 animate-text-shimmer">/api/statistics</code>
+                                <code class="text-blue-400 animate-text-shimmer">/api/v1/statistics</code>
                             </div>
                             <p class="text-gray-300 mb-4">Retrieve processing statistics and metrics</p>
                             <div class="code-block">
@@ -403,7 +403,7 @@ TOKEN = "your_jwt_token"
 headers = {"Authorization": f"Bearer {TOKEN}"}
 
 # Get statistics
-response = requests.get(f"{API_BASE}/api/statistics", headers=headers)
+response = requests.get(f"{API_BASE}/api/v1/statistics", headers=headers)
 stats = response.json()
 print(f"Total configs: {stats['total_configs']}")
 
@@ -465,7 +465,7 @@ curl -H "Authorization: Bearer $TOKEN" \
 
 # Get statistics
 curl -H "Authorization: Bearer $TOKEN" \
-     https://api.streamlinevpn.com/v2/api/statistics
+     https://api.streamlinevpn.com/v2/api/v1/statistics
 
 # Start pipeline
 curl -X POST \
@@ -637,7 +637,7 @@ X-RateLimit-Reset: 1641234567</code></pre>
         responseDiv.innerHTML = '<div class="text-blue-400">Getting statistics...</div>';
         
         try {
-            const response = await fetch(`${API_BASE}/api/statistics`);
+            const response = await fetch(`${API_BASE}/api/v1/statistics`);
             const data = await response.json();
             responseDiv.innerHTML = `<pre class="text-green-400">${JSON.stringify(data, null, 2)}</pre>`;
         } catch (error) {
