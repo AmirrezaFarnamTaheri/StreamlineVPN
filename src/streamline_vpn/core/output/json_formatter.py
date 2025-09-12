@@ -34,7 +34,7 @@ class JSONFormatter(BaseFormatter):
                 data = [self._safe_config_to_dict(cfg) for cfg in configs]
                 json.dump(data, f, indent=2)
         except Exception as e:
-            logger.error(f"Failed to save JSON configurations: {e}")
+            logger.error("Failed to save JSON configurations: %s", e)
             raise
         
         return file_path

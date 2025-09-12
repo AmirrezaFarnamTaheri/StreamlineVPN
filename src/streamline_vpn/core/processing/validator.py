@@ -253,12 +253,10 @@ class ConfigurationValidator:
                 valid_configs.append(config)
             else:
                 logger.debug(
-                    f"Invalid configuration {config.id}: "
-                    f"{', '.join(errors)}"
+                    "Invalid configuration %s: %s", config.id, ', '.join(errors)
                 )
 
         logger.info(
-            f"Validated {len(configs)} configurations, "
-            f"{len(valid_configs)} valid"
+            "Validated %d configurations, %d valid", len(configs), len(valid_configs)
         )
         return valid_configs

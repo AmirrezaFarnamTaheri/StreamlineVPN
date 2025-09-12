@@ -9,14 +9,8 @@ from typing import Optional
 
 from ...models.configuration import VPNConfiguration
 from ...utils.logging import get_logger
-# Import moved to avoid circular dependencies
-# from .parsers import (
-#     parse_vmess as _parse_vmess,
-#     parse_vless as _parse_vless,
-#     parse_trojan as _parse_trojan,
-#     parse_ss as _parse_ss,
-#     parse_ssr as _parse_ssr,
-# )
+# Note: Parser imports moved to avoid circular dependencies
+# Individual parsers are imported dynamically when needed
 
 logger = get_logger(__name__)
 
@@ -56,10 +50,10 @@ class ConfigurationParser:
                 if config:
                     return config
             except Exception as e:
-                logger.debug(f"Failed to parse {protocol_name}: {e}")
+                logger.debug("Failed to parse %s: %s", protocol_name, e)
                 continue
 
-        logger.debug(f"Could not parse configuration: {config_string[:50]}...")
+        logger.debug("Could not parse configuration: %s...", config_string[:50])
         return None
 
     def _parse_protocol(

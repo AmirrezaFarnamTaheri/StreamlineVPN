@@ -66,7 +66,7 @@ class VLESSParser:
             # Validate and normalize port
             port_int = int(port)
             if not (1 <= port_int <= 65535):
-                logger.error(f"Invalid VLESS port: {port_int}")
+                logger.error("Invalid VLESS port: %s", port_int)
                 return None
 
             # Determine TLS usage and security details
@@ -104,11 +104,11 @@ class VLESSParser:
             parse_time = time.perf_counter() - start_time
             self._update_performance_stats(parse_time)
 
-            logger.debug(f"VLESS config parsed in {parse_time*1000:.2f}ms")
+            logger.debug("VLESS config parsed in %.2fms", parse_time*1000)
             return config
 
         except Exception as e:  # pragma: no cover - defensive logging
-            logger.error(f"Failed to parse VLESS URI: {e}")
+            logger.error("Failed to parse VLESS URI: %s", e)
             return None
 
     def _update_performance_stats(self, parse_time: float) -> None:

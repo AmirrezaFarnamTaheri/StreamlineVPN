@@ -45,5 +45,5 @@ def parse_ss(config_string: str) -> Optional[VPNConfiguration]:
             metadata={"method": method},
         )
     except Exception as e:
-        logger.debug(f"Failed to parse Shadowsocks: {e}")
+        logger.debug("Failed to parse Shadowsocks: %s", e)
         return None

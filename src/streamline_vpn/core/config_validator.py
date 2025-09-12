@@ -547,46 +547,45 @@ def main() -> int:
     # Validate
     result = validator.validate_config(config)
 
-    print(
-        f"\n=== Configuration Validation "
-        f"{'✅' if result['valid'] else '❌'} ==="
-    )
-    print(f"Errors: {len(result['errors'])}")
-    print(f"Warnings: {len(result['warnings'])}")
+    # Import logger for this CLI tool
+    from ..utils.logging import get_logger
+    logger = get_logger(__name__)
+    
+    status_icon = '✅' if result['valid'] else '❌'
+    logger.info("=== Configuration Validation %s ===", status_icon)
+    logger.info("Errors: %d", len(result['errors']))
+    logger.info("Warnings: %d", len(result['warnings']))
 
     if result["errors"]:
-        print("\n=== Errors ===")
+        logger.error("=== Errors ===")
         for error in result["errors"]:
-            print(f"  [{error['type']}] {error['field']}: {error['message']}")
+            logger.error("  [%s] %s: %s", error['type'], error['field'], error['message'])
 
     if result["warnings"]:
-        print("\n=== Warnings ===")
+        logger.warning("=== Warnings ===")
         for warning in result["warnings"]:
-            print(
-                f"  [{warning['type']}] {warning['field']}: "
-                f"{warning['message']}"
-            )
+            logger.warning("  [%s] %s: %s", warning['type'], warning['field'], warning['message'])
 
     if result["suggestions"]:
-        print("\n=== Suggestions ===")
+        logger.info("=== Suggestions ===")
         for suggestion in result["suggestions"]:
-            print(f"  • {suggestion}")
+            logger.info("  • %s", suggestion)
 
     # Apply fixes if requested
     if args.fix:
         fixed_config, fixes = validator.auto_fix_config(config)
 
         if fixes:
-            print(f"\n=== Applied {len(fixes)} Fixes ===")
+            logger.info("=== Applied %d Fixes ===", len(fixes))
             for fix in fixes:
-                print(f"  • {fix}")
+                logger.info("  • %s", fix)
 
             output_path = args.output or args.config.replace(
                 ".yaml", "_fixed.yaml"
             )
             with open(output_path, "w", encoding="utf-8") as file:
                 yaml.dump(fixed_config, file, default_flow_style=False)
-            print(f"\nFixed configuration saved to: {output_path}")
+            logger.info("Fixed configuration saved to: %s", output_path)
 
     return 0 if result["valid"] else 1
 

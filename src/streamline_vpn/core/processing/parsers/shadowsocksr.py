@@ -48,5 +48,5 @@ def parse_ssr(config_string: str) -> Optional[VPNConfiguration]:
             metadata={"protocol": protocol, "obfs": obfs},
         )
     except Exception as e:
-        logger.debug(f"Failed to parse SSR: {e}")
+        logger.debug("Failed to parse SSR: %s", e)
         return None

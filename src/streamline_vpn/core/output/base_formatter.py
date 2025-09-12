@@ -70,10 +70,10 @@ class BaseFormatter(ABC):
             with open(file_path, 'w', encoding='utf-8') as f:
                 f.write(content)
             
-            logger.info(f"Saved {len(configs)} configurations to {file_path}")
+            logger.info("Saved %d configurations to %s", len(configs), file_path)
             return file_path
         except Exception as e:
-            logger.error(f"Failed to save configurations to {file_path}: {e}")
+            logger.error("Failed to save configurations to %s: %s", file_path, e)
             raise
 
     def _config_to_dict(self, config: VPNConfiguration) -> Dict[str, Any]:
@@ -115,7 +115,7 @@ class BaseFormatter(ABC):
         try:
             return self._config_to_dict(config)
         except Exception as e:
-            logger.error(f"Failed to convert config to dict: {e}")
+            logger.error("Failed to convert config to dict: %s", e)
             return {
                 "id": getattr(config, "id", "unknown"),
                 "protocol": "unknown",

@@ -86,7 +86,7 @@ class StreamlineVPNMerger(BaseMerger):
             logger.info("Merger initialization complete")
             
         except Exception as e:
-            logger.error(f"Failed to initialize merger: {e}")
+            logger.error("Failed to initialize merger: %s", e)
             self.initialized = False
             raise
 
@@ -106,7 +106,7 @@ class StreamlineVPNMerger(BaseMerger):
             self.initialized = False
             logger.info("Merger shutdown complete")
         except Exception as e:
-            logger.error(f"Error during shutdown: {e}")
+            logger.error("Error during shutdown: %s", e)
 
     async def __aenter__(self):
         """Async context manager entry."""
@@ -196,7 +196,7 @@ class StreamlineVPNMerger(BaseMerger):
             try:
                 await self.save_results(output_dir, formats)
             except Exception as save_error:
-                logger.error(f"Failed to save results: {save_error}")
+                logger.error("Failed to save results: %s", save_error)
                 # Continue without failing the entire process
 
             # Log performance
@@ -217,7 +217,7 @@ class StreamlineVPNMerger(BaseMerger):
             }
 
         except Exception as e:
-            logger.error(f"Error in process_all: {e}", exc_info=True)
+            logger.error("Error in process_all: %s", e, exc_info=True)
             return {
                 "success": False,
                 "error": str(e),
@@ -277,12 +277,12 @@ class StreamlineVPNMerger(BaseMerger):
                                     srcs.append(entry["url"])
                         self.sources = srcs
                 except Exception as parse_err:
-                    logger.warning(f"Config fallback parsing failed: {parse_err}")
+                    logger.warning("Config fallback parsing failed: %s", parse_err)
 
-            logger.info(f"Loaded {len(self.sources)} sources")
+            logger.info("Loaded %d sources", len(self.sources))
 
         except Exception as e:
-            logger.error(f"Failed to load sources: {e}")
+            logger.error("Failed to load sources: %s", e)
             self.sources = []
             raise RuntimeError(f"Source loading failed: {e}")
 
@@ -341,11 +341,11 @@ class StreamlineVPNMerger(BaseMerger):
         try:
             if self.source_manager:
                 self.source_manager.blacklist_source(source_url, reason)
-                logger.info(f"Blacklisted source: {source_url} - {reason}")
+                logger.info("Blacklisted source: %s - %s", source_url, reason)
                 return True
             return False
         except Exception as e:
-            logger.error(f"Error blacklisting source {source_url}: {e}")
+            logger.error("Error blacklisting source %s: %s", source_url, e)
             return False
 
     async def whitelist_source(self, source_url: str) -> bool:
@@ -360,11 +360,11 @@ class StreamlineVPNMerger(BaseMerger):
         try:
             if self.source_manager:
                 self.source_manager.whitelist_source(source_url)
-                logger.info(f"Whitelisted source: {source_url}")
+                logger.info("Whitelisted source: %s", source_url)
                 return True
             return False
         except Exception as e:
-            logger.error(f"Error whitelisting source {source_url}: {e}")
+            logger.error("Error whitelisting source %s: %s", source_url, e)
             return False
 
     def get_processing_summary(self) -> Dict[str, Any]:
@@ -400,7 +400,7 @@ class StreamlineVPNMerger(BaseMerger):
             configs = await self.get_configurations()
             return [config.to_dict() if hasattr(config, 'to_dict') else config for config in configs]
         except Exception as e:
-            logger.error(f"Failed to get all configurations: {e}", exc_info=True)
+            logger.error("Failed to get all configurations: %s", e, exc_info=True)
             return []
 
     async def check_source_status(self, source_url: str) -> str:
@@ -419,7 +419,7 @@ class StreamlineVPNMerger(BaseMerger):
                     return "active"
             return "unknown"
         except Exception as e:
-            logger.error(f"Failed to check source status for {source_url}: {e}", exc_info=True)
+            logger.error("Failed to check source status for %s: %s", source_url, e, exc_info=True)
             return "error"
 
     async def count_source_configurations(self, source_url: str) -> int:
@@ -439,7 +439,7 @@ class StreamlineVPNMerger(BaseMerger):
                     count += 1
             return count
         except Exception as e:
-            logger.error(f"Failed to count configurations for {source_url}: {e}", exc_info=True)
+            logger.error("Failed to count configurations for %s: %s", source_url, e, exc_info=True)
             return 0
 
     async def get_statistics(self) -> Dict[str, Any]:
@@ -461,7 +461,7 @@ class StreamlineVPNMerger(BaseMerger):
                 "locations": {}
             }
         except Exception as e:
-            logger.error(f"Failed to get statistics: {e}", exc_info=True)
+            logger.error("Failed to get statistics: %s", e, exc_info=True)
             return {}
 
     async def clear_cache(self) -> None:
@@ -475,7 +475,7 @@ class StreamlineVPNMerger(BaseMerger):
                 await self.cache_manager.clear()
             logger.info("Cache cleared successfully")
         except Exception as e:
-            logger.error(f"Failed to clear cache: {e}", exc_info=True)
+            logger.error("Failed to clear cache: %s", e, exc_info=True)
 
     async def save_results(self, output_dir: str, formats: Optional[List[str]] = None) -> None:
         """Save processing results to output directory.
@@ -489,6 +489,6 @@ class StreamlineVPNMerger(BaseMerger):
                 await self.output_manager.save_configurations(
                     self.results, output_dir, formats
                 )
-                logger.info(f"Results saved to {output_dir}")
+                logger.info("Results saved to %s", output_dir)
         except Exception as e:
-            logger.error(f"Failed to save results: {e}", exc_info=True)
+            logger.error("Failed to save results: %s", e, exc_info=True)

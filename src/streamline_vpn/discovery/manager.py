@@ -76,7 +76,7 @@ class DiscoveryManager:
             if isinstance(result, list):
                 sources.extend(result)
             elif isinstance(result, Exception):
-                logger.error(f"Discovery task failed: {result}")
+                logger.error("Discovery task failed: %s", result)
 
         valid_sources: List[str] = []
         for source in sources:
@@ -87,7 +87,7 @@ class DiscoveryManager:
                 valid_sources.append(source)
                 self.discovered_sources.add(source)
 
-        logger.info(f"Discovered {len(valid_sources)} new sources")
+        logger.info("Discovered %d new sources", len(valid_sources))
         return valid_sources
 
     async def _discover_github_sources(self) -> List[str]:
@@ -164,9 +164,9 @@ class DiscoveryManager:
                     )
                     sources.extend(repo_sources)
 
-            logger.info(f"Discovered {len(sources)} GitHub sources")
+            logger.info("Discovered %d GitHub sources", len(sources))
         except Exception as exc:  # pragma: no cover - network errors
-            logger.error(f"GitHub discovery failed: {exc}", exc_info=True)
+            logger.error("GitHub discovery failed: %s", exc, exc_info=True)
 
         return sources
 
@@ -207,7 +207,7 @@ class DiscoveryManager:
                                 ):
                                     sources.append(raw_url)
                                     logger.debug(
-                                        f"Found subscription file: {raw_url}"
+                                        "Found subscription file: %s", raw_url
                                     )
                         elif item["type"] == "dir" and item["name"] in [
                             "sub",
@@ -219,7 +219,7 @@ class DiscoveryManager:
                             )
                             sources.extend(dir_sources)
         except Exception as exc:  # pragma: no cover - network errors
-            logger.debug(f"Error scanning repository {repo_name}: {exc}", exc_info=True)
+            logger.debug("Error scanning repository %s: %s", repo_name, exc, exc_info=True)
 
         return sources
 
@@ -258,7 +258,7 @@ class DiscoveryManager:
                             ):
                                 sources.append(raw_url)
         except Exception as exc:  # pragma: no cover - network errors
-            logger.debug(f"Error scanning directory {path}: {exc}", exc_info=True)
+            logger.debug("Error scanning directory %s: %s", path, exc, exc_info=True)
 
         return sources
 
@@ -302,12 +302,12 @@ class DiscoveryManager:
                                         ):
                                             sources.append(url)
                                             logger.debug(
-                                                f"Found GitLab source: {url}"
+                                                "Found GitLab source: %s", url
                                             )
         except Exception as exc:  # pragma: no cover - network errors
-            logger.error(f"GitLab discovery failed: {exc}", exc_info=True)
+            logger.error("GitLab discovery failed: %s", exc, exc_info=True)
 
-        logger.info(f"Discovered {len(sources)} GitLab sources")
+        logger.info("Discovered %d GitLab sources", len(sources))
         return sources
 
     async def _discover_gitee_sources(self) -> List[str]:
@@ -350,12 +350,12 @@ class DiscoveryManager:
                                     ):
                                         sources.append(url)
                                         logger.debug(
-                                            f"Found Gitee source: {url}"
+                                            "Found Gitee source: %s", url
                                         )
         except Exception as exc:  # pragma: no cover - network errors
-            logger.error(f"Gitee discovery failed: {exc}", exc_info=True)
+            logger.error("Gitee discovery failed: %s", exc, exc_info=True)
 
-        logger.info(f"Discovered {len(sources)} Gitee sources")
+        logger.info("Discovered %d Gitee sources", len(sources))
         return sources
 
     async def _discover_public_lists(self) -> List[str]:
@@ -383,9 +383,9 @@ class DiscoveryManager:
             for url in public_lists:
                 if await self._validate_source_exists(session, url):
                     sources.append(url)
-                    logger.debug(f"Found public list source: {url}")
+                    logger.debug("Found public list source: %s", url)
 
-        logger.info(f"Discovered {len(sources)} public list sources")
+        logger.info("Discovered %d public list sources", len(sources))
         return sources
 
     async def _validate_source_exists(

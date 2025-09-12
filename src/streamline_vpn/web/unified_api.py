@@ -730,9 +730,9 @@ class UnifiedAPI:
             """WebSocket endpoint for real-time updates."""
             try:
                 await websocket.accept()
-                logger.debug(f"WebSocket connection accepted at {datetime.now().isoformat()}")
+                logger.debug("WebSocket connection accepted at %s", datetime.now().isoformat())
             except Exception as e:
-                logger.error(f"WebSocket accept error: {e}")
+                logger.error("WebSocket accept error: %s", e)
                 raise
             
             try:
@@ -757,7 +757,7 @@ class UnifiedAPI:
                 while True:
                     try:
                         data = await websocket.receive_text()
-                        logger.debug(f"Received WebSocket message: {data[:100]}")
+                        logger.debug("Received WebSocket message: %s", data[:100])
                         
                         # Echo back for now (implement actual logic as needed)
                         await websocket.send_json({
@@ -766,11 +766,11 @@ class UnifiedAPI:
                             "timestamp": datetime.now().isoformat()
                         })
                     except Exception as e:
-                        logger.debug(f"WebSocket receive error: {e}")
+                        logger.debug("WebSocket receive error: %s", e)
                         break
                         
             except Exception as e:
-                logger.error(f"WebSocket error: {e}")
+                logger.error("WebSocket error: %s", e)
             finally:
                 logger.debug("WebSocket connection closed")
             try:
@@ -835,9 +835,9 @@ class UnifiedAPI:
             """Test client WebSocket endpoint."""
             try:
                 await websocket.accept()
-                logger.debug(f"Test client WebSocket connection accepted at {datetime.now().isoformat()}")
+                logger.debug("Test client WebSocket connection accepted at %s", datetime.now().isoformat())
             except Exception as e:
-                logger.error(f"Test client WebSocket accept error: {e}")
+                logger.error("Test client WebSocket accept error: %s", e)
                 raise
             
             try:
@@ -874,9 +874,9 @@ class UnifiedAPI:
             """Client-specific WebSocket endpoint."""
             try:
                 await websocket.accept()
-                logger.debug(f"Client WebSocket connection accepted for {client_id} at {datetime.now().isoformat()}")
+                logger.debug("Client WebSocket connection accepted for %s at %s", client_id, datetime.now().isoformat())
             except Exception as e:
-                logger.error(f"Client WebSocket accept error for {client_id}: {e}")
+                logger.error("Client WebSocket accept error for %s: %s", client_id, e)
                 raise
             
             try:
@@ -999,29 +999,46 @@ class UnifiedAPI:
 
         @app.exception_handler(RequestValidationError)
         async def validation_exception_handler(request: Request, exc: RequestValidationError) -> JSONResponse:
-            logger.warning("Validation error on %s %s: %s", request.method, request.url.path, exc)
+            logger.warning(
+                "Request validation failed: %s %s - Client: %s - Errors: %s", 
+                request.method, 
+                request.url.path, 
+                request.client.host if request.client else "unknown",
+                exc.errors()
+            )
             return JSONResponse(
                 status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
                 content={
                     "error": "Request validation failed",
+                    "message": "The request data does not match the expected format",
                     "path": request.url.path,
                     "method": request.method,
                     "timestamp": datetime.now().isoformat(),
                     "details": exc.errors(),
+                    "request_id": getattr(request.state, 'request_id', None),
                 },
             )
 
         @app.exception_handler(HTTPException)
         async def http_exception_handler(request: Request, exc: HTTPException) -> JSONResponse:
-            logger.info("HTTP error %s on %s %s: %s", exc.status_code, request.method, request.url.path, exc.detail)
+            logger.info(
+                "HTTP error %s on %s %s - Client: %s - Detail: %s", 
+                exc.status_code, 
+                request.method, 
+                request.url.path,
+                request.client.host if request.client else "unknown",
+                exc.detail
+            )
             return JSONResponse(
                 status_code=exc.status_code,
                 content={
                     "error": "Request failed",
+                    "message": exc.detail,
                     "path": request.url.path,
                     "method": request.method,
                     "timestamp": datetime.now().isoformat(),
                     "detail": exc.detail,
+                    "request_id": getattr(request.state, 'request_id', None),
                 },
             )
 
@@ -1029,15 +1046,23 @@ class UnifiedAPI:
         async def general_exception_handler(
             request: Request, exc: Exception
         ) -> JSONResponse:
-            logger.error("Unhandled exception on %s %s: %s", request.method, request.url.path, exc, exc_info=True)
+            logger.error(
+                "Unhandled exception on %s %s - Client: %s - Exception: %s", 
+                request.method, 
+                request.url.path,
+                request.client.host if request.client else "unknown",
+                exc,
+                exc_info=True
+            )
             return JSONResponse(
                 status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
                 content={
                     "error": "Internal server error",
+                    "message": "An unexpected error occurred while processing your request",
                     "path": request.url.path,
                     "method": request.method,
                     "timestamp": datetime.now().isoformat(),
-                    "detail": str(exc),
+                    "request_id": getattr(request.state, 'request_id', None),
                 },
             )
 
@@ -1046,19 +1071,19 @@ class UnifiedAPI:
         docs_path = Path(__file__).resolve().parents[3] / "docs"
 
         if not docs_path.exists():
-            logger.warning(f"Docs directory not found at {docs_path}")
+            logger.warning("Docs directory not found at %s", docs_path)
             return
 
         try:
             # Serve the entire docs folder under /static
             app.mount("/static", StaticFiles(directory=str(docs_path)), name="static")
-            logger.info(f"Mounted static files from {docs_path}")
+            logger.info("Mounted static files from %s", docs_path)
 
             # Also expose /assets for absolute references
             assets_dir = docs_path / "assets"
             if assets_dir.exists():
                 app.mount("/assets", StaticFiles(directory=str(assets_dir)), name="assets")
-                logger.info(f"Mounted assets from {assets_dir}")
+                logger.info("Mounted assets from %s", assets_dir)
 
             # Direct file serving routes
             @app.get("/api-base.js", include_in_schema=False)
@@ -1123,7 +1148,7 @@ class UnifiedAPI:
                 )
 
         except Exception as e:  # pragma: no cover - mount errors only
-            logger.error(f"Failed to setup static files: {e}")
+            logger.error("Failed to setup static files: %s", e)
 
 
 # =======================

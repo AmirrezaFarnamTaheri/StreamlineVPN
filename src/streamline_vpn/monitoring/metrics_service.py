@@ -55,7 +55,7 @@ class MetricsService:
                 await self._collect_vpn_metrics()
                 await asyncio.sleep(self.collector.collection_interval)
             except Exception as e:
-                logger.error(f"Error in metrics collection: {e}")
+                logger.error("Error in metrics collection: %s", e)
                 await asyncio.sleep(self.collector.collection_interval)
 
     async def _collect_vpn_metrics(self) -> None:

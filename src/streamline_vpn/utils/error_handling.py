@@ -84,7 +84,7 @@ class CircuitBreaker:
             
             if self.failure_count >= self.failure_threshold:
                 self.state = "OPEN"
-                logger.warning(f"Circuit breaker opened after {self.failure_count} failures")
+                logger.warning("Circuit breaker opened after %d failures", self.failure_count)
             
             raise
 
@@ -123,7 +123,7 @@ def retry_with_backoff(
                     last_exception = e
                     
                     if attempt == max_attempts - 1:
-                        logger.error(f"All {max_attempts} attempts failed for {func.__name__}")
+                        logger.error("All %d attempts failed for %s", max_attempts, func.__name__)
                         raise RetryExhaustedError(f"All {max_attempts} attempts failed") from e
                     
                     # Calculate delay with exponential backoff
@@ -133,7 +133,7 @@ def retry_with_backoff(
                         import random
                         delay *= (0.5 + random.random() * 0.5)  # Add ±25% jitter
                     
-                    logger.warning(f"Attempt {attempt + 1} failed for {func.__name__}: {e}. Retrying in {delay:.2f}s")
+                    logger.warning("Attempt %d failed for %s: %s. Retrying in %.2fs", attempt + 1, func.__name__, e, delay)
                     await asyncio.sleep(delay)
             
             # This should never be reached, but just in case
@@ -155,7 +155,7 @@ def timeout_handler(timeout_seconds: float = 30.0):
             try:
                 return await asyncio.wait_for(func(*args, **kwargs), timeout=timeout_seconds)
             except asyncio.TimeoutError:
-                logger.error(f"Function {func.__name__} timed out after {timeout_seconds}s")
+                logger.error("Function %s timed out after %ds", func.__name__, timeout_seconds)
                 raise
         return wrapper
     return decorator
@@ -190,14 +190,14 @@ class ErrorRecovery:
             else:
                 return primary_func(*args, **kwargs)
         except exceptions as e:
-            logger.warning(f"Primary function failed: {e}. Using fallback.")
+            logger.warning("Primary function failed: %s. Using fallback.", e)
             try:
                 if asyncio.iscoroutinefunction(fallback_func):
                     return await fallback_func(*args, **kwargs)
                 else:
                     return fallback_func(*args, **kwargs)
             except Exception as fallback_error:
-                logger.error(f"Fallback function also failed: {fallback_error}")
+                logger.error("Fallback function also failed: %s", fallback_error)
                 raise
 
     @staticmethod
@@ -226,7 +226,7 @@ class ErrorRecovery:
             else:
                 return func(*args, **kwargs)
         except exceptions as e:
-            logger.warning(f"Function failed, using default value: {e}")
+            logger.warning("Function failed, using default value: %s", e)
             return default_value
 
 
@@ -255,7 +255,7 @@ def safe_execute(
         return func(*args, **kwargs)
     except exceptions as e:
         if log_errors:
-            logger.error(f"Safe execution failed for {func.__name__}: {e}")
+            logger.error("Safe execution failed for %s: %s", func.__name__, e)
         return default_return
 
 
@@ -287,5 +287,5 @@ async def safe_execute_async(
             return func(*args, **kwargs)
     except exceptions as e:
         if log_errors:
-            logger.error(f"Safe async execution failed for {func.__name__}: {e}")
+            logger.error("Safe async execution failed for %s: %s", func.__name__, e)
         return default_return

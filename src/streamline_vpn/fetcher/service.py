@@ -161,7 +161,7 @@ class FetcherService:
 
         except CircuitBreakerOpenException:
             self.stats["circuit_breaker_trips"] += 1
-            logger.warning(f"Circuit breaker open for domain {domain}")
+            logger.warning("Circuit breaker open for domain %s", domain)
             self.last_error = f"Circuit breaker open for {domain} while fetching {url}"
             return None
 
@@ -203,7 +203,7 @@ class FetcherService:
                 result = await task
                 results[url] = result
             except Exception as e:
-                logger.error(f"Task failed for {url}: {e}")
+                logger.error("Task failed for %s: %s", url, e)
                 results[url] = None
 
         return results
@@ -332,7 +332,7 @@ class FetcherService:
         """
         if domain in self.circuit_breakers:
             self.circuit_breakers[domain].reset()
-            logger.info(f"Reset circuit breaker for domain {domain}")
+            logger.info("Reset circuit breaker for domain %s", domain)
 
     def reset_rate_limiter(self, domain: str) -> None:
         """Reset rate limiter for domain.
@@ -342,4 +342,4 @@ class FetcherService:
         """
         if domain in self.rate_limiters:
             self.rate_limiters[domain].reset(domain)
-            logger.info(f"Reset rate limiter for domain {domain}")
+            logger.info("Reset rate limiter for domain %s", domain)

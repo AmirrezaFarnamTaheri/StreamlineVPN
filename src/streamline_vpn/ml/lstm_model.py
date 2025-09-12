@@ -46,7 +46,7 @@ class LSTMModel:
                 self.model = joblib.load(self.model_path)
                 logger.info("ML model loaded successfully.")
             except Exception as e:
-                logger.error(f"Failed to load ML model: {e}")
+                logger.error("Failed to load ML model: %s", e)
                 self.model = None
         else:
             logger.warning("ML model not found. Using a fallback model.")
@@ -65,7 +65,7 @@ class LSTMModel:
             logger.info("Fallback ML model created and trained successfully")
             return model
         except Exception as e:
-            logger.error(f"Failed to create fallback model: {e}")
+            logger.error("Failed to create fallback model: %s", e)
             # Return a simple linear model as fallback
             from sklearn.linear_model import LinearRegression
             model = LinearRegression()
@@ -112,7 +112,7 @@ class LSTMModel:
                 recommendations=recommendations,
             )
         except Exception as e:
-            logger.error(f"ML prediction failed: {e}")
+            logger.error("ML prediction failed: %s", e)
             return self._get_default_prediction()
 
     def _prepare_features(self, features: Dict[str, float]) -> List[float]:

@@ -107,7 +107,7 @@ def log_performance(func_name: str, duration: float, **kwargs) -> None:
     """
     logger = get_logger("performance")
     metrics = {"function": func_name, "duration": duration, **kwargs}
-    logger.info(f"Performance: {metrics}")
+    logger.info("Performance: %s", metrics)
 
 
 def log_error(error: Exception, context: str = "", **kwargs) -> None:
@@ -125,4 +125,4 @@ def log_error(error: Exception, context: str = "", **kwargs) -> None:
         "context": context,
         **kwargs,
     }
-    logger.error(f"Error occurred: {error_info}", exc_info=True)
+    logger.error("Error occurred: %s", error_info, exc_info=True)

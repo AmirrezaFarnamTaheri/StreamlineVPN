@@ -29,7 +29,7 @@ class Base64Formatter(BaseFormatter):
             path = self.output_dir / f"{base_filename}{self.get_file_extension()}"
             path.write_text(encoded, encoding="utf-8")
         except Exception as e:
-            logger.error(f"Failed to save Base64 configurations: {e}")
+            logger.error("Failed to save Base64 configurations: %s", e)
             raise
         
         return path

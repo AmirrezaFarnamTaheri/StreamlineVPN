@@ -77,7 +77,7 @@ class BaseMerger:
             try:
                 await self.cache_manager.disconnect()
             except Exception as e:
-                logger.error(f"Failed to disconnect from cache manager: {e}")
+                logger.error("Failed to disconnect from cache manager: %s", e)
         logger.info("Merger components shutdown")
 
     async def get_statistics(self) -> Dict[str, Any]:
@@ -140,11 +140,11 @@ class BaseMerger:
                 with open(stats_file, "w") as f:
                     f.write(self.statistics.to_json())
             except Exception as e:
-                logger.error(f"Failed to save statistics: {e}")
+                logger.error("Failed to save statistics: %s", e)
 
-            logger.info(f"Results saved to {output_dir}")
+            logger.info("Results saved to %s", output_dir)
         except Exception as e:
-            logger.error(f"Failed to save results: {e}", exc_info=True)
+            logger.error("Failed to save results: %s", e, exc_info=True)
             raise
 
     def save_results_sync(
@@ -161,7 +161,7 @@ class BaseMerger:
                 self.results, output_dir, formats
             )
         except Exception as e:
-            logger.error(f"Failed to save results synchronously: {e}", exc_info=True)
+            logger.error("Failed to save results synchronously: %s", e, exc_info=True)
             raise
 
     def _update_statistics(self, **kwargs) -> None:

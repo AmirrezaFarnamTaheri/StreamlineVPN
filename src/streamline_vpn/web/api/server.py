@@ -75,7 +75,7 @@ class APIServer:
         @self.app.exception_handler(HTTPException)
         async def http_exception_handler(request: Request, exc: HTTPException):
             """Handle HTTP exceptions with proper logging."""
-            logger.warning(f"HTTP {exc.status_code}: {exc.detail} - {request.url}")
+            logger.warning("HTTP %d: %s - %s", exc.status_code, exc.detail, request.url)
             return JSONResponse(
                 status_code=exc.status_code,
                 content={
@@ -88,7 +88,7 @@ class APIServer:
         @self.app.exception_handler(RequestValidationError)
         async def validation_exception_handler(request: Request, exc: RequestValidationError):
             """Handle validation errors with detailed information."""
-            logger.warning(f"Validation error: {exc.errors()} - {request.url}")
+            logger.warning("Validation error: %s - %s", exc.errors(), request.url)
             return JSONResponse(
                 status_code=422,
                 content={
@@ -101,7 +101,7 @@ class APIServer:
         @self.app.exception_handler(Exception)
         async def general_exception_handler(request: Request, exc: Exception):
             """Handle unexpected exceptions with proper logging."""
-            logger.error(f"Unexpected error: {exc} - {request.url}", exc_info=True)
+            logger.error("Unexpected error: %s - %s", exc, request.url, exc_info=True)
             return JSONResponse(
                 status_code=500,
                 content={
@@ -119,7 +119,7 @@ class APIServer:
             port: Port to bind to
         """
         try:
-            logger.info(f"Starting API server on {host}:{port}")
+            logger.info("Starting API server on %s:%d", host, port)
             uvicorn.run(
                 self.app, 
                 host=host, 
@@ -130,7 +130,7 @@ class APIServer:
                 date_header=False
             )
         except Exception as e:
-            logger.error(f"Failed to start API server: {e}", exc_info=True)
+            logger.error("Failed to start API server: %s", e, exc_info=True)
             raise
 
     def get_app(self) -> FastAPI:

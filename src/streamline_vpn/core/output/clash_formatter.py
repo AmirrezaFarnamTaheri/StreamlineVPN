@@ -39,7 +39,7 @@ class ClashFormatter(BaseFormatter):
                     config_dict = self._safe_config_to_dict(cfg)
                     f.write(f"  - {json.dumps(config_dict, ensure_ascii=False)}\n")
         except Exception as e:
-            logger.error(f"Failed to save Clash configurations: {e}")
+            logger.error("Failed to save Clash configurations: %s", e)
             raise
         
         return file_path

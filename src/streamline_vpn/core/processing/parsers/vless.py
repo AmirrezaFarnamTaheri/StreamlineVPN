@@ -28,5 +28,5 @@ def parse_vless(config_string: str) -> Optional[VPNConfiguration]:
             metadata={"query": q},
         )
     except Exception as e:
-        logger.debug(f"Failed to parse VLESS: {e}")
+        logger.debug("Failed to parse VLESS: %s", e)
         return None

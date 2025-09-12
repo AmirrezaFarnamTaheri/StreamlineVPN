@@ -57,7 +57,7 @@ class RedisClusterClient:
             return value
 
         except RedisError as e:
-            logger.error(f"Redis GET failed for key {key}: {e}")
+            logger.error("Redis GET failed for key %s: %s", key, e)
             self.stats.misses += 1
             return None
 
@@ -70,7 +70,7 @@ class RedisClusterClient:
             return bool(success)
 
         except RedisError as e:
-            logger.error(f"Redis SET failed for key {key}: {e}")
+            logger.error("Redis SET failed for key %s: %s", key, e)
             return False
 
     async def delete(self, key: str) -> bool:
@@ -80,7 +80,7 @@ class RedisClusterClient:
             return deleted_count > 0
 
         except RedisError as e:
-            logger.error(f"Redis DELETE failed for key {key}: {e}")
+            logger.error("Redis DELETE failed for key %s: %s", key, e)
             return False
 
     async def scan(self, pattern: str, count: int = 100) -> List[str]:
@@ -96,7 +96,7 @@ class RedisClusterClient:
             return keys
 
         except RedisError as e:
-            logger.error(f"Redis SCAN failed for pattern {pattern}: {e}")
+            logger.error("Redis SCAN failed for pattern %s: %s", pattern, e)
             return []
 
     def _update_avg_response_time(self, response_time: float) -> None:

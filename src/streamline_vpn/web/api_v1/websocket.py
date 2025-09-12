@@ -33,9 +33,9 @@ class WebSocketManager:
         try:
             await websocket.accept()
             self.connections[user_id] = websocket
-            logger.info(f"WebSocket connected for user {user_id}")
+            logger.info("WebSocket connected for user %s", user_id)
         except Exception as e:
-            logger.error(f"Failed to connect WebSocket for user {user_id}: {e}")
+            logger.error("Failed to connect WebSocket for user %s: %s", user_id, e)
             raise
 
     async def disconnect(self, user_id: str) -> None:
@@ -46,7 +46,7 @@ class WebSocketManager:
         """
         if user_id in self.connections:
             del self.connections[user_id]
-            logger.info(f"WebSocket disconnected for user {user_id}")
+            logger.info("WebSocket disconnected for user %s", user_id)
 
     async def send_message(
         self, user_id: str, message: WebSocketMessage
@@ -127,14 +127,14 @@ class WebSocketManager:
                 await websocket.send_text(message.json())
                 successful_sends += 1
             except Exception as e:
-                logger.warning(f"Failed to broadcast to user {user_id}: {e}")
+                logger.warning("Failed to broadcast to user %s: %s", user_id, e)
                 failed_connections.append(user_id)
 
         # Clean up failed connections
         for user_id in failed_connections:
             await self.disconnect(user_id)
 
-        logger.info(f"Broadcast completed: {successful_sends} successful, {len(failed_connections)} failed")
+        logger.info("Broadcast completed: %d successful, %d failed", successful_sends, len(failed_connections))
         return successful_sends
 
     async def broadcast(self, message: str) -> int:
@@ -154,7 +154,7 @@ class WebSocketManager:
                 await websocket.send_text(message)
                 successful_sends += 1
             except Exception as e:
-                logger.warning(f"Failed to broadcast to user {user_id}: {e}")
+                logger.warning("Failed to broadcast to user %s: %s", user_id, e)
                 failed_connections.append(user_id)
 
         # Clean up failed connections
@@ -177,7 +177,7 @@ class WebSocketManager:
             await websocket.send_text(message)
             return True
         except Exception as e:
-            logger.error(f"Failed to send personal message: {e}")
+            logger.error("Failed to send personal message: %s", e)
             return False
 
     async def handle_message(
@@ -200,7 +200,7 @@ class WebSocketManager:
 
         elif message_type == "request_status":
             # This would trigger a status update
-            logger.info(f"Status requested by user {user_id}")
+            logger.info("Status requested by user %s", user_id)
 
     def get_connection_count(self) -> int:
         """Get number of active WebSocket connections.

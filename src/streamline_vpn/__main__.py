@@ -69,7 +69,7 @@ async def main(
         logger.info("Processing interrupted by user")
         return 1
     except Exception as e:
-        logger.error(f"Processing failed: {e}", exc_info=True)
+        logger.error("Processing failed: %s", e, exc_info=True)
         return 1
 
 
@@ -86,7 +86,7 @@ def cli_main() -> int:
     except KeyboardInterrupt:
         return 1
     except Exception as e:
-        print(f"Fatal error: {e}", file=sys.stderr)
+        logger.error("Fatal error: %s", e, exc_info=True)
         return 1
 
 

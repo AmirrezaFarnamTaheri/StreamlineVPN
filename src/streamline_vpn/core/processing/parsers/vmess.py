@@ -37,5 +37,5 @@ def parse_vmess(config_string: str) -> Optional[VPNConfiguration]:
             metadata=cfg,
         )
     except Exception as e:
-        logger.debug(f"Failed to parse VMess: {e}")
+        logger.debug("Failed to parse VMess: %s", e)
         return None

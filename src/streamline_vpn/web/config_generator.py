@@ -119,7 +119,7 @@ class VPNConfigGenerator:
             with open(html_path, "r") as f:
                 return f.read()
         except FileNotFoundError:
-            logger.error(f"HTML file not found at {html_path}")
+            logger.error("HTML file not found at %s", html_path)
             return "<h1>Error: HTML file not found</h1>"
 
     async def start(self):

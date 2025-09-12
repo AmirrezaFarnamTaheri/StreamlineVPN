@@ -47,7 +47,7 @@ class StateManager:
         if source_id not in self.state_machines:
             self.state_machines[source_id] = SourceStateMachine()
             self.state_history[source_id] = []
-            logger.debug(f"Created state machine for source {source_id}")
+            logger.debug("Created state machine for source %s", source_id)
 
         return self.state_machines[source_id]
 
@@ -95,7 +95,7 @@ class StateManager:
 
             return success
         except Exception as e:
-            logger.error(f"Error transitioning source {source_id}: {e}", exc_info=True)
+            logger.error("Error transitioning source %s: %s", source_id, e, exc_info=True)
             return False
 
     def get_source_state(self, source_id: str) -> Optional[SourceState]:
@@ -194,7 +194,7 @@ class StateManager:
         if source_id in self.state_machines:
             self.state_machines[source_id].reset()
             self.state_history[source_id].clear()
-            logger.info(f"Reset state machine for source {source_id}")
+            logger.info("Reset state machine for source %s", source_id)
             return True
         return False
 
@@ -210,7 +210,7 @@ class StateManager:
         if source_id in self.state_machines:
             del self.state_machines[source_id]
             del self.state_history[source_id]
-            logger.info(f"Removed state machine for source {source_id}")
+            logger.info("Removed state machine for source %s", source_id)
             return True
         return False
 

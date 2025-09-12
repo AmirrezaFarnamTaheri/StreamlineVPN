@@ -53,6 +53,6 @@ async def run_processing():
         merger = StreamlineVPNMerger()
         await merger.initialize()
         result = await merger.process_all()
-        logger.info(f"Scheduled processing completed: {result}")
+        logger.info("Scheduled processing completed: %s", result)
     except Exception as e:
-        logger.error(f"Scheduled processing failed: {e}")
+        logger.error("Scheduled processing failed: %s", e)

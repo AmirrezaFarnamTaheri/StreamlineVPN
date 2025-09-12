@@ -113,7 +113,7 @@ async def _lifespan(app: FastAPI):
             service_healthy = True
             logger.info("API server initialized successfully")
         except Exception as e:
-            logger.error(f"Failed to initialize merger: {e}")
+            logger.error("Failed to initialize merger: %s", e)
             service_healthy = False
             merger = None
             
@@ -406,7 +406,7 @@ def create_app() -> FastAPI:
         except HTTPException:
             raise
         except Exception as e:
-            logger.error(f"Error starting pipeline: {e}")
+            logger.error("Error starting pipeline: %s", e)
             raise HTTPException(
                 status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
                 detail=str(e)

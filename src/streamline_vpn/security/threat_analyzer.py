@@ -133,7 +133,7 @@ class ThreatAnalyzer:
             threats.extend(protocol_threats)
 
         except Exception as e:
-            logger.error(f"Threat analysis error: {e}")
+            logger.error("Threat analysis error: %s", e)
             threats.append(
                 {
                     "type": "analysis_error",

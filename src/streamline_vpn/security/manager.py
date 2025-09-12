@@ -8,12 +8,8 @@ Security management system for StreamlineVPN.
 from typing import Dict, List, Optional, Any
 from datetime import datetime
 
-# Import moved to avoid circular dependencies
-# from .threat_analyzer import ThreatAnalyzer
-# from .validator import SecurityValidator
-# from .pattern_analyzer import PatternAnalyzer
-# from .rate_limiter import RateLimiter
-# from .blocklist_manager import BlocklistManager
+# Note: Security component imports moved to avoid circular dependencies
+# Components are imported lazily in __init__ method
 from ..utils.logging import get_logger
 
 logger = get_logger(__name__)
@@ -102,7 +98,7 @@ class SecurityManager:
             }
 
         except Exception as e:
-            logger.error(f"Security analysis error: {e}")
+            logger.error("Security analysis error: %s", e)
             return {
                 "threats": [],
                 "suspicious_patterns": [],
@@ -152,7 +148,7 @@ class SecurityManager:
             }
 
         except Exception as e:
-            logger.error(f"Source validation error: {e}")
+            logger.error("Source validation error: %s", e)
             return {
                 "is_valid_url": False,
                 "is_blocked": True,

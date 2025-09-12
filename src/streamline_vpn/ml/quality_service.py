@@ -102,7 +102,7 @@ class QualityPredictionService:
             return result
 
         except Exception as e:
-            logger.error(f"Quality prediction failed: {e}")
+            logger.error("Quality prediction failed: %s", e)
             return self._get_default_prediction()
 
     def _convert_to_metrics(
@@ -183,12 +183,12 @@ class QualityPredictionService:
                 keys = await self.cache_manager.redis_client.scan("ml_prediction:*")
                 for key in keys:
                     await self.cache_manager.delete(key)
-                logger.info(f"Cleared {len(keys)} ML prediction cache entries")
+                logger.info("Cleared %d ML prediction cache entries", len(keys))
             except Exception as e:
-                logger.error(f"Failed to clear ML cache: {e}")
+                logger.error("Failed to clear ML cache: %s", e)
                 # Fallback: clear all caches
                 try:
                     await self.cache_manager.clear()
                     logger.info("Quality prediction cache cleared (fallback)")
                 except Exception as fallback_error:
-                    logger.error(f"Failed to clear cache (fallback): {fallback_error}")
+                    logger.error("Failed to clear cache (fallback): %s", fallback_error)

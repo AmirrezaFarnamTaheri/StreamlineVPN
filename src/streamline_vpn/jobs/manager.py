@@ -61,7 +61,7 @@ class JobManager:
         )
 
         self.persistence.save_job(job)
-        logger.info(f"Created job {job.id} of type {job_type.value}")
+        logger.info("Created job %s of type %s", job.id, job_type.value)
 
         return job
 
@@ -82,17 +82,17 @@ class JobManager:
         """
         job = self.persistence.get_job(job_id)
         if not job:
-            logger.error(f"Job {job_id} not found")
+            logger.error("Job %s not found", job_id)
             return False
 
         if job.status != JobStatus.PENDING:
             logger.warning(
-                f"Job {job_id} is not pending (status: {job.status.value})"
+                "Job %s is not pending (status: %s)", job_id, job.status.value
             )
             return False
 
         if job_id in self.running_jobs:
-            logger.warning(f"Job {job_id} is already running")
+            logger.warning("Job %s is already running", job_id)
             return False
 
         # Start the job
@@ -103,7 +103,7 @@ class JobManager:
         task = asyncio.create_task(self.executor.execute_job(job))
         self.running_jobs[job_id] = task
 
-        logger.info(f"Started job {job_id}")
+        logger.info("Started job %s", job_id)
         return True
 
     async def cancel_job(self, job_id: str) -> bool:
@@ -116,7 +116,7 @@ class JobManager:
             True if cancelled successfully, False otherwise
         """
         if job_id not in self.running_jobs:
-            logger.warning(f"Job {job_id} is not running")
+            logger.warning("Job %s is not running", job_id)
             return False
 
         # Cancel the task
@@ -132,7 +132,7 @@ class JobManager:
         # Remove from running jobs
         del self.running_jobs[job_id]
 
-        logger.info(f"Cancelled job {job_id}")
+        logger.info("Cancelled job %s", job_id)
         return True
 
     async def get_job(self, job_id: str) -> Optional[Job]:

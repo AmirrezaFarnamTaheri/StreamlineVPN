@@ -5,14 +5,13 @@ HTTP IO helpers for FetcherService.
 from __future__ import annotations
 
 import asyncio
-import time
-from typing import Optional, Dict, Any, List
 import atexit
+import time
 import weakref
+from typing import Any, Dict, List, Optional
 
 import aiohttp
-from typing import Dict, Optional
-import asyncio
+
 from ..utils.logging import get_logger
 
 logger = get_logger(__name__)
@@ -100,10 +99,10 @@ class OptimizedSessionManager:
         trace_config = aiohttp.TraceConfig()
         
         async def on_request_start(session, trace_config_ctx, params):
-            logger.debug(f"Starting request to {params.url}")
+            logger.debug("Starting request to %s", params.url)
             
         async def on_request_end(session, trace_config_ctx, params):
-            logger.debug(f"Request completed in {params.elapsed.total_seconds():.2f}s")
+            logger.debug("Request completed in %.2fs", params.elapsed.total_seconds())
             
         trace_config.on_request_start.append(on_request_start)
         trace_config.on_request_end.append(on_request_end)
@@ -118,7 +117,7 @@ class OptimizedSessionManager:
         for key, session in self._sessions.items():
             if not session.closed:
                 await session.close()
-                logger.debug(f"Closed session: {key}")
+                logger.debug("Closed session: %s", key)
                 
         self._sessions.clear()
         self._initialized = False
@@ -241,7 +240,7 @@ async def execute_request(
     for attempt in range(retry_attempts + 1):
         try:
             start = time.time()
-            logger.info(f"Fetching URL: {method} {url}")
+            logger.info("Fetching URL: %s %s", method, url)
             # Ensure we use a live session (in case callers passed a closed one)
             active_session = session
             if active_session is None or getattr(active_session, "closed", False):
@@ -253,7 +252,7 @@ async def execute_request(
                 data=data,
                 params=params,
             ) as resp:
-                logger.info(f"Response for {url}: {resp.status}")
+                logger.info("Response for %s: %s", url, resp.status)
                 resp.raise_for_status()
                 content = await resp.text()
                 # record response time
@@ -266,7 +265,7 @@ async def execute_request(
                         )
                 return content
         except Exception as e:
-            logger.error(f"Attempt {attempt + 1} failed for {url}: {e}")
+            logger.error("Attempt %d failed for %s: %s", attempt + 1, url, e)
             last_exc = e
             if attempt < retry_attempts:
                 await asyncio.sleep(retry_delay * (2**attempt))

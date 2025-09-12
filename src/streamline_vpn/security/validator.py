@@ -64,7 +64,7 @@ class SecurityValidator:
             return False
 
         except Exception as e:
-            logger.debug(f"URL validation error: {e}")
+            logger.debug("URL validation error: %s", e)
             return False
 
     def validate_port(self, port: int) -> bool:

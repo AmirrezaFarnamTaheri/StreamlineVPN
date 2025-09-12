@@ -58,12 +58,12 @@ class RateLimiter:
 
             # Check burst limit
             if len(self.burst_requests[key]) >= self.burst_limit:
-                logger.debug(f"Rate limit burst exceeded for key {key}")
+                logger.debug("Rate limit burst exceeded for key %s", key)
                 return False
 
             # Check rate limit
             if len(self.requests[key]) >= self.max_requests:
-                logger.debug(f"Rate limit exceeded for key {key}")
+                logger.debug("Rate limit exceeded for key %s", key)
                 return False
 
             # Add current request

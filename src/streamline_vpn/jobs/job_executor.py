@@ -60,19 +60,19 @@ class JobExecutor:
             job.complete(result)
             self.job_manager.persistence.save_job(job)
 
-            logger.info(f"Completed job {job.id}")
+            logger.info("Completed job %s", job.id)
 
         except asyncio.CancelledError:
             # Job was cancelled
             job.cancel()
             self.job_manager.persistence.save_job(job)
-            logger.info(f"Cancelled job {job.id}")
+            logger.info("Cancelled job %s", job.id)
 
         except Exception as e:
             # Job failed
             job.fail(str(e))
             self.job_manager.persistence.save_job(job)
-            logger.error(f"Job {job.id} failed: {e}", exc_info=True)
+            logger.error("Job %s failed: %s", job.id, e, exc_info=True)
 
     async def _handle_process_configurations(self, job: Job) -> Dict[str, Any]:
         """Handle process configurations job."""

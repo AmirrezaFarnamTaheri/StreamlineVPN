@@ -107,10 +107,10 @@ class JobPersistence:
                 )
 
                 conn.commit()
-                logger.debug(f"Saved job {job.id}")
+                logger.debug("Saved job %s", job.id)
 
         except Exception as e:
-            logger.error(f"Error saving job {job.id}: {e}")
+            logger.error("Error saving job %s: %s", job.id, e)
             raise
 
     def get_job(self, job_id: str) -> Optional[Job]:
@@ -134,7 +134,7 @@ class JobPersistence:
                 return None
 
         except Exception as e:
-            logger.error(f"Error getting job {job_id}: {e}")
+            logger.error("Error getting job %s: %s", job_id, e)
             return None
 
     def get_jobs(
@@ -179,7 +179,7 @@ class JobPersistence:
                 return [self._row_to_job(row) for row in rows]
 
         except Exception as e:
-            logger.error(f"Error getting jobs: {e}")
+            logger.error("Error getting jobs: %s", e)
             return []
 
     def delete_job(self, job_id: str) -> bool:
@@ -200,11 +200,11 @@ class JobPersistence:
                 conn.commit()
 
                 if deleted:
-                    logger.debug(f"Deleted job {job_id}")
+                    logger.debug("Deleted job %s", job_id)
                 return deleted
 
         except Exception as e:
-            logger.error(f"Error deleting job {job_id}: {e}")
+            logger.error("Error deleting job %s: %s", job_id, e)
             return False
 
     def cleanup_old_jobs(self, days: int = 30) -> int:
@@ -241,11 +241,11 @@ class JobPersistence:
                 conn.commit()
 
                 if deleted > 0:
-                    logger.info(f"Cleaned up {deleted} old jobs")
+                    logger.info("Cleaned up %d old jobs", deleted)
                 return deleted
 
         except Exception as e:
-            logger.error(f"Error cleaning up old jobs: {e}")
+            logger.error("Error cleaning up old jobs: %s", e)
             return 0
 
     def get_statistics(self) -> Dict[str, Any]:
@@ -300,7 +300,7 @@ class JobPersistence:
                 }
 
         except Exception as e:
-            logger.error(f"Error getting job statistics: {e}")
+            logger.error("Error getting job statistics: %s", e)
             return {}
 
     def _row_to_job(self, row: tuple) -> Job:

@@ -10,7 +10,6 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from ..utils.logging import get_logger
 from ..settings import get_settings
-# from .api import create_api_server
 
 logger = get_logger(__name__)
 
@@ -53,7 +52,7 @@ class IntegratedWebServer:
             max_age=3600,
         )
 
-        # Include API routes
+        # Include API routes (commented out - use unified_api.py instead)
         # api_app = create_api_server()
         # app.mount("/api", api_app)
 
@@ -68,21 +67,25 @@ class IntegratedWebServer:
         # Root endpoint
         @app.get("/")
         async def root():
-            return
+            """Root endpoint for integrated server."""
+            return {"message": "StreamlineVPN Integrated Server", "version": "2.0.0"}
 
         return app
 
     async def start(self):
         """Start the integrated server."""
         logger.info(
-            f"Starting Integrated Web Server on {self.host}:{self.port}"
+            "Starting Integrated Web Server on %s:%d", self.host, self.port
         )
         try:
             import uvicorn
+            logger.info("Starting server with uvicorn")
             uvicorn.run(self.app, host=self.host, port=self.port, log_level="info")
         except ImportError:
-            logger.warning("uvicorn not available, server not started")
+            logger.error("uvicorn not available, server not started")
             logger.info("Install uvicorn to run the server: pip install uvicorn")
+        except Exception as exc:
+            logger.error("Failed to start integrated server: %s", exc, exc_info=True)
 
     async def stop(self):
         """Stop the integrated server."""

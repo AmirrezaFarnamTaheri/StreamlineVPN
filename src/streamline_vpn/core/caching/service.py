@@ -84,7 +84,7 @@ class VPNCacheService:
                 self._reset_circuit_breaker()
 
             except Exception as e:
-                logger.error(f"Redis cache error for key {key}: {e}")
+                logger.error("Redis cache error for key %s: %s", key, e)
                 self._record_circuit_breaker_failure()
 
         # L3 database fallback
@@ -99,7 +99,7 @@ class VPNCacheService:
                 await self.l1_cache.set(key, parsed_value, ttl=DEFAULT_CACHE_TTL)
                 return parsed_value
         except Exception as e:
-            logger.warning(f"L3 cache get error for key {key}: {e}")
+            logger.warning("L3 cache get error for key %s: %s", key, e)
 
         return None
 
@@ -138,7 +138,7 @@ class VPNCacheService:
                         self._record_circuit_breaker_failure()
 
                 except Exception as e:
-                    logger.error(f"Redis cache set error for key {key}: {e}")
+                    logger.error("Redis cache set error for key %s: %s", key, e)
                     self._record_circuit_breaker_failure()
 
             # Set in L3 database cache regardless of CB state
@@ -146,12 +146,12 @@ class VPNCacheService:
                 json_value = json.dumps(value)
                 await self.l3_cache.set(key, json_value, ttl=ttl)
             except Exception as e:
-                logger.warning(f"L3 cache set error for key {key}: {e}")
+                logger.warning("L3 cache set error for key %s: %s", key, e)
 
             return True
 
         except Exception as e:
-            logger.error(f"Cache set error for key {key}: {e}")
+            logger.error("Cache set error for key %s: %s", key, e)
             return False
 
     async def delete(self, key: str) -> bool:
@@ -175,12 +175,12 @@ class VPNCacheService:
             try:
                 await self.l3_cache.delete(key)
             except Exception as e:
-                logger.warning(f"L3 cache delete error for key {key}: {e}")
+                logger.warning("L3 cache delete error for key %s: %s", key, e)
 
             return True
 
         except Exception as e:
-            logger.error(f"Cache delete error for key {key}: {e}")
+            logger.error("Cache delete error for key %s: %s", key, e)
             return False
 
     async def cache_server_recommendations(

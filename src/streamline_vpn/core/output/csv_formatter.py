@@ -45,7 +45,7 @@ class CSVFormatter(BaseFormatter):
                         config_dict.get("quality_score", 0.0)
                     ])
         except Exception as e:
-            logger.error(f"Failed to save CSV configurations: {e}")
+            logger.error("Failed to save CSV configurations: %s", e)
             raise
         
         return path

@@ -36,7 +36,7 @@ class MergerProcessor:
         Returns:
             List of processed configurations
         """
-        logger.info(f"Processing {len(sources)} sources")
+        logger.info("Processing %d sources", len(sources))
 
         # Create processing tasks
         tasks = [self._process_single_source(source) for source in sources]
@@ -89,7 +89,7 @@ class MergerProcessor:
                         ),
                     )
                 except Exception as perf_error:
-                    logger.error(f"Failed to update source performance: {perf_error}")
+                    logger.error("Failed to update source performance: %s", perf_error)
                 return []
 
             # Parse each configuration line
@@ -111,7 +111,7 @@ class MergerProcessor:
                     if cfg:
                         parsed_configs.append(cfg)
                 except Exception as parse_error:
-                    logger.debug(f"Failed to parse configuration line: {parse_error}")
+                    logger.debug("Failed to parse configuration line: %s", parse_error)
                     continue
 
             # Update source performance
@@ -123,7 +123,7 @@ class MergerProcessor:
                     response_time=fetch_result.response_time,
                 )
             except Exception as perf_error:
-                logger.error(f"Failed to update source performance: {perf_error}")
+                logger.error("Failed to update source performance: %s", perf_error)
 
             return parsed_configs
 
@@ -140,7 +140,7 @@ class MergerProcessor:
                     response_time=0.0,
                 )
             except Exception as perf_error:
-                logger.error(f"Failed to update source performance: {perf_error}")
+                logger.error("Failed to update source performance: %s", perf_error)
             return []
 
     async def deduplicate_configurations(
@@ -154,7 +154,7 @@ class MergerProcessor:
         Returns:
             List of unique configurations
         """
-        logger.info(f"Deduplicating {len(configs)} configurations")
+        logger.info("Deduplicating %d configurations", len(configs))
 
         unique_configs = (
             self.merger.config_processor.deduplicate_configurations(configs)
@@ -176,7 +176,7 @@ class MergerProcessor:
         Returns:
             Enhanced configurations
         """
-        logger.info(f"Applying enhancements to {len(configs)} configurations")
+        logger.info("Applying enhancements to %d configurations", len(configs))
 
         # Apply ML quality prediction if available
         if hasattr(self.merger, "ml_predictor") and self.merger.ml_predictor:
@@ -186,7 +186,7 @@ class MergerProcessor:
                 )
                 logger.info("Applied ML quality prediction")
             except Exception as e:
-                logger.warning(f"ML prediction failed: {e}")
+                logger.warning("ML prediction failed: %s", e)
 
         # Apply geographic optimization if available
         if hasattr(self.merger, "geo_optimizer") and self.merger.geo_optimizer:
@@ -198,6 +198,6 @@ class MergerProcessor:
                 )
                 logger.info("Applied geographic optimization")
             except Exception as e:
-                logger.warning(f"Geographic optimization failed: {e}")
+                logger.warning("Geographic optimization failed: %s", e)
 
         return configs

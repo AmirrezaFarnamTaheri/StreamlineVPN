@@ -61,11 +61,11 @@ class ConfigurationProcessor:
                 if config:
                     configs.append(self._config_to_dict(config))
             except Exception as e:
-                logger.debug(f"Failed to parse line: {e}")
+                logger.debug("Failed to parse line: %s", e)
                 continue
 
         logger.info(
-            f"Parsed {len(configs)} configurations from {source_type} source"
+            "Parsed %d configurations from %s source", len(configs), source_type
         )
         return configs
 
@@ -92,12 +92,12 @@ class ConfigurationProcessor:
             if is_valid:
                 self._stats["validated"] += 1
             else:
-                logger.debug(f"Invalid configuration: {', '.join(errors)}")
+                logger.debug("Invalid configuration: %s", ', '.join(errors))
 
             return is_valid
 
         except Exception as e:
-            logger.debug(f"Validation error: {e}")
+            logger.debug("Validation error: %s", e)
             return False
 
     # Backwards compatibility wrapper expected by some tests
@@ -204,7 +204,7 @@ class ConfigurationProcessor:
                     config = self._dict_to_config(config_data)
                     configs.append(config)
                 except Exception as e:
-                    logger.debug(f"Failed to create configuration: {e}")
+                    logger.debug("Failed to create configuration: %s", e)
                     continue
 
             # Validate configurations
@@ -214,7 +214,7 @@ class ConfigurationProcessor:
                         configs, validation_rules
                     )
                 except Exception as e:
-                    logger.error(f"Configuration validation failed: {e}")
+                    logger.error("Configuration validation failed: %s", e)
                     # Continue with unvalidated configs
 
             # Deduplicate configurations
@@ -223,13 +223,13 @@ class ConfigurationProcessor:
                     configs, deduplication_strategy
                 )
             except Exception as e:
-                logger.error(f"Configuration deduplication failed: {e}")
+                logger.error("Configuration deduplication failed: %s", e)
                 # Continue with duplicated configs
 
-            logger.info(f"Processed {len(configs)} valid configurations")
+            logger.info("Processed %d valid configurations", len(configs))
             return configs
         except Exception as e:
-            logger.error(f"Failed to process configurations: {e}", exc_info=True)
+            logger.error("Failed to process configurations: %s", e, exc_info=True)
             return []
 
     def _config_to_dict(self, config: VPNConfiguration) -> Dict[str, Any]:
@@ -280,7 +280,7 @@ class ConfigurationProcessor:
             try:
                 protocol = Protocol(protocol_value)
             except ValueError:
-                logger.warning(f"Unknown protocol: {protocol_value}, using vmess")
+                logger.warning("Unknown protocol: %s, using vmess", protocol_value)
                 protocol = Protocol.VMESS
 
             # Handle created_at conversion safely
@@ -289,7 +289,7 @@ class ConfigurationProcessor:
                 try:
                     created_at = datetime.fromisoformat(config_data["created_at"])
                 except (ValueError, TypeError):
-                    logger.warning(f"Invalid created_at format: {config_data.get('created_at')}")
+                    logger.warning("Invalid created_at format: %s", config_data.get('created_at'))
 
             return VPNConfiguration(
                 id=config_data.get("id", ""),
@@ -309,5 +309,5 @@ class ConfigurationProcessor:
                 metadata=config_data.get("metadata", {}),
             )
         except Exception as e:
-            logger.error(f"Failed to convert dict to config: {e}")
+            logger.error("Failed to convert dict to config: %s", e)
             raise ValueError(f"Invalid configuration data: {e}")

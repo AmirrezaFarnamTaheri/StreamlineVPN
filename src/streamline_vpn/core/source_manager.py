@@ -42,11 +42,14 @@ class SourceManager:
         # Use default config if not provided
         if config_path is None:
             config_path = Path(__file__).parents[3] / "config" / "sources.yaml"
+            logger.info("Using default config path: %s", config_path)
         
         self.config_path = Path(config_path)
+        logger.info("Initializing SourceManager with config: %s", self.config_path)
         
         # Validate config file exists
         if not self.config_path.exists():
+            logger.error("Configuration file not found: %s", self.config_path)
             raise FileNotFoundError(f"Configuration file not found: {self.config_path}")
         
         # Validate it's not the unified file (which should be deleted)
@@ -54,7 +57,9 @@ class SourceManager:
             logger.warning("Unified config detected, switching to main sources.yaml")
             self.config_path = self.config_path.parent / "sources.yaml"
             if not self.config_path.exists():
+                logger.error("Main sources.yaml not found: %s", self.config_path)
                 raise FileNotFoundError(f"Main sources.yaml not found: {self.config_path}")
+            logger.info("Switched to main sources.yaml: %s", self.config_path)
         
         self.sources: Dict[str, SourceMetadata] = {}
         self.performance_file = Path("data/source_performance.json")
@@ -69,30 +74,33 @@ class SourceManager:
     def _load_sources(self) -> None:
         """Load sources from configuration file."""
         try:
+            logger.info("Loading sources from configuration file: %s", self.config_path)
+            
             if not self.config_path.exists():
-                logger.warning(
-                    f"Configuration file not found: {self.config_path}"
-                )
+                logger.error("Configuration file not found: %s", self.config_path)
                 return
 
             with open(self.config_path, "r", encoding="utf-8") as f:
                 config = yaml.safe_load(f)
 
             if not config:
-                logger.warning("Configuration file is empty")
+                logger.warning("Configuration file is empty or invalid")
                 return
 
             sources_config = config.get("sources", {})
+            logger.info("Found %d source tiers in configuration", len(sources_config))
 
             for tier_name, tier_data in sources_config.items():
                 if not isinstance(tier_data, dict) or "urls" not in tier_data:
+                    logger.warning("Invalid tier configuration for %s: missing 'urls' key", tier_name)
                     continue
 
                 tier_str = tier_name.split('_')[-1]
                 try:
                     tier = SourceTier(tier_str)
+                    logger.debug("Processing tier: %s (%s)", tier_name, tier_str)
                 except ValueError:
-                    logger.warning(f"Unknown tier: {tier_name}, skipping")
+                    logger.warning("Unknown tier: %s, skipping", tier_name)
                     continue
 
                 for source_config in tier_data["urls"]:
@@ -120,7 +128,9 @@ class SourceManager:
                                 self.sources[url] = metadata
                             else:
                                 logger.warning(
-                                    f"Invalid or unsafe source URL: {url}"
+                                    "Invalid or unsafe source URL: %s - Reason: %s", 
+                                    url, 
+                                    validation_result.get("reason", "Unknown")
                                 )
                         elif isinstance(source_config, str):
                             validation_result = (
@@ -143,19 +153,24 @@ class SourceManager:
                                     source_config,
                                 )
                     except Exception as source_error:
-                        logger.error(f"Failed to process source config: {source_error}")
+                        logger.error(
+                            "Failed to process source config: %s - Config: %s", 
+                            source_error, 
+                            source_config
+                        )
                         continue
 
             logger.info(
-                f"Loaded {len(self.sources)} sources "
-                f"from {self.config_path}"
+                "Successfully loaded %d sources from %s", 
+                len(self.sources), 
+                self.config_path
             )
 
         except yaml.YAMLError as e:
-            logger.error(f"Failed to parse YAML configuration: {e}")
+            logger.error("Failed to parse YAML configuration: %s - File: %s", e, self.config_path)
             raise ValueError(f"Invalid YAML format in {self.config_path}") from e
         except Exception as e:
-            logger.error(f"Failed to load sources: {e}", exc_info=True)
+            logger.error("Failed to load sources: %s - File: %s", e, self.config_path, exc_info=True)
 
     def _load_performance_data(self) -> None:
         """Load historical performance data."""
@@ -191,15 +206,15 @@ class SourceManager:
                         )
                         source.update_reputation()
                     except Exception as source_error:
-                        logger.error(f"Failed to load performance data for {url}: {source_error}")
+                        logger.error("Failed to load performance data for %s: %s", url, source_error)
                         continue
 
-            logger.info(f"Loaded performance data for {len(data)} sources")
+            logger.info("Loaded performance data for %d sources", len(data))
 
         except json.JSONDecodeError as e:
-            logger.error(f"Failed to parse performance data JSON: {e}")
+            logger.error("Failed to parse performance data JSON: %s", e)
         except Exception as e:
-            logger.error(f"Failed to load performance data: {e}", exc_info=True)
+            logger.error("Failed to load performance data: %s", e, exc_info=True)
 
     async def add_source(
         self, url: str, tier: SourceTier = SourceTier.RELIABLE
@@ -256,7 +271,7 @@ class SourceManager:
                     raise ValueError(f"Failed to persist source: {persist_error}")
                 return metadata
             except Exception as e:
-                logger.error(f"Failed to add source {url}: {e}")
+                logger.error("Failed to add source %s: %s", url, e)
                 raise
 
     async def _persist_new_source_atomically(
@@ -270,7 +285,7 @@ class SourceManager:
                     with open(self.config_path, "r", encoding="utf-8") as f:
                         config_data = yaml.safe_load(f) or {}
                 except Exception as e:
-                    logger.error(f"Failed to read existing config: {e}")
+                    logger.error("Failed to read existing config: %s", e)
                     config_data = {}
 
             sources_cfg = config_data.setdefault("sources", {})
@@ -333,16 +348,16 @@ class SourceManager:
                         "is_blacklisted": source.is_blacklisted,
                     }
                 except Exception as source_error:
-                    logger.error(f"Failed to serialize performance data for {url}: {source_error}")
+                    logger.error("Failed to serialize performance data for %s: %s", url, source_error)
                     continue
 
             with open(self.performance_file, "w", encoding="utf-8") as f:
                 json.dump(data, f, indent=2, default=str)
 
-            logger.info(f"Saved performance data for {len(data)} sources")
+            logger.info("Saved performance data for %d sources", len(data))
 
         except Exception as e:
-            logger.error(f"Failed to save performance data: {e}", exc_info=True)
+            logger.error("Failed to save performance data: %s", e, exc_info=True)
 
     async def get_active_sources(self, max_sources: int = 100) -> List[str]:
         """Get active sources that should be processed.
@@ -362,7 +377,7 @@ class SourceManager:
                     if not source.is_blacklisted and source.should_update():
                         eligible_sources.append((source.reputation_score, url))
                 except Exception as source_error:
-                    logger.error(f"Failed to check source {url}: {source_error}")
+                    logger.error("Failed to check source %s: %s", url, source_error)
                     continue
 
             # Sort by reputation score (descending)
@@ -371,7 +386,7 @@ class SourceManager:
             # Return top sources
             return [url for _, url in eligible_sources[:max_sources]]
         except Exception as e:
-            logger.error(f"Failed to get active sources: {e}", exc_info=True)
+            logger.error("Failed to get active sources: %s", e, exc_info=True)
             return []
 
     async def get_sources_by_tier(self, tier: SourceTier) -> List[str]:
@@ -390,7 +405,7 @@ class SourceManager:
                 if source.tier == tier and not source.is_blacklisted
             ]
         except Exception as e:
-            logger.error(f"Failed to get sources by tier {tier}: {e}", exc_info=True)
+            logger.error("Failed to get sources by tier %s: %s", tier, e, exc_info=True)
             return []
 
     async def fetch_source(self, source_url: str) -> ProcessingResult:
@@ -601,7 +616,7 @@ class SourceManager:
                     success, config_count, response_time
                 )
         except Exception as e:
-            logger.error(f"Failed to update source performance for {source_url}: {e}", exc_info=True)
+            logger.error("Failed to update source performance for %s: %s", source_url, e, exc_info=True)
 
     def get_source_statistics(self) -> Dict[str, Any]:
         """Get source statistics.
@@ -624,7 +639,7 @@ class SourceManager:
                     tier = source.tier.value
                     tier_counts[tier] = tier_counts.get(tier, 0) + 1
                 except Exception as e:
-                    logger.error(f"Failed to get tier for source: {e}")
+                    logger.error("Failed to get tier for source: %s", e)
                     continue
 
             avg_reputation = sum(
@@ -640,7 +655,7 @@ class SourceManager:
                 "top_sources": self._get_top_sources(10),
             }
         except Exception as e:
-            logger.error(f"Failed to get source statistics: {e}", exc_info=True)
+            logger.error("Failed to get source statistics: %s", e, exc_info=True)
             return {
                 "total_sources": 0,
                 "active_sources": 0,
@@ -678,7 +693,7 @@ class SourceManager:
                 for url, source in sorted_sources[:count]
             ]
         except Exception as e:
-            logger.error(f"Failed to get top sources: {e}", exc_info=True)
+            logger.error("Failed to get top sources: %s", e, exc_info=True)
             return []
 
     def blacklist_source(self, source_url: str, reason: str = "") -> None:
@@ -692,9 +707,9 @@ class SourceManager:
             if source_url in self.sources:
                 self.sources[source_url].is_blacklisted = True
                 self.sources[source_url].metadata["blacklist_reason"] = reason
-                logger.warning(f"Blacklisted source {source_url}: {reason}")
+                logger.warning("Blacklisted source %s: %s", source_url, reason)
         except Exception as e:
-            logger.error(f"Failed to blacklist source {source_url}: {e}", exc_info=True)
+            logger.error("Failed to blacklist source %s: %s", source_url, e, exc_info=True)
 
     def whitelist_source(self, source_url: str) -> None:
         """Remove source from blacklist.
@@ -707,6 +722,6 @@ class SourceManager:
                 self.sources[source_url].is_blacklisted = False
                 if "blacklist_reason" in self.sources[source_url].metadata:
                     del self.sources[source_url].metadata["blacklist_reason"]
-                logger.info(f"Whitelisted source {source_url}")
+                logger.info("Whitelisted source %s", source_url)
         except Exception as e:
-            logger.error(f"Failed to whitelist source {source_url}: {e}", exc_info=True)
+            logger.error("Failed to whitelist source %s: %s", source_url, e, exc_info=True)

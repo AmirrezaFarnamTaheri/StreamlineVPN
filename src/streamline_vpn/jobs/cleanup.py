@@ -8,6 +8,10 @@ from datetime import datetime, timedelta
 from pathlib import Path
 from typing import Any, Dict
 
+from ..utils.logging import get_logger
+
+logger = get_logger(__name__)
+
 
 class JobCleanupService:
     """Service to clean up stale jobs and maintain job history."""
@@ -26,7 +30,10 @@ class JobCleanupService:
         Dict[str, Any]
             Statistics about the cleanup process.
         """
+        logger.info("Starting job cleanup - File: %s", self.jobs_file)
+        
         if not self.jobs_file.exists():
+            logger.info("Jobs file does not exist, no cleanup needed")
             return {"cleaned": 0, "fixed": 0, "removed": 0}
 
         stats: Dict[str, Any] = {"cleaned": 0, "fixed": 0, "removed": 0}
@@ -36,9 +43,13 @@ class JobCleanupService:
                 data = json.load(file)
 
             jobs = data.get("jobs", [])
+            logger.info("Found %d jobs to process", len(jobs))
+            
             now = datetime.now()
             cutoff_date = now - timedelta(days=self.max_job_age_days)
             stale_cutoff = now - timedelta(hours=self.stale_timeout_hours)
+            
+            logger.debug("Cleanup thresholds - Max age: %s, Stale timeout: %s", cutoff_date, stale_cutoff)
 
             cleaned_jobs = []
 
@@ -104,10 +115,10 @@ class JobCleanupService:
             with open(self.jobs_file, "w", encoding="utf-8") as file:
                 json.dump(data, file, indent=2)
 
-            print(f"Job cleanup complete: {stats}")
+            logger.info("Job cleanup complete: %s", stats)
             return stats
         except Exception as exc:  # pragma: no cover - logging only
-            print(f"Error during job cleanup: {exc}")
+            logger.error("Error during job cleanup: %s", exc, exc_info=True)
             return stats
 
     def get_job_statistics(self) -> Dict[str, Any]:
@@ -157,7 +168,7 @@ class JobCleanupService:
 
             return stats
         except Exception as exc:  # pragma: no cover - logging only
-            print(f"Error getting job statistics: {exc}")
+            logger.error("Error getting job statistics: %s", exc, exc_info=True)
             return {}
 
 
@@ -168,9 +179,9 @@ async def startup_cleanup() -> Dict[str, Any]:
     stats = cleanup_service.cleanup_jobs()
     job_stats = cleanup_service.get_job_statistics()
 
-    print("Startup job cleanup completed")
-    print(f"Cleanup stats: {stats}")
-    print(f"Job statistics: {job_stats}")
+    logger.info("Startup job cleanup completed")
+    logger.info("Cleanup stats: %s", stats)
+    logger.info("Job statistics: %s", job_stats)
     return stats
 
 
@@ -182,14 +193,14 @@ async def periodic_cleanup_task() -> None:
         await asyncio.sleep(3600)
         try:
             stats = cleanup_service.cleanup_jobs()
-            print(f"Periodic cleanup completed: {stats}")
+            logger.info("Periodic cleanup completed: %s", stats)
         except Exception as exc:  # pragma: no cover - logging only
-            print(f"Periodic cleanup failed: {exc}")
+            logger.error("Periodic cleanup failed: %s", exc, exc_info=True)
 
 
 if __name__ == "__main__":  # pragma: no cover - manual execution only
     service = JobCleanupService()
     STATS = service.cleanup_jobs()
-    print(f"Cleanup completed: {STATS}")
+    logger.info("Cleanup completed: %s", STATS)
     JOB_STATS = service.get_job_statistics()
-    print(f"Current job statistics: {JOB_STATS}")
+    logger.info("Current job statistics: %s", JOB_STATS)

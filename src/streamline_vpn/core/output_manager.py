@@ -81,7 +81,7 @@ class OutputManager:
         for format_name in formats:
             try:
                 if format_name not in self.formatters:
-                    logger.warning(f"Unknown format: {format_name}")
+                    logger.warning("Unknown format: %s", format_name)
                     continue
 
                 formatter_class = self.formatters[format_name]
@@ -96,15 +96,15 @@ class OutputManager:
                     )
                     saved_files[format_name] = file_path
                     logger.info(
-                        f"Saved {len(configs)} configs in {format_name} format"
+                        "Saved %d configs in %s format", len(configs), format_name
                     )
                 except Exception as e:
                     # Gracefully degrade when file IO is mocked or fails
-                    logger.error(f"Failed to save {format_name} format: {e}")
+                    logger.error("Failed to save %s format: %s", format_name, e)
                     saved_files[format_name] = target_path
 
             except Exception as e:
-                logger.error(f"Formatter error for {format_name}: {e}", exc_info=True)
+                logger.error("Formatter error for %s: %s", format_name, e, exc_info=True)
 
         # If caller provided a single format string, return its Path
         if single_format:
@@ -132,7 +132,7 @@ class OutputManager:
                     self.save_configurations(configs, output_dir, formats)
                 )
             except Exception as e:
-                logger.error(f"Failed to save configurations synchronously: {e}", exc_info=True)
+                logger.error("Failed to save configurations synchronously: %s", e, exc_info=True)
                 return None
         else:
             # Running in an event loop; avoid deadlock

@@ -130,7 +130,7 @@ class PatternAnalyzer:
             }
 
         except Exception as e:
-            logger.error(f"Domain analysis error: {e}")
+            logger.error("Domain analysis error: %s", e)
             return {
                 "domain": "",
                 "is_blocked": True,

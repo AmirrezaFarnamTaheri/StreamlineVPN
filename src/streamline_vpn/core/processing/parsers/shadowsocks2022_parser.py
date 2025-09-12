@@ -68,11 +68,11 @@ class Shadowsocks2022Parser:
             parse_time = time.perf_counter() - start_time
             self._update_performance_stats(parse_time)
 
-            logger.debug(f"SS2022 config parsed in {parse_time*1000:.2f}ms")
+            logger.debug("SS2022 config parsed in %.2fms", parse_time*1000)
             return config
 
         except Exception as e:
-            logger.error(f"Failed to parse SS2022 URI: {e}")
+            logger.error("Failed to parse SS2022 URI: %s", e)
             return None
 
     def _get_security_level(self, method: str) -> str:

@@ -33,7 +33,7 @@ class RawFormatter(BaseFormatter):
                 for config in configs:
                     f.write(str(config) + "\n")
         except Exception as e:
-            logger.error(f"Failed to save raw configurations: {e}")
+            logger.error("Failed to save raw configurations: %s", e)
             raise
         
         return file_path

@@ -26,5 +26,5 @@ def parse_trojan(config_string: str) -> Optional[VPNConfiguration]:
             metadata={"fragment": parsed.fragment},
         )
     except Exception as e:
-        logger.debug(f"Failed to parse Trojan: {e}")
+        logger.debug("Failed to parse Trojan: %s", e)
         return None
