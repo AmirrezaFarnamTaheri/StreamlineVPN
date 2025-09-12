@@ -10,8 +10,9 @@ sources:
       - trojan
       update: 1h
       metadata:
-        description: Premium source with high-quality configurations
+        description: Premium aggregated VPN configurations
         region: global
+        enabled: true
     - url: https://raw.githubusercontent.com/vveg26/get_proxy/main/dist/v2ray.config.txt
       weight: 0.85
       protocols:
@@ -19,8 +20,20 @@ sources:
       - vless
       update: 2h
       metadata:
-        description: Reliable aggregator with good performance
+        description: Reliable proxy aggregator
         region: global
+        enabled: true
+    - url: https://raw.githubusercontent.com/tbbatbb/Proxy/master/dist/v2ray.config.txt
+      weight: 0.85
+      protocols:
+      - vmess
+      - vless
+      - trojan
+      update: 2h
+      metadata:
+        description: High-speed proxy collection
+        region: global
+        enabled: true
   tier_2_reliable:
     description: Trusted sources with good performance
     urls:
@@ -35,6 +48,7 @@ sources:
       metadata:
         description: Free VPN configurations
         region: global
+        enabled: true
     - url: https://raw.githubusercontent.com/Pawdroid/Free-servers/main/sub
       weight: 0.75
       protocols:
@@ -45,7 +59,17 @@ sources:
       metadata:
         description: SubCrawler aggregated sources
         region: global
-    # Removed duplicates and placeholder example URLs
+        enabled: true
+    - url: https://raw.githubusercontent.com/aiboboxx/v2rayfree/main/v2
+      weight: 0.7
+      protocols:
+      - vmess
+      - vless
+      update: 4h
+      metadata:
+        description: Free v2ray collection
+        region: global
+        enabled: true
   tier_3_bulk:
     description: Bulk sources with many configurations
     urls:
@@ -61,6 +85,7 @@ sources:
       metadata:
         description: Large collection of free nodes
         region: global
+        enabled: true
     - url: https://raw.githubusercontent.com/peasoft/NoMoreWalls/master/list.txt
       weight: 0.5
       protocols:
@@ -73,6 +98,18 @@ sources:
       metadata:
         description: NoMoreWalls aggregated sources
         region: global
+        enabled: true
+    - url: https://raw.githubusercontent.com/ermaozi/get_subscribe/main/subscribe/v2ray.txt
+      weight: 0.55
+      protocols:
+      - vmess
+      - vless
+      - trojan
+      update: 12h
+      metadata:
+        description: Auto-updated subscription list
+        region: global
+        enabled: true
 processing:
   max_concurrent: 50
   timeout: 30

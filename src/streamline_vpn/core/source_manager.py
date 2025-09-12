@@ -28,7 +28,7 @@ class SourceManager:
 
     def __init__(
         self,
-        config_path: str,
+        config_path: Optional[str] = None,
         security_manager: Optional[SecurityManager] = None,
         fetcher_service: Optional[FetcherService] = None,
     ):
@@ -39,7 +39,23 @@ class SourceManager:
             security_manager: Optional security manager for validating sources
             fetcher_service: Optional fetcher service for fetching sources
         """
+        # Use default config if not provided
+        if config_path is None:
+            config_path = Path(__file__).parents[3] / "config" / "sources.yaml"
+        
         self.config_path = Path(config_path)
+        
+        # Validate config file exists
+        if not self.config_path.exists():
+            raise FileNotFoundError(f"Configuration file not found: {self.config_path}")
+        
+        # Validate it's not the unified file (which should be deleted)
+        if "unified" in str(self.config_path):
+            logger.warning("Unified config detected, switching to main sources.yaml")
+            self.config_path = self.config_path.parent / "sources.yaml"
+            if not self.config_path.exists():
+                raise FileNotFoundError(f"Main sources.yaml not found: {self.config_path}")
+        
         self.sources: Dict[str, SourceMetadata] = {}
         self.performance_file = Path("data/source_performance.json")
         self.security_manager = security_manager or SecurityManager()

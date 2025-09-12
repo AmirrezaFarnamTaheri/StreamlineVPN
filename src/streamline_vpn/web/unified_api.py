@@ -727,27 +727,52 @@ class UnifiedAPI:
 
         @app.websocket("/ws")
         async def websocket_endpoint(websocket: WebSocket) -> None:
+            """WebSocket endpoint for real-time updates."""
             try:
-                try:
-                    root = Path(__file__).resolve().parents[3]
-                    (root/"logs").mkdir(parents=True, exist_ok=True)
-                    with open(root/"logs"/"ws_trace.log", "a", encoding="utf-8") as f:
-                        f.write(f"ENTER /ws at {datetime.now().isoformat()}\n")
-                except Exception:
-                    pass
                 await websocket.accept()
-                try:
-                    with open(root/"logs"/"ws_trace.log", "a", encoding="utf-8") as f:
-                        f.write(f"ACCEPTED /ws at {datetime.now().isoformat()}\n")
-                except Exception:
-                    pass
+                logger.debug(f"WebSocket connection accepted at {datetime.now().isoformat()}")
             except Exception as e:
-                try:
-                    with open(root/"logs"/"ws_trace.log", "a", encoding="utf-8") as f:
-                        f.write(f"ERROR /ws before accept: {e}\n")
-                except Exception:
-                    pass
+                logger.error(f"WebSocket accept error: {e}")
                 raise
+            
+            try:
+                # Parse client_id from query string
+                qs = websocket.scope.get("query_string", b"")
+                client_id = None
+                try:
+                    from urllib.parse import parse_qs
+                    params = parse_qs(qs.decode("utf-8")) if isinstance(qs, (bytes, bytearray)) else {}
+                    client_id = params.get("client_id", [None])[0]
+                except Exception:
+                    client_id = None
+                
+                # Send initial connection confirmation
+                await websocket.send_json({
+                    "type": "connection",
+                    "status": "connected",
+                    "timestamp": datetime.now().isoformat()
+                })
+                
+                # Keep connection alive and handle messages
+                while True:
+                    try:
+                        data = await websocket.receive_text()
+                        logger.debug(f"Received WebSocket message: {data[:100]}")
+                        
+                        # Echo back for now (implement actual logic as needed)
+                        await websocket.send_json({
+                            "type": "response",
+                            "data": data,
+                            "timestamp": datetime.now().isoformat()
+                        })
+                    except Exception as e:
+                        logger.debug(f"WebSocket receive error: {e}")
+                        break
+                        
+            except Exception as e:
+                logger.error(f"WebSocket error: {e}")
+            finally:
+                logger.debug("WebSocket connection closed")
             try:
                 # Parse client_id from query string to support single-endpoint routing
                 qs = websocket.scope.get("query_string", b"")
@@ -807,27 +832,14 @@ class UnifiedAPI:
         # Explicit test client endpoint used by some integration tests (register before {client_id} to ensure precedence)
         @app.websocket("/ws/test_client")
         async def websocket_test_client(websocket: WebSocket) -> None:
+            """Test client WebSocket endpoint."""
             try:
-                try:
-                    root = Path(__file__).resolve().parents[3]
-                    (root/"logs").mkdir(parents=True, exist_ok=True)
-                    with open(root/"logs"/"ws_trace.log", "a", encoding="utf-8") as f:
-                        f.write(f"ENTER /ws/test_client at {datetime.now().isoformat()}\n")
-                except Exception:
-                    pass
                 await websocket.accept()
-                try:
-                    with open(root/"logs"/"ws_trace.log", "a", encoding="utf-8") as f:
-                        f.write(f"ACCEPTED /ws/test_client at {datetime.now().isoformat()}\n")
-                except Exception:
-                    pass
+                logger.debug(f"Test client WebSocket connection accepted at {datetime.now().isoformat()}")
             except Exception as e:
-                try:
-                    with open(root/"logs"/"ws_trace.log", "a", encoding="utf-8") as f:
-                        f.write(f"ERROR /ws/test_client before accept: {e}\n")
-                except Exception:
-                    pass
+                logger.error(f"Test client WebSocket accept error: {e}")
                 raise
+            
             try:
                 while True:
                     message = await websocket.receive_text()
@@ -859,27 +871,14 @@ class UnifiedAPI:
         # Compatibility: echo/ping endpoint used by tests and some clients
         @app.websocket("/ws/{client_id}")
         async def websocket_client_endpoint(websocket: WebSocket, client_id: str) -> None:
+            """Client-specific WebSocket endpoint."""
             try:
-                try:
-                    root = Path(__file__).resolve().parents[3]
-                    (root/"logs").mkdir(parents=True, exist_ok=True)
-                    with open(root/"logs"/"ws_trace.log", "a", encoding="utf-8") as f:
-                        f.write(f"ENTER /ws/{{client_id}} id={client_id} at {datetime.now().isoformat()}\n")
-                except Exception:
-                    pass
                 await websocket.accept()
-                try:
-                    with open(root/"logs"/"ws_trace.log", "a", encoding="utf-8") as f:
-                        f.write(f"ACCEPTED /ws/{{client_id}} id={client_id} at {datetime.now().isoformat()}\n")
-                except Exception:
-                    pass
+                logger.debug(f"Client WebSocket connection accepted for {client_id} at {datetime.now().isoformat()}")
             except Exception as e:
-                try:
-                    with open(root/"logs"/"ws_trace.log", "a", encoding="utf-8") as f:
-                        f.write(f"ERROR /ws/{{client_id}} id={client_id} before accept: {e}\n")
-                except Exception:
-                    pass
+                logger.error(f"Client WebSocket accept error for {client_id}: {e}")
                 raise
+            
             try:
                 while True:
                     message = await websocket.receive_text()

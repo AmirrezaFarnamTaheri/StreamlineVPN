@@ -8,19 +8,38 @@ services:
       - VPN_DEBUG=true
       - API_HOST=0.0.0.0
       - API_PORT=8080
-      - ALLOWED_ORIGINS=["http://localhost:8000","http://127.0.0.1:8000"]
+      - ALLOWED_ORIGINS=["http://localhost:8000","http://127.0.0.1:8000","http://localhost:8080"]
+      - ALLOWED_METHODS=["GET","POST","PUT","DELETE","OPTIONS"]
+      - ALLOWED_HEADERS=["Content-Type","Authorization"]
+      - ALLOW_CREDENTIALS=true
     volumes:
-      - ./src:/app/src
-      - ./config:/app/config
-      - ./output:/app/output
+      - ./src:/app/src:ro
+      - ./config:/app/config:ro
+      - ./output:/app/output:rw
+      - ./logs:/app/logs:rw
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
 
   web:
     environment:
       - VPN_ENVIRONMENT=development
+      - WEB_HOST=0.0.0.0
       - WEB_PORT=8000
       - API_BASE_URL=http://api:8080
     volumes:
-      - ./docs:/app/docs
-      - ./src:/app/src
+      - ./docs:/app/docs:ro
+      - ./src:/app/src:ro
+      - ./logs:/app/logs:rw
     command: python run_web.py
-
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+    depends_on:
+      - api

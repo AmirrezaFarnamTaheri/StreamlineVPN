@@ -13,8 +13,45 @@ from streamline_vpn.web.static_server import StaticControlServer
 logger = get_logger(__name__)
 
 
+def validate_environment():
+    """Validate environment variables."""
+    errors = []
+    
+    # Validate ports
+    web_port = os.getenv("WEB_PORT", "8000")
+    api_port = os.getenv("API_PORT", "8080")
+    
+    try:
+        web_port_int = int(web_port)
+        if not 1 <= web_port_int <= 65535:
+            errors.append(f"Invalid WEB_PORT: {web_port} (must be 1-65535)")
+    except ValueError:
+        errors.append(f"Invalid WEB_PORT: {web_port} (must be integer)")
+    
+    try:
+        api_port_int = int(api_port)
+        if not 1 <= api_port_int <= 65535:
+            errors.append(f"Invalid API_PORT: {api_port} (must be 1-65535)")
+    except ValueError:
+        errors.append(f"Invalid API_PORT: {api_port} (must be integer)")
+    
+    # Check if docs directory exists
+    docs_path = Path(__file__).parent / "docs"
+    if not docs_path.exists():
+        errors.append(f"Docs directory not found: {docs_path}")
+    
+    return errors
+
+
 def main() -> None:
     """Run the web interface with proper API integration."""
+    # Validate environment
+    errors = validate_environment()
+    if errors:
+        for error in errors:
+            logger.error(error)
+        sys.exit(1)
+    
     settings = Settings()
     
     # Configuration
@@ -26,9 +63,17 @@ def main() -> None:
     # Set API base URL for frontend
     api_base_url = os.getenv("API_BASE_URL", f"http://{api_host}:{api_port}")
     
+    # Create logs directory if it doesn't exist
+    logs_dir = Path(__file__).parent / "logs"
+    logs_dir.mkdir(exist_ok=True)
+    
     # Create server
-    server = StaticControlServer(settings=settings)
-    server.app.state.api_base = api_base_url
+    try:
+        server = StaticControlServer(settings=settings)
+        server.app.state.api_base = api_base_url
+    except Exception as e:
+        logger.error(f"Failed to create server: {e}")
+        sys.exit(1)
     
     # Add middleware to inject API base
     @server.app.middleware("http")
@@ -42,9 +87,9 @@ def main() -> None:
     ╔══════════════════════════════════════════════════════════╗
     ║           StreamlineVPN Web Interface v2.0               ║
     ╠══════════════════════════════════════════════════════════╣
-    ║  🌐 Web Interface: http://localhost:{web_port}                   ║
-    ║  📊 Control Panel: http://localhost:{web_port}/interactive.html       ║
-    ║  📡 API Server: {api_base_url}                           ║
+    ║  🌐 Web Interface: http://localhost:{web_port:<5}              ║
+    ║  📊 Control Panel: http://localhost:{web_port}/interactive.html  ║
+    ║  📡 API Server: {api_base_url:<25}    ║
     ╚══════════════════════════════════════════════════════════╝
     
     Make sure the API server is running on {api_base_url}
@@ -67,4 +112,3 @@ if __name__ == "__main__":
     except Exception as exc:
         logger.error(f"Fatal error: {exc}", exc_info=True)
         sys.exit(1)
-

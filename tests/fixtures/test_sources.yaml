@@ -11,6 +11,7 @@ sources:
       metadata:
         description: Test premium source
         region: test
+        enabled: true
   reliable:
     description: Reliable test sources
     urls:
@@ -23,18 +24,16 @@ sources:
       metadata:
         description: Test reliable source
         region: test
-    - url: https://example.com/
+        enabled: true
+    - url: https://example.com/test-configs.txt
       weight: 0.5
       protocols:
       - all
       update: 24h
-      metadata: {}
-    - url: https://dup.com/
-      weight: 0.5
-      protocols:
-      - all
-      update: 24h
-      metadata: {}
+      metadata:
+        description: Test example source
+        region: test
+        enabled: true
 processing:
   max_concurrent: 10
   timeout: 15
