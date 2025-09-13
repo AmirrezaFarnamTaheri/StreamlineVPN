@@ -12,6 +12,7 @@ StreamlineVPN provides a comprehensive REST API for managing VPN configuration a
 
 **Base URL**: `http://localhost:8080/api/v1`  
 **API Version**: v1  
+**API Versioning Strategy**: [Read our versioning strategy](versioning.md)
 **Content-Type**: `application/json`
 
 ## Authentication
