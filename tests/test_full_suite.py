@@ -35,7 +35,7 @@ class TestStreamlineVPNCore:
                         },
                     ]
                 },
-                "reliable": ["https://example.com/reliable.txt"],
+                "reliable": {"urls": ["https://example.com/reliable.txt"]},
             },
             "processing": {
                 "max_concurrent": 50,
@@ -65,25 +65,40 @@ class TestStreamlineVPNCore:
         )
 
     @pytest.mark.asyncio
-    async def test_merger_full_processing(
-        self, sample_config, sample_vpn_config
-    ):
-        merger = StreamlineVPNMerger(config_path=sample_config)
-        with patch.object(merger.source_manager, "fetch_source") as mock_fetch:
-            mock_fetch.return_value = AsyncMock(
-                success=True,
-                configs=["vmess://test-config"],
-                response_time=0.5,
-            )
-            with patch.object(
-                merger.config_processor.parser, "parse_configuration"
-            ) as mock_parse:
-                mock_parse.return_value = sample_vpn_config
-                result = await merger.process_all()
-                assert result is not None
-                assert "statistics" in result
-                assert mock_fetch.called
-                assert mock_parse.called
+    async def test_merger_full_processing(self, sample_config, tmp_path):
+        """
+        Tests the full processing pipeline of the merger with a mocked fetcher.
+        """
+        # Patch the underlying fetch service to avoid actual network calls
+        with patch("streamline_vpn.core.merger.FetcherService.fetch", new_callable=AsyncMock) as mock_fetch:
+            # Have the mock fetcher return a valid base64-encoded config
+            # The source_manager's parser should be able to decode this.
+            vmess_config_b64 = "ewogICJ2IjogIjIiLAogICJwcyI6ICJUZXN0IiwKICAiYWRkIjogImV4YW1wbGUuY29tIiwKICAicG9ydCI6IDQ0MywKICAiaWQiOiAiZmQ3YWQyMTYtZDIzMy00ZmY4LWE4M2EtZTZlMGU3ODU3ZmM2IiwKICAiYWlkIjogMCwKICAibmV0IjogIndzIiwKICAidHlwZSI6ICJub25lIiwKICAiaG9zdCI6ICJleGFtcGxlLmNvbSIsCiAgInBhdGgiOiAiLyIsCiAgInRscyI6ICJ0bHMiCn0="
+            mock_fetch.return_value = f"vmess://{vmess_config_b64}"
+
+            # Initialize the merger with the sample config
+            merger = StreamlineVPNMerger(config_path=sample_config)
+
+            # Run the entire process
+            result = await merger.process_all(output_dir=str(tmp_path))
+
+            # Assert the results based on the new API
+            assert result is not None
+            assert result["success"] is True
+
+            # The sample_config fixture defines 3 source URLs
+            assert result["total_sources"] == 3
+            assert result["successful_sources"] == 3 # Our mock makes all sources succeed
+
+            # Since mock_fetch returns the same config each time, deduplication should result in 1 unique config
+            assert result["total_configurations"] == 1
+
+            # The fetcher should have been called for each of the 3 sources in the config
+            assert mock_fetch.call_count == 3
+
+            # Check for presence of new statistical keys
+            assert "processing_time" in result
+            assert "configurations_per_second" in result
 
     @pytest.mark.asyncio
     async def test_source_manager_operations(self, sample_config):
@@ -301,6 +316,7 @@ class TestIntegration:
         with open(config_file, "w", encoding="utf-8") as f:
             yaml.dump(config, f)
         merger = StreamlineVPNMerger(config_path=str(config_file))
+        await merger.initialize()
         with patch.object(merger.source_manager, "fetch_source") as mock_fetch:
             mock_fetch.return_value = AsyncMock(
                 success=True, configs=["vmess://test"], response_time=0.1
@@ -319,6 +335,7 @@ class TestIntegration:
     @pytest.mark.asyncio
     async def test_concurrent_processing(self, tmp_path):
         merger = StreamlineVPNMerger()
+        await merger.initialize()
         sources = [f"https://example.com/source{i}.txt" for i in range(10)]
         with patch.object(
             merger.source_manager, "get_active_sources"
@@ -358,6 +375,7 @@ class TestPerformance:
     @pytest.mark.asyncio
     async def test_concurrent_source_fetching(self):
         merger = StreamlineVPNMerger()
+        await merger.initialize()
         sources = [f"https://example{i}.com/configs.txt" for i in range(50)]
         with patch.object(
             merger.source_manager, "get_active_sources"

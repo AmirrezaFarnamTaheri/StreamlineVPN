@@ -155,6 +155,7 @@ class TestIntegration:
             MockSession.return_value = session_cm
 
             merger = StreamlineVPNMerger(config_path=str(config_file))
+            await merger.initialize()
             # Parser of config_processor returns VPNConfiguration for a valid line
             with patch.object(merger.config_processor.parser, "parse_configuration") as mock_parse:
                 mock_parse.return_value = VPNConfiguration(

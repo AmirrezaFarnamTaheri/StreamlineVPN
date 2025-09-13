@@ -1,89 +1,48 @@
 # StreamlineVPN Production Requirements
 # ====================================
-# Optimized dependencies for production deployment with pinned versions
-
-# Core HTTP and async libraries - pinned for stability
 aiohttp==3.9.1
 aiofiles==23.2.0
 asyncio-throttle==1.0.2
 tenacity==8.2.3
-
-# Data processing and serialization - pinned versions
 pyyaml==6.0.1
 numpy==1.24.4
 pandas==2.0.3
 orjson==3.9.10
-
-# Scheduling - production stable
 apscheduler==3.10.4
-
-# Database and caching - stable versions
 redis==5.0.1
 psycopg2-binary==2.9.9
 sqlalchemy==2.0.23
 alembic==1.13.1
-
-# Web framework - production ready
 fastapi==0.104.1
 uvicorn[standard]==0.24.0.post1
 websockets==12.0
 python-multipart==0.0.6
 starlette==0.27.0
-
-# Authentication and security - security-critical pinned
 python-jose[cryptography]==3.3.0
 passlib[bcrypt]==1.7.4
 cryptography==41.0.8
 bcrypt==4.1.2
 pyjwt==2.8.0
-
-# HTTP client
 httpx==0.25.2
 requests==2.31.0
-
-# Configuration and environment
 python-dotenv==1.0.0
 pydantic==2.5.2
 pydantic-core==2.14.5
 pydantic-settings==2.1.0
 click==8.1.7
 rich==13.7.0
-
-# Monitoring and observability - production monitoring
 prometheus-client==0.19.0
 structlog==23.2.0
-
-# Protocol support
 pycryptodome==3.19.0
 blake3==0.3.3
-
-# Caching
 lru-dict==1.3.0
-
-# Performance (Unix only)
 uvloop==0.19.0; sys_platform != "win32"
-
-# Production ML (optional but pinned)
 scikit-learn==1.3.2
 joblib==1.3.2
-
-# DNS resolution
 dnspython==2.4.2
-
-# Templates for web interface
 jinja2==3.1.2
-
-# Production WSGI server alternative
 gunicorn==21.2.0; sys_platform != "win32"
-
-# Memory profiling for production debugging
 psutil==5.9.6
-
-# Sentry for error tracking (optional)
 sentry-sdk[fastapi]==1.38.0
-
-# Production logging
 python-json-logger==2.0.7
-
-# Health check endpoint enhancements
 py-healthcheck==1.10.1

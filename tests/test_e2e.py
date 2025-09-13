@@ -2,18 +2,19 @@ import pytest
 from aiohttp import web
 from pathlib import Path
 import yaml
-
 import pytest_asyncio
-from unittest.mock import patch, AsyncMock
+from unittest.mock import patch
 
 from streamline_vpn.core.merger import StreamlineVPNMerger
-from streamline_vpn.models.configuration import VPNConfiguration, Protocol
-
 
 @pytest_asyncio.fixture
 async def mock_vpn_server(aiohttp_server):
+    """A mock server that returns a valid vmess configuration line."""
     async def handler(request):
-        return web.Response(text="vmess://test_config")
+        # A valid base64 encoded vmess configuration
+        vmess_config_b64 = "ewogICJ2IjogIjIiLAogICJwcyI6ICJUZXN0IiwKICAiYWRkIjogImV4YW1wbGUuY29tIiwKICAicG9ydCI6IDQ0MywKICAiaWQiOiAiZmQ3YWQyMTYtZDIzMy00ZmY4LWE4M2EtZTZlMGU3ODU3ZmM2IiwKICAiYWlkIjogMCwKICAibmV0IjogIndzIiwKICAidHlwZSI6ICJub25lIiwKICAiaG9zdCI6ICJleGFtcGxlLmNvbSIsCiAgInBhdGgiOiAiLyIsCiAgInRscyI6ICJ0bHMiCn0="
+        # The parser expects to find full vmess:// links in the content
+        return web.Response(text=f"vmess://{vmess_config_b64}")
 
     app = web.Application()
     app.router.add_get("/test_source", handler)
@@ -21,60 +22,52 @@ async def mock_vpn_server(aiohttp_server):
     return server
 
 
-@pytest.fixture
-def temp_config_file(tmp_path, mock_vpn_server):
+@pytest.mark.asyncio
+async def test_end_to_end_processing(tmp_path, mock_vpn_server):
+    """
+    Tests the full processing pipeline from config loading to output generation.
+    """
+    # 1. Create a temporary configuration file pointing to the mock server
     config = {
         "sources": {
-            "reliable": {
-                "urls": [
-                    {
+                "reliable": {
+                    "urls": [{
                         "url": f"http://{mock_vpn_server.host}:{mock_vpn_server.port}/test_source",
                         "weight": 1.0,
                         "protocols": ["vmess"],
-                    }
-                ]
-            }
+                    }]
+                }
+        },
+        "output": {
+            "formats": ["json", "raw"]
         }
     }
     config_path = tmp_path / "test_config.yaml"
     with open(config_path, "w") as f:
         yaml.dump(config, f)
-    return config_path
 
-
-@pytest.mark.asyncio
-async def test_end_to_end_processing(
-    temp_config_file, tmp_path, mock_vpn_server
-):
     output_dir = tmp_path / "output"
-    output_dir.mkdir()
 
-    test_url = (
-        f"http://{mock_vpn_server.host}:{mock_vpn_server.port}/test_source"
-    )
-    with patch(
-        "streamline_vpn.security.manager.SecurityManager.validate_source",
-        return_value={"is_safe": True},
-    ), patch(
-        "streamline_vpn.core.source_manager.SourceManager.get_active_sources",
-        new_callable=AsyncMock,
-        return_value=[test_url],
-    ), patch(
-        "streamline_vpn.core.processing.parser.ConfigurationParser.parse_configuration",
-        return_value=VPNConfiguration(
-            protocol=Protocol.VMESS,
-            server="example.com",
-            port=443,
-            user_id="test",
-        ),
-    ):
-        merger = StreamlineVPNMerger(config_path=str(temp_config_file))
+    # 2. Patch the SecurityManager to avoid external network calls for validation
+    with patch("streamline_vpn.core.merger.SecurityManager", autospec=True) as MockSecurityManager:
+        mock_security_instance = MockSecurityManager.return_value
+        mock_security_instance.validate_source.return_value = {"is_safe": True, "is_valid_url": True}
+        mock_security_instance.analyze_configuration.return_value = {"is_safe": True}
+
+        # 3. Initialize the merger and run the full processing pipeline
+        merger = StreamlineVPNMerger(config_path=str(config_path))
         result = await merger.process_all(output_dir=str(output_dir))
 
-    assert result["success"]
-    assert result["sources_processed"] == 1
-    assert result["configurations_found"] > 0
+    # 4. Assert the results
+    assert result["success"] is True
+    assert result["total_sources"] == 1
+    assert result["total_configurations"] == 1
+    assert result["warnings"] == [] # Should be no warnings in this ideal case
 
-    # Check that output files were created
+    # 5. Check that output files were created correctly
     output_files = list(output_dir.iterdir())
-    assert len(output_files) > 0
+    assert len(output_files) == 2  # json and raw
+
+    names = {f.name for f in output_files}
+    assert "configurations.json" in names
+    assert "configurations.txt" in names # RawFormatter adds .txt

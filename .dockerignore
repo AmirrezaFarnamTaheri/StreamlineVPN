@@ -1,26 +1,45 @@
-# Exclude VCS and local artifacts
+# Development files
 .git
 .gitignore
-.qodo
+*.md
+.env*
+.vscode
+.idea
+
+# Python
 __pycache__
 *.pyc
+*.pyo
+*.pyd
+.Python
+*.so
 .pytest_cache
-output*
-output_test_*
-*.db
-*.sqlite
+.coverage
+htmlcov
+
+# Logs and output
+logs/
+output/
 *.log
-*.tmp
-venv
-.venv
-dist
-build
-node_modules
-tests
-docs/_build
 
-# Local configs and secrets
-config/*.yaml
-config/*.yml
-*.env
+# Temporary files
+tmp/
+temp/
+.tmp
 
+# OS generated
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# Node modules (if any)
+node_modules/
+npm-debug.log*
+
+# Docker
+Dockerfile*
+docker-compose*

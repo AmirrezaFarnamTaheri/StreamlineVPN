@@ -365,7 +365,7 @@ def create_app() -> FastAPI:
         """
         try:
             merger = get_merger()
-            configs = await merger.get_configurations()
+            configs = merger.get_configurations()
             return {
                 "count": len(configs),
                 "configurations": [
@@ -703,7 +703,7 @@ def create_app() -> FastAPI:
     ) -> Dict[str, Any]:
         """Return processed configurations with filtering and pagination."""
         merger = get_merger()
-        configs = await merger.get_configurations()
+        configs = merger.get_configurations()
         if protocol:
             configs = [c for c in configs if c.protocol.value == protocol]
         if location:

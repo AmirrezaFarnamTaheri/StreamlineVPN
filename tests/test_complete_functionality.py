@@ -39,16 +39,20 @@ class TestCompleteFunctionality:
         """Create temporary config file."""
         config_content = """
 sources:
-  - name: TestSource1
-    url: http://example.com/configs1.txt
-    type: http
-    tier: community
-    enabled: true
-  - name: TestSource2
-    url: http://example.com/configs2.txt
-    type: http
-    tier: premium
-    enabled: true
+    premium:
+        urls:
+          - url: http://example.com/configs1.txt
+            name: TestSource1
+            type: http
+            tier: community
+            enabled: true
+    reliable:
+        urls:
+          - url: http://example.com/configs2.txt
+            name: TestSource2
+            type: http
+            tier: premium
+            enabled: true
 """
         file_path = tmp_path / "sources.yaml"
         file_path.write_text(config_content)
@@ -58,10 +62,11 @@ sources:
     async def test_core_merger_functionality(self, temp_config_file):
         """Test core merger functionality."""
         merger = StreamlineVPNMerger(config_path=str(temp_config_file))
+        await merger.initialize()
 
         # Test initialization
         assert merger is not None
-        assert merger.config_path == str(temp_config_file)
+        assert str(merger.config_path) == str(temp_config_file)
 
         # Test statistics
         stats = await merger.get_statistics()

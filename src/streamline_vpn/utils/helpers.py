@@ -11,6 +11,26 @@ from datetime import datetime
 from typing import Any, Dict, List, Union
 import hashlib
 import json
+import aiofiles
+import yaml
+from pathlib import Path
+from .logging import get_logger
+
+logger = get_logger(__name__)
+
+
+async def load_config_file(path: Union[str, Path]) -> Dict[str, Any]:
+    """Asynchronously load and parse a YAML configuration file."""
+    try:
+        async with aiofiles.open(path, mode='r', encoding='utf-8') as f:
+            content = await f.read()
+            return yaml.safe_load(content) or {}
+    except FileNotFoundError:
+        logger.error(f"Configuration file not found: {path}")
+        return {}
+    except Exception as e:
+        logger.error(f"Error loading configuration file {path}: {e}")
+        return {}
 
 
 def format_bytes(bytes_value: int) -> str:

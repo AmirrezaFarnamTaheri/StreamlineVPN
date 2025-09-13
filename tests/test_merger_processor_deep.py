@@ -32,7 +32,7 @@ class FakeParser:
     def parse_configuration(self, line: str):
         if line.startswith("parse://"):
             return None  # simulate parse failure
-        return VPNConfiguration(server="s", port=1, protocol=Protocol.VMESS)
+        return VPNConfiguration(server="s", port=1, protocol=Protocol.VMESS, metadata={})
 
 
 class FakeConfigProcessor:
@@ -55,22 +55,32 @@ class FakeMerger:
 
 
 @pytest.mark.asyncio
-async def test_process_single_source_filters_and_updates():
+async def test_process_single_source_parses_and_updates():
+    """
+    Tests that the processor correctly parses configs and ignores parse failures.
+    Security filtering is no longer the responsibility of the processor.
+    """
     m = FakeMerger()
     proc = MergerProcessor(m)
-    out = await proc._process_single_source("http://example.com/list.txt")
-    # safe + parsed line only (1 entry)
-    assert len(out) == 1
+    configs, success = await proc._process_single_source("http://example.com/list.txt")
+    # "safe" and "unsafe" are parsed. "parse" fails. Expect 2 configs.
+    assert len(configs) == 2
+    assert success is True
     # update_source_performance called at least once for success
     assert any(u.get("success") is True for u in m.source_manager.updates)
 
 
 @pytest.mark.asyncio
 async def test_process_sources_aggregates():
+    """
+    Tests that the processor aggregates results from multiple sources correctly.
+    """
     m = FakeMerger()
     proc = MergerProcessor(m)
-    configs = await proc.process_sources(["s1", "s2"])  # two sources -> 2 results expected
-    assert len(configs) == 2
+    # Each source provides 2 valid configs. 2 sources * 2 configs = 4.
+    configs, success_count = await proc.process_sources(["s1", "s2"])
+    assert len(configs) == 4
+    assert success_count == 2
 
 
 @pytest.mark.asyncio
@@ -81,10 +91,11 @@ async def test_process_source_handles_fetch_failure_and_exception(monkeypatch):
     async def _fail_fetch(source):
         return FakeFetchResult(False, [], 0.0)
 
-    m.source_manager.fetch_source = _fail_fetch  # type: ignore[assignment]
+    m.source_manager.fetch_source = _fail_fetch
     proc = MergerProcessor(m)
-    out = await proc._process_single_source("s")
+    out, success = await proc._process_single_source("s")
     assert out == []
+    assert success is False
     assert any(u.get("success") is False for u in m.source_manager.updates)
 
     # Case 2: fetch raises exception
@@ -92,10 +103,11 @@ async def test_process_source_handles_fetch_failure_and_exception(monkeypatch):
         raise RuntimeError("boom")
 
     m2 = FakeMerger()
-    m2.source_manager.fetch_source = _raise_fetch  # type: ignore[assignment]
+    m2.source_manager.fetch_source = _raise_fetch
     proc2 = MergerProcessor(m2)
-    out2 = await proc2._process_single_source("s")
+    out2, success2 = await proc2._process_single_source("s")
     assert out2 == []
+    assert success2 is False
     assert any(u.get("success") is False for u in m2.source_manager.updates)
 
 
@@ -116,7 +128,7 @@ async def test_apply_enhancements_handles_optional_components():
     proc = MergerProcessor(m)
 
     res = await proc.apply_enhancements([
-        VPNConfiguration(server="x", port=1, protocol=Protocol.VMESS)
+        VPNConfiguration(server="x", port=1, protocol=Protocol.VMESS, metadata={})
     ])
     # returns original list even if predictor fails
     assert isinstance(res, list) and len(res) == 1
@@ -138,7 +150,7 @@ async def test_apply_enhancements_success_paths_and_dedup():
     m.geo_optimizer = Geo()
     proc = MergerProcessor(m)
 
-    cfgs = [VPNConfiguration(server="x", port=1, protocol=Protocol.VMESS)]
+    cfgs = [VPNConfiguration(server="x", port=1, protocol=Protocol.VMESS, metadata={})]
     res = await proc.apply_enhancements(cfgs)
     assert res and isinstance(res, list)
 
@@ -153,7 +165,7 @@ async def test_process_single_source_parse_exception_branch():
         def parse_configuration(self, line: str):
             if line.startswith("boom://"):
                 raise ValueError("bad line")
-            return VPNConfiguration(server="s", port=2, protocol=Protocol.VMESS)
+            return VPNConfiguration(server="s", port=2, protocol=Protocol.VMESS, metadata={})
 
     class CP:
         def __init__(self):
@@ -169,9 +181,10 @@ async def test_process_single_source_parse_exception_branch():
     m.source_manager = SM()
     m.config_processor = CP()
     proc = MergerProcessor(m)
-    out = await proc._process_single_source("s")
+    configs, success = await proc._process_single_source("s")
     # One parse raises, the other succeeds
-    assert len(out) == 1
+    assert len(configs) == 1
+    assert success is True
 
 
 @pytest.mark.asyncio
@@ -186,7 +199,7 @@ async def test_update_source_performance_failure_paths():
     m1 = FakeMerger()
     m1.source_manager = SM1()
     proc1 = MergerProcessor(m1)
-    assert await proc1._process_single_source("s") == []
+    assert await proc1._process_single_source("s") == ([], False)
 
     # Case B: success path but performance update raises -> covers lines 125-126
     class SM2(FakeSourceManager):
@@ -199,8 +212,9 @@ async def test_update_source_performance_failure_paths():
     m2.source_manager = SM2()
     proc2 = MergerProcessor(m2)
     # Parsing succeeds, then update perf raises internally but method returns configs
-    out2 = await proc2._process_single_source("s")
-    assert len(out2) == 1
+    configs, success = await proc2._process_single_source("s")
+    assert len(configs) == 1
+    assert success is True
 
     # Case C: outer exception then update performance raises -> covers lines 142-143
     class SM3(FakeSourceManager):
@@ -212,7 +226,7 @@ async def test_update_source_performance_failure_paths():
     m3 = FakeMerger()
     m3.source_manager = SM3()
     proc3 = MergerProcessor(m3)
-    assert await proc3._process_single_source("s") == []
+    assert await proc3._process_single_source("s") == ([], False)
 
 
 @pytest.mark.asyncio
@@ -225,6 +239,6 @@ async def test_geo_optimizer_exception_path():
     m.geo_optimizer = BadGeo()
     proc = MergerProcessor(m)
     res = await proc.apply_enhancements([
-        VPNConfiguration(server="x", port=1, protocol=Protocol.VMESS)
+        VPNConfiguration(server="x", port=1, protocol=Protocol.VMESS, metadata={})
     ])
     assert isinstance(res, list)
