@@ -18,7 +18,7 @@
         }
         .animated-bg {
             position: fixed; inset: 0; background: linear-gradient(125deg, #667eea, #764ba2, #f093fb, #667eea);
-            background-size: 400% 400%; animation: gradientShift 18s ease infinite; opacity: 0.05; z-index: -1;
+            background-size: 400% 400%; animation: gradientShift 12s ease infinite; opacity: 0.05; z-index: -1;
         }
         @keyframes gradientShift { 0%,100%{background-position:0% 50%} 50%{background-position:100% 50%} }
         .glass { background: rgba(255,255,255,0.08); backdrop-filter: blur(12px); border: 1px solid rgba(255,255,255,0.12); }
@@ -56,6 +56,9 @@
         .stagger-4 { animation-delay: 0.4s; }
         .stagger-5 { animation-delay: 0.5s; }
         .stagger-6 { animation-delay: 0.6s; }
+        .stagger-7 { animation-delay: 0.7s; }
+        .stagger-8 { animation-delay: 0.8s; }
+        .stagger-9 { animation-delay: 0.9s; }
         .code-block { background: rgba(0,0,0,0.6); border-radius: 8px; padding: 1rem; font-family: 'Fira Code', monospace; }
         .endpoint-card { transition: all 0.3s ease; cursor: pointer; }
         .endpoint-card:hover { transform: translateY(-4px); background: rgba(255,255,255,0.12); }
@@ -70,6 +73,16 @@
         .interactive-demo { background: linear-gradient(135deg, rgba(102, 126, 234, 0.1), rgba(118, 75, 162, 0.1)); }
         .api-status { position: relative; }
         .api-status::before { content: ''; position: absolute; top: 0; left: 0; right: 0; height: 3px; background: linear-gradient(90deg, #10b981, #3b82f6, #f59e0b); animation: shimmer 2s infinite; }
+
+        .no-neon {
+            background: transparent !important;
+            border: 0 !important;
+            outline: 0 !important;
+            filter: none !important;
+            box-shadow: none !important;
+            text-shadow: none !important;
+            animation: none !important;
+        }
     </style>
 </head>
 <body class="bg-app text-white">
@@ -120,9 +133,12 @@
                     <a href="#examples" class="nav-link block px-4 py-2 rounded-lg text-sm animate-slide-in stagger-4">💡 Examples</a>
                     <a href="#errors" class="nav-link block px-4 py-2 rounded-lg text-sm animate-slide-in stagger-5">⚠️ Error Codes</a>
                     <a href="#rate-limits" class="nav-link block px-4 py-2 rounded-lg text-sm animate-slide-in stagger-6">⏱️ Rate Limits</a>
+                    <a href="#pagination" class="nav-link block px-4 py-2 rounded-lg text-sm animate-slide-in stagger-7">📄 Pagination</a>
+                    <a href="#websocket" class="nav-link block px-4 py-2 rounded-lg text-sm animate-slide-in stagger-8">🛰️ WebSocket Streams</a>
+                    <a href="#changelog" class="nav-link block px-4 py-2 rounded-lg text-sm animate-slide-in stagger-9">📝 Changelog</a>
                 </nav>
                 
-                <div class="mt-8 p-4 bg-blue-500/10 rounded-lg border border-blue-500/20 animate-shimmer">
+                <div class="mt-8 p-4 bg-blue-500/10 rounded-lg border border-blue-500/20 no-neon">
                     <h4 class="font-semibold text-blue-400 mb-2">🛠️ Interactive Testing</h4>
                     <p class="text-sm text-gray-300 mb-3">Test API endpoints directly in your browser</p>
                     <button onclick="openSwaggerUI()" class="w-full px-4 py-2 bg-blue-600 hover:bg-blue-700 rounded-lg text-sm transition animate-card-hover">
@@ -130,7 +146,7 @@
                     </button>
                 </div>
 
-                <div class="mt-4 p-4 bg-green-500/10 rounded-lg border border-green-500/20 animate-shimmer">
+                <div class="mt-4 p-4 bg-green-500/10 rounded-lg border border-green-500/20 no-neon">
                     <h4 class="font-semibold text-green-400 mb-2">📊 API Status</h4>
                     <div class="space-y-2 text-sm">
                         <div class="flex justify-between">
@@ -159,9 +175,12 @@
                         🚀 API Overview
                         <span class="ml-3 px-3 py-1 bg-green-500/20 text-green-400 rounded-full text-sm animate-pulse">v2.0</span>
                     </h2>
-                    <p class="text-lg text-gray-300 mb-6 animate-shimmer">
-                        The StreamlineVPN API provides comprehensive access to VPN configuration management, 
+                    <p class="text-lg text-gray-300 mb-6 no-neon">
+                        The StreamlineVPN API provides comprehensive access to VPN configuration management,
                         source aggregation, and real-time processing capabilities with enterprise-grade performance.
+                        It exposes the same battle-tested pipeline that powers the StreamlineVPN platform,
+                        allowing integrators to automate configuration generation, monitor data ingestion,
+                        and orchestrate deployments from their own tooling.
                     </p>
                     
                     <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
@@ -182,7 +201,7 @@
                         </div>
                     </div>
 
-                    <div class="bg-gray-800/50 rounded-lg p-6 animate-shimmer">
+                    <div class="bg-gray-800/50 rounded-lg p-6 no-neon">
                         <h4 class="font-semibold mb-3 animate-text-shimmer">🌐 Base URL</h4>
                         <div class="code-block">
                             <code class="text-green-400 animate-text-shimmer">https://api.streamlinevpn.com/v2</code>
@@ -195,8 +214,11 @@
             <section id="authentication" class="mb-12">
                 <div class="glass rounded-xl p-8 animate-fade-in-up animate-morphing">
                     <h2 class="text-3xl font-bold mb-6 animate-text-shimmer">🔐 Authentication</h2>
-                    <p class="text-gray-300 mb-6 animate-shimmer">
-                        StreamlineVPN API uses JWT (JSON Web Tokens) for authentication. Include your token in the Authorization header.
+                    <p class="text-gray-300 mb-6 no-neon">
+                        StreamlineVPN API uses JWT (JSON Web Tokens) for authentication. Include your token in the
+                        Authorization header. Tokens can be created from the control panel and expire after 24 hours.
+                        Use the <code class="text-purple-400">/api/token/refresh</code> endpoint to renew them programmatically
+                        before expiry.
                     </p>
                     
                     <div class="space-y-6">
@@ -219,7 +241,7 @@
                             </div>
                         </div>
 
-                        <div class="bg-gray-800/50 rounded-lg p-6 animate-shimmer">
+                        <div class="bg-gray-800/50 rounded-lg p-6 no-neon">
                             <h4 class="font-semibold mb-3 animate-text-shimmer">📝 Using the Token</h4>
                             <div class="code-block">
                                 <pre><code class="language-bash">curl -H "Authorization: Bearer YOUR_JWT_TOKEN" \
@@ -390,7 +412,8 @@
             <section id="examples" class="mb-12">
                 <div class="glass rounded-xl p-8 animate-fade-in-up animate-morphing">
                     <h2 class="text-3xl font-bold mb-6 animate-text-shimmer">💡 Code Examples</h2>
-                    
+                    <p class="text-gray-300 mb-6 no-neon">These snippets show how to interact with the API using
+                        popular languages and tools.</p>
                     <div class="space-y-6">
                         <div class="glass-dark rounded-lg p-6 animate-card-hover animate-data-flow">
                             <h3 class="text-xl font-semibold mb-4 animate-text-shimmer">🐍 Python Example</h3>
@@ -487,7 +510,8 @@ curl -H "Authorization: Bearer $TOKEN" \
             <section id="errors" class="mb-12">
                 <div class="glass rounded-xl p-8 animate-fade-in-up animate-morphing">
                     <h2 class="text-3xl font-bold mb-6 animate-text-shimmer">⚠️ Error Codes</h2>
-                    
+                    <p class="text-gray-300 mb-6 no-neon">All API responses include a machine-readable error code.
+                        Use these codes to programmatically react to failures and surface helpful messages to users.</p>
                     <div class="space-y-4">
                         <div class="glass-dark rounded-lg p-4 animate-card-hover animate-data-flow">
                             <div class="flex items-center justify-between">
@@ -546,7 +570,9 @@ curl -H "Authorization: Bearer $TOKEN" \
             <section id="rate-limits" class="mb-12">
                 <div class="glass rounded-xl p-8 animate-fade-in-up animate-morphing">
                     <h2 class="text-3xl font-bold mb-6 animate-text-shimmer">⏱️ Rate Limits</h2>
-                    
+                    <p class="text-gray-300 mb-6 no-neon">To protect service stability we enforce per-account
+                        rate limits. Applications with higher throughput requirements can request custom quotas
+                        via the support channel.</p>
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                         <div class="glass-dark rounded-lg p-6 animate-card-hover animate-data-flow">
                             <h3 class="text-xl font-semibold mb-4 animate-text-shimmer">📊 Standard Limits</h3>
@@ -585,7 +611,7 @@ curl -H "Authorization: Bearer $TOKEN" \
                         </div>
                     </div>
                     
-                    <div class="mt-6 p-4 bg-yellow-500/10 rounded-lg border border-yellow-500/20 animate-shimmer">
+                        <div class="mt-6 p-4 bg-yellow-500/10 rounded-lg border border-yellow-500/20 no-neon">
                         <h4 class="font-semibold text-yellow-400 mb-2 animate-text-shimmer">💡 Rate Limit Headers</h4>
                         <p class="text-sm text-gray-300 mb-3">All responses include rate limit information:</p>
                         <div class="code-block">
@@ -594,6 +620,37 @@ X-RateLimit-Remaining: 95
 X-RateLimit-Reset: 1641234567</code></pre>
                         </div>
                     </div>
+                </div>
+            </section>
+            <section id="pagination" class="mb-12">
+                <div class="glass rounded-xl p-8 animate-fade-in-up">
+                    <h2 class="text-3xl font-bold mb-6 animate-text-shimmer">📄 Pagination &amp; Filtering</h2>
+                    <p class="text-gray-300 mb-4 no-neon">List endpoints support standard pagination parameters to help you navigate large data sets.</p>
+                    <ul class="list-disc list-inside text-gray-300 mb-4">
+                        <li><code>page</code> – 1-based page index</li>
+                        <li><code>size</code> – number of items per page (max 100)</li>
+                        <li><code>sort</code> – field to sort by, prefix with <code>-</code> for descending</li>
+                    </ul>
+                    <div class="code-block"><pre><code class="language-bash">curl -H "Authorization: Bearer &lt;token&gt;" "${API_BASE}/api/v1/configurations?page=2&amp;size=50&amp;sort=-created_at"</code></pre></div>
+                </div>
+            </section>
+            <section id="websocket" class="mb-12">
+                <div class="glass rounded-xl p-8 animate-fade-in-up">
+                    <h2 class="text-3xl font-bold mb-6 animate-text-shimmer">🛰️ WebSocket Streams</h2>
+                    <p class="text-gray-300 mb-4 no-neon">Subscribe to real-time updates for processing jobs and metrics via WebSocket.</p>
+                    <div class="code-block"><pre><code class="language-javascript">const ws = new WebSocket(`${API_BASE.replace('http', 'ws')}/ws/status`);
+ws.onmessage = (e) =&gt; console.log('update:', e.data);</code></pre></div>
+                </div>
+            </section>
+            <section id="changelog" class="mb-12">
+                <div class="glass rounded-xl p-8 animate-fade-in-up">
+                    <h2 class="text-3xl font-bold mb-6 animate-text-shimmer">📝 Changelog</h2>
+                    <p class="text-gray-300 mb-4 no-neon">Track notable changes to the API.</p>
+                    <ul class="list-disc list-inside text-gray-300 space-y-2">
+                        <li><span class="text-blue-400">v2.0</span> – Introduced job status streaming and improved rate limits</li>
+                        <li><span class="text-blue-400">v1.5</span> – Added pagination for configurations endpoint</li>
+                        <li><span class="text-blue-400">v1.0</span> – Initial release</li>
+                    </ul>
                 </div>
             </section>
         </div>

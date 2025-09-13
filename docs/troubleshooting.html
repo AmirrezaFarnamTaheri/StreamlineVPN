@@ -15,7 +15,7 @@
         }
         .animated-bg {
             position: fixed; inset: 0; background: linear-gradient(125deg, #667eea, #764ba2, #f093fb, #667eea);
-            background-size: 400% 400%; animation: gradientShift 18s ease infinite; opacity: 0.05; z-index: -1;
+            background-size: 400% 400%; animation: gradientShift 12s ease infinite; opacity: 0.05; z-index: -1;
         }
         @keyframes gradientShift { 0%,100%{background-position:0% 50%} 50%{background-position:100% 50%} }
         .glass { background: rgba(255,255,255,0.08); backdrop-filter: blur(12px); border: 1px solid rgba(255,255,255,0.12); }
@@ -72,8 +72,18 @@
         .chat-bubble { max-width: 80%; }
         .chat-user { background: linear-gradient(135deg, #667eea, #764ba2); }
         .chat-support { background: rgba(255,255,255,0.1); }
+        .no-neon {
+            background: transparent !important;
+            border: 0 !important;
+            outline: 0 !important;
+            filter: none !important;
+            box-shadow: none !important;
+            text-shadow: none !important;
+            animation: none !important;
+        }
     </style>
-  <link href="/assets/css/style.css" rel="stylesheet">`n</head>
+  <link href="/assets/css/style.css" rel="stylesheet">
+</head>
 <body class="bg-app text-white">
 <div class="animated-bg"></div>
 
@@ -118,8 +128,8 @@
                 
                 <!-- Search Box -->
                 <div class="mb-6">
-                    <input type="text" id="searchBox" placeholder="Search help articles..." 
-                           class="search-box w-full px-4 py-2 rounded-lg text-white placeholder-gray-400 focus:outline-none transition animate-shimmer">
+                    <input type="text" id="searchBox" placeholder="Search help articles..."
+                           class="search-box w-full px-4 py-2 rounded-lg text-white placeholder-gray-400 focus:outline-none transition no-neon">
                 </div>
                 
                 <nav class="space-y-2">
@@ -132,7 +142,7 @@
                 </nav>
                 
                 <!-- Live Chat -->
-                <div class="mt-8 p-4 bg-green-500/10 rounded-lg border border-green-500/20 animate-shimmer">
+                <div class="mt-8 p-4 bg-green-500/10 rounded-lg border border-green-500/20 no-neon">
                     <h4 class="font-semibold text-green-400 mb-2 animate-text-shimmer">💬 Live Chat</h4>
                     <p class="text-sm text-gray-300 mb-3">Get instant help from our support team</p>
                     <button onclick="openLiveChat()" class="w-full px-4 py-2 bg-green-600 hover:bg-green-700 rounded-lg text-sm transition animate-card-hover">
@@ -141,7 +151,7 @@
                 </div>
 
                 <!-- Support Status -->
-                <div class="mt-4 p-4 bg-blue-500/10 rounded-lg border border-blue-500/20 animate-shimmer">
+                <div class="mt-4 p-4 bg-blue-500/10 rounded-lg border border-blue-500/20 no-neon">
                     <h4 class="font-semibold text-blue-400 mb-2 animate-text-shimmer">📊 Support Status</h4>
                     <div class="space-y-2 text-sm">
                         <div class="flex justify-between">
@@ -177,7 +187,7 @@
                                 <div class="text-2xl mr-3 animate-wiggle">🚀</div>
                                 <h3 class="text-xl font-semibold animate-text-shimmer">Quick Start</h3>
                             </div>
-                            <p class="text-gray-300 mb-4 animate-shimmer">Get up and running in minutes</p>
+                            <p class="text-gray-300 mb-4 no-neon">Get up and running in minutes</p>
                             <ul class="space-y-2 text-sm">
                                 <li class="flex items-center">
                                     <span class="w-2 h-2 bg-green-400 rounded-full mr-3 animate-pulse"></span>
@@ -199,7 +209,7 @@
                                 <div class="text-2xl mr-3 animate-wiggle">🔧</div>
                                 <h3 class="text-xl font-semibold animate-text-shimmer">Common Issues</h3>
                             </div>
-                            <p class="text-gray-300 mb-4 animate-shimmer">Quick fixes for frequent problems</p>
+                            <p class="text-gray-300 mb-4 no-neon">Quick fixes for frequent problems</p>
                             <ul class="space-y-2 text-sm">
                                 <li class="flex items-center">
                                     <span class="w-2 h-2 bg-yellow-400 rounded-full mr-3 animate-pulse"></span>

@@ -9,9 +9,32 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <style>
+        /* Shared background and animation utilities */
+        .bg-app {
+            background: linear-gradient(135deg, #0f172a 0%, #1e293b 50%, #334155 100%);
+            min-height: 100vh;
+        }
+        .animated-bg {
+            position: fixed;
+            inset: 0;
+            background: linear-gradient(125deg, #667eea, #764ba2, #f093fb, #667eea);
+            background-size: 400% 400%;
+            animation: gradientShift 12s ease infinite;
+            opacity: 0.05;
+            z-index: -1;
+        }
+        @keyframes gradientShift {
+            0%,100% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+        }
+
+        .status-dot { width:8px; height:8px; border-radius:9999px; }
+        .status-active { background:#10b981; }
+        .status-inactive { background:#ef4444; }
+        .status-warning { background:#fbbf24; }
+
         /* Additional styles for the control panel */
         .control-panel {
-            background: linear-gradient(135deg, var(--bg-primary) 0%, var(--bg-secondary) 100%);
             min-height: 100vh;
         }
 
@@ -168,21 +191,26 @@
         }
     </style>
 </head>
-<body class="control-panel">
+<body class="control-panel bg-app no-neon">
+    <div class="animated-bg"></div>
     <!-- Header -->
-    <header class="page-header">
-        <div class="container">
-            <div class="flex items-center justify-between w-full">
-                <div class="flex items-center gap-4">
-                    <div class="text-2xl font-bold text-primary">⚡ StreamlineVPN</div>
-                    <span class="text-sm text-muted">Control Panel</span>
+    <header class="glass border-b border-white/10 sticky top-0 z-50">
+        <div class="container mx-auto px-6 py-4 flex items-center justify-between">
+            <a href="index.html" class="flex items-center space-x-3 group">
+                <img src="assets/logo.svg" alt="StreamlineVPN Logo" class="h-10 w-10 group-hover:scale-110 transition-transform">
+                <div>
+                    <h1 class="text-xl font-bold group-hover:text-purple-400 transition-colors">Control Panel</h1>
+                    <p class="text-sm text-gray-400">Manage and monitor configurations</p>
                 </div>
-                <div class="flex items-center gap-4">
-                    <button id="refresh-button" class="btn btn-secondary">
-                        🔄 Refresh
-                    </button>
-                    <div class="status-indicator status-success" title="API Connected"></div>
+            </a>
+            <div class="flex items-center space-x-4">
+                <div id="headerStatus" class="flex items-center text-sm">
+                    <span class="status-dot status-warning"></span>
+                    <span class="ml-2">Checking...</span>
                 </div>
+                <a href="config_generator.html" class="px-4 py-2 text-gray-300 hover:text-white transition">Generator</a>
+                <a href="api/index.html" class="px-4 py-2 text-gray-300 hover:text-white transition">API Docs</a>
+                <button id="refresh-button" class="btn btn-secondary">🔄 Refresh</button>
             </div>
         </div>
     </header>
@@ -393,9 +421,9 @@
     <script>
         // Enhanced initialization and event handling
         document.addEventListener('DOMContentLoaded', function() {
+            const apiBase = window.__API_BASE__ || 'http://localhost:8080';
             // Update API base info
             function updateApiBaseInfo() {
-                const apiBase = window.__API_BASE__ || 'http://localhost:8080';
                 const banner = document.getElementById('api-status-banner');
                 const info = document.getElementById('api-base-info');
 
@@ -442,6 +470,17 @@
                     logOutput.removeChild(logOutput.firstChild);
                 }
             };
+
+            // Header API status indicator
+            const headerStatus = document.getElementById('headerStatus');
+            fetch(`${apiBase}/health`).then(r => {
+                const ok = r.ok;
+                headerStatus.querySelector('.status-dot').className = 'status-dot ' + (ok ? 'status-active' : 'status-inactive');
+                headerStatus.querySelector('span:last-child').textContent = ok ? 'API Online' : 'API Down';
+            }).catch(() => {
+                headerStatus.querySelector('.status-dot').className = 'status-dot status-inactive';
+                headerStatus.querySelector('span:last-child').textContent = 'API Down';
+            });
 
             // Setup format checkboxes
             const formatCheckboxes = document.querySelectorAll('[id^="format-"]');
