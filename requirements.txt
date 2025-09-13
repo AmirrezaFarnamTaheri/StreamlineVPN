@@ -1,78 +1,86 @@
-# StreamlineVPN Requirements
-# ==========================
+# StreamlineVPN Core Requirements
+# ================================
+# Main dependencies for StreamlineVPN VPN configuration aggregator
 
-# Core dependencies
-aiohttp>=3.9.0
-asyncio-throttle>=1.0.2
-tenacity>=8.2.0
-pyyaml>=6.0
-numpy>=1.24.0
-pandas>=2.0.0
-apscheduler>=3.10.0
+# Core HTTP and async libraries
+aiohttp>=3.9.0,<4.0.0
+aiofiles>=23.2.0,<24.0.0
+asyncio-throttle>=1.0.2,<2.0.0
+tenacity>=8.2.0,<9.0.0
+
+# Data processing and serialization
+pyyaml>=6.0,<7.0
+numpy>=1.24.0,<2.0.0
+pandas>=2.0.0,<3.0.0
+orjson>=3.9.0,<4.0.0
+
+# Scheduling and background tasks
+apscheduler>=3.10.0,<4.0.0
 
 # Database and caching
-redis>=5.0.0
-psycopg2-binary>=2.9.0
-sqlalchemy>=2.0.0
-alembic>=1.13.0
+redis>=5.0.0,<6.0.0
+psycopg2-binary>=2.9.0,<3.0.0
+sqlalchemy>=2.0.0,<3.0.0
+alembic>=1.13.0,<2.0.0
 
 # Web framework and API
-fastapi==0.113.0
-uvicorn>=0.24.0
-websockets>=12.0
-python-multipart>=0.0.6
-python-jose[cryptography]>=3.3.0
-passlib[bcrypt]>=1.7.4
+fastapi>=0.104.0,<1.0.0
+uvicorn[standard]>=0.24.0,<1.0.0
+websockets>=12.0,<13.0
+python-multipart>=0.0.6,<1.0.0
+starlette>=0.27.0,<1.0.0
+
+# Authentication and security
+python-jose[cryptography]>=3.3.0,<4.0.0
+passlib[bcrypt]>=1.7.4,<2.0.0
+cryptography>=41.0.0,<42.0.0
+bcrypt>=4.1.0,<5.0.0
+pyjwt>=2.8.0,<3.0.0
+
+# HTTP client for external requests
+httpx>=0.25.0,<1.0.0
+requests>=2.31.0,<3.0.0
+
+# Configuration and environment
+python-dotenv>=1.0.0,<2.0.0
+pydantic>=2.5.0,<3.0.0
+pydantic-core>=2.14.0,<3.0.0
+pydantic-settings>=2.1.0,<3.0.0
+click>=8.1.0,<9.0.0
+rich>=13.7.0,<14.0.0
 
 # Monitoring and observability
-prometheus-client>=0.19.0
-structlog>=23.2.0
-opentelemetry-api>=1.21.0
-opentelemetry-sdk>=1.21.0
-opentelemetry-instrumentation-fastapi>=0.42b0
-opentelemetry-instrumentation-aiohttp-client>=0.42b0
-opentelemetry-exporter-jaeger>=1.21.0
+prometheus-client>=0.19.0,<1.0.0
+structlog>=23.2.0,<24.0.0
 
-# Security and authentication
-cryptography>=41.0.0
-bcrypt>=4.1.0
-pyjwt>=2.8.0
-passlib[bcrypt]>=1.7.4
-hvac>=1.2.0  # HashiCorp Vault client
+# Protocol support
+pycryptodome>=3.19.0,<4.0.0
+blake3>=0.3.1,<1.0.0
 
-# Machine learning and AI
-scikit-learn>=1.3.0
-joblib>=1.3.0
-transformers>=4.35.0  # For advanced ML models
+# Caching utilities
+lru-dict>=1.3.0,<2.0.0
 
-# Network and protocol optimization
-pycryptodome>=3.19.0
-blake3>=0.3.1  # For SS2022 key derivation
+# Performance optimization (Unix-only)
+uvloop>=0.19.0,<1.0.0; sys_platform != "win32"
 
-# Utilities and configuration
-python-dotenv>=1.0.0
-click>=8.1.0
-rich>=13.7.0
-pydantic==2.8.2
-pydantic-core>=2.20.1
-pydantic-settings>=2.1.0
-httpx>=0.25.0  # For async HTTP client
+# Optional ML and AI capabilities
+scikit-learn>=1.3.0,<2.0.0
+joblib>=1.3.0,<2.0.0
 
-# Web interface and GraphQL
-strawberry-graphql>=0.215.0
-aiofiles>=23.2.0
-jinja2>=3.1.0
+# Geolocation (optional)
+geoip2>=4.7.0,<5.0.0; extra == "geo"
+maxminddb>=2.2.0,<3.0.0; extra == "geo"
 
-# Kubernetes and containerization
-kubernetes>=28.1.0
-docker>=6.1.0
+# DNS resolution
+dnspython>=2.4.0,<3.0.0
 
-# Optional dependencies for enhanced features
-geoip2>=4.7.0  # For geographic optimization
-maxminddb>=2.2.0  # For IP geolocation
-dnspython>=2.4.0  # For DNS resolution
+# Web interface templates (optional)
+jinja2>=3.1.0,<4.0.0
 
-# Performance and optimization
-uvloop>=0.19.0; sys_platform != "win32"  # Fast event loop (not on Windows)
-orjson>=3.9.0  # Fast JSON serialization
-lru-dict>=1.3.0  # LRU cache implementation
+# Containerization support (optional)
+kubernetes>=28.1.0,<29.0.0; extra == "k8s"
+docker>=6.1.0,<7.0.0; extra == "docker"
+
+# Enhanced discovery (optional)
+asyncpraw>=7.7.0,<8.0.0; extra == "discovery"
+telethon>=1.30.0,<2.0.0; extra == "discovery"

@@ -1,6 +1,6 @@
 # Web Interface Documentation
 
-The VPN Merger includes a web interface that combines VPN subscription merging, configuration generation, and analytics.
+StreamlineVPN includes a web interface that combines VPN subscription merging, configuration generation, and analytics.
 
 ## Overview
 
@@ -46,7 +46,7 @@ The web interface exposes additional JSON APIs for orchestration and configurati
 
 Template path for the landing page:
 
-- `src/vpn_merger/web/static/enhanced_interface.html`
+- `docs/interactive.html`
 
 If this template is missing, a compact, built-in fallback UI is served by `StaticHandler`.
 
@@ -268,7 +268,7 @@ The frontend also includes `docs/api-base.js` which sets `window.__API_BASE__` b
 pip install -r requirements.txt
 
 # Start development server
-python -m vpn_merger --web
+python -m streamline_vpn --web
 ```
 
 ### Production
@@ -297,7 +297,7 @@ WEB_CONNECT_SRC_EXTRA="https://api.example.com wss://ws.example.com"
 
 # Security
 DASHBOARD_TOKEN=your_secure_token
-VPN_MERGER_ENVIRONMENT=production
+STREAMLINE_ENVIRONMENT=production
 ```
 
 ## Troubleshooting
@@ -355,7 +355,7 @@ cd StreamlineVPN
 pip install -r requirements-enhanced.txt
 
 # Start development server
-python -m vpn_merger --web --verbose
+python -m streamline_vpn --web --verbose
 ```
 
 ## License

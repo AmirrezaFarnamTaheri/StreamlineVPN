@@ -1,796 +1,697 @@
 ---
 layout: default
 title: API Documentation
-description: Complete REST API reference for StreamlineVPN
+description: Comprehensive REST API reference for StreamlineVPN
 ---
-# API Guide
 
-## Table of Contents
-1. [Overview](#overview)
-2. [Authentication](#authentication)
-3. [Rate Limiting](#rate-limiting)
-4. [Error Handling](#error-handling)
-5. [Configuration Generation APIs](#configuration-generation-apis)
-6. [Utility APIs](#utility-apis)
-7. [Free Nodes Aggregator APIs](#free-nodes-aggregator-apis)
-8. [GraphQL API](#graphql-api)
-9. [WebSocket API](#websocket-api)
-10. [Examples](#examples)
-11. [Error Codes Reference](#error-codes-reference)
-12. [Best Practices](#best-practices)
+# StreamlineVPN API Documentation
 
 ## Overview
 
-The VPN Subscription Merger API provides endpoints for:
-- VPN configuration generation (VLESS, WireGuard, Shadowsocks, sing-box)
-- Utility functions (UUID generation, password generation, key generation)
-- Free VPN nodes aggregation and management
-- Real-time monitoring and analytics
-- GraphQL queries for advanced data retrieval
+StreamlineVPN provides a comprehensive REST API for managing VPN configuration aggregation, processing, and retrieval. The API is built with FastAPI and provides both synchronous and asynchronous endpoints.
 
-### Base URLs
-- **Development**: `http://localhost:8000`
-- **Production**: `https://api.vpnmerger.com`
-
-### API Version
-Current version: `v1`
+**Base URL**: `http://localhost:8080/api/v1`  
+**API Version**: v1  
+**Content-Type**: `application/json`
 
 ## Authentication
 
-Most endpoints require no authentication. Some administrative endpoints may require API tokens.
+Currently, the API supports optional token-based authentication:
 
-### API Key Authentication
-```http
-X-API-Key: your-api-key-here
+```bash
+# Optional API key authentication
+curl -H "Authorization: Bearer YOUR_API_KEY" \
+     http://localhost:8080/api/v1/statistics
 ```
 
-### Bearer Token Authentication
-```http
-Authorization: Bearer your-token-here
-```
+Set the `STREAMLINE_API_KEY` environment variable to enable authentication.
 
 ## Rate Limiting
 
-API calls are rate-limited to prevent abuse:
+- **Default**: 100 requests per minute per client
+- **Burst**: 20 additional requests
+- **Headers**: Rate limit info included in response headers
 
-| Endpoint Type | Limit | Window |
-|---------------|-------|--------|
-| Configuration Generation | 100 requests | 1 minute |
-| Utility Functions | 200 requests | 1 minute |
-| Free Nodes Aggregator | 50 requests | 1 minute |
-| Resource-intensive Operations | 10 requests | 1 minute |
+## Health and Status Endpoints
 
-### Rate Limit Headers
-```http
-X-RateLimit-Limit: 100
-X-RateLimit-Remaining: 95
-X-RateLimit-Reset: 1640995200
-```
+### GET /health
 
-## Error Handling
+Returns the API health status.
 
-All errors follow a consistent format:
-
+**Response:**
 ```json
 {
-  "error": "validation_error",
-  "message": "Invalid request parameters",
-  "details": {
-    "field": "host",
-    "reason": "Required field is missing"
-  },
-  "timestamp": "2023-12-01T14:30:22Z"
+  "status": "healthy",
+  "timestamp": "2025-01-14T10:30:00Z",
+  "version": "2.0.0",
+  "uptime": 3600.5
 }
 ```
 
-### HTTP Status Codes
-- `200` - Success
-- `400` - Bad Request
-- `401` - Unauthorized
-- `403` - Forbidden
-- `404` - Not Found
-- `429` - Too Many Requests
-- `500` - Internal Server Error
-- `503` - Service Unavailable
+### GET /api/v1/statistics
 
-## Configuration Generation APIs
+Returns comprehensive system statistics.
 
-### Generate VLESS REALITY Configuration
-
-**Endpoint**: `POST /api/v1/generate/vless`
-
-**Description**: Generate a VLESS REALITY client configuration with QR code.
-
-**Request Body**:
+**Response:**
 ```json
 {
-  "host": "example.com",
-  "port": 443,
-  "uuid": "550e8400-e29b-41d4-a716-446655440000",
-  "server_name": "www.microsoft.com",
-  "dest": "www.microsoft.com:443",
-  "path": "/vless",
-  "remark": "My VLESS Server"
+  "total_sources": 25,
+  "active_sources": 23,
+  "total_configurations": 1547,
+  "total_configs": 1547,
+  "success_rate": 0.85,
+  "avg_response_time": 2.3,
+  "total_processing_time": 45.2,
+  "configs_per_source": 67.2,
+  "start_time": "2025-01-14T10:00:00Z",
+  "end_time": "2025-01-14T10:30:00Z",
+  "last_update": "2025-01-14T10:30:00Z"
 }
 ```
 
-**Response**:
-```json
-{
-  "config": "vless://uuid@host:port?encryption=none&security=reality&sni=server_name&type=tcp&flow=xtls-rprx-vision&pbk=public_key&sid=short_id&spx=spider_x&fp=chrome&dest=dest&path=path#remark",
-  "qr_code": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAA...",
-  "config_type": "VLESS REALITY"
-}
-```
+## Configuration Management
 
-**Example cURL**:
+### GET /api/v1/configurations
+
+Retrieve processed VPN configurations with filtering and pagination.
+
+**Query Parameters:**
+- `protocol` (string): Filter by protocol (vmess, vless, trojan, shadowsocks)
+- `location` (string): Filter by server location/country
+- `min_quality` (float): Minimum quality score (0.0-1.0)
+- `limit` (integer): Number of results (default: 100, max: 1000)
+- `offset` (integer): Results offset for pagination (default: 0)
+
+**Example Request:**
 ```bash
-curl -X POST "http://localhost:8000/api/v1/generate/vless" \
-  -H "Content-Type: application/json" \
-  -d '{
-    "host": "example.com",
-    "port": 443,
-    "uuid": "550e8400-e29b-41d4-a716-446655440000",
-    "server_name": "www.microsoft.com",
-    "dest": "www.microsoft.com:443",
-    "path": "/vless",
-    "remark": "My VLESS Server"
-  }'
+curl "http://localhost:8080/api/v1/configurations?protocol=vmess&limit=50&min_quality=0.7"
 ```
 
-### Generate sing-box JSON Configuration
-
-**Endpoint**: `POST /api/v1/generate/singbox`
-
-**Description**: Generate a sing-box compatible JSON configuration.
-
-**Request Body**:
+**Response:**
 ```json
 {
-  "host": "example.com",
-  "port": 443,
-  "uuid": "550e8400-e29b-41d4-a716-446655440000",
-  "server_name": "www.microsoft.com",
-  "dest": "www.microsoft.com:443",
-  "path": "/vless",
-  "remark": "My VLESS Server"
-}
-```
-
-**Response**:
-```json
-{
-  "config": {
-    "outbounds": [
-      {
-        "type": "vless",
-        "tag": "proxy",
-        "server": "example.com",
-        "server_port": 443,
-        "uuid": "550e8400-e29b-41d4-a716-446655440000",
-        "flow": "xtls-rprx-vision",
-        "tls": {
-          "enabled": true,
-          "server_name": "www.microsoft.com",
-          "reality": {
-            "enabled": true,
-            "public_key": "public_key_here",
-            "short_id": "short_id_here",
-            "spider_x": "spider_x_here"
-          }
-        }
-      }
-    ]
-  },
-  "config_type": "sing-box JSON"
-}
-```
-
-### Generate WireGuard Configuration
-
-**Endpoint**: `POST /api/v1/generate/wireguard`
-
-**Description**: Generate a WireGuard client configuration with QR code.
-
-**Request Body**:
-```json
-{
-  "server_public_key": "dG3C9wL0nO4qR8sU2xY5zA0bC3dE6fG9hI2jK5lM8nO1pQ4rS7tU0vW3xY6zA9",
-  "server_endpoint": "example.com:51820",
-  "client_private_key": "cF2B8vK9mN3pQ7rT1wX4yZ6aB9cD2eF5gH8iJ1kL4mN7oP0qR3sT6uV9wX2yZ5",
-  "allowed_ips": "0.0.0.0/0, ::/0",
-  "dns": "1.1.1.1, 1.0.0.1",
-  "persistent_keepalive": 25,
-  "interface_name": "wg0"
-}
-```
-
-**Response**:
-```json
-{
-  "config": "[Interface]\nPrivateKey = cF2B8vK9mN3pQ7rT1wX4yZ6aB9cD2eF5gH8iJ1kL4mN7oP0qR3sT6uV9wX2yZ5\nAddress = 10.0.0.2/32\nDNS = 1.1.1.1, 1.0.0.1\n\n[Peer]\nPublicKey = dG3C9wL0nO4qR8sU2xY5zA0bC3dE6fG9hI2jK5lM8nO1pQ4rS7tU0vW3xY6zA9\nEndpoint = example.com:51820\nAllowedIPs = 0.0.0.0/0, ::/0\nPersistentKeepalive = 25",
-  "qr_code": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAA...",
-  "config_type": "WireGuard"
-}
-```
-
-### Generate Shadowsocks Configuration
-
-**Endpoint**: `POST /api/v1/generate/shadowsocks`
-
-**Description**: Generate a Shadowsocks client configuration with QR code.
-
-**Request Body**:
-```json
-{
-  "host": "example.com",
-  "port": 8388,
-  "password": "mypassword123",
-  "method": "aes-256-gcm",
-  "remark": "My Shadowsocks Server",
-  "plugin": "v2ray-plugin",
-  "plugin_opts": "server;tls;host=example.com"
-}
-```
-
-**Response**:
-```json
-{
-  "config": "ss://base64(method:password)@host:port#remark",
-  "qr_code": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAA...",
-  "config_type": "Shadowsocks"
-}
-```
-
-## Utility APIs
-
-### Generate UUID
-
-**Endpoint**: `GET /api/v1/utils/uuid`
-
-**Description**: Generate a random UUID.
-
-**Response**:
-```json
-{
-  "uuid": "550e8400-e29b-41d4-a716-446655440000"
-}
-```
-
-### Generate Short ID
-
-**Endpoint**: `GET /api/v1/utils/shortid`
-
-**Description**: Generate a short random identifier.
-
-**Parameters**:
-- `length` (optional): Length of the short ID (4-32, default: 8)
-
-**Example**:
-```bash
-curl "http://localhost:8000/api/v1/utils/shortid?length=12"
-```
-
-**Response**:
-```json
-{
-  "shortid": "a1b2c3d4e5f6"
-}
-```
-
-### Generate Secure Password
-
-**Endpoint**: `GET /api/v1/utils/password`
-
-**Description**: Generate a cryptographically secure password.
-
-**Parameters**:
-- `length` (optional): Length of the password (8-128, default: 16)
-- `include_symbols` (optional): Include special symbols (default: true)
-
-**Example**:
-```bash
-curl "http://localhost:8000/api/v1/utils/password?length=20&include_symbols=true"
-```
-
-**Response**:
-```json
-{
-  "password": "Kx9#mP2$vL8@nQ4!rT7&wY1"
-}
-```
-
-### Generate WireGuard Key
-
-**Endpoint**: `GET /api/v1/utils/wg-key`
-
-**Description**: Generate a WireGuard private key.
-
-**Response**:
-```json
-{
-  "private_key": "cF2B8vK9mN3pQ7rT1wX4yZ6aB9cD2eF5gH8iJ1kL4mN7oP0qR3sT6uV9wX2yZ5",
-  "public_key": "dG3C9wL0nO4qR8sU2xY5zA0bC3dE6fG9hI2jK5lM8nO1pQ4rS7tU0vW3xY6zA9",
-  "key_type": "WireGuard",
-  "key_length": 44
-}
-```
-
-## Free Nodes Aggregator APIs
-
-### Get VPN Nodes
-
-**Endpoint**: `GET /api/nodes.json`
-
-**Description**: Retrieve available VPN nodes with filtering and sorting.
-
-**Parameters**:
-- `limit` (optional): Maximum number of nodes to return (1-1000, default: 100)
-- `sort` (optional): Sort order (score, latency, country, protocol, default: score)
-- `protocol` (optional): Filter by protocol (vless, vmess, trojan, shadowsocks)
-- `country` (optional): Filter by country code (e.g., US, GB, DE)
-
-**Example**:
-```bash
-curl "http://localhost:8000/api/nodes.json?limit=50&sort=latency&protocol=vless&country=US"
-```
-
-**Response**:
-```json
-{
-  "nodes": [
+  "total": 1547,
+  "limit": 50,
+  "offset": 0,
+  "configurations": [
     {
-      "id": "node_123",
-      "host": "example.com",
-      "port": 443,
-      "protocol": "vless",
-      "country": "US",
-      "score": 0.85,
-      "latency": 45.2,
-      "last_checked": "2023-12-01T14:30:22Z",
-      "config": "vless://uuid@host:port?encryption=none&security=reality&sni=server_name&type=tcp&flow=xtls-rprx-vision&pbk=public_key&sid=short_id&spx=spider_x&fp=chrome&dest=dest&path=path#remark"
-    }
-  ],
-  "total": 150,
-  "filtered": 50
-}
-```
-
-### Get Raw Subscription
-
-**Endpoint**: `GET /api/subscription.txt`
-
-**Description**: Get raw subscription text in standard format.
-
-**Response**:
-```
-vless://uuid@host:port?encryption=none&security=tls&type=ws&path=/path#name
-vmess://base64(config)#name
-ss://base64(method:password)@host:port#name
-```
-
-### Export sing-box Configuration
-
-**Endpoint**: `GET /api/export/singbox.json`
-
-**Description**: Export nodes in sing-box JSON format.
-
-**Response**:
-```json
-{
-  "outbounds": [
-    {
-      "type": "vless",
-      "tag": "proxy-1",
+      "id": "cfg_123456",
+      "protocol": "vmess",
       "server": "example.com",
-      "server_port": 443,
-      "uuid": "550e8400-e29b-41d4-a716-446655440000",
-      "flow": "xtls-rprx-vision",
-      "tls": {
-        "enabled": true,
-        "server_name": "www.microsoft.com",
-        "reality": {
-          "enabled": true,
-          "public_key": "public_key_here",
-          "short_id": "short_id_here",
-          "spider_x": "spider_x_here"
-        }
+      "port": 443,
+      "user_id": "12345678-1234-1234-1234-123456789012",
+      "alter_id": 0,
+      "security": "aes-128-gcm",
+      "network": "ws",
+      "path": "/path",
+      "host": "example.com",
+      "tls": "tls",
+      "quality_score": 0.85,
+      "location": {
+        "country": "US",
+        "region": "California",
+        "city": "San Francisco"
+      },
+      "metadata": {
+        "source_url": "https://example.com/configs",
+        "last_tested": "2025-01-14T10:25:00Z",
+        "response_time": 120,
+        "success_rate": 0.92
+      },
+      "created_at": "2025-01-14T10:00:00Z",
+      "updated_at": "2025-01-14T10:25:00Z"
+    }
+  ]
+}
+```
+
+### GET /api/v1/configurations/{config_id}
+
+Retrieve a specific configuration by ID.
+
+**Path Parameters:**
+- `config_id` (string): Configuration identifier
+
+**Response:**
+```json
+{
+  "id": "cfg_123456",
+  "protocol": "vmess",
+  "server": "example.com",
+  "port": 443,
+  "configuration_url": "vmess://eyJ2IjoyLCJwcyI6InRlc3QiLCJhZGQiOiJleGFtcGxlLmNvbSI...",
+  "quality_score": 0.85,
+  "test_results": {
+    "last_test": "2025-01-14T10:25:00Z",
+    "response_time": 120,
+    "success": true,
+    "error": null
+  }
+}
+```
+
+## Source Management
+
+### GET /api/v1/sources
+
+List all configured sources with their status and performance metrics.
+
+**Response:**
+```json
+{
+  "sources": [
+    {
+      "id": "src_123",
+      "url": "https://example.com/configs",
+      "tier": "premium",
+      "status": "active",
+      "enabled": true,
+      "configs": 67,
+      "success_rate": 0.92,
+      "avg_response_time": 2.1,
+      "last_update": "2025-01-14T10:25:00Z",
+      "last_check": "2025-01-14T10:30:00Z",
+      "total_requests": 150,
+      "failed_requests": 12,
+      "reputation_score": 0.88,
+      "metadata": {
+        "country": "US",
+        "provider": "Example Provider",
+        "protocols": ["vmess", "vless"]
       }
     }
   ]
 }
 ```
 
-### Add Source URLs
+### POST /api/v1/sources
 
-**Endpoint**: `POST /api/sources`
+Add a new source to the system.
 
-**Description**: Add new source URLs to the aggregator.
-
-**Request Body**:
+**Request Body:**
 ```json
 {
-  "urls": [
-    "https://example.com/free.txt",
-    "https://another.com/nodes.txt"
-  ]
+  "url": "https://newprovider.com/configs",
+  "tier": "community",
+  "enabled": true,
+  "timeout": 30,
+  "retry_count": 3,
+  "headers": {
+    "User-Agent": "StreamlineVPN/2.0"
+  },
+  "filters": {
+    "protocols": ["vmess", "vless"],
+    "min_quality": 0.5
+  }
 }
 ```
 
-**Response**:
+**Response:**
 ```json
 {
-  "added": 2,
-  "skipped": 0,
-  "errors": []
+  "id": "src_124",
+  "status": "created",
+  "message": "Source added successfully",
+  "source": {
+    "id": "src_124",
+    "url": "https://newprovider.com/configs",
+    "status": "pending_validation",
+    "created_at": "2025-01-14T10:35:00Z"
+  }
 }
 ```
 
-### Trigger Manual Refresh
+### PUT /api/v1/sources/{source_id}
 
-**Endpoint**: `POST /api/refresh`
+Update an existing source configuration.
 
-**Description**: Manually trigger a refresh of all sources.
+**Path Parameters:**
+- `source_id` (string): Source identifier
 
-**Parameters**:
-- `healthcheck` (optional): Perform health checks on nodes (default: false)
-
-**Example**:
-```bash
-curl -X POST "http://localhost:8000/api/refresh?healthcheck=true"
-```
-
-**Response**:
+**Request Body:**
 ```json
 {
-  "message": "Refresh triggered successfully",
-  "job_id": "refresh_20231201_143022"
+  "enabled": false,
+  "tier": "unreliable",
+  "timeout": 60
 }
 ```
 
-### Health Check Specific Nodes
+### DELETE /api/v1/sources/{source_id}
 
-**Endpoint**: `POST /api/ping`
+Remove a source from the system.
 
-**Description**: Perform health checks on specific nodes.
-
-**Request Body**:
+**Response:**
 ```json
 {
-  "node_ids": ["node_123", "node_456"]
+  "status": "deleted",
+  "message": "Source removed successfully"
 }
 ```
 
-**Response**:
+## Pipeline Management
+
+### POST /api/v1/pipeline/run
+
+Start a new configuration processing pipeline.
+
+**Request Body:**
 ```json
 {
-  "results": [
+  "config_path": "config/sources.yaml",
+  "output_dir": "output",
+  "formats": ["json", "clash", "singbox"],
+  "max_concurrent": 50,
+  "timeout": 30,
+  "force_refresh": false,
+  "filters": {
+    "min_quality": 0.6,
+    "protocols": ["vmess", "vless"],
+    "exclude_countries": ["CN", "RU"]
+  }
+}
+```
+
+**Response:**
+```json
+{
+  "job_id": "job_f9853fe17423",
+  "status": "accepted",
+  "message": "Pipeline job started successfully",
+  "estimated_duration": 120,
+  "created_at": "2025-01-14T10:40:00Z"
+}
+```
+
+### GET /api/v1/pipeline/status/{job_id}
+
+Get the status of a running pipeline job.
+
+**Path Parameters:**
+- `job_id` (string): Job identifier
+
+**Response:**
+```json
+{
+  "job_id": "job_f9853fe17423",
+  "type": "pipeline",
+  "status": "running",
+  "progress": 75,
+  "message": "Processing sources: 18/24 completed",
+  "config": {
+    "config_path": "config/sources.yaml",
+    "output_dir": "output",
+    "formats": ["json", "clash", "singbox"]
+  },
+  "created_at": "2025-01-14T10:40:00Z",
+  "started_at": "2025-01-14T10:40:05Z",
+  "updated_at": "2025-01-14T10:42:30Z",
+  "estimated_completion": "2025-01-14T10:44:00Z",
+  "current_stage": {
+    "name": "source_processing",
+    "progress": 0.75,
+    "details": "Processing https://example.com/configs"
+  },
+  "statistics": {
+    "sources_processed": 18,
+    "sources_remaining": 6,
+    "configurations_found": 1205,
+    "errors": 2
+  }
+}
+```
+
+### GET /api/v1/pipeline/jobs
+
+List recent pipeline jobs with their status.
+
+**Query Parameters:**
+- `limit` (integer): Number of jobs to return (default: 20, max: 100)
+- `status` (string): Filter by status (pending, running, completed, failed)
+
+**Response:**
+```json
+{
+  "jobs": [
     {
-      "node_id": "node_123",
-      "latency": 45.2,
-      "status": "success"
-    },
-    {
-      "node_id": "node_456",
-      "latency": null,
-      "status": "timeout"
+      "job_id": "job_f9853fe17423",
+      "type": "pipeline",
+      "status": "completed",
+      "progress": 100,
+      "created_at": "2025-01-14T10:40:00Z",
+      "finished_at": "2025-01-14T10:43:45Z",
+      "duration": 225.5,
+      "result": {
+        "success": true,
+        "sources_processed": 24,
+        "configurations_found": 1547,
+        "output_files": [
+          "output/configurations.json",
+          "output/configurations_clash.yaml",
+          "output/configurations_singbox.json"
+        ]
+      }
     }
   ]
 }
 ```
 
-## GraphQL API
+### DELETE /api/v1/pipeline/jobs/{job_id}
 
-**Endpoint**: `POST /graphql`
+Cancel a running job or remove a completed job.
 
-**Description**: GraphQL API for advanced queries.
-
-**Example Query**:
-```graphql
-query {
-  nodes(limit: 10, sort: SCORE) {
-    id
-    host
-    port
-    protocol
-    country
-    score
-    latency
-    config
-  }
+**Response:**
+```json
+{
+  "status": "cancelled",
+  "message": "Job cancelled successfully"
 }
 ```
 
-**Example Mutation**:
-```graphql
-mutation {
-  addSources(urls: ["https://example.com/free.txt"]) {
-    added
-    skipped
-    errors
-  }
+## Export and Download
+
+### GET /api/v1/export/{format}
+
+Export configurations in various formats.
+
+**Path Parameters:**
+- `format` (string): Export format (json, yaml, csv, base64, clash, singbox, url)
+
+**Query Parameters:**
+- `protocol` (string): Filter by protocol
+- `min_quality` (float): Minimum quality score
+- `limit` (integer): Maximum number of configurations
+- `download` (boolean): Force download as attachment
+
+**Response:**
+```json
+{
+  "format": "json",
+  "count": 1547,
+  "generated_at": "2025-01-14T10:45:00Z",
+  "configurations": [
+    // Configuration objects...
+  ]
 }
 ```
 
-## WebSocket API
+### GET /api/v1/export/subscription
 
-**Endpoint**: `WS /ws`
+Generate subscription URLs for various clients.
 
-To support stricter environments that block WS subpaths (e.g., `/ws/abc`), prefer a single endpoint with a `client_id` query parameter:
+**Query Parameters:**
+- `format` (string): Subscription format (clash, singbox, v2ray, quantumult)
+- `protocol` (string): Filter by protocol
+- `min_quality` (float): Minimum quality score
+- `base64` (boolean): Return base64 encoded content
 
-```js
-const ws = new WebSocket('ws://localhost:8080/ws?client_id=my_client');
+**Response:**
+```text
+# For base64=true
+dHJvamFuOi8vcGFzc3dvcmRAZXhhbXBsZS5jb206NDQzP3NuaT1leGFtcGxlLmNvbSMlRTklQTYlOTk=
+
+# For base64=false (raw URLs)
+trojan://password@example.com:443?sni=example.com#%E9%A6%99
+vmess://eyJ2IjoyLCJwcyI6InRlc3QiLCJhZGQiOiJleGFtcGxlLmNvbSJ9
 ```
 
-**Description**: Real-time updates and monitoring.
+## Testing and Validation
 
-**Example**:
+### POST /api/v1/test/configuration
+
+Test a specific configuration for connectivity.
+
+**Request Body:**
+```json
+{
+  "configuration_url": "vmess://eyJ2IjoyLCJwcyI6InRlc3QiLCJhZGQiOiJleGFtcGxlLmNvbSJ9",
+  "timeout": 10,
+  "test_endpoints": ["https://www.google.com", "https://httpbin.org/ip"]
+}
+```
+
+**Response:**
+```json
+{
+  "test_id": "test_123456",
+  "configuration_url": "vmess://...",
+  "status": "completed",
+  "results": {
+    "connectivity": true,
+    "response_time": 1250,
+    "success_rate": 1.0,
+    "endpoints_tested": 2,
+    "endpoints_successful": 2,
+    "ip_address": "203.0.113.1",
+    "location": {
+      "country": "US",
+      "region": "California"
+    }
+  },
+  "tested_at": "2025-01-14T10:50:00Z"
+}
+```
+
+### POST /api/v1/test/source
+
+Test a source URL for accessibility and configuration extraction.
+
+**Request Body:**
+```json
+{
+  "source_url": "https://example.com/configs",
+  "timeout": 30,
+  "validate_configs": true
+}
+```
+
+**Response:**
+```json
+{
+  "source_url": "https://example.com/configs",
+  "status": "accessible",
+  "response_time": 2.1,
+  "configurations_found": 67,
+  "configurations_valid": 65,
+  "protocols": ["vmess", "vless", "trojan"],
+  "test_results": {
+    "http_status": 200,
+    "content_length": 45678,
+    "content_type": "text/plain",
+    "ssl_valid": true,
+    "parse_errors": 2
+  },
+  "tested_at": "2025-01-14T10:55:00Z"
+}
+```
+
+## WebSocket Endpoints
+
+### WS /api/v1/ws
+
+Real-time updates for job progress, statistics, and system events.
+
+**Connection:**
 ```javascript
-const ws = new WebSocket('ws://localhost:8000/ws?client_id=docs_example');
+const ws = new WebSocket('ws://localhost:8080/api/v1/ws');
 
 ws.onmessage = function(event) {
   const data = JSON.parse(event.data);
   console.log('Received:', data);
 };
-
-// Subscribe to node updates
-ws.send(JSON.stringify({
-  type: 'subscribe',
-  channel: 'node_updates'
-}));
 ```
 
-## Examples
+**Message Types:**
 
-### Python Example
+**Job Updates:**
+```json
+{
+  "type": "job_update",
+  "data": {
+    "job_id": "job_f9853fe17423",
+    "status": "running",
+    "progress": 45,
+    "message": "Processing source 12/24"
+  }
+}
+```
+
+**Statistics Updates:**
+```json
+{
+  "type": "statistics_update",
+  "data": {
+    "total_configurations": 1547,
+    "active_sources": 23,
+    "success_rate": 0.85
+  }
+}
+```
+
+**Source Updates:**
+```json
+{
+  "type": "source_update",
+  "data": {
+    "source_id": "src_123",
+    "url": "https://example.com/configs",
+    "status": "updated",
+    "new_configs": 5
+  }
+}
+```
+
+## Error Responses
+
+All endpoints return consistent error responses:
+
+```json
+{
+  "error": "validation_error",
+  "message": "Invalid protocol specified",
+  "details": {
+    "field": "protocol",
+    "value": "invalid_protocol",
+    "allowed": ["vmess", "vless", "trojan", "shadowsocks"]
+  },
+  "timestamp": "2025-01-14T10:30:00Z",
+  "path": "/api/v1/configurations",
+  "request_id": "req_123456"
+}
+```
+
+### HTTP Status Codes
+
+- `200 OK` - Request successful
+- `201 Created` - Resource created
+- `202 Accepted` - Request accepted for processing
+- `400 Bad Request` - Invalid request parameters
+- `401 Unauthorized` - Authentication required
+- `403 Forbidden` - Insufficient permissions
+- `404 Not Found` - Resource not found
+- `422 Unprocessable Entity` - Validation error
+- `429 Too Many Requests` - Rate limit exceeded
+- `500 Internal Server Error` - Server error
+- `503 Service Unavailable` - Service temporarily unavailable
+
+### Error Types
+
+- `validation_error` - Request validation failed
+- `authentication_error` - Authentication failed
+- `authorization_error` - Insufficient permissions
+- `not_found_error` - Resource not found
+- `rate_limit_error` - Rate limit exceeded
+- `internal_error` - Internal server error
+- `service_unavailable` - Service temporarily unavailable
+
+## SDKs and Client Libraries
+
+### Python SDK
 
 ```python
-import requests
-import json
+from streamline_vpn_sdk import StreamlineVPNClient
 
-# Generate VLESS configuration
-def generate_vless_config():
-    url = "http://localhost:8000/api/v1/generate/vless"
-    data = {
-        "host": "example.com",
-        "port": 443,
-        "uuid": "550e8400-e29b-41d4-a716-446655440000",
-        "server_name": "www.microsoft.com",
-        "dest": "www.microsoft.com:443",
-        "path": "/vless",
-        "remark": "My VLESS Server"
-    }
+client = StreamlineVPNClient(
+    base_url='http://localhost:8080',
+    api_key='your-api-key'  # Optional
+)
 
-    response = requests.post(url, json=data)
-    if response.status_code == 200:
-        result = response.json()
-        print(f"Config: {result['config']}")
-        print(f"QR Code: {result['qr_code'][:50]}...")
-    else:
-        print(f"Error: {response.json()}")
+# Get statistics
+stats = client.get_statistics()
 
-# Get VPN nodes
-def get_vpn_nodes():
-    url = "http://localhost:8000/api/nodes.json"
-    params = {
-        "limit": 10,
-        "sort": "latency",
-        "protocol": "vless"
-    }
+# List configurations
+configs = client.get_configurations(
+    protocol='vmess',
+    min_quality=0.7,
+    limit=100
+)
 
-    response = requests.get(url, params=params)
-    if response.status_code == 200:
-        result = response.json()
-        print(f"Found {len(result['nodes'])} nodes")
-        for node in result['nodes']:
-            print(f"- {node['host']}:{node['port']} ({node['country']}) - {node['latency']}ms")
-    else:
-        print(f"Error: {response.json()}")
+# Start pipeline
+job = client.start_pipeline(
+    output_formats=['json', 'clash'],
+    filters={'min_quality': 0.6}
+)
 
-if __name__ == "__main__":
-    generate_vless_config()
-    get_vpn_nodes()
+# Monitor job progress
+for update in client.monitor_job(job['job_id']):
+    print(f"Progress: {update['progress']}%")
 ```
 
-### JavaScript Example
+### JavaScript/Node.js SDK
 
 ```javascript
-// Generate VLESS configuration
-async function generateVlessConfig() {
-  const response = await fetch('http://localhost:8000/api/v1/generate/vless', {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify({
-      host: 'example.com',
-      port: 443,
-      uuid: '550e8400-e29b-41d4-a716-446655440000',
-      server_name: 'www.microsoft.com',
-      dest: 'www.microsoft.com:443',
-      path: '/vless',
-      remark: 'My VLESS Server'
-    })
-  });
+const StreamlineVPN = require('streamline-vpn-sdk');
 
-  if (response.ok) {
-    const result = await response.json();
-    console.log('Config:', result.config);
-    console.log('QR Code:', result.qr_code.substring(0, 50) + '...');
-  } else {
-    const error = await response.json();
-    console.error('Error:', error);
-  }
-}
+const client = new StreamlineVPN({
+  baseUrl: 'http://localhost:8080',
+  apiKey: 'your-api-key'  // Optional
+});
 
-// Get VPN nodes
-async function getVpnNodes() {
-  const response = await fetch('http://localhost:8000/api/nodes.json?limit=10&sort=latency&protocol=vless');
+// Get statistics
+const stats = await client.getStatistics();
 
-  if (response.ok) {
-    const result = await response.json();
-    console.log(`Found ${result.nodes.length} nodes`);
-    result.nodes.forEach(node => {
-      console.log(`- ${node.host}:${node.port} (${node.country}) - ${node.latency}ms`);
-    });
-  } else {
-    const error = await response.json();
-    console.error('Error:', error);
-  }
-}
+// List configurations
+const configs = await client.getConfigurations({
+  protocol: 'vmess',
+  minQuality: 0.7,
+  limit: 100
+});
 
-// Call functions
-generateVlessConfig();
-getVpnNodes();
+// Start pipeline
+const job = await client.startPipeline({
+  outputFormats: ['json', 'clash'],
+  filters: { minQuality: 0.6 }
+});
 ```
 
-### cURL Examples
+## Rate Limiting
 
+The API implements rate limiting to ensure fair usage:
+
+- **Per-client limit**: 100 requests per minute
+- **Burst allowance**: 20 additional requests
+- **Rate limit headers**:
+  - `X-RateLimit-Limit`: Total requests allowed per window
+  - `X-RateLimit-Remaining`: Requests remaining in current window
+  - `X-RateLimit-Reset`: Unix timestamp when window resets
+  - `X-RateLimit-Retry-After`: Seconds to wait before retrying (when limited)
+
+## Pagination
+
+Large result sets use cursor-based pagination:
+
+```json
+{
+  "total": 5000,
+  "limit": 100,
+  "offset": 200,
+  "has_more": true,
+  "next_offset": 300,
+  "data": [...]
+}
+```
+
+## Filtering and Sorting
+
+Many endpoints support filtering and sorting:
+
+**Query Parameters:**
+- `sort` (string): Field to sort by
+- `order` (string): Sort order (asc, desc)
+- `filter[field]` (string): Filter by field value
+
+**Example:**
 ```bash
-# Generate VLESS configuration
-curl -X POST "http://localhost:8000/api/v1/generate/vless" \
-  -H "Content-Type: application/json" \
-  -d '{
-    "host": "example.com",
-    "port": 443,
-    "uuid": "550e8400-e29b-41d4-a716-446655440000",
-    "server_name": "www.microsoft.com",
-    "dest": "www.microsoft.com:443",
-    "path": "/vless",
-    "remark": "My VLESS Server"
-  }'
-
-# Generate WireGuard key
-curl "http://localhost:8000/api/v1/utils/wg-key"
-
-# Get VPN nodes
-curl "http://localhost:8000/api/nodes.json?limit=10&sort=latency"
-
-# Add source URLs
-curl -X POST "http://localhost:8000/api/sources" \
-  -H "Content-Type: application/json" \
-  -d '{
-    "urls": [
-      "https://example.com/free.txt",
-      "https://another.com/nodes.txt"
-    ]
-  }'
-
-# Trigger manual refresh
-curl -X POST "http://localhost:8000/api/refresh?healthcheck=true"
+curl "http://localhost:8080/api/v1/configurations?sort=quality_score&order=desc&filter[protocol]=vmess"
 ```
 
-## Error Codes Reference
+## Changelog
 
-### Validation Errors (400)
+### v1.0.0 (2025-01-14)
+- Initial API release
+- Basic CRUD operations for configurations and sources
+- Pipeline management
+- Export functionality
+- WebSocket support
+- Rate limiting and authentication
 
-| Error Code | Description | Example |
-|------------|-------------|---------|
-| `validation_error` | Invalid request parameters | Missing required field |
-| `invalid_uuid` | Invalid UUID format | UUID must be valid format |
-| `invalid_port` | Invalid port number | Port must be 1-65535 |
-| `invalid_host` | Invalid hostname | Hostname format invalid |
-| `invalid_protocol` | Invalid protocol | Protocol not supported |
-
-### Authentication Errors (401)
-
-| Error Code | Description | Example |
-|------------|-------------|---------|
-| `unauthorized` | Missing or invalid authentication | API key required |
-| `invalid_token` | Invalid authentication token | Token expired or invalid |
-| `insufficient_permissions` | Insufficient permissions | Admin access required |
-
-### Rate Limiting Errors (429)
-
-| Error Code | Description | Example |
-|------------|-------------|---------|
-| `rate_limit_exceeded` | Rate limit exceeded | Too many requests |
-| `quota_exceeded` | Quota exceeded | Daily limit reached |
-
-### Server Errors (500)
-
-| Error Code | Description | Example |
-|------------|-------------|---------|
-| `internal_error` | Internal server error | Unexpected error occurred |
-| `service_unavailable` | Service temporarily unavailable | Maintenance mode |
-| `database_error` | Database connection error | Database unavailable |
-| `external_service_error` | External service error | Third-party service down |
-
-### Configuration Generation Errors
-
-| Error Code | Description | Example |
-|------------|-------------|---------|
-| `config_generation_failed` | Configuration generation failed | Invalid parameters |
-| `qr_code_generation_failed` | QR code generation failed | Image generation error |
-| `key_generation_failed` | Key generation failed | Cryptographic error |
-
-### Node Aggregation Errors
-
-| Error Code | Description | Example |
-|------------|-------------|---------|
-| `source_fetch_failed` | Source fetch failed | Network error |
-| `source_parse_failed` | Source parse failed | Invalid format |
-| `node_validation_failed` | Node validation failed | Invalid configuration |
-| `health_check_failed` | Health check failed | Node unreachable |
-
-## Best Practices
-
-### 1. Error Handling
-- Always check HTTP status codes
-- Handle rate limiting gracefully
-- Implement retry logic for transient errors
-- Log errors for debugging
-
-### 2. Performance
-- Use appropriate batch sizes
-- Cache responses when possible
-- Implement connection pooling
-- Monitor rate limits
-
-### 3. Security
-- Validate all input parameters
-- Use HTTPS in production
-- Implement proper authentication
-- Sanitize user inputs
-
-### 4. Monitoring
-- Monitor API response times
-- Track error rates
-- Set up alerts for failures
-- Monitor rate limit usage
-
-### 5. Development
-- Use environment variables for configuration
-- Implement proper logging
-- Write tests
-- Follow RESTful conventions
-
-### 6. Integration
-- Use WebSocket for real-time updates
-- Implement GraphQL for complex queries
-- Cache frequently accessed data
-- Use appropriate HTTP methods
-
-### 7. Documentation
-- Keep API documentation up to date
-- Provide examples
-- Document all error codes
-- Include troubleshooting guides
-
-### 8. Testing
-- Test all endpoints thoroughly
-- Test error scenarios
-- Test rate limiting
-- Test authentication
-
-### 9. Deployment
-- Use proper environment configuration
-- Implement health checks
-- Set up monitoring
-- Use proper logging
-
-### 10. Maintenance
-- Regular security updates
-- Monitor performance metrics
-- Update documentation
-- Handle deprecations gracefully

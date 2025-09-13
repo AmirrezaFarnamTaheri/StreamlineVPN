@@ -246,32 +246,41 @@ class TestDiscoveryManager:
     @pytest.mark.asyncio
     async def test_source_discovery(self, discovery_manager):
         """Test discovery with properly mocked async session methods to avoid warnings."""
-        # Create mock response object
         mock_response = AsyncMock()
         mock_response.status = 200
-        mock_response.json = AsyncMock(return_value={"items": [{"full_name": "user/repo"}]})
-        mock_response.text = AsyncMock(return_value="vmess://test")
+        mock_response.json.return_value = {"items": [{"full_name": "user/repo"}]}
+        mock_response.text.return_value = "vmess://test"
 
-        # Async context manager for .get/.head
-        async_get_cm = AsyncMock()
-        async_get_cm.__aenter__ = AsyncMock(return_value=mock_response)
-        async_get_cm.__aexit__ = AsyncMock(return_value=None)
-
-        async_head_cm = AsyncMock()
-        async_head_cm.__aenter__ = AsyncMock(return_value=mock_response)
-        async_head_cm.__aexit__ = AsyncMock(return_value=None)
-
-        # Mock session with async methods returning async context managers
         mock_session = AsyncMock()
-        mock_session.get = AsyncMock(return_value=async_get_cm)
-        mock_session.head = AsyncMock(return_value=async_head_cm)
+        mock_session.get.return_value.__aenter__ = AsyncMock(return_value=mock_response)
+        mock_session.get.return_value.__aexit__ = AsyncMock(return_value=None)
+        mock_session.head.return_value.__aenter__ = AsyncMock(return_value=mock_response)
+        mock_session.head.return_value.__aexit__ = AsyncMock(return_value=None)
 
-        # Mock ClientSession() as an async context manager
-        session_cm = AsyncMock()
-        session_cm.__aenter__ = AsyncMock(return_value=mock_session)
-        session_cm.__aexit__ = AsyncMock(return_value=None)
+        mock_session_cm = AsyncMock()
+        mock_session_cm.__aenter__ = AsyncMock(return_value=mock_session)
+        mock_session_cm.__aexit__ = AsyncMock(return_value=None)
 
-        with patch("aiohttp.ClientSession", return_value=session_cm):
+        with patch("aiohttp.ClientSession", return_value=mock_session_cm):
+            sources = await discovery_manager.discover_sources()
+            assert isinstance(sources, list)
+
+    @pytest.mark.asyncio
+    async def test_discovery_with_error_handling(self, discovery_manager):
+        """Test discovery with proper error handling."""
+        mock_response = AsyncMock()
+        mock_response.status = 404
+        mock_response.raise_for_status.side_effect = Exception("Not found")
+
+        mock_session = AsyncMock()
+        mock_session.get.return_value.__aenter__ = AsyncMock(return_value=mock_response)
+        mock_session.get.return_value.__aexit__ = AsyncMock(return_value=None)
+
+        mock_session_cm = AsyncMock()
+        mock_session_cm.__aenter__ = AsyncMock(return_value=mock_session)
+        mock_session_cm.__aexit__ = AsyncMock(return_value=None)
+
+        with patch("aiohttp.ClientSession", return_value=mock_session_cm):
             sources = await discovery_manager.discover_sources()
             assert isinstance(sources, list)
 

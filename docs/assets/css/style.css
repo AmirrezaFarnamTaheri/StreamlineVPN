@@ -697,3 +697,47 @@ p.no-neon {
     display: none !important;
   }
 }
+
+/* ===================================================================
+   9. Configuration Generator Components
+   =================================================================== */
+
+.protocol-btn {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: var(--space-lg);
+  background-color: var(--bg-secondary);
+  border: 1px solid var(--border-primary);
+  border-radius: var(--radius-lg);
+  transition: background-color var(--transition-fast), transform var(--transition-fast);
+}
+
+.protocol-btn:hover,
+.protocol-btn.bg-blue-600 {
+  transform: scale(1.05);
+}
+
+.format-btn {
+  background-color: var(--bg-secondary);
+  border: 1px solid var(--border-primary);
+  border-radius: var(--radius-lg);
+  padding: var(--space-sm) var(--space-md);
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: background-color var(--transition-fast), color var(--transition-fast);
+}
+
+.format-btn.bg-blue-600 {
+  color: #fff;
+}
+
+@media (max-width: 640px) {
+  .protocol-btn {
+    padding: var(--space-md);
+  }
+  .format-btn {
+    flex: 1 0 45%;
+  }
+}

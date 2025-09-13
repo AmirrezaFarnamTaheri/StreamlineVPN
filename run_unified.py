@@ -18,8 +18,8 @@ def main() -> None:
     """Start the unified API server via Uvicorn with robust logging."""
     # Configure logging early
     setup_logging(
-        level=os.getenv("VPN_LOG_LEVEL", "INFO").upper(),
-        log_file=os.getenv("VPN_LOG_FILE"),
+        level=os.getenv("STREAMLINE_LOG_LEVEL", os.getenv("VPN_LOG_LEVEL", "INFO")).upper(),
+        log_file=os.getenv("STREAMLINE_LOG_FILE", os.getenv("VPN_LOG_FILE")),
     )
     logger = get_logger(__name__)
 
@@ -55,7 +55,7 @@ def main() -> None:
         host=host,
         port=port,
         workers=workers,
-        log_level=os.getenv("VPN_LOG_LEVEL", "info").lower(),
+        log_level=os.getenv("STREAMLINE_LOG_LEVEL", os.getenv("VPN_LOG_LEVEL", "info")).lower(),
     )
 
 

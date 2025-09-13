@@ -1,6 +1,6 @@
 openapi: 3.0.3
 info:
-  title: VPN Subscription Merger API
+  title: StreamlineVPN API
   description: |
     API for VPN subscription merging, configuration generation, and management.
     
@@ -23,8 +23,8 @@ info:
     All errors follow a consistent format with appropriate HTTP status codes.
   version: 1.0.0
   contact:
-    name: VPN Merger Support
-    url: https://github.com/your-org/CleanConfigs-SubMerger
+    name: StreamlineVPN Support
+    url: https://github.com/your-org/StreamlineVPN
   license:
     name: GPL-3.0-or-later
     url: https://spdx.org/licenses/GPL-3.0-or-later.html
@@ -32,7 +32,7 @@ info:
 servers:
   - url: http://localhost:8000
     description: Development server
-  - url: https://api.vpnmerger.com
+  - url: https://api.streamlinevpn.com
     description: Production server
 
 paths:
