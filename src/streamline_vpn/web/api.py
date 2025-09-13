@@ -8,11 +8,12 @@ FastAPI-based REST API for StreamlineVPN.
 import asyncio
 import os
 import uuid
-from collections import Counter
+from contextlib import asynccontextmanager
 from datetime import datetime
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 
+import python_multipart  # noqa: F401 - ensure import for starlette deprecation warning
 from fastapi import (
     APIRouter,
     BackgroundTasks,
@@ -22,20 +23,18 @@ from fastapi import (
     HTTPException,
     status,
 )
-from contextlib import asynccontextmanager
 from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
-import python_multipart  # noqa: F401 - ensure import for starlette deprecation warning
 from pydantic import BaseModel
 
 from ..core.merger import StreamlineVPNMerger
+from ..jobs.cleanup import startup_cleanup
 from ..jobs.pipeline_cleanup import (
     cleanup_processing_jobs,
     cleanup_processing_jobs_periodically,
     processing_jobs,
 )
-from ..jobs.cleanup import startup_cleanup
 from ..models.formats import OutputFormat
 from ..settings import get_settings
 from ..utils.logging import get_logger
@@ -89,21 +88,21 @@ def get_merger() -> StreamlineVPNMerger:
 @asynccontextmanager
 async def _lifespan(app: FastAPI):
     """Application lifespan context manager with proper initialization.
-    
+
     Handles startup and shutdown operations gracefully.
     """
     # Startup phase
     logger.info("Starting API server initialization...")
-    
+
     try:
         # Initialize cleanup task
         app.state.cleanup_task = asyncio.create_task(
             cleanup_processing_jobs_periodically()
         )
-        
+
         # Clean up stale jobs
         await startup_cleanup()
-        
+
         # Initialize merger with proper error handling
         global service_healthy, merger
         try:
@@ -112,13 +111,15 @@ async def _lifespan(app: FastAPI):
                 await merger.initialize()
             service_healthy = True
             logger.info("API server initialized successfully")
-        except Exception as e:
-            logger.error("Failed to initialize merger: %s", e)
+        except Exception:
+            logger.exception(
+                "Failed to initialize merger", extra={"stage": "startup"}
+            )
             service_healthy = False
             merger = None
-            
+
         yield
-        
+
     finally:
         # Shutdown phase
         logger.info("Shutting down API server...")
@@ -128,7 +129,7 @@ async def _lifespan(app: FastAPI):
                 await asyncio.wait_for(app.state.cleanup_task, timeout=2)
             except (asyncio.TimeoutError, asyncio.CancelledError):
                 pass
-        
+
         if merger and hasattr(merger, "shutdown"):
             await merger.shutdown()
 
@@ -194,15 +195,23 @@ def create_app() -> FastAPI:
         return JSONResponse(status_code=400, content={"detail": detail})
 
     @app.exception_handler(HTTPException)
-    async def http_exception_handler(request, exc: HTTPException) -> JSONResponse:
+    async def http_exception_handler(
+        request, exc: HTTPException
+    ) -> JSONResponse:
         """Uniform HTTPException payload shape."""
-        return JSONResponse(status_code=exc.status_code, content={"detail": exc.detail})
+        return JSONResponse(
+            status_code=exc.status_code, content={"detail": exc.detail}
+        )
 
     @app.exception_handler(Exception)
-    async def general_exception_handler(request, exc: Exception) -> JSONResponse:
+    async def general_exception_handler(
+        request, exc: Exception
+    ) -> JSONResponse:
         """Catch-all to avoid leaking stack traces to clients."""
         logger.error("Unhandled exception: %s", exc, exc_info=True)
-        return JSONResponse(status_code=500, content={"detail": "Internal server error"})
+        return JSONResponse(
+            status_code=500, content={"detail": "Internal server error"}
+        )
 
     # Lifespan now manages startup/shutdown
 
@@ -218,17 +227,17 @@ def create_app() -> FastAPI:
     @app.get("/health", response_model=HealthResponse)
     async def health() -> HealthResponse:
         """Health check endpoint for monitoring and load balancer health checks.
-        
+
         Provides comprehensive health status information including service state,
         uptime, and version information for monitoring systems.
-        
+
         Returns:
             HealthResponse object containing:
                 - status: Current service status ("healthy" or "degraded")
                 - timestamp: Current timestamp in ISO format
                 - version: API version string
                 - uptime: Service uptime in seconds
-        
+
         Example:
             >>> response = await health()
             >>> print(response.status)
@@ -249,29 +258,29 @@ def create_app() -> FastAPI:
         request: ProcessingRequest, background_tasks: BackgroundTasks
     ) -> ProcessingResponse:
         """Process VPN configurations from configured sources.
-        
+
         Initiates the complete VPN configuration processing pipeline including
         fetching from sources, parsing, validation, deduplication, and output
         generation in specified formats.
-        
+
         Args:
             request: ProcessingRequest containing:
                 - output_dir: Directory to save output files
                 - formats: List of output formats (json, clash, singbox, etc.)
                 - max_concurrent: Maximum concurrent processing tasks
             background_tasks: FastAPI background tasks for async operations
-        
+
         Returns:
             ProcessingResponse containing:
                 - success: Boolean indicating if processing succeeded
                 - message: Human-readable status message
                 - job_id: Optional job identifier for tracking
                 - statistics: Optional processing statistics
-        
+
         Raises:
             HTTPException: If processing fails
                 - 500: Internal server error during processing
-        
+
         Example:
             >>> request = ProcessingRequest(
             ...     output_dir="output",
@@ -305,111 +314,14 @@ def create_app() -> FastAPI:
                 statistics=results.get("statistics"),
             )
 
-        except Exception as e:
-            logger.error("Processing error: %s", e)
+        except Exception:
+            logger.exception(
+                "Processing pipeline request failed",
+                extra={"endpoint": "/process"},
+            )
             raise HTTPException(
                 status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
                 detail="Processing failed",
-            )
-
-    @app.post("/pipeline/run")
-    async def run_pipeline_legacy(
-        background_tasks: BackgroundTasks,
-        config_path: str = Body("config/sources.yaml"),
-        output_dir: str = Body("output"),
-        formats: List[str] = Body(["json", "clash", "singbox"])
-    ):
-        """Legacy pipeline run endpoint for backward compatibility."""
-        try:
-            # Validate formats
-            allowed_formats = {"json", "clash", "singbox", "base64", "raw", "csv"}
-            invalid_formats = set(formats) - allowed_formats
-            if invalid_formats:
-                raise HTTPException(
-                    status_code=status.HTTP_400_BAD_REQUEST,
-                    detail=f"Invalid formats: {', '.join(invalid_formats)}"
-                )
-            
-            # Check config file exists
-            config_file = Path(config_path)
-            if not config_file.exists():
-                # Try fallback paths
-                fallback_paths = [
-                    Path("config/sources.unified.yaml"),
-                    Path("config/sources.yaml"),
-                    Path(__file__).parent.parent.parent / "config" / "sources.yaml"
-                ]
-                for fallback in fallback_paths:
-                    if fallback.exists():
-                        config_file = fallback
-                        break
-                else:
-                    raise HTTPException(
-                        status_code=status.HTTP_404_NOT_FOUND,
-                        detail=f"Configuration file not found: {config_path}"
-                    )
-            
-            # Create output directory
-            Path(output_dir).mkdir(parents=True, exist_ok=True)
-            
-            # Generate job ID
-            job_id = str(uuid.uuid4())
-            
-            # Initialize job status
-            processing_jobs[job_id] = {
-                "status": "queued",
-                "progress": 0,
-                "message": "Job queued for processing",
-                "started_at": datetime.now().isoformat(),
-            }
-            
-            async def run_async():
-                try:
-                    processing_jobs[job_id] = {
-                        "status": "running",
-                        "progress": 5,
-                        "message": "Starting pipeline...",
-                        "started_at": datetime.now().isoformat(),
-                    }
-                    
-                    # Actually run the pipeline
-                    merger = get_merger()
-                    results = await merger.process_all(
-                        output_dir=output_dir, formats=formats
-                    )
-                    
-                    processing_jobs[job_id] = {
-                        "status": "completed",
-                        "progress": 100,
-                        "message": "Pipeline completed successfully",
-                        "completed_at": datetime.now().isoformat(),
-                        "result": results
-                    }
-                    
-                except Exception as e:
-                    processing_jobs[job_id] = {
-                        "status": "failed",
-                        "error": str(e),
-                        "message": f"Pipeline failed: {str(e)}",
-                        "completed_at": datetime.now().isoformat(),
-                    }
-            
-            # Start async task
-            background_tasks.add_task(run_async)
-            
-            return {
-                "status": "success",
-                "message": "Pipeline started successfully",
-                "job_id": job_id
-            }
-            
-        except HTTPException:
-            raise
-        except Exception as e:
-            logger.error("Error starting pipeline: %s", e)
-            raise HTTPException(
-                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-                detail=str(e)
             )
 
     @app.get("/statistics")
@@ -419,8 +331,10 @@ def create_app() -> FastAPI:
             merger = get_merger()
             stats = await merger.get_statistics()
             return stats
-        except Exception as e:
-            logger.error("Statistics error: %s", e)
+        except Exception:
+            logger.exception(
+                "Failed to fetch statistics", extra={"endpoint": "/statistics"}
+            )
             raise HTTPException(
                 status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
                 detail="Internal server error",
@@ -429,19 +343,19 @@ def create_app() -> FastAPI:
     @app.get("/configurations")
     async def get_configurations() -> Dict[str, Any]:
         """Get processed VPN configurations from the merger.
-        
+
         Retrieves all currently processed VPN configurations from the merger service
         and returns them in a structured format with metadata.
-        
+
         Returns:
             Dictionary containing:
                 - count: Number of configurations available
                 - configurations: List of configuration dictionaries
-        
+
         Raises:
             HTTPException: If configurations cannot be retrieved
                 - 500: Internal server error during retrieval
-        
+
         Example:
             >>> response = await get_configurations()
             >>> print(response["count"])
@@ -454,22 +368,25 @@ def create_app() -> FastAPI:
             configs = await merger.get_configurations()
             return {
                 "count": len(configs),
-                "configurations": [config.to_dict() if hasattr(config, 'to_dict') else config for config in configs],
+                "configurations": [
+                    config.to_dict() if hasattr(config, "to_dict") else config
+                    for config in configs
+                ],
             }
-        except Exception as e:
-            logger.error("Configurations error: %s", e)
+        except Exception:
+            logger.exception(
+                "Failed to retrieve configurations",
+                extra={"endpoint": "/configurations"},
+            )
             # Return empty configurations on error
-            return {
-                "count": 0,
-                "configurations": []
-            }
+            return {"count": 0, "configurations": []}
 
     @app.get("/sources")
     async def get_sources():
         """Get source information."""
         try:
             merger = get_merger()
-            if hasattr(merger, 'source_manager') and merger.source_manager:
+            if hasattr(merger, "source_manager") and merger.source_manager:
                 source_stats = merger.source_manager.get_source_statistics()
                 return source_stats
             else:
@@ -479,10 +396,12 @@ def create_app() -> FastAPI:
                     "blacklisted_sources": 0,
                     "tier_distribution": {},
                     "average_reputation": 0.0,
-                    "top_sources": []
+                    "top_sources": [],
                 }
-        except Exception as e:
-            logger.error("Sources error: %s", e)
+        except Exception:
+            logger.exception(
+                "Failed to retrieve sources", extra={"endpoint": "/sources"}
+            )
             raise HTTPException(
                 status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
                 detail="Internal server error",
@@ -493,7 +412,7 @@ def create_app() -> FastAPI:
         """Blacklist a source."""
         try:
             merger = get_merger()
-            if hasattr(merger, 'source_manager') and merger.source_manager:
+            if hasattr(merger, "source_manager") and merger.source_manager:
                 merger.source_manager.blacklist_source(source_url, reason)
                 return {"message": f"Source {source_url} blacklisted"}
             else:
@@ -501,8 +420,11 @@ def create_app() -> FastAPI:
                     status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
                     detail="Source manager not available",
                 )
-        except Exception as e:
-            logger.error("Blacklist error: %s", e)
+        except Exception:
+            logger.exception(
+                "Failed to blacklist source",
+                extra={"endpoint": "/sources/{source_url}/blacklist"},
+            )
             raise HTTPException(
                 status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
                 detail="Internal server error",
@@ -513,7 +435,7 @@ def create_app() -> FastAPI:
         """Remove source from blacklist."""
         try:
             merger = get_merger()
-            if hasattr(merger, 'source_manager') and merger.source_manager:
+            if hasattr(merger, "source_manager") and merger.source_manager:
                 merger.source_manager.whitelist_source(source_url)
                 return {"message": f"Source {source_url} whitelisted"}
             else:
@@ -521,8 +443,11 @@ def create_app() -> FastAPI:
                     status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
                     detail="Source manager not available",
                 )
-        except Exception as e:
-            logger.error("Whitelist error: %s", e)
+        except Exception:
+            logger.exception(
+                "Failed to whitelist source",
+                extra={"endpoint": "/sources/{source_url}/whitelist"},
+            )
             raise HTTPException(
                 status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
                 detail="Internal server error",
@@ -535,8 +460,10 @@ def create_app() -> FastAPI:
             merger = get_merger()
             await merger.clear_cache()
             return {"message": "Cache cleared successfully"}
-        except Exception as e:
-            logger.error("Cache clear error: %s", e)
+        except Exception:
+            logger.exception(
+                "Failed to clear cache", extra={"endpoint": "/cache/clear"}
+            )
             raise HTTPException(
                 status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
                 detail="Internal server error",
@@ -547,10 +474,9 @@ def create_app() -> FastAPI:
         """Get job status."""
         if job_id not in processing_jobs:
             raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND,
-                detail="Job not found"
+                status_code=status.HTTP_404_NOT_FOUND, detail="Job not found"
             )
-        
+
         return processing_jobs[job_id]
 
     @app.get("/metrics")
@@ -562,8 +488,10 @@ def create_app() -> FastAPI:
                 "message": "Metrics endpoint - integrate with "
                 "Prometheus client"
             }
-        except Exception as e:
-            logger.error("Metrics error: %s", e)
+        except Exception:
+            logger.exception(
+                "Failed to fetch metrics", extra={"endpoint": "/metrics"}
+            )
             raise HTTPException(
                 status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
                 detail="Internal server error",
@@ -581,8 +509,11 @@ def create_app() -> FastAPI:
                     settings.supported_protocol_prefixes
                 ),
             }
-        except Exception as e:
-            logger.error("Runtime config error: %s", e)
+        except Exception:
+            logger.exception(
+                "Failed to update runtime configuration",
+                extra={"endpoint": "/runtime/config"},
+            )
             raise HTTPException(
                 status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
                 detail="Internal server error",
@@ -628,8 +559,11 @@ def create_app() -> FastAPI:
                     settings.supported_protocol_prefixes
                 ),
             }
-        except Exception as e:
-            logger.error("Reload settings error: %s", e)
+        except Exception:
+            logger.exception(
+                "Failed to reload settings",
+                extra={"endpoint": "/settings/reload"},
+            )
             raise HTTPException(
                 status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
                 detail="Internal server error",
@@ -714,7 +648,7 @@ def create_app() -> FastAPI:
                         "completed_at"
                     ] = datetime.now().isoformat()
                 except Exception as exc:  # pragma: no cover - logging path
-                    logger.error("Pipeline job %s failed: %s", job_id, exc)
+                    logger.exception("Pipeline job %s failed", job_id)
                     processing_jobs[job_id]["status"] = "failed"
                     processing_jobs[job_id]["error"] = str(exc)
                     processing_jobs[job_id][
@@ -727,7 +661,10 @@ def create_app() -> FastAPI:
         except HTTPException:
             raise
         except Exception as exc:  # pragma: no cover - unexpected
-            logger.error("Error starting pipeline: %s", exc)
+            logger.exception(
+                "Error starting pipeline",
+                extra={"endpoint": "/api/v1/pipeline/run"},
+            )
             raise HTTPException(
                 status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
                 detail=f"Failed to start pipeline: {exc}",
@@ -750,7 +687,9 @@ def create_app() -> FastAPI:
         return {"removed": removed, "remaining": len(processing_jobs)}
 
     @router.get("/statistics")
-    async def api_v1_statistics(merger: StreamlineVPNMerger = Depends(get_merger)) -> Dict[str, Any]:
+    async def api_v1_statistics(
+        merger: StreamlineVPNMerger = Depends(get_merger),
+    ) -> Dict[str, Any]:
         """Return statistics as provided by the merger (test-friendly)."""
         return await merger.get_statistics()
 
@@ -774,7 +713,7 @@ def create_app() -> FastAPI:
         if min_quality > 0:
             configs = [c for c in configs if c.quality_score >= min_quality]
         total = len(configs)
-        configs = configs[offset:offset + limit]
+        configs = configs[offset : offset + limit]
         return {
             "total": total,
             "limit": limit,
@@ -787,8 +726,12 @@ def create_app() -> FastAPI:
         """Return information about configured sources."""
         merger = get_merger()
         source_infos = []
-        
-        if hasattr(merger, 'source_manager') and merger.source_manager and hasattr(merger.source_manager, 'sources'):
+
+        if (
+            hasattr(merger, "source_manager")
+            and merger.source_manager
+            and hasattr(merger.source_manager, "sources")
+        ):
             for src in merger.source_manager.sources.values():
                 enabled = getattr(src, "enabled", True)
                 last_check = getattr(src, "last_check", None)
@@ -809,7 +752,7 @@ def create_app() -> FastAPI:
         else:
             # Return empty sources if source manager not available
             source_infos = []
-            
+
         return {"sources": source_infos}
 
     class AddSourceRequest(BaseModel):
@@ -821,7 +764,7 @@ def create_app() -> FastAPI:
         merger = get_merger()
         url = request.url.strip()
         try:
-            if hasattr(merger, 'source_manager') and merger.source_manager:
+            if hasattr(merger, "source_manager") and merger.source_manager:
                 await merger.source_manager.add_source(url)
                 return {"status": "success", "message": f"Source added: {url}"}
             else:
@@ -831,8 +774,11 @@ def create_app() -> FastAPI:
                 )
         except ValueError as exc:
             raise HTTPException(status_code=400, detail=str(exc))
-        except Exception as exc:  # pragma: no cover - unexpected
-            logger.error("Error adding source: %s", exc)
+        except Exception:  # pragma: no cover - unexpected
+            logger.exception(
+                "Error adding source",
+                extra={"endpoint": "/api/v1/sources/add"},
+            )
             raise HTTPException(
                 status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
                 detail="Failed to add source",
@@ -846,11 +792,16 @@ def create_app() -> FastAPI:
     ) -> Dict[str, Any]:
         try:
             await merger_dep.source_manager.add_source(request.url)
-            return {"status": "success", "message": f"Source {request.url} added"}
+            return {
+                "status": "success",
+                "message": f"Source {request.url} added",
+            }
         except ValueError as exc:
             raise HTTPException(status_code=400, detail=str(exc))
-        except Exception as exc:  # pragma: no cover - unexpected
-            logger.error("Error adding source: %s", exc)
+        except Exception:  # pragma: no cover - unexpected
+            logger.exception(
+                "Error adding source", extra={"endpoint": "/api/v1/sources"}
+            )
             raise HTTPException(status_code=500, detail="Failed to add source")
 
     app.include_router(router)

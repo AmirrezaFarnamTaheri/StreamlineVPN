@@ -53,8 +53,11 @@ class VPNConfigGenerator:
                     "count": len(configs),
                     "configurations": [config.to_dict() for config in configs],
                 }
-            except Exception as e:
-                logger.error("Error getting configs: %s", e)
+            except Exception:
+                logger.exception(
+                    "Failed to retrieve configurations",
+                    extra={"endpoint": "/api/configs"},
+                )
                 raise HTTPException(
                     status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
                     detail="Internal server error",
@@ -68,13 +71,16 @@ class VPNConfigGenerator:
                 if results.get("success"):
                     return {"message": "Configurations generated successfully"}
                 error_msg = results.get("error")
-                logger.error("Error generating configs: %s", error_msg)
+                logger.error("Generation failed: %s", error_msg)
                 raise HTTPException(
                     status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
                     detail="Internal server error",
                 )
-            except Exception as e:
-                logger.error("Error generating configs: %s", e)
+            except Exception:
+                logger.exception(
+                    "Unhandled error during configuration generation",
+                    extra={"endpoint": "/api/generate"},
+                )
                 raise HTTPException(
                     status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
                     detail="Internal server error",
@@ -105,8 +111,11 @@ class VPNConfigGenerator:
                     filename=files[0].name,
                     media_type="application/octet-stream",
                 )
-            except Exception as e:
-                logger.error("Error downloading configs: %s", e)
+            except Exception:
+                logger.exception(
+                    "Failed to serve configuration download",
+                    extra={"endpoint": f"/api/download/{format_type}"},
+                )
                 raise HTTPException(
                     status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
                     detail="Internal server error",
@@ -119,7 +128,9 @@ class VPNConfigGenerator:
             with open(html_path, "r") as f:
                 return f.read()
         except FileNotFoundError:
-            logger.error("HTML file not found at %s", html_path)
+            logger.exception(
+                "Config generator HTML missing", extra={"path": str(html_path)}
+            )
             return "<h1>Error: HTML file not found</h1>"
 
     async def start(self):
@@ -129,10 +140,15 @@ class VPNConfigGenerator:
         )
         try:
             import uvicorn
-            uvicorn.run(self.app, host=self.host, port=self.port, log_level="info")
+
+            uvicorn.run(
+                self.app, host=self.host, port=self.port, log_level="info"
+            )
         except ImportError:
             logger.warning("uvicorn not available, server not started")
-            logger.info("Install uvicorn to run the server: pip install uvicorn")
+            logger.info(
+                "Install uvicorn to run the server: pip install uvicorn"
+            )
 
     async def stop(self):
         """Stop the configuration generator."""

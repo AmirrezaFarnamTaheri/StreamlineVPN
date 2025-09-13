@@ -10,40 +10,67 @@
   <link href="/assets/css/style.css" rel="stylesheet">
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap" rel="stylesheet">
   <style>
+    .bg-app {
+      background: linear-gradient(135deg, #0f172a 0%, #1e293b 50%, #334155 100%);
+      min-height: 100vh;
+    }
+    .animated-bg {
+      position: fixed;
+      inset: 0;
+      background: linear-gradient(125deg, #667eea, #764ba2, #f093fb, #667eea);
+      background-size: 400% 400%;
+      animation: gradientShift 12s ease infinite;
+      opacity: 0.05;
+      z-index: -1;
+    }
+    @keyframes gradientShift {
+      0%,100% { background-position: 0% 50%; }
+      50% { background-position: 100% 50%; }
+    }
     /* Calmer animations and no neon glows to match main page */
     .animate-glow, .animate-pulse { animation-duration: 4s !important; }
     .animate-shimmer { animation-duration: 4s !important; }
     .glass { box-shadow: none; }
+    .status-dot { width:8px; height:8px; border-radius:9999px; }
+    .status-active { background:#10b981; }
+    .status-inactive { background:#ef4444; }
+    .status-warning { background:#fbbf24; }
   </style>
 </head>
-<body class="bg-app text-white" style="background:#0b1020">
-  <div class="container mx-auto px-4 py-10 max-w-5xl">
-    <header class="flex items-center justify-between mb-8">
-      <div class="flex items-center space-x-3">
-        <div class="w-10 h-10 rounded-lg bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center font-bold">S</div>
+<body class="bg-app text-white no-neon">
+  <div class="animated-bg"></div>
+  <header class="glass border-b border-white/10 sticky top-0 z-50">
+    <div class="container mx-auto px-6 py-4 flex items-center justify-between">
+      <a href="index.html" class="flex items-center space-x-3 group">
+        <img src="assets/logo.svg" alt="StreamlineVPN Logo" class="h-10 w-10 group-hover:scale-110 transition-transform">
         <div>
-          <h1 class="text-2xl font-bold">Config Generator</h1>
-          <p class="text-sm text-gray-300">Create and export VPN configurations</p>
+          <h1 class="text-xl font-bold group-hover:text-purple-400 transition-colors">Config Generator</h1>
+          <p class="text-sm text-gray-400">Create and export VPN configurations</p>
         </div>
-      </div>
+      </a>
       <div class="flex items-center space-x-4">
         <div id="connectionStatus" class="flex items-center text-sm">
           <span class="status-dot status-warning"></span>
           <span class="ml-2">Checking...</span>
         </div>
-        <a href="/interactive.html" class="glass rounded-lg px-4 py-2 text-sm hover:bg-white/20 transition">Back to Control Panel</a>
+        <a href="interactive.html" class="px-4 py-2 text-gray-300 hover:text-white transition">Control Panel</a>
       </div>
-    </header>
+    </div>
+  </header>
 
+  <div class="container mx-auto px-4 py-10 max-w-5xl">
     <div class="glass rounded-xl p-6 mb-6">
       <div class="flex items-center justify-between mb-4">
         <h3 class="text-lg font-semibold">Wizard</h3>
         <div class="text-sm text-gray-400">Step <span id="currentStep">1</span> / 3</div>
       </div>
-      <div class="grid grid-cols-3 gap-3 text-center">
-        <div class="p-2 rounded bg-blue-600" id="stepBadge1">1. Protocol</div>
-        <div class="p-2 rounded bg-gray-700" id="stepBadge2">2. Parameters</div>
-        <div class="p-2 rounded bg-gray-700" id="stepBadge3">3. Output</div>
+      <div class="relative h-2 bg-gray-700 rounded">
+        <div id="progressBar" class="absolute left-0 top-0 h-2 bg-gradient-to-r from-blue-500 to-purple-600 rounded" style="width:33%"></div>
+      </div>
+      <div class="flex justify-between text-xs mt-2 text-gray-400">
+        <span id="stepLabel1" class="text-blue-400">Protocol</span>
+        <span id="stepLabel2">Parameters</span>
+        <span id="stepLabel3">Output</span>
       </div>
     </div>
 
@@ -180,12 +207,14 @@
   let step = 1; let protocol = null;
   const currentStep = document.getElementById('currentStep');
   const stepEls = [null, document.getElementById('step1'), document.getElementById('step2'), document.getElementById('step3')];
-  const badges = [null, document.getElementById('stepBadge1'), document.getElementById('stepBadge2'), document.getElementById('stepBadge3')];
+  const labels = [null, document.getElementById('stepLabel1'), document.getElementById('stepLabel2'), document.getElementById('stepLabel3')];
+  const progressBar = document.getElementById('progressBar');
 
   function showStep(n){
     step = n; currentStep.textContent = n;
     stepEls.forEach((el,i)=>{ if(!el) return; el.classList.toggle('hidden', i!==n); });
-    badges.forEach((b,i)=>{ if(!b) return; b.className = 'p-2 rounded ' + (i===n? 'bg-blue-600' : 'bg-gray-700'); });
+    labels.forEach((l,i)=>{ if(!l) return; l.className = i===n? 'text-blue-400' : 'text-gray-400'; });
+    progressBar.style.width = n===1 ? '33%' : n===2 ? '66%' : '100%';
     document.getElementById('prev').disabled = n===1;
     document.getElementById('next').textContent = n===3? 'Generate' : 'Next';
   }
