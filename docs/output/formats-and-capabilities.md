@@ -536,7 +536,7 @@ def generate_output_stream(configs):
 async def get_configs(format: str = "json"):
     """Get configurations in specified format."""
     
-    merger = VPNSubscriptionMerger()
+    merger = StreamlineVPNMerger()
     results = await merger.run_quick_merge()
     
     formatter = get_formatter(format)

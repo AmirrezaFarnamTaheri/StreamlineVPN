@@ -1,594 +1,506 @@
 """
-Enhanced Configuration Validator
-=================================
+Fixed Configuration Validator
+============================
 
-Validates and auto-fixes configuration files with comprehensive checks.
+Complete configuration validation with comprehensive error handling and validation rules.
 """
 
 import json
+import re
 import yaml
 from pathlib import Path
-from typing import Any, Dict, List, Tuple
+from typing import Any, Dict, List, Optional, Union
 from urllib.parse import urlparse
+
+import logging
+
+logger = logging.getLogger(__name__)
 
 
 class ConfigurationValidator:
-    """Enhanced configuration validator with auto-fix capabilities."""
+    """Comprehensive configuration validator for StreamlineVPN."""
+
+    SUPPORTED_PROTOCOLS = {
+        'vless', 'vmess', 'trojan', 'shadowsocks', 'shadowsocksr', 'ss', 'ssr'
+    }
+
+    SUPPORTED_OUTPUT_FORMATS = {
+        'json', 'yaml', 'clash', 'singbox', 'base64', 'csv'
+    }
 
     def __init__(self):
-        self.validation_rules = {
-            "sources": self._validate_sources,
-            "processing": self._validate_processing,
-            "output": self._validate_output,
-            "cache": self._validate_cache,
-            "security": self._validate_security,
-            "monitoring": self._validate_monitoring,
-        }
-
-        self.auto_fix_rules = {
-            "missing_sections": self._fix_missing_sections,
-            "invalid_urls": self._fix_invalid_urls,
-            "out_of_range_values": self._fix_out_of_range_values,
-            "deprecated_fields": self._fix_deprecated_fields,
-        }
-
         self.issues: List[Dict[str, Any]] = []
-        self.fixes_applied: List[str] = []
+        self.warnings: List[Dict[str, Any]] = []
 
     def validate_config_file(self, config_path: str) -> Dict[str, Any]:
-        """Validate a configuration file."""
-        path = Path(config_path)
+        """Validate configuration file and return detailed results."""
+        self.issues.clear()
+        self.warnings.clear()
 
-        if not path.exists():
+        config_file = Path(config_path)
+
+        # Check if file exists
+        if not config_file.exists():
             return {
-                "valid": False,
-                "error": "FILE_NOT_FOUND",
-                "message": f"Configuration file not found: {path}",
+                'valid': False,
+                'error': 'FILE_NOT_FOUND',
+                'message': f'Configuration file not found: {config_path}',
+                'issues': [],
+                'warnings': []
             }
 
+        # Check file permissions
+        if not config_file.is_file():
+            return {
+                'valid': False,
+                'error': 'INVALID_FILE_TYPE',
+                'message': f'Path is not a file: {config_path}',
+                'issues': [],
+                'warnings': []
+            }
+
+        if not self._check_file_readable(config_file):
+            return {
+                'valid': False,
+                'error': 'FILE_NOT_READABLE',
+                'message': f'Cannot read file: {config_path}',
+                'issues': [],
+                'warnings': []
+            }
+
+        # Load and parse configuration
         try:
-            with open(path, "r", encoding="utf-8") as file:
-                config = yaml.safe_load(file)
-        except yaml.YAMLError as exc:
+            with open(config_file, 'r', encoding='utf-8') as f:
+                content = f.read()
+
+            # Try YAML first, then JSON
+            try:
+                config = yaml.safe_load(content)
+            except yaml.YAMLError as yaml_err:
+                try:
+                    config = json.loads(content)
+                except json.JSONDecodeError as json_err:
+                    return {
+                        'valid': False,
+                        'error': 'PARSE_ERROR',
+                        'message': f'Failed to parse as YAML or JSON. YAML error: {yaml_err}, JSON error: {json_err}',
+                        'issues': [],
+                        'warnings': []
+                    }
+
+        except Exception as e:
             return {
-                "valid": False,
-                "error": "YAML_PARSE_ERROR",
-                "message": f"Failed to parse YAML: {exc}",
+                'valid': False,
+                'error': 'READ_ERROR',
+                'message': f'Error reading file: {e}',
+                'issues': [],
+                'warnings': []
             }
 
+        # Validate the loaded configuration
         return self.validate_config(config)
 
     def validate_config(self, config: Dict[str, Any]) -> Dict[str, Any]:
-        """Validate configuration dictionary."""
-        self.issues = []
+        """Validate configuration data structure."""
+        self.issues.clear()
+        self.warnings.clear()
 
-        # Check for required sections
-        required_sections = ["sources"]
-        for section in required_sections:
-            if section not in config:
-                self.issues.append(
-                    {
-                        "type": "MISSING_SECTION",
-                        "section": section,
-                        "severity": "error",
-                        "message": f'Required section "{section}" is missing',
-                    }
-                )
+        if not isinstance(config, dict):
+            self._add_issue('ROOT', 'INVALID_TYPE', 'Configuration must be a dictionary/object')
+            return self._build_result()
 
-        # Validate each section
-        for section, validator in self.validation_rules.items():
-            if section in config:
-                validator(config[section], config)
+        # Validate required sections
+        self._validate_sources_section(config)
+        self._validate_processing_section(config)
+        self._validate_output_section(config)
+        self._validate_security_section(config)
+        self._validate_cache_section(config)
 
-        # Check for deprecated fields
-        self._check_deprecated_fields(config)
+        return self._build_result()
 
-        # Generate result
-        return {
-            "valid": not any(
-                issue["severity"] == "error" for issue in self.issues
-            ),
-            "issues": self.issues,
-            "warnings": [
-                i for i in self.issues if i["severity"] == "warning"
-            ],
-            "errors": [i for i in self.issues if i["severity"] == "error"],
-            "suggestions": self._generate_suggestions(config),
-        }
-
-    def _validate_sources(
-        self, sources: Any, config: Dict[str, Any]
-    ) -> None:
+    def _validate_sources_section(self, config: Dict[str, Any]) -> None:
         """Validate sources section."""
+        if 'sources' not in config:
+            self._add_issue('sources', 'MISSING_REQUIRED', 'Sources section is required')
+            return
+
+        sources = config['sources']
         if not isinstance(sources, dict):
-            self.issues.append(
-                {
-                    "type": "INVALID_TYPE",
-                    "field": "sources",
-                    "severity": "error",
-                    "message": "Sources must be a dictionary of tiers",
-                }
-            )
+            self._add_issue('sources', 'INVALID_TYPE', 'Sources must be a dictionary')
             return
 
-        valid_tiers = [
-            "premium",
-            "reliable",
-            "bulk",
-            "experimental",
-            "community",
-            "tier_1",
-            "tier_2",
-            "tier_3",
-        ]
+        if not sources:
+            self._add_warning('sources', 'EMPTY_SECTION', 'Sources section is empty')
+            return
 
+        # Validate each tier
         for tier_name, tier_data in sources.items():
-            # Check tier name
-            if not any(valid in tier_name.lower() for valid in valid_tiers):
-                self.issues.append(
-                    {
-                        "type": "UNKNOWN_TIER",
-                        "field": f"sources.{tier_name}",
-                        "severity": "warning",
-                        "message": f"Unknown tier name: {tier_name}",
-                    }
-                )
+            self._validate_source_tier(tier_name, tier_data)
 
-            # Validate tier data
-            if isinstance(tier_data, dict):
-                self._validate_tier_dict(tier_name, tier_data)
-            elif isinstance(tier_data, list):
-                self._validate_tier_list(tier_name, tier_data)
+    def _validate_source_tier(self, tier_name: str, tier_data: Any) -> None:
+        """Validate a source tier."""
+        tier_path = f'sources.{tier_name}'
+
+        # Handle both list and dict formats
+        if isinstance(tier_data, list):
+            sources_list = tier_data
+        elif isinstance(tier_data, dict):
+            if 'urls' in tier_data:
+                sources_list = tier_data['urls']
             else:
-                self.issues.append(
-                    {
-                        "type": "INVALID_TYPE",
-                        "field": f"sources.{tier_name}",
-                        "severity": "error",
-                        "message": (
-                            "Tier data must be a dictionary or list"
-                        ),
-                    }
-                )
+                self._add_issue(tier_path, 'MISSING_URLS', 'Tier dictionary must contain "urls" key')
+                return
+        else:
+            self._add_issue(tier_path, 'INVALID_TYPE', 'Tier must be a list or dictionary with "urls" key')
+            return
 
-    def _validate_tier_dict(
-        self, tier_name: str, tier_data: Dict[str, Any]
-    ) -> None:
-        """Validate tier dictionary format."""
-        if "urls" in tier_data:
-            urls = tier_data["urls"]
-            if isinstance(urls, list):
-                for i, url_item in enumerate(urls):
-                    if isinstance(url_item, str):
-                        self._validate_url(
-                            url_item, f"sources.{tier_name}.urls[{i}]"
-                        )
-                    elif isinstance(url_item, dict):
-                        if "url" in url_item:
-                            self._validate_url(
-                                url_item["url"],
-                                f"sources.{tier_name}.urls[{i}].url",
-                            )
-                        self._validate_source_metadata(
-                            url_item, f"sources.{tier_name}.urls[{i}]"
-                        )
+        if not isinstance(sources_list, list):
+            self._add_issue(f'{tier_path}.urls', 'INVALID_TYPE', 'URLs must be a list')
+            return
 
-    def _validate_tier_list(
-        self, tier_name: str, tier_data: List[Any]
-    ) -> None:
-        """Validate tier list format."""
-        for i, url in enumerate(tier_data):
-            if isinstance(url, str):
-                self._validate_url(url, f"sources.{tier_name}[{i}]")
-            else:
-                self.issues.append(
-                    {
-                        "type": "INVALID_TYPE",
-                        "field": f"sources.{tier_name}[{i}]",
-                        "severity": "error",
-                        "message": "URL must be a string",
-                    }
-                )
+        if not sources_list:
+            self._add_warning(tier_path, 'EMPTY_TIER', f'Tier "{tier_name}" has no sources')
+            return
 
-    def _validate_url(self, url: str, field: str) -> None:
+        # Validate each source in the tier
+        for i, source in enumerate(sources_list):
+            self._validate_source_entry(f'{tier_path}[{i}]', source)
+
+    def _validate_source_entry(self, source_path: str, source: Any) -> None:
+        """Validate a single source entry."""
+        if isinstance(source, str):
+            # Simple URL string
+            self._validate_url(source_path, source)
+        elif isinstance(source, dict):
+            # Source object with metadata
+            if 'url' not in source:
+                self._add_issue(source_path, 'MISSING_URL', 'Source object must contain "url" field')
+                return
+
+            self._validate_url(f'{source_path}.url', source['url'])
+
+            # Validate optional fields
+            if 'weight' in source:
+                self._validate_weight(f'{source_path}.weight', source['weight'])
+
+            if 'protocols' in source:
+                self._validate_protocols(f'{source_path}.protocols', source['protocols'])
+
+            if 'timeout' in source:
+                self._validate_timeout(f'{source_path}.timeout', source['timeout'])
+
+            if 'headers' in source:
+                self._validate_headers(f'{source_path}.headers', source['headers'])
+        else:
+            self._add_issue(source_path, 'INVALID_TYPE', 'Source must be a URL string or object')
+
+    def _validate_url(self, field_path: str, url: Any) -> None:
         """Validate URL format."""
+        if not isinstance(url, str):
+            self._add_issue(field_path, 'INVALID_TYPE', 'URL must be a string')
+            return
+
+        if not url.strip():
+            self._add_issue(field_path, 'EMPTY_VALUE', 'URL cannot be empty')
+            return
+
         try:
-            result = urlparse(url)
-            if not all([result.scheme, result.netloc]):
-                self.issues.append(
-                    {
-                        "type": "INVALID_URL",
-                        "field": field,
-                        "severity": "error",
-                        "message": f"Invalid URL format: {url}",
-                    }
-                )
-            elif result.scheme not in ["http", "https"]:
-                self.issues.append(
-                    {
-                        "type": "INVALID_SCHEME",
-                        "field": field,
-                        "severity": "warning",
-                        "message": (
-                            f"URL scheme should be http or https: {url}"
-                        ),
-                    }
-                )
-        except Exception:
-            self.issues.append(
-                {
-                    "type": "INVALID_URL",
-                    "field": field,
-                    "severity": "error",
-                    "message": f"Cannot parse URL: {url}",
-                }
-            )
+            parsed = urlparse(url)
+            if not parsed.scheme:
+                self._add_issue(field_path, 'INVALID_URL', 'URL must include scheme (http/https)')
+            elif parsed.scheme not in ['http', 'https']:
+                self._add_warning(field_path, 'UNSUPPORTED_SCHEME', f'Unusual URL scheme: {parsed.scheme}')
 
-    def _validate_source_metadata(
-        self, metadata: Dict[str, Any], field: str
-    ) -> None:
-        """Validate source metadata."""
-        # Validate weight
-        if "weight" in metadata:
-            weight = metadata["weight"]
-            if not isinstance(weight, (int, float)):
-                self.issues.append(
-                    {
-                        "type": "INVALID_TYPE",
-                        "field": f"{field}.weight",
-                        "severity": "error",
-                        "message": "Weight must be a number",
-                    }
-                )
-            elif not (0 <= weight <= 1):
-                self.issues.append(
-                    {
-                        "type": "OUT_OF_RANGE",
-                        "field": f"{field}.weight",
-                        "severity": "warning",
-                        "message": "Weight should be between 0 and 1",
-                    }
-                )
+            if not parsed.netloc:
+                self._add_issue(field_path, 'INVALID_URL', 'URL must include hostname')
 
-        # Validate protocols
-        if "protocols" in metadata:
-            protocols = metadata["protocols"]
-            if not isinstance(protocols, list):
-                self.issues.append(
-                    {
-                        "type": "INVALID_TYPE",
-                        "field": f"{field}.protocols",
-                        "severity": "error",
-                        "message": "Protocols must be a list",
-                    }
-                )
-            else:
-                valid_protocols = [
-                    "vmess",
-                    "vless",
-                    "trojan",
-                    "ss",
-                    "ssr",
-                    "hysteria",
-                    "hysteria2",
-                    "tuic",
-                ]
-                for protocol in protocols:
-                    if protocol not in valid_protocols:
-                        self.issues.append(
-                            {
-                                "type": "UNKNOWN_PROTOCOL",
-                                "field": f"{field}.protocols",
-                                "severity": "warning",
-                                "message": f"Unknown protocol: {protocol}",
-                            }
-                        )
+        except Exception as e:
+            self._add_issue(field_path, 'INVALID_URL', f'Invalid URL format: {e}')
 
-    def _validate_processing(
-        self, processing: Any, config: Dict[str, Any]
-    ) -> None:
-        """Validate processing section."""
+    def _validate_weight(self, field_path: str, weight: Any) -> None:
+        """Validate source weight."""
+        if not isinstance(weight, (int, float)):
+            self._add_issue(field_path, 'INVALID_TYPE', 'Weight must be a number')
+            return
+
+        if weight < 0:
+            self._add_issue(field_path, 'INVALID_VALUE', 'Weight cannot be negative')
+        elif weight > 1.0:
+            self._add_warning(field_path, 'OUT_OF_RANGE', 'Weight greater than 1.0 may cause unexpected behavior')
+
+    def _validate_protocols(self, field_path: str, protocols: Any) -> None:
+        """Validate protocol list."""
+        if not isinstance(protocols, list):
+            self._add_issue(field_path, 'INVALID_TYPE', 'Protocols must be a list')
+            return
+
+        for i, protocol in enumerate(protocols):
+            if not isinstance(protocol, str):
+                self._add_issue(f'{field_path}[{i}]', 'INVALID_TYPE', 'Protocol must be a string')
+                continue
+
+            if protocol.lower() not in self.SUPPORTED_PROTOCOLS:
+                self._add_warning(f'{field_path}[{i}]', 'UNKNOWN_PROTOCOL', f'Unknown protocol: {protocol}')
+
+    def _validate_timeout(self, field_path: str, timeout: Any) -> None:
+        """Validate timeout value."""
+        if not isinstance(timeout, (int, float)):
+            self._add_issue(field_path, 'INVALID_TYPE', 'Timeout must be a number')
+            return
+
+        if timeout <= 0:
+            self._add_issue(field_path, 'INVALID_VALUE', 'Timeout must be positive')
+        elif timeout > 300:
+            self._add_warning(field_path, 'HIGH_VALUE', 'Timeout greater than 300 seconds may cause delays')
+
+    def _validate_headers(self, field_path: str, headers: Any) -> None:
+        """Validate HTTP headers."""
+        if not isinstance(headers, dict):
+            self._add_issue(field_path, 'INVALID_TYPE', 'Headers must be a dictionary')
+            return
+
+        for key, value in headers.items():
+            if not isinstance(key, str):
+                self._add_issue(f'{field_path}.{key}', 'INVALID_TYPE', 'Header name must be a string')
+            if not isinstance(value, str):
+                self._add_issue(f'{field_path}.{key}', 'INVALID_TYPE', 'Header value must be a string')
+
+    def _validate_processing_section(self, config: Dict[str, Any]) -> None:
+        """Validate processing configuration."""
+        if 'processing' not in config:
+            return  # Optional section
+
+        processing = config['processing']
         if not isinstance(processing, dict):
-            self.issues.append(
-                {
-                    "type": "INVALID_TYPE",
-                    "field": "processing",
-                    "severity": "error",
-                    "message": "Processing must be a dictionary",
-                }
-            )
+            self._add_issue('processing', 'INVALID_TYPE', 'Processing section must be a dictionary')
             return
 
-        # Validate numeric fields
-        numeric_fields = {
-            "max_concurrent": (1, 1000),
-            "timeout": (1, 300),
-            "retry_attempts": (0, 10),
-            "retry_delay": (0, 60),
-            "batch_size": (1, 100),
-        }
+        # Validate specific processing options
+        if 'max_concurrent' in processing:
+            max_concurrent = processing['max_concurrent']
+            if not isinstance(max_concurrent, int):
+                self._add_issue('processing.max_concurrent', 'INVALID_TYPE', 'max_concurrent must be an integer')
+            elif max_concurrent < 1:
+                self._add_issue('processing.max_concurrent', 'INVALID_VALUE', 'max_concurrent must be at least 1')
+            elif max_concurrent > 1000:
+                self._add_warning('processing.max_concurrent', 'HIGH_VALUE', 'Very high concurrency may cause performance issues')
 
-        for field, (min_val, max_val) in numeric_fields.items():
-            if field in processing:
-                value = processing[field]
-                if not isinstance(value, (int, float)):
-                    self.issues.append(
-                        {
-                            "type": "INVALID_TYPE",
-                            "field": f"processing.{field}",
-                            "severity": "error",
-                            "message": f"{field} must be a number",
-                        }
-                    )
-                elif not (min_val <= value <= max_val):
-                    self.issues.append(
-                        {
-                            "type": "OUT_OF_RANGE",
-                            "field": f"processing.{field}",
-                            "severity": "warning",
-                            "message": (
-                                f"{field} should be between "
-                                f"{min_val} and {max_val}"
-                            ),
-                        }
-                    )
+        if 'timeout' in processing:
+            self._validate_timeout('processing.timeout', processing['timeout'])
 
-    def _validate_output(self, output: Any, config: Dict[str, Any]) -> None:
-        """Validate output section."""
+        if 'retry_attempts' in processing:
+            retry_attempts = processing['retry_attempts']
+            if not isinstance(retry_attempts, int):
+                self._add_issue('processing.retry_attempts', 'INVALID_TYPE', 'retry_attempts must be an integer')
+            elif retry_attempts < 0:
+                self._add_issue('processing.retry_attempts', 'INVALID_VALUE', 'retry_attempts cannot be negative')
+
+    def _validate_output_section(self, config: Dict[str, Any]) -> None:
+        """Validate output configuration."""
+        if 'output' not in config:
+            return  # Optional section
+
+        output = config['output']
         if not isinstance(output, dict):
+            self._add_issue('output', 'INVALID_TYPE', 'Output section must be a dictionary')
             return
 
-        if "formats" in output:
-            formats = output["formats"]
-            if isinstance(formats, list):
-                valid_formats = [
-                    "raw",
-                    "base64",
-                    "json",
-                    "csv",
-                    "yaml",
-                    "clash",
-                    "singbox",
-                ]
-                for fmt in formats:
-                    if fmt not in valid_formats:
-                        self.issues.append(
-                            {
-                                "type": "UNKNOWN_FORMAT",
-                                "field": "output.formats",
-                                "severity": "warning",
-                                "message": f"Unknown output format: {fmt}",
-                            }
-                        )
+        if 'formats' in output:
+            formats = output['formats']
+            if not isinstance(formats, list):
+                self._add_issue('output.formats', 'INVALID_TYPE', 'Formats must be a list')
+            else:
+                for i, fmt in enumerate(formats):
+                    if not isinstance(fmt, str):
+                        self._add_issue(f'output.formats[{i}]', 'INVALID_TYPE', 'Format must be a string')
+                    elif fmt.lower() not in self.SUPPORTED_OUTPUT_FORMATS:
+                        self._add_warning(f'output.formats[{i}]', 'UNKNOWN_FORMAT', f'Unknown output format: {fmt}')
 
-    def _validate_cache(self, cache: Any, config: Dict[str, Any]) -> None:
-        """Validate cache section."""
-        if not isinstance(cache, dict):
-            return
+        if 'directory' in output:
+            directory = output['directory']
+            if not isinstance(directory, str):
+                self._add_issue('output.directory', 'INVALID_TYPE', 'Output directory must be a string')
+            elif not directory.strip():
+                self._add_issue('output.directory', 'EMPTY_VALUE', 'Output directory cannot be empty')
 
-        if "ttl" in cache:
-            ttl = cache["ttl"]
-            if not isinstance(ttl, (int, float)):
-                self.issues.append(
-                    {
-                        "type": "INVALID_TYPE",
-                        "field": "cache.ttl",
-                        "severity": "error",
-                        "message": "TTL must be a number",
-                    }
-                )
-            elif ttl < 0:
-                self.issues.append(
-                    {
-                        "type": "INVALID_VALUE",
-                        "field": "cache.ttl",
-                        "severity": "error",
-                        "message": "TTL cannot be negative",
-                    }
-                )
+    def _validate_security_section(self, config: Dict[str, Any]) -> None:
+        """Validate security configuration."""
+        if 'security' not in config:
+            return  # Optional section
 
-    def _validate_security(
-        self, security: Any, config: Dict[str, Any]
-    ) -> None:
-        """Validate security section."""
+        security = config['security']
         if not isinstance(security, dict):
+            self._add_issue('security', 'INVALID_TYPE', 'Security section must be a dictionary')
             return
-        # Security validation will be implemented based on requirements
 
-    def _validate_monitoring(
-        self, monitoring: Any, config: Dict[str, Any]
-    ) -> None:
-        """Validate monitoring section."""
-        if not isinstance(monitoring, dict):
+        # Validate specific security options
+        boolean_fields = ['enable_validation', 'strict_mode', 'allow_insecure']
+        for field in boolean_fields:
+            if field in security:
+                if not isinstance(security[field], bool):
+                    self._add_issue(f'security.{field}', 'INVALID_TYPE', f'{field} must be a boolean')
+
+        if 'blacklist' in security:
+            blacklist = security['blacklist']
+            if not isinstance(blacklist, list):
+                self._add_issue('security.blacklist', 'INVALID_TYPE', 'Blacklist must be a list')
+            else:
+                for i, item in enumerate(blacklist):
+                    if not isinstance(item, str):
+                        self._add_issue(f'security.blacklist[{i}]', 'INVALID_TYPE', 'Blacklist item must be a string')
+
+    def _validate_cache_section(self, config: Dict[str, Any]) -> None:
+        """Validate cache configuration."""
+        if 'cache' not in config:
+            return  # Optional section
+
+        cache = config['cache']
+        if not isinstance(cache, dict):
+            self._add_issue('cache', 'INVALID_TYPE', 'Cache section must be a dictionary')
             return
-        # Monitoring validation will be implemented based on requirements
 
-    def _check_deprecated_fields(self, config: Dict[str, Any]) -> None:
-        """Check for deprecated fields."""
-        deprecated_fields = {
-            "vpn_sources": "sources",
-            "output_directory": "output.directory",
-            "enable_cache": "cache.enabled",
+        if 'enabled' in cache:
+            if not isinstance(cache['enabled'], bool):
+                self._add_issue('cache.enabled', 'INVALID_TYPE', 'Cache enabled must be a boolean')
+
+        if 'ttl' in cache:
+            ttl = cache['ttl']
+            if not isinstance(ttl, int):
+                self._add_issue('cache.ttl', 'INVALID_TYPE', 'Cache TTL must be an integer')
+            elif ttl < 0:
+                self._add_issue('cache.ttl', 'INVALID_VALUE', 'Cache TTL cannot be negative')
+
+    def _check_file_readable(self, file_path: Path) -> bool:
+        """Check if file is readable."""
+        try:
+            with open(file_path, 'r', encoding='utf-8') as f:
+                f.read(1)  # Try to read one character
+            return True
+        except Exception:
+            return False
+
+    def _add_issue(self, field: str, issue_type: str, message: str) -> None:
+        """Add a validation issue."""
+        self.issues.append({
+            'field': field,
+            'type': issue_type,
+            'message': message,
+            'severity': 'error'
+        })
+
+    def _add_warning(self, field: str, issue_type: str, message: str) -> None:
+        """Add a validation warning."""
+        self.warnings.append({
+            'field': field,
+            'type': issue_type,
+            'message': message,
+            'severity': 'warning'
+        })
+
+    def _build_result(self) -> Dict[str, Any]:
+        """Build validation result."""
+        return {
+            'valid': len(self.issues) == 0,
+            'issues': self.issues,
+            'warnings': self.warnings,
+            'summary': {
+                'total_issues': len(self.issues),
+                'total_warnings': len(self.warnings),
+                'critical_issues': len([i for i in self.issues if i.get('severity') == 'error']),
+                'has_errors': len(self.issues) > 0
+            }
         }
 
-        for old_field, new_field in deprecated_fields.items():
-            if old_field in config:
-                self.issues.append(
-                    {
-                        "type": "DEPRECATED_FIELD",
-                        "field": old_field,
-                        "severity": "warning",
-                        "message": (
-                            f'Field "{old_field}" is deprecated, '
-                            f'use "{new_field}" instead'
-                        ),
-                    }
-                )
-
-    def _generate_suggestions(self, config: Dict[str, Any]) -> List[str]:
-        """Generate configuration improvement suggestions."""
-        suggestions: List[str] = []
-
-        # Check for missing recommended sections
-        recommended_sections = ["processing", "output", "cache", "monitoring"]
-        for section in recommended_sections:
-            if section not in config:
-                suggestions.append(
-                    f'Consider adding "{section}" section for better control'
-                )
-
-        # Check source count
-        if "sources" in config:
-            total_sources = sum(
-                (
-                    len(tier)
-                    if isinstance(tier, list)
-                    else len(tier.get("urls", []))
-                )
-                for tier in config["sources"].values()
-            )
-            if total_sources < 5:
-                suggestions.append(
-                    "Consider adding more sources for better coverage"
-                )
-            elif total_sources > 100:
-                suggestions.append(
-                    "Consider reducing sources to improve performance"
-                )
-
-        # Check for performance settings
-        if "processing" in config:
-            processing = config["processing"]
-            if processing.get("max_concurrent", 50) > 100:
-                suggestions.append(
-                    "High concurrency may cause rate limiting issues"
-                )
-
-        return suggestions
-
-    def auto_fix_config(
-        self, config: Dict[str, Any]
-    ) -> Tuple[Dict[str, Any], List[str]]:
-        """Automatically fix common configuration issues."""
-        self.fixes_applied = []
+    def fix_common_issues(self, config: Dict[str, Any]) -> Dict[str, Any]:
+        """Attempt to fix common configuration issues."""
         fixed_config = json.loads(json.dumps(config))  # Deep copy
 
-        for fix_name, fix_func in self.auto_fix_rules.items():
-            fix_func(fixed_config)
+        # Ensure required sections exist
+        if 'sources' not in fixed_config:
+            fixed_config['sources'] = {}
 
-        return fixed_config, self.fixes_applied
+        if 'processing' not in fixed_config:
+            fixed_config['processing'] = {}
 
-    def _fix_missing_sections(self, config: Dict[str, Any]) -> None:
-        """Add missing required sections."""
-        if "sources" not in config:
-            config["sources"] = {"default": []}
-            self.fixes_applied.append('Added missing "sources" section')
+        # Set reasonable defaults
+        if 'max_concurrent' not in fixed_config['processing']:
+            fixed_config['processing']['max_concurrent'] = 100
 
-    def _fix_invalid_urls(self, config: Dict[str, Any]) -> None:
-        """Fix invalid URLs where possible."""
-        # URL validation and fixing will be implemented as needed
+        # Fix max_concurrent if it's out of range
+        max_concurrent = fixed_config['processing'].get('max_concurrent')
+        if isinstance(max_concurrent, int):
+            if max_concurrent < 1:
+                fixed_config['processing']['max_concurrent'] = 1
+            elif max_concurrent > 1000:
+                fixed_config['processing']['max_concurrent'] = 1000
 
-    def _fix_out_of_range_values(self, config: Dict[str, Any]) -> None:
-        """Fix out-of-range values."""
-        if "processing" in config:
-            processing = config["processing"]
-            if "max_concurrent" in processing:
-                if processing["max_concurrent"] > 1000:
-                    processing["max_concurrent"] = 100
-                    self.fixes_applied.append("Reduced max_concurrent to 100")
-                elif processing["max_concurrent"] < 1:
-                    processing["max_concurrent"] = 50
-                    self.fixes_applied.append(
-                        "Increased max_concurrent to 50"
-                    )
+        # Add default output section if missing
+        if 'output' not in fixed_config:
+            fixed_config['output'] = {
+                'formats': ['json', 'clash'],
+                'directory': 'output'
+            }
 
-    def _fix_deprecated_fields(self, config: Dict[str, Any]) -> None:
-        """Update deprecated fields."""
-        if "vpn_sources" in config:
-            config["sources"] = config.pop("vpn_sources")
-            self.fixes_applied.append('Renamed "vpn_sources" to "sources"')
+        return fixed_config
 
 
+# Convenience functions
 def validate_config_file(config_path: str) -> Dict[str, Any]:
-    """Validate a configuration file path using the default validator."""
+    """Validate a configuration file."""
     validator = ConfigurationValidator()
     return validator.validate_config_file(config_path)
 
 
 def validate_config_data(config: Dict[str, Any]) -> Dict[str, Any]:
-    """Validate configuration data using the default validator."""
+    """Validate configuration data."""
     validator = ConfigurationValidator()
     return validator.validate_config(config)
 
 
-def main() -> int:
-    """CLI interface for configuration validation."""
-    import argparse
+def fix_config_issues(config: Dict[str, Any]) -> Dict[str, Any]:
+    """Fix common configuration issues."""
+    validator = ConfigurationValidator()
+    return validator.fix_common_issues(config)
 
-    parser = argparse.ArgumentParser(
-        description="Validate StreamlineVPN configuration"
-    )
-    parser.add_argument("config", help="Path to configuration file")
-    parser.add_argument(
-        "--fix", action="store_true", help="Auto-fix issues"
-    )
-    parser.add_argument(
-        "--output", help="Output path for fixed configuration"
-    )
 
-    args = parser.parse_args()
+# Example usage
+if __name__ == "__main__":
+    # Test with a sample configuration
+    sample_config = {
+        "sources": {
+            "tier_1": [
+                "https://example.com/config1.txt",
+                {
+                    "url": "https://example.com/config2.txt",
+                    "weight": 0.8,
+                    "protocols": ["vless", "vmess"]
+                }
+            ]
+        },
+        "processing": {
+            "max_concurrent": 50,
+            "timeout": 30
+        },
+        "output": {
+            "formats": ["json", "clash"],
+            "directory": "output"
+        }
+    }
 
     validator = ConfigurationValidator()
+    result = validator.validate_config(sample_config)
 
-    # Load configuration
-    with open(args.config, "r", encoding="utf-8") as file:
-        config = yaml.safe_load(file)
+    print("Validation Result:")
+    print(f"Valid: {result['valid']}")
+    print(f"Issues: {len(result['issues'])}")
+    print(f"Warnings: {len(result['warnings'])}")
 
-    # Validate
-    result = validator.validate_config(config)
+    if result['issues']:
+        print("\nIssues:")
+        for issue in result['issues']:
+            print(f"  - {issue['field']}: {issue['message']}")
 
-    # Import logger for this CLI tool
-    from ..utils.logging import get_logger
-    logger = get_logger(__name__)
-    
-    status_icon = '✅' if result['valid'] else '❌'
-    logger.info("=== Configuration Validation %s ===", status_icon)
-    logger.info("Errors: %d", len(result['errors']))
-    logger.info("Warnings: %d", len(result['warnings']))
-
-    if result["errors"]:
-        logger.error("=== Errors ===")
-        for error in result["errors"]:
-            logger.error("  [%s] %s: %s", error['type'], error['field'], error['message'])
-
-    if result["warnings"]:
-        logger.warning("=== Warnings ===")
-        for warning in result["warnings"]:
-            logger.warning("  [%s] %s: %s", warning['type'], warning['field'], warning['message'])
-
-    if result["suggestions"]:
-        logger.info("=== Suggestions ===")
-        for suggestion in result["suggestions"]:
-            logger.info("  • %s", suggestion)
-
-    # Apply fixes if requested
-    if args.fix:
-        fixed_config, fixes = validator.auto_fix_config(config)
-
-        if fixes:
-            logger.info("=== Applied %d Fixes ===", len(fixes))
-            for fix in fixes:
-                logger.info("  • %s", fix)
-
-            output_path = args.output or args.config.replace(
-                ".yaml", "_fixed.yaml"
-            )
-            with open(output_path, "w", encoding="utf-8") as file:
-                yaml.dump(fixed_config, file, default_flow_style=False)
-            logger.info("Fixed configuration saved to: %s", output_path)
-
-    return 0 if result["valid"] else 1
-
-
-if __name__ == "__main__":
-    raise SystemExit(main())
+    if result['warnings']:
+        print("\nWarnings:")
+        for warning in result['warnings']:
+            print(f"  - {warning['field']}: {warning['message']}")

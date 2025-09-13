@@ -46,7 +46,7 @@
 - Check output directory permissions: `ls -la output/`
 - Verify sources are accessible via the API pipeline: `POST /api/v1/pipeline/run`
 - Check network connectivity to source URLs
-- Review log file: `tail -f vpn_merger.log`
+- Review log file: `tail -f streamline_vpn.log`
 
 #### Application Hangs or Freezes
 **Problem**: Application appears to freeze during execution
@@ -179,10 +179,10 @@ pip list
 python -c "import yaml; yaml.safe_load(open('config/sources.yaml'))"
 
 # Test imports
-python -c "from vpn_merger import *; print('✅ All imports successful')"
+python -c "from streamline_vpn import *; print('✅ All imports successful')"
 
 # Check sources
-python -c "from vpn_merger import SourceManager; sources = SourceManager(); print(f'Loaded {len(sources.get_all_sources())} sources')"
+python -c "from streamline_vpn import SourceManager; sources = SourceManager(); print(f'Loaded {len(sources.get_all_sources())} sources')"
 ```
 
 ### Network Diagnostics
@@ -229,13 +229,13 @@ export VPN_LOG_LEVEL=DEBUG
 python vpn_merger_main.py --verbose
 
 # Monitor log file
-tail -f vpn_merger.log
+tail -f streamline_vpn.log
 ```
 
 ## Getting Help
 
 ### Self-Diagnosis
-1. **Check logs**: Review `vpn_merger.log` for error messages
+1. **Check logs**: Review `streamline_vpn.log` for error messages
 2. **Validate configuration**: Use `--validate` flag to test sources
 3. **Test imports**: Verify all modules can be imported
 4. **Check dependencies**: Ensure all required packages are installed

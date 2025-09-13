@@ -75,19 +75,19 @@ class ProductionDeployment:
             }
             health_status["status"] = "unhealthy"
 
-        # Check VPNSubscriptionMerger initialization
+        # Check StreamlineVPNMerger initialization
         try:
             merger_stats = self.merger.get_statistics()
             health_status["checks"]["merger"] = {
                 "status": "healthy",
                 "stats": merger_stats,
-                "message": "VPNSubscriptionMerger initialized successfully",
+                "message": "StreamlineVPNMerger initialized successfully",
             }
         except Exception as e:
             health_status["checks"]["merger"] = {
                 "status": "unhealthy",
                 "error": str(e),
-                "message": "Failed to initialize VPNSubscriptionMerger",
+                "message": "Failed to initialize StreamlineVPNMerger",
             }
             health_status["status"] = "unhealthy"
 
