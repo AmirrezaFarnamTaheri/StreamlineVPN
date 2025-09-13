@@ -1,4 +1,4 @@
-from unittest.mock import AsyncMock
+from unittest.mock import MagicMock
 
 import pytest
 from fastapi.testclient import TestClient
@@ -14,9 +14,9 @@ def make_cfg(protocol: Protocol, server: str) -> VPNConfiguration:
 @pytest.fixture
 def client_with_configs(monkeypatch):
     app = create_app()
-    mock_merger = AsyncMock()
+    mock_merger = MagicMock()
     cfgs = [make_cfg(Protocol.VMESS, "a"), make_cfg(Protocol.VLESS, "b")]
-    mock_merger.get_configurations = AsyncMock(return_value=cfgs)
+    mock_merger.get_configurations = MagicMock(return_value=cfgs)
     # Override get_merger at module level (function is not a FastAPI dependency here)
     import streamline_vpn.web.api as api_module
     monkeypatch.setattr(api_module, "get_merger", lambda: mock_merger)

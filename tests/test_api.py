@@ -1,6 +1,6 @@
 import pytest
 from fastapi.testclient import TestClient
-from unittest.mock import patch, AsyncMock
+from unittest.mock import patch, MagicMock
 
 from streamline_vpn.web.api import create_app, get_merger
 from streamline_vpn.core.merger import StreamlineVPNMerger
@@ -10,8 +10,8 @@ from streamline_vpn.core.merger import StreamlineVPNMerger
 def client():
     app = create_app()
     # Mock the merger dependency for tests
-    mock_merger_instance = AsyncMock(spec=StreamlineVPNMerger)
-    mock_merger_instance.source_manager = AsyncMock()
+    mock_merger_instance = MagicMock(spec=StreamlineVPNMerger)
+    mock_merger_instance.source_manager = MagicMock()
 
     async def override_get_merger():
         return mock_merger_instance

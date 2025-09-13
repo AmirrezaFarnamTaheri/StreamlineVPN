@@ -34,8 +34,6 @@
         window.dispatchEvent(new CustomEvent('api-base-loaded', {
             detail: { apiBase: apiBase }
         }));
-        
-        console.log(`[StreamlineVPN] API Base configured: ${apiBase}`);
     }
     
     // For Node.js environments (if needed)
@@ -96,7 +94,7 @@ window.StreamlineVPN.API = {
                 return await response.text();
             }
         } catch (error) {
-            console.error(`API request failed for ${endpoint}:`, error);
+            // console.error(`API request failed for ${endpoint}:`, error);
             throw error;
         }
     },

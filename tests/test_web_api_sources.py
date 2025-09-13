@@ -1,4 +1,4 @@
-from unittest.mock import AsyncMock
+from unittest.mock import MagicMock
 import pytest
 from fastapi.testclient import TestClient
 
@@ -24,7 +24,7 @@ def client_with_mock_merger():
     """Fixture to provide a test client with a mocked merger."""
     app = create_app()
 
-    mock_merger = AsyncMock(spec=StreamlineVPNMerger)
+    mock_merger = MagicMock(spec=StreamlineVPNMerger)
     mock_merger.source_manager = DummySourceManager()
 
     async def override_get_merger():

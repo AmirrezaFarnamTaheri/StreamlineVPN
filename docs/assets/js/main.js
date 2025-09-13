@@ -48,9 +48,7 @@
                 this.startPeriodicUpdates();
                 this.setupWebSocket();
                 
-                console.log('[StreamlineVPN] Control Panel initialized');
             } catch (error) {
-                console.error('[StreamlineVPN] Initialization error:', error);
                 this.showError('Failed to initialize control panel: ' + error.message);
             }
         }
@@ -212,7 +210,6 @@
                 
                 return health.success;
             } catch (error) {
-                console.error('Connection check failed:', error);
                 this.state.isConnected = false;
                 this.updateConnectionStatus({
                     detail: { connected: false, error: error.message }
@@ -288,7 +285,6 @@
                         this.formatDateTime(lastUpdate) : '--';
                 }
             } catch (error) {
-                console.error('Failed to load statistics:', error);
                 this.showError('Failed to load statistics');
             }
         }
@@ -305,7 +301,6 @@
                     this.renderSources(this.state.sources);
                 }
             } catch (error) {
-                console.error('Failed to load sources:', error);
                 if (this.elements.sourcesList) {
                     this.elements.sourcesList.innerHTML = '<div class="text-red-400">Failed to load sources</div>';
                 }
@@ -328,7 +323,6 @@
                     this.renderConfigurations(this.state.configurations, data.total || 0);
                 }
             } catch (error) {
-                console.error('Failed to load configurations:', error);
                 if (this.elements.configsList) {
                     this.elements.configsList.innerHTML = '<div class="text-red-400">Failed to load configurations</div>';
                 }
@@ -347,7 +341,6 @@
                     this.renderJobs(this.state.jobs);
                 }
             } catch (error) {
-                console.error('Failed to load jobs:', error);
                 if (this.elements.jobsList) {
                     this.elements.jobsList.innerHTML = '<div class="text-red-400">Failed to load jobs</div>';
                 }
@@ -370,7 +363,6 @@
                     this.renderRecentActivity(activity);
                 }
             } catch (error) {
-                console.error('Failed to load recent activity:', error);
             }
         }
 
@@ -410,7 +402,6 @@
                 }
                 
             } catch (error) {
-                console.error('Processing submission failed:', error);
                 this.showError('Failed to start processing: ' + error.message);
                 this.resetProcessingButton();
             }
@@ -449,7 +440,6 @@
                         setTimeout(checkJob, 2000);
                     }
                 } catch (error) {
-                    console.error('Job monitoring failed:', error);
                     this.hideProgress();
                     this.resetProcessingButton();
                 }
@@ -622,7 +612,6 @@
                 this.ws = new WebSocket(wsUrl);
                 
                 this.ws.onopen = () => {
-                    console.log('[StreamlineVPN] WebSocket connected');
                     this.wsBackoff = 1000;
                 };
                 
@@ -631,21 +620,17 @@
                         const data = JSON.parse(event.data);
                         this.handleWebSocketMessage(data);
                     } catch (error) {
-                        console.error('WebSocket message parse error:', error);
                     }
                 };
                 
                 this.ws.onclose = () => {
-                    console.log('[StreamlineVPN] WebSocket disconnected, reconnecting...');
                     this.scheduleWebSocketReconnect();
                 };
                 
                 this.ws.onerror = (error) => {
-                    console.error('[StreamlineVPN] WebSocket error:', error);
                 };
                 
             } catch (error) {
-                console.error('WebSocket setup failed:', error);
             }
         }
 
