@@ -20,19 +20,32 @@ StreamlineVPN aggregates, validates, and exports VPN configurations from multipl
 - Python 3.8+
 - Redis 6.0+ (optional, for L2 cache)
 
-## Quick Start
+## Installation
 
 ```bash
 pip install -r requirements.txt
+```
 
-# One-off processing
+## Usage
+
+### One-off Processing
+
+To run a single processing job from the command line:
+```bash
 python -m streamline_vpn --config config/sources.yaml --output output
+```
 
-# API server (development)
-uvicorn streamline_vpn.web.unified_api:create_unified_app --host 0.0.0.0 --port 8080
+### API Server
 
-# Or run the unified script
+The unified server includes the FastAPI backend and serves the static control panel.
+
+**For Development:**
+```bash
+# Start the unified server (API + static assets)
 python run_unified.py
+
+# Or run uvicorn directly for more options
+uvicorn streamline_vpn.web.unified_api:create_unified_app --host 0.0.0.0 --port 8080 --reload
 ```
 
 ## Configuration

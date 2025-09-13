@@ -136,6 +136,9 @@ config/sources.local.yaml
 config/sources.production.yaml
 config/*.env
 config/secrets.yaml
+config/*.local
+*.key
+*.pem
 
 # Output directories
 output/*
