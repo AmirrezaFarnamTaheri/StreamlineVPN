@@ -19,11 +19,11 @@
             inset: 0;
             background: linear-gradient(125deg, #667eea, #764ba2, #f093fb, #667eea);
             background-size: 400% 400%;
-            animation: gradientShift 12s ease infinite;
+            animation: gradient-shift 12s ease infinite;
             opacity: 0.05;
             z-index: -1;
         }
-        @keyframes gradientShift {
+        @keyframes gradient-shift {
             0%,100% { background-position: 0% 50%; }
             50% { background-position: 100% 50%; }
         }
@@ -198,20 +198,19 @@
         <div class="container mx-auto px-6 py-4 flex items-center justify-between">
             <a href="index.html" class="flex items-center space-x-3 group">
                 <img src="assets/logo.svg" alt="StreamlineVPN Logo" class="h-10 w-10 group-hover:scale-110 transition-transform">
-                <div>
-                    <h1 class="text-xl font-bold group-hover:text-purple-400 transition-colors">Control Panel</h1>
-                    <p class="text-sm text-gray-400">Manage and monitor configurations</p>
-                </div>
+                <span class="text-xl font-bold group-hover:text-purple-400 transition-colors">Control Panel</span>
             </a>
-            <div class="flex items-center space-x-4">
-                <div id="headerStatus" class="flex items-center text-sm">
+            <nav class="flex items-center space-x-4">
+                <a href="index.html" class="px-4 py-2 text-gray-300 hover:text-white transition">Home</a>
+                <a href="api/index.html" class="px-4 py-2 text-gray-300 hover:text-white transition">API Docs</a>
+                <a href="config_generator.html" class="px-4 py-2 text-gray-300 hover:text-white transition">Generator</a>
+                <a href="interactive.html" class="px-4 py-2 text-purple-400 font-semibold">Control Panel</a>
+                <div id="headerStatus" class="flex items-center text-xs" title="Checking API connectivity...">
                     <span class="status-dot status-warning"></span>
                     <span class="ml-2">Checking...</span>
                 </div>
-                <a href="config_generator.html" class="px-4 py-2 text-gray-300 hover:text-white transition">Generator</a>
-                <a href="api/index.html" class="px-4 py-2 text-gray-300 hover:text-white transition">API Docs</a>
-                <button id="refresh-button" class="btn btn-secondary">🔄 Refresh</button>
-            </div>
+                <button id="refresh-button" class="btn btn-secondary ml-4">🔄 Refresh</button>
+            </nav>
         </div>
     </header>
 

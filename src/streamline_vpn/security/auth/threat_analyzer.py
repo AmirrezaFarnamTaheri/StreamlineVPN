@@ -7,7 +7,7 @@ Threat analysis and risk assessment service.
 
 from datetime import datetime
 
-from ....utils.logging import get_logger
+from ...utils.logging import get_logger
 from .models import UserIdentity, DeviceInfo, DevicePosture, ThreatLevel
 
 logger = get_logger(__name__)
@@ -85,22 +85,38 @@ class ThreatAnalyzer:
         suspicious_ips = ["192.168.1.100", "10.0.0.100"]  # Demo suspicious IPs
 
         if ip_address in suspicious_ips:
+            logger.warning("High-risk IP detected: %s", ip_address)
             return 1.0
 
+        logger.debug("IP address %s has no reputation flags", ip_address)
         return 0.0
 
     async def _assess_geolocation_risk(self, ip_address: str) -> float:
         """Assess geolocation risk."""
         # Simplified geolocation risk assessment
-        # In production, use GeoIP database
+        # In production, use a GeoIP database
+        import ipaddress
+
         high_risk_countries = ["XX", "YY"]  # Demo high-risk countries
 
-        # Mock country code based on IP
-        country_code = "US"  # Simplified
-
-        if country_code in high_risk_countries:
+        try:
+            ip_obj = ipaddress.ip_address(ip_address)
+        except ValueError:
+            logger.warning("Invalid IP address for geolocation: %s", ip_address)
             return 1.0
 
+        # Determine country code; for private/reserved ranges mark as 'PRIVATE'
+        country_code = "PRIVATE" if ip_obj.is_private else "UNKNOWN"
+
+        if country_code in high_risk_countries:
+            logger.warning(
+                "IP %s located in high-risk country: %s", ip_address, country_code
+            )
+            return 1.0
+
+        logger.debug(
+            "IP %s geolocation assessed as low risk (%s)", ip_address, country_code
+        )
         return 0.0
 
     async def _assess_time_patterns(self, user_id: str) -> float:

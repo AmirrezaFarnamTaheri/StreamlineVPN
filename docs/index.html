@@ -97,7 +97,6 @@
             position: relative;
             border-radius: 0.75rem;
             overflow: hidden;
-            border: 1px solid transparent; /* Prepare for animation */
         }
         .tier-card::before {
             content: "";
@@ -108,17 +107,25 @@
             border-radius: 0.5rem 0 0 0.5rem;
             filter: drop-shadow(0 0 2px rgba(0,0,0,0.15));
         }
-        /* One-time neon border sweep animation */
-        @keyframes neon-border-sweep {
-            0% { box-shadow: 0 0 0px var(--tier-color), inset 0 0 0px var(--tier-color); }
-            40% { box-shadow: 0 0 12px var(--tier-color), inset 0 0 2px var(--tier-color); }
-            100% { box-shadow: 0 0 0px var(--tier-color), inset 0 0 0px var(--tier-color); }
+        .tier-card::after {
+            content: "";
+            position: absolute;
+            inset: 0;
+            padding: 2px;
+            border-radius: inherit;
+            background: conic-gradient(var(--tier-color) 0deg 12deg, transparent 12deg 360deg);
+            -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+            -webkit-mask-composite: xor;
+            mask-composite: exclude;
+            opacity: 0;
         }
-        .tier-card.neon-once {
-            animation: neon-border-sweep 1.2s ease-out 1;
+        @keyframes neon-trace {
+            to { transform: rotate(360deg); }
         }
-        /* remove old border-top emphasis if present */
-        .tier-card { border-top-width: 0 !important; }
+        .tier-card.neon-once::after {
+            opacity: 1;
+            animation: neon-trace 1.2s linear forwards;
+        }
         .tier-content { opacity: 0; transform: translateY(8px); }
         .tier-content.revealed { transition: opacity 420ms ease-out, transform 420ms ease-out; opacity: 1; transform: translateY(0); }
     </style>

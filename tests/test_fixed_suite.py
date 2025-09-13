@@ -10,6 +10,7 @@ from unittest.mock import Mock, AsyncMock, patch
 from datetime import datetime
 
 from fastapi.testclient import TestClient
+from types import SimpleNamespace
 
 # Import components to test
 from streamline_vpn.core.merger import StreamlineVPNMerger
@@ -24,13 +25,31 @@ from streamline_vpn.jobs.models import JobType, JobStatus
 class TestUnifiedAPI:
     """Test the unified API implementation."""
 
+    class DummyMerger:
+        def __init__(self, *args, **kwargs):
+            self.source_manager = SimpleNamespace(sources={})
+            self.results = []
+
+        async def initialize(self):
+            return None
+
+        async def shutdown(self):
+            return None
+
+        async def process_all(self, *args, **kwargs):
+            return {"success": True}
+
     @pytest.fixture
-    def app(self):
+    def app(self, monkeypatch):
+        monkeypatch.setattr(
+            "streamline_vpn.web.unified_api.StreamlineVPNMerger", self.DummyMerger
+        )
         return create_unified_app()
 
     @pytest.fixture
     def client(self, app):
-        return TestClient(app)
+        with TestClient(app) as c:
+            yield c
 
     def test_health_endpoint(self, client):
         resp = client.get("/health")
