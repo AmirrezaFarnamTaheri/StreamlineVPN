@@ -10,7 +10,7 @@
 - Ensure `config/sources.yaml` exists and has valid YAML syntax
 - Check file permissions: `ls -la config/sources.yaml`
 - Validate YAML syntax: `python -c "import yaml; yaml.safe_load(open('config/sources.yaml'))"`
-- Verify source URLs are accessible: `python vpn_merger_main.py --validate`
+- Verify source URLs are accessible: `python streamline_vpn_main.py --validate`
 
 #### Configuration File Not Found
 **Problem**: Error "Config file not found, using fallback sources"
@@ -115,7 +115,7 @@
 #### Coverage Issues
 **Problem**: Test coverage below required threshold
 **Solutions**:
-- Run coverage locally: `python -m pytest --cov=vpn_merger --cov-report=html`
+- Run coverage locally: `python -m pytest --cov=streamline_vpn --cov-report=html`
 - Review coverage report: `open htmlcov/index.html`
 - Add tests for uncovered code paths
 - Check test file organization and imports
@@ -192,7 +192,7 @@ ping google.com
 curl -I https://google.com
 
 # Test source accessibility
-python vpn_merger_main.py --validate
+python streamline_vpn_main.py --validate
 
 # Check DNS resolution
 nslookup raw.githubusercontent.com
@@ -206,7 +206,7 @@ iotop
 nethogs
 
 # Check Python performance
-python -m cProfile -o profile.stats vpn_merger_main.py
+python -m cProfile -o profile.stats streamline_vpn_main.py
 python -c "import pstats; p = pstats.Stats('profile.stats'); p.sort_stats('cumulative').print_stats(20)"
 ```
 
@@ -226,7 +226,7 @@ ERROR - Error processing source URL: Error message
 export VPN_LOG_LEVEL=DEBUG
 
 # Run with verbose output
-python vpn_merger_main.py --verbose
+python streamline_vpn_main.py --verbose
 
 # Monitor log file
 tail -f streamline_vpn.log

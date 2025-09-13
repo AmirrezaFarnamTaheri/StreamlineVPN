@@ -33,14 +33,14 @@ The VPN Subscription Merger supports multiple configuration formats and provides
 ### Core Settings
 ```bash
 # Application
-VPN_MERGER_HOST=0.0.0.0
-VPN_MERGER_PORT=8000
-VPN_MERGER_DEBUG=false
-VPN_MERGER_LOG_LEVEL=INFO
+STREAMLINE_HOST=0.0.0.0
+STREAMLINE_PORT=8000
+STREAMLINE_DEBUG=false
+STREAMLINE_LOG_LEVEL=INFO
 
 # Database
 REDIS_URL=redis://localhost:6379/0
-DATABASE_URL=sqlite:///data/vpn_merger.db
+DATABASE_URL=sqlite:///data/streamline_vpn.db
 
 # Security
 SECRET_KEY=your-secret-key-here
@@ -474,13 +474,13 @@ settings:
 ### Environment Variables Example
 ```bash
 # .env file
-VPN_MERGER_HOST=0.0.0.0
-VPN_MERGER_PORT=8000
-VPN_MERGER_DEBUG=false
-VPN_MERGER_LOG_LEVEL=INFO
+STREAMLINE_HOST=0.0.0.0
+STREAMLINE_PORT=8000
+STREAMLINE_DEBUG=false
+STREAMLINE_LOG_LEVEL=INFO
 
 REDIS_URL=redis://localhost:6379/0
-DATABASE_URL=sqlite:///data/vpn_merger.db
+DATABASE_URL=sqlite:///data/streamline_vpn.db
 
 SECRET_KEY=your-secret-key-here
 API_KEY=your-api-key-here
@@ -507,10 +507,10 @@ services:
     ports:
       - "8000:8000"
     environment:
-      - VPN_MERGER_HOST=0.0.0.0
-      - VPN_MERGER_PORT=8000
+      - STREAMLINE_HOST=0.0.0.0
+      - STREAMLINE_PORT=8000
       - REDIS_URL=redis://redis:6379/0
-      - DATABASE_URL=sqlite:///data/vpn_merger.db
+      - DATABASE_URL=sqlite:///data/streamline_vpn.db
     volumes:
       - ./config:/app/config
       - ./output:/app/output
@@ -582,14 +582,14 @@ spec:
         ports:
         - containerPort: 8000
         env:
-        - name: VPN_MERGER_HOST
+        - name: STREAMLINE_HOST
           value: "0.0.0.0"
-        - name: VPN_MERGER_PORT
+        - name: STREAMLINE_PORT
           value: "8000"
         - name: REDIS_URL
           value: "redis://redis:6379/0"
         - name: DATABASE_URL
-          value: "sqlite:///data/vpn_merger.db"
+          value: "sqlite:///data/streamline_vpn.db"
         volumeMounts:
         - name: config
           mountPath: /app/config

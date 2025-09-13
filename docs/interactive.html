@@ -1,414 +1,303 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" data-theme="dark">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>StreamlineVPN Control Panel</title>
+    <meta name="description" content="Interactive control panel for StreamlineVPN configuration management">
+    
+    <!-- Security Headers -->
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; connect-src 'self' ws: wss: http: https:; img-src 'self' data:;">
+    
+    <!-- Stylesheets -->
     <link rel="stylesheet" href="/assets/css/style.css">
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-    <style>
-        /* Shared background and animation utilities */
-        .bg-app {
-            background: linear-gradient(135deg, #0f172a 0%, #1e293b 50%, #334155 100%);
-            min-height: 100vh;
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- Tailwind Config -->
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        primary: '#3b82f6',
+                        secondary: '#10b981',
+                        accent: '#f59e0b',
+                        danger: '#ef4444'
+                    }
+                }
+            }
         }
-        .animated-bg {
-            position: fixed;
-            inset: 0;
-            background: linear-gradient(125deg, #667eea, #764ba2, #f093fb, #667eea);
-            background-size: 400% 400%;
-            animation: gradient-shift 12s ease infinite;
-            opacity: 0.05;
-            z-index: -1;
-        }
-        @keyframes gradient-shift {
-            0%,100% { background-position: 0% 50%; }
-            50% { background-position: 100% 50%; }
-        }
-
-        .status-dot { width:8px; height:8px; border-radius:9999px; }
-        .status-active { background:#10b981; }
-        .status-inactive { background:#ef4444; }
-        .status-warning { background:#fbbf24; }
-
-        /* Additional styles for the control panel */
-        .control-panel {
-            min-height: 100vh;
-        }
-
-        .hero-section {
-            background: var(--glass-bg);
-            backdrop-filter: var(--glass-backdrop);
-            border-bottom: 1px solid var(--glass-border);
-            padding: var(--space-2xl) 0;
-            text-align: center;
-        }
-
-        .hero-title {
-            font-size: var(--font-size-4xl);
-            font-weight: 700;
-            margin-bottom: var(--space-md);
-            background: linear-gradient(135deg, var(--color-primary-light), var(--color-secondary-light));
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-            background-clip: text;
-        }
-
-        .status-banner {
-            background: linear-gradient(135deg, rgba(16, 185, 129, 0.1), rgba(59, 130, 246, 0.1));
-            border: 1px solid var(--color-success);
-            border-radius: var(--radius-lg);
-            padding: var(--space-md);
-            margin-bottom: var(--space-lg);
-            text-align: center;
-        }
-
-        .action-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-            gap: var(--space-lg);
-            margin-bottom: var(--space-2xl);
-        }
-
-        .action-card {
-            background: var(--glass-bg);
-            backdrop-filter: var(--glass-backdrop);
-            border: 1px solid var(--glass-border);
-            border-radius: var(--radius-xl);
-            padding: var(--space-xl);
-            transition: all var(--transition-normal);
-            position: relative;
-            overflow: hidden;
-        }
-
-        .action-card::before {
-            content: '';
-            position: absolute;
-            top: 0;
-            left: 0;
-            right: 0;
-            height: 4px;
-            background: linear-gradient(90deg, var(--color-primary), var(--color-secondary));
-            opacity: 0;
-            transition: opacity var(--transition-normal);
-        }
-
-        .action-card:hover::before {
-            opacity: 1;
-        }
-
-        .action-card:hover {
-            transform: translateY(-4px);
-            box-shadow: var(--shadow-2xl);
-            border-color: var(--color-primary);
-        }
-
-        .action-header {
-            display: flex;
-            align-items: center;
-            gap: var(--space-md);
-            margin-bottom: var(--space-lg);
-        }
-
-        .action-icon {
-            width: 48px;
-            height: 48px;
-            border-radius: var(--radius-lg);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 24px;
-            background: linear-gradient(135deg, var(--color-primary), var(--color-primary-dark));
-        }
-
-        .action-title {
-            font-size: var(--font-size-xl);
-            font-weight: 600;
-            color: var(--text-primary);
-        }
-
-        .action-description {
-            color: var(--text-secondary);
-            margin-bottom: var(--space-lg);
-            line-height: 1.6;
-        }
-
-        .config-section {
-            background: var(--bg-card);
-            border: 1px solid var(--border-primary);
-            border-radius: var(--radius-lg);
-            padding: var(--space-lg);
-            margin-bottom: var(--space-lg);
-        }
-
-        .section-title {
-            font-size: var(--font-size-lg);
-            font-weight: 600;
-            margin-bottom: var(--space-md);
-            color: var(--text-primary);
-            display: flex;
-            align-items: center;
-            gap: var(--space-sm);
-        }
-
-        .log-output {
-            background: var(--bg-primary);
-            border: 1px solid var(--border-secondary);
-            border-radius: var(--radius-md);
-            padding: var(--space-md);
-            font-family: var(--font-family-mono);
-            font-size: var(--font-size-sm);
-            color: var(--color-success);
-            height: 300px;
-            overflow-y: auto;
-            margin-top: var(--space-md);
-        }
-
-        .progress-bar {
-            width: 100%;
-            height: 8px;
-            background: var(--bg-tertiary);
-            border-radius: var(--radius-full);
-            overflow: hidden;
-            margin: var(--space-md) 0;
-        }
-
-        .progress-fill {
-            height: 100%;
-            background: linear-gradient(90deg, var(--color-primary), var(--color-secondary));
-            border-radius: var(--radius-full);
-            transition: width var(--transition-normal);
-            width: 0%;
-        }
-
-        .stats-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-            gap: var(--space-md);
-            margin-bottom: var(--space-lg);
-        }
-    </style>
+    </script>
 </head>
-<body class="control-panel bg-app no-neon">
-    <div class="animated-bg"></div>
+
+<body class="bg-gray-900 text-white min-h-screen">
     <!-- Header -->
-    <header class="glass border-b border-white/10 sticky top-0 z-50">
-        <div class="container mx-auto px-6 py-4 flex items-center justify-between">
-            <a href="index.html" class="flex items-center space-x-3 group">
-                <img src="assets/logo.svg" alt="StreamlineVPN Logo" class="h-10 w-10 group-hover:scale-110 transition-transform">
-                <span class="text-xl font-bold group-hover:text-purple-400 transition-colors">Control Panel</span>
-            </a>
-            <nav class="flex items-center space-x-4">
-                <a href="index.html" class="px-4 py-2 text-gray-300 hover:text-white transition">Home</a>
-                <a href="api/index.html" class="px-4 py-2 text-gray-300 hover:text-white transition">API Docs</a>
-                <a href="config_generator.html" class="px-4 py-2 text-gray-300 hover:text-white transition">Generator</a>
-                <a href="interactive.html" class="px-4 py-2 text-purple-400 font-semibold">Control Panel</a>
-                <div id="headerStatus" class="flex items-center text-xs" title="Checking API connectivity...">
-                    <span class="status-dot status-warning"></span>
-                    <span class="ml-2">Checking...</span>
+    <header class="bg-gray-800 border-b border-gray-700">
+        <div class="container mx-auto px-6 py-4">
+            <div class="flex items-center justify-between">
+                <div class="flex items-center space-x-4">
+                    <h1 class="text-2xl font-bold text-blue-400">StreamlineVPN</h1>
+                    <span class="px-2 py-1 bg-green-600 text-xs rounded">v2.0.0</span>
                 </div>
-                <button id="refresh-button" class="btn btn-secondary ml-4">🔄 Refresh</button>
-            </nav>
+                <nav class="flex items-center space-x-6">
+                    <a href="/interactive.html" class="text-blue-400 font-semibold">Control Panel</a>
+                    <a href="/config_generator.html" class="text-gray-300 hover:text-white">Config Generator</a>
+                    <a href="/troubleshooting.html" class="text-gray-300 hover:text-white">Help</a>
+                    <div id="connectionStatus" class="flex items-center space-x-2">
+                        <div id="statusIndicator" class="w-3 h-3 rounded-full bg-yellow-500"></div>
+                        <span id="statusText" class="text-sm">Connecting...</span>
+                    </div>
+                </nav>
+            </div>
         </div>
     </header>
 
-    <!-- Hero Section -->
-    <section class="hero-section">
-        <div class="container">
-            <h1 class="hero-title">VPN Configuration Management</h1>
-            <p class="text-lg text-secondary mb-6">Aggregate, validate, and export VPN configurations from multiple sources</p>
-
-            <!-- API Status Banner -->
-            <div id="api-status-banner" class="status-banner hidden">
-                <div class="font-medium">🔗 Connected to API</div>
-                <div class="text-sm mt-1" id="api-base-info">Base URL: Loading...</div>
+    <!-- Main Content -->
+    <main class="container mx-auto px-6 py-8">
+        <!-- API Status Banner -->
+        <div id="apiBanner" class="mb-6 p-4 bg-blue-900 border border-blue-700 rounded-lg hidden">
+            <div class="flex items-center justify-between">
+                <div class="flex items-center space-x-3">
+                    <div class="w-4 h-4 bg-blue-400 rounded-full"></div>
+                    <div>
+                        <p class="font-semibold">API Connected</p>
+                        <p class="text-sm text-blue-200" id="apiDetails"></p>
+                    </div>
+                </div>
+                <button id="refreshAPI" class="px-4 py-2 bg-blue-600 hover:bg-blue-700 rounded transition-colors">
+                    Refresh
+                </button>
             </div>
         </div>
-    </section>
 
-    <!-- Main Content -->
-    <main class="main-content">
-        <div class="container">
-            <!-- Error Alert -->
-            <div id="error-alert" class="hidden mb-6"></div>
+        <!-- Tab Navigation -->
+        <div class="mb-8">
+            <div class="flex space-x-1 bg-gray-800 p-1 rounded-lg">
+                <button class="tab-btn active px-6 py-3 rounded-md transition-colors" data-tab="dashboard">
+                    📊 Dashboard
+                </button>
+                <button class="tab-btn px-6 py-3 rounded-md transition-colors" data-tab="processing">
+                    ⚙️ Processing
+                </button>
+                <button class="tab-btn px-6 py-3 rounded-md transition-colors" data-tab="sources">
+                    🌐 Sources
+                </button>
+                <button class="tab-btn px-6 py-3 rounded-md transition-colors" data-tab="configurations">
+                    📝 Configurations
+                </button>
+                <button class="tab-btn px-6 py-3 rounded-md transition-colors" data-tab="jobs">
+                    📋 Jobs
+                </button>
+            </div>
+        </div>
 
-            <!-- Loading Indicator -->
-            <div id="loading-indicator" class="hidden text-center py-8">
-                <div class="loading-spinner mx-auto mb-4"></div>
-                <div class="text-muted">Loading data...</div>
+        <!-- Dashboard Tab -->
+        <div id="dashboard-tab" class="tab-content">
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+                <!-- Statistics Cards -->
+                <div class="bg-gray-800 rounded-xl p-6 border border-gray-700">
+                    <div class="flex items-center justify-between mb-4">
+                        <h3 class="text-lg font-semibold">Total Sources</h3>
+                        <div class="w-10 h-10 bg-blue-600 rounded-lg flex items-center justify-center">
+                            🌐
+                        </div>
+                    </div>
+                    <div class="text-3xl font-bold text-blue-400" id="totalSources">--</div>
+                    <p class="text-sm text-gray-400 mt-2">Active sources configured</p>
+                </div>
+
+                <div class="bg-gray-800 rounded-xl p-6 border border-gray-700">
+                    <div class="flex items-center justify-between mb-4">
+                        <h3 class="text-lg font-semibold">Configurations</h3>
+                        <div class="w-10 h-10 bg-green-600 rounded-lg flex items-center justify-center">
+                            📝
+                        </div>
+                    </div>
+                    <div class="text-3xl font-bold text-green-400" id="totalConfigs">--</div>
+                    <p class="text-sm text-gray-400 mt-2">Valid configurations found</p>
+                </div>
+
+                <div class="bg-gray-800 rounded-xl p-6 border border-gray-700">
+                    <div class="flex items-center justify-between mb-4">
+                        <h3 class="text-lg font-semibold">Success Rate</h3>
+                        <div class="w-10 h-10 bg-yellow-600 rounded-lg flex items-center justify-center">
+                            📈
+                        </div>
+                    </div>
+                    <div class="text-3xl font-bold text-yellow-400" id="successRate">--</div>
+                    <p class="text-sm text-gray-400 mt-2">Source success rate</p>
+                </div>
+
+                <div class="bg-gray-800 rounded-xl p-6 border border-gray-700">
+                    <div class="flex items-center justify-between mb-4">
+                        <h3 class="text-lg font-semibold">Last Updated</h3>
+                        <div class="w-10 h-10 bg-purple-600 rounded-lg flex items-center justify-center">
+                            🕒
+                        </div>
+                    </div>
+                    <div class="text-sm font-bold text-purple-400" id="lastUpdated">--</div>
+                    <p class="text-sm text-gray-400 mt-2">Last processing run</p>
+                </div>
             </div>
 
-            <!-- Quick Actions -->
-            <section class="mb-8">
-                <h2 class="section-title mb-6">
-                    ⚡ Quick Actions
-                </h2>
+            <!-- Recent Activity -->
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                <div class="bg-gray-800 rounded-xl p-6 border border-gray-700">
+                    <h3 class="text-lg font-semibold mb-4">System Status</h3>
+                    <div class="space-y-3">
+                        <div class="flex items-center justify-between">
+                            <span class="text-gray-300">API Server</span>
+                            <span id="apiStatus" class="px-2 py-1 bg-yellow-600 text-xs rounded">Checking...</span>
+                        </div>
+                        <div class="flex items-center justify-between">
+                            <span class="text-gray-300">Redis Cache</span>
+                            <span id="cacheStatus" class="px-2 py-1 bg-gray-600 text-xs rounded">Unknown</span>
+                        </div>
+                        <div class="flex items-center justify-between">
+                            <span class="text-gray-300">Background Jobs</span>
+                            <span id="jobsStatus" class="px-2 py-1 bg-gray-600 text-xs rounded">Unknown</span>
+                        </div>
+                    </div>
+                </div>
 
-                <div class="action-grid">
-                    <!-- Process Configurations -->
-                    <div class="action-card">
-                        <div class="action-header">
-                            <div class="action-icon">🚀</div>
-                            <div>
-                                <div class="action-title">Process Configurations</div>
-                                <div class="text-sm text-muted">Run the complete pipeline</div>
+                <div class="bg-gray-800 rounded-xl p-6 border border-gray-700">
+                    <h3 class="text-lg font-semibold mb-4">Recent Activity</h3>
+                    <div id="recentActivity" class="space-y-2 text-sm">
+                        <div class="text-gray-400">Loading activity...</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Processing Tab -->
+        <div id="processing-tab" class="tab-content hidden">
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                <div class="bg-gray-800 rounded-xl p-6 border border-gray-700">
+                    <h3 class="text-lg font-semibold mb-4">Start Processing</h3>
+                    <form id="processingForm" class="space-y-4">
+                        <div>
+                            <label class="block text-sm font-medium mb-2">Configuration Path</label>
+                            <input id="configPath" type="text" value="config/sources.yaml" 
+                                   class="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg focus:border-blue-500 focus:outline-none" />
+                        </div>
+                        
+                        <div>
+                            <label class="block text-sm font-medium mb-2">Output Directory</label>
+                            <input id="outputDir" type="text" value="output" 
+                                   class="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg focus:border-blue-500 focus:outline-none" />
+                        </div>
+                        
+                        <div>
+                            <label class="block text-sm font-medium mb-2">Output Formats</label>
+                            <div class="grid grid-cols-2 gap-2">
+                                <label class="flex items-center space-x-2">
+                                    <input type="checkbox" class="format-cb" value="json" checked />
+                                    <span class="text-sm">JSON</span>
+                                </label>
+                                <label class="flex items-center space-x-2">
+                                    <input type="checkbox" class="format-cb" value="clash" />
+                                    <span class="text-sm">Clash</span>
+                                </label>
+                                <label class="flex items-center space-x-2">
+                                    <input type="checkbox" class="format-cb" value="singbox" />
+                                    <span class="text-sm">Sing-Box</span>
+                                </label>
+                                <label class="flex items-center space-x-2">
+                                    <input type="checkbox" class="format-cb" value="base64" />
+                                    <span class="text-sm">Base64</span>
+                                </label>
                             </div>
                         </div>
-                        <div class="action-description">
-                            Fetch and process VPN configurations from all configured sources. This will validate,
-                            deduplicate, and export configurations in your preferred formats.
-                        </div>
-                        <button id="process-button" class="btn btn-primary w-full">
-                            🚀 Start Processing
+                        
+                        <button id="startProcessingBtn" type="submit" 
+                                class="w-full px-4 py-2 bg-blue-600 hover:bg-blue-700 rounded-lg font-semibold transition-colors">
+                            Start Processing
                         </button>
-                        <div id="process-progress" class="hidden">
-                            <div class="progress-bar">
-                                <div id="progress-fill" class="progress-fill"></div>
-                            </div>
-                            <div class="text-sm text-center text-muted" id="progress-text">Processing...</div>
+                    </form>
+                    
+                    <div id="progressContainer" class="hidden mt-6">
+                        <div class="flex items-center justify-between mb-2">
+                            <span class="text-sm">Progress</span>
+                            <span id="progressPercent" class="text-sm">0%</span>
                         </div>
-                    </div>
-
-                    <!-- Export Configurations -->
-                    <div class="action-card">
-                        <div class="action-header">
-                            <div class="action-icon">📦</div>
-                            <div>
-                                <div class="action-title">Export Configurations</div>
-                                <div class="text-sm text-muted">Download processed configs</div>
-                            </div>
+                        <div class="w-full bg-gray-700 rounded-full h-2">
+                            <div id="progressBar" class="bg-blue-500 h-2 rounded-full transition-all" style="width:0%"></div>
                         </div>
-                        <div class="action-description">
-                            Export your processed VPN configurations in various formats including JSON,
-                            Clash, Sing-Box, and more.
-                        </div>
-                        <div class="flex gap-2">
-                            <button data-export="json" class="btn btn-secondary flex-1">JSON</button>
-                            <button data-export="clash" class="btn btn-secondary flex-1">Clash</button>
-                            <button data-export="download" class="btn btn-success flex-1">Download</button>
-                        </div>
-                    </div>
-
-                    <!-- View Statistics -->
-                    <div class="action-card">
-                        <div class="action-header">
-                            <div class="action-icon">📊</div>
-                            <div>
-                                <div class="action-title">System Statistics</div>
-                                <div class="text-sm text-muted">Performance metrics</div>
-                            </div>
-                        </div>
-                        <div class="action-description">
-                            Monitor system performance, source health, and processing statistics
-                            to ensure optimal operation.
-                        </div>
-                        <div id="statistics-panel" class="stats-grid">
-                            <!-- Statistics will be loaded here -->
-                        </div>
-                    </div>
-                </div>
-            </section>
-
-            <!-- Configuration Data -->
-            <section class="grid grid-cols-1 lg:grid-cols-2 gap-8">
-                <!-- Configurations -->
-                <div class="config-section">
-                    <h3 class="section-title">
-                        🔧 VPN Configurations
-                        <span class="text-sm font-normal text-muted" id="config-count">(0)</span>
-                    </h3>
-                    <div id="config-list" class="space-y-3">
-                        <!-- Configurations will be loaded here -->
+                        <p id="progressMessage" class="text-sm text-gray-400 mt-2">Initializing...</p>
                     </div>
                 </div>
 
-                <!-- Sources -->
-                <div class="config-section">
-                    <h3 class="section-title">
-                        🌐 Configuration Sources
-                        <span class="text-sm font-normal text-muted" id="source-count">(0)</span>
-                    </h3>
-                    <div id="source-list" class="space-y-3">
-                        <!-- Sources will be loaded here -->
+                <div class="bg-gray-800 rounded-xl p-6 border border-gray-700">
+                    <h3 class="text-lg font-semibold mb-4">Processing Status</h3>
+                    <div id="processingStatus" class="space-y-3">
+                        <div class="text-gray-400">No active processing jobs</div>
                     </div>
                 </div>
-            </section>
+            </div>
+        </div>
 
-            <!-- Advanced Configuration -->
-            <section class="config-section">
-                <h3 class="section-title">
-                    ⚙️ Advanced Configuration
-                </h3>
+        <!-- Sources Tab -->
+        <div id="sources-tab" class="tab-content hidden">
+            <div class="bg-gray-800 rounded-xl p-6 border border-gray-700">
+                <div class="flex items-center justify-between mb-4">
+                    <h3 class="text-lg font-semibold">Source Management</h3>
+                    <button id="refreshSources" class="px-4 py-2 bg-green-600 hover:bg-green-700 rounded-lg transition-colors">
+                        Refresh Sources
+                    </button>
+                </div>
+                <div id="sourcesList" class="space-y-3">
+                    <div class="text-gray-400">Loading sources...</div>
+                </div>
+            </div>
+        </div>
 
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <!-- Output Formats -->
-                    <div class="form-group">
-                        <label>Output Formats</label>
-                        <div class="checkbox-group">
-                            <label>
-                                <input type="checkbox" id="format-json" checked> JSON
-                            </label>
-                            <label>
-                                <input type="checkbox" id="format-clash" checked> Clash
-                            </label>
-                            <label>
-                                <input type="checkbox" id="format-singbox"> Sing-Box
-                            </label>
-                            <label>
-                                <input type="checkbox" id="format-base64"> Base64
-                            </label>
-                        </div>
-                    </div>
-
-                    <!-- Processing Options -->
-                    <div class="form-group">
-                        <label for="max-concurrent">Max Concurrent Sources</label>
-                        <input type="number" id="max-concurrent" class="form-control" value="50" min="1" max="200">
-                    </div>
-
-                    <!-- Output Directory -->
-                    <div class="form-group">
-                        <label for="output-dir">Output Directory</label>
-                        <input type="text" id="output-dir" class="form-control" value="output" placeholder="output">
-                    </div>
-
-                    <!-- Config Path -->
-                    <div class="form-group">
-                        <label for="config-path">Configuration File</label>
-                        <input type="text" id="config-path" class="form-control" value="config/sources.yaml" placeholder="config/sources.yaml">
+        <!-- Configurations Tab -->
+        <div id="configurations-tab" class="tab-content hidden">
+            <div class="bg-gray-800 rounded-xl p-6 border border-gray-700">
+                <div class="flex items-center justify-between mb-4">
+                    <h3 class="text-lg font-semibold">Configuration List</h3>
+                    <div class="flex space-x-2">
+                        <select id="protocolFilter" class="px-3 py-1 bg-gray-700 border border-gray-600 rounded">
+                            <option value="">All Protocols</option>
+                            <option value="vmess">VMess</option>
+                            <option value="vless">VLESS</option>
+                            <option value="trojan">Trojan</option>
+                            <option value="shadowsocks">Shadowsocks</option>
+                        </select>
+                        <button id="refreshConfigs" class="px-4 py-2 bg-blue-600 hover:bg-blue-700 rounded-lg transition-colors">
+                            Refresh
+                        </button>
                     </div>
                 </div>
-            </section>
-
-            <!-- Real-time Logs -->
-            <section class="config-section">
-                <h3 class="section-title">
-                    📝 Processing Logs
-                    <button id="clear-logs" class="btn btn-secondary btn-sm ml-auto">Clear</button>
-                </h3>
-                <div id="log-output" class="log-output">
-                    <div class="text-muted">Ready to start processing...</div>
+                <div id="configsList" class="space-y-2">
+                    <div class="text-gray-400">Loading configurations...</div>
                 </div>
-            </section>
+            </div>
+        </div>
+
+        <!-- Jobs Tab -->
+        <div id="jobs-tab" class="tab-content hidden">
+            <div class="bg-gray-800 rounded-xl p-6 border border-gray-700">
+                <h3 class="text-lg font-semibold mb-4">Job History</h3>
+                <div id="jobsList" class="space-y-3">
+                    <div class="text-gray-400">Loading jobs...</div>
+                </div>
+            </div>
         </div>
     </main>
 
     <!-- Footer -->
-    <footer class="site-footer">
-        <div class="container">
-            <div class="flex items-center justify-center space-x-6 text-sm text-gray-300">
+    <footer class="mt-12 border-t border-gray-800">
+        <div class="container mx-auto px-6 py-6">
+            <div class="flex items-center justify-center space-x-6 text-sm text-gray-400">
                 <a href="/interactive.html" class="hover:text-white">Control Panel</a>
-                <span class="opacity-30">•</span>
+                <span>&bull;</span>
                 <a href="/config_generator.html" class="hover:text-white">Config Generator</a>
-                <span class="opacity-30">•</span>
+                <span>&bull;</span>
                 <a href="/troubleshooting.html" class="hover:text-white">Troubleshooting</a>
-                <span class="opacity-30">•</span>
-                <a href="/docs" class="hover:text-white">API Docs</a>
-            </div>
-            <div class="text-center mt-4 text-xs opacity-60">
-                StreamlineVPN v2.0.0 • Built with ❤️ for the community
+                <span>&bull;</span>
+                <span>StreamlineVPN v2.0.0</span>
             </div>
         </div>
     </footer>
@@ -416,105 +305,73 @@
     <!-- Scripts -->
     <script src="/api-base.js"></script>
     <script src="/assets/js/main.js"></script>
-
+    
+    <!-- Inline initialization script -->
     <script>
-        // Enhanced initialization and event handling
         document.addEventListener('DOMContentLoaded', function() {
-            const apiBase = window.__API_BASE__ || 'http://localhost:8080';
-            // Update API base info
-            function updateApiBaseInfo() {
-                const banner = document.getElementById('api-status-banner');
-                const info = document.getElementById('api-base-info');
-
-                if (info) {
-                    info.textContent = `Base URL: ${apiBase}`;
-                }
-
-                if (banner) {
-                    banner.classList.remove('hidden');
-                }
+            // Initialize the control panel application
+            if (window.StreamlineVPN && window.StreamlineVPN.ControlPanel) {
+                window.controlPanel = new window.StreamlineVPN.ControlPanel();
+                window.controlPanel.init();
+            } else {
+                console.warn('StreamlineVPN Control Panel class not found, loading fallback functionality');
+                // Fallback initialization
+                initializeFallback();
             }
-
-            // Setup clear logs functionality
-            const clearLogsBtn = document.getElementById('clear-logs');
-            const logOutput = document.getElementById('log-output');
-
-            if (clearLogsBtn && logOutput) {
-                clearLogsBtn.addEventListener('click', function() {
-                    logOutput.innerHTML = '<div class="text-muted">Logs cleared...</div>';
-                });
-            }
-
-            // Enhanced logging function
-            window.addLog = function(message, type = 'info') {
-                if (!logOutput) return;
-
-                const timestamp = new Date().toLocaleTimeString();
-                const logClass = {
-                    'info': 'text-blue-400',
-                    'success': 'text-green-400',
-                    'warning': 'text-yellow-400',
-                    'error': 'text-red-400'
-                }[type] || 'text-gray-400';
-
-                const logEntry = document.createElement('div');
-                logEntry.className = logClass;
-                logEntry.innerHTML = `<span class="text-gray-500">[${timestamp}]</span> ${message}`;
-
-                logOutput.appendChild(logEntry);
-                logOutput.scrollTop = logOutput.scrollHeight;
-
-                // Keep only last 100 log entries
-                while (logOutput.children.length > 100) {
-                    logOutput.removeChild(logOutput.firstChild);
-                }
-            };
-
-            // Header API status indicator
-            const headerStatus = document.getElementById('headerStatus');
-            fetch(`${apiBase}/health`).then(r => {
-                const ok = r.ok;
-                headerStatus.querySelector('.status-dot').className = 'status-dot ' + (ok ? 'status-active' : 'status-inactive');
-                headerStatus.querySelector('span:last-child').textContent = ok ? 'API Online' : 'API Down';
-            }).catch(() => {
-                headerStatus.querySelector('.status-dot').className = 'status-dot status-inactive';
-                headerStatus.querySelector('span:last-child').textContent = 'API Down';
-            });
-
-            // Setup format checkboxes
-            const formatCheckboxes = document.querySelectorAll('[id^="format-"]');
-            formatCheckboxes.forEach(checkbox => {
-                checkbox.addEventListener('change', function() {
-                    window.addLog(`Output format ${this.id.replace('format-', '')} ${this.checked ? 'enabled' : 'disabled'}`, 'info');
-                });
-            });
-
-            // Update counter displays
-            function updateCounters() {
-                const configCount = document.getElementById('config-count');
-                const sourceCount = document.getElementById('source-count');
-
-                if (window.streamlineVPN) {
-                    if (configCount && window.streamlineVPN.state.configurations) {
-                        configCount.textContent = `(${window.streamlineVPN.state.configurations.length})`;
-                    }
-                    if (sourceCount && window.streamlineVPN.state.sources) {
-                        sourceCount.textContent = `(${window.streamlineVPN.state.sources.length})`;
-                    }
-                }
-            }
-
-            // Update counters periodically
-            setInterval(updateCounters, 1000);
-
-            // Initialize
-            updateApiBaseInfo();
-            window.addLog('StreamlineVPN Control Panel initialized', 'success');
-
-            // API base change event handling
-            window.addEventListener('api-base-changed', updateApiBaseInfo);
-            window.addEventListener('api-base-cleared', updateApiBaseInfo);
         });
+        
+        function initializeFallback() {
+            // Basic tab switching functionality
+            const tabButtons = document.querySelectorAll('.tab-btn');
+            const tabContents = document.querySelectorAll('.tab-content');
+            
+            tabButtons.forEach(button => {
+                button.addEventListener('click', function() {
+                    const tabId = this.dataset.tab;
+                    
+                    // Update button states
+                    tabButtons.forEach(btn => btn.classList.remove('active', 'bg-blue-600'));
+                    this.classList.add('active', 'bg-blue-600');
+                    
+                    // Update content visibility
+                    tabContents.forEach(content => content.classList.add('hidden'));
+                    document.getElementById(`${tabId}-tab`).classList.remove('hidden');
+                });
+            });
+            
+            // Initialize connection monitoring
+            if (window.StreamlineVPN && window.StreamlineVPN.ConnectionMonitor) {
+                window.StreamlineVPN.ConnectionMonitor.start();
+            }
+        }
     </script>
+
+    <style>
+        .tab-btn.active {
+            @apply bg-blue-600 text-white;
+        }
+        
+        .tab-btn:not(.active) {
+            @apply text-gray-400 hover:text-white hover:bg-gray-700;
+        }
+        
+        #progressBar {
+            transition: width 0.3s ease-in-out;
+        }
+        
+        .animate-pulse {
+            animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+        }
+        
+        @keyframes pulse {
+            0%, 100% {
+                opacity: 1;
+            }
+            50% {
+                opacity: .5;
+            }
+        }
+    </style>
 </body>
 </html>
+

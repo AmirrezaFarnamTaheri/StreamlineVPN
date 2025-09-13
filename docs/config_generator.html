@@ -1,433 +1,451 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" data-theme="dark">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>StreamlineVPN Config Generator</title>
-  <meta name="description" content="Generate custom VPN configurations with StreamlineVPN">
-  <script src="/api-base.js"></script>
-  <script src="https://cdn.tailwindcss.com"></script>
-  <link href="/assets/css/style.css" rel="stylesheet">
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap" rel="stylesheet">
-  <style>
-    .bg-app {
-      background: linear-gradient(135deg, #0f172a 0%, #1e293b 50%, #334155 100%);
-      min-height: 100vh;
-    }
-    .animated-bg {
-      position: fixed;
-      inset: 0;
-      background: linear-gradient(125deg, #667eea, #764ba2, #f093fb, #667eea);
-      background-size: 400% 400%;
-      animation: gradient-shift 12s ease infinite;
-      opacity: 0.05;
-      z-index: -1;
-    }
-    @keyframes gradient-shift {
-      0%,100% { background-position: 0% 50%; }
-      50% { background-position: 100% 50%; }
-    }
-    /* Calmer animations and no neon glows to match main page */
-    .animate-glow, .animate-pulse { animation-duration: 4s !important; }
-    .animate-shimmer { animation-duration: 4s !important; }
-    .glass { box-shadow: none; }
-    .status-dot { width:8px; height:8px; border-radius:9999px; }
-    .status-active { background:#10b981; }
-    .status-inactive { background:#ef4444; }
-    .status-warning { background:#fbbf24; }
-  </style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>StreamlineVPN Configuration Generator</title>
+    <meta name="description" content="Generate VPN configurations for various protocols">
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; connect-src 'self' ws: wss: http: https:; img-src 'self' data: https://api.qrserver.com;">
+    <link rel="stylesheet" href="/assets/css/style.css">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        primary: '#3b82f6',
+                        secondary: '#10b981',
+                        accent: '#f59e0b',
+                        danger: '#ef4444'
+                    }
+                }
+            }
+        }
+    </script>
 </head>
-<body class="bg-app text-white no-neon">
-  <div class="animated-bg"></div>
-  <header class="glass border-b border-white/10 sticky top-0 z-50">
-    <div class="container mx-auto px-6 py-4 flex items-center justify-between">
-      <a href="index.html" class="flex items-center space-x-3 group">
-        <img src="assets/logo.svg" alt="StreamlineVPN Logo" class="h-10 w-10 group-hover:scale-110 transition-transform">
-        <span class="text-xl font-bold group-hover:text-purple-400 transition-colors">Config Generator</span>
-      </a>
-      <nav class="flex items-center space-x-4">
-        <a href="index.html" class="px-4 py-2 text-gray-300 hover:text-white transition">Home</a>
-        <a href="api/index.html" class="px-4 py-2 text-gray-300 hover:text-white transition">API Docs</a>
-        <a href="config_generator.html" class="px-4 py-2 text-purple-400 font-semibold">Generator</a>
-        <a href="interactive.html" class="px-4 py-2 text-gray-300 hover:text-white transition">Control Panel</a>
-        <div id="connectionStatus" class="flex items-center text-xs" title="Checking API connectivity...">
-          <span class="status-dot status-warning"></span>
-          <span class="ml-2">Checking...</span>
+
+<body class="bg-gray-900 text-white min-h-screen">
+    <header class="bg-gray-800 border-b border-gray-700">
+        <div class="container mx-auto px-6 py-4">
+            <div class="flex items-center justify-between">
+                <div class="flex items-center space-x-4">
+                    <h1 class="text-2xl font-bold text-blue-400">StreamlineVPN</h1>
+                    <span class="px-2 py-1 bg-green-600 text-xs rounded">Configuration Generator</span>
+                </div>
+                <nav class="flex items-center space-x-6">
+                    <a href="/interactive.html" class="text-gray-300 hover:text-white">Control Panel</a>
+                    <a href="/config_generator.html" class="text-blue-400 font-semibold">Config Generator</a>
+                    <a href="/troubleshooting.html" class="text-gray-300 hover:text-white">Help</a>
+                </nav>
+            </div>
         </div>
-      </nav>
-    </div>
-  </header>
+    </header>
 
-  <div class="container mx-auto px-4 py-10 max-w-5xl">
-    <div class="glass rounded-xl p-6 mb-6">
-      <div class="flex items-center justify-between mb-4">
-        <h3 class="text-lg font-semibold">Wizard</h3>
-        <div class="text-sm text-gray-400">Step <span id="currentStep">1</span> / 3</div>
-      </div>
-      <div class="relative h-2 bg-gray-700 rounded">
-        <div id="progressBar" class="absolute left-0 top-0 h-2 bg-gradient-to-r from-blue-500 to-purple-600 rounded" style="width:33%"></div>
-      </div>
-      <div class="flex justify-between text-xs mt-2 text-gray-400">
-        <span id="stepLabel1" class="text-blue-400">Protocol</span>
-        <span id="stepLabel2">Parameters</span>
-        <span id="stepLabel3">Output</span>
-      </div>
-    </div>
-
-    <!-- Step 1 -->
-    <section id="step1" class="glass rounded-xl p-6 mb-6">
-      <h2 class="text-xl font-semibold mb-4">Select Protocol</h2>
-      <div class="grid grid-cols-2 md:grid-cols-3 gap-4">
-        <button class="protocol-btn glass p-4 rounded-lg" data-protocol="vmess">VMess</button>
-        <button class="protocol-btn glass p-4 rounded-lg" data-protocol="vless">VLESS</button>
-        <button class="protocol-btn glass p-4 rounded-lg" data-protocol="trojan">Trojan</button>
-        <button class="protocol-btn glass p-4 rounded-lg" data-protocol="shadowsocks">Shadowsocks</button>
-        <button class="protocol-btn glass p-4 rounded-lg" data-protocol="hysteria">Hysteria</button>
-        <button class="protocol-btn glass p-4 rounded-lg" data-protocol="tuic">TUIC</button>
-      </div>
-    </section>
-
-    <!-- Step 2 -->
-    <section id="step2" class="glass rounded-xl p-6 mb-6 hidden">
-      <h2 class="text-xl font-semibold mb-4">Parameters</h2>
-      <div class="grid md:grid-cols-2 gap-4">
-        <div>
-          <label class="block text-sm mb-1">Server</label>
-          <input id="server" class="w-full px-3 py-2 bg-gray-700 rounded" placeholder="example.com" />
+    <main class="container mx-auto px-6 py-8 max-w-4xl">
+        <div class="mb-8">
+            <div class="flex items-center justify-center space-x-4 mb-6">
+                <div class="flex items-center">
+                    <div id="step1Badge" class="w-8 h-8 bg-blue-600 text-white rounded-full flex items-center justify-center text-sm font-bold">1</div>
+                    <span class="ml-2 text-sm font-medium">Protocol</span>
+                </div>
+                <div id="connector1" class="w-12 h-0.5 bg-gray-600"></div>
+                <div class="flex items-center">
+                    <div id="step2Badge" class="w-8 h-8 bg-gray-600 text-gray-300 rounded-full flex items-center justify-center text-sm font-bold">2</div>
+                    <span class="ml-2 text-sm font-medium text-gray-400">Parameters</span>
+                </div>
+                <div id="connector2" class="w-12 h-0.5 bg-gray-600"></div>
+                <div class="flex items-center">
+                    <div id="step3Badge" class="w-8 h-8 bg-gray-600 text-gray-300 rounded-full flex items-center justify-center text-sm font-bold">3</div>
+                    <span class="ml-2 text-sm font-medium text-gray-400">Output</span>
+                </div>
+            </div>
         </div>
-        <div>
-          <label class="block text-sm mb-1">Port</label>
-          <input id="port" type="number" class="w-full px-3 py-2 bg-gray-700 rounded" placeholder="443" />
+
+        <!-- Step 1 -->
+        <section id="step1" class="bg-gray-800 rounded-xl p-8 border border-gray-700">
+            <h2 class="text-2xl font-bold mb-6 text-center">Select VPN Protocol</h2>
+            <div class="grid grid-cols-2 md:grid-cols-3 gap-4">
+                <button class="protocol-btn" data-protocol="vmess">
+                    <div class="text-2xl mb-2">🚀</div>
+                    <div class="font-semibold">VMess</div>
+                    <div class="text-sm text-gray-400 mt-2">V2Ray protocol</div>
+                </button>
+                <button class="protocol-btn" data-protocol="vless">
+                    <div class="text-2xl mb-2">⚡</div>
+                    <div class="font-semibold">VLESS</div>
+                    <div class="text-sm text-gray-400 mt-2">Lightweight V2Ray</div>
+                </button>
+                <button class="protocol-btn" data-protocol="trojan">
+                    <div class="text-2xl mb-2">🛡️</div>
+                    <div class="font-semibold">Trojan</div>
+                    <div class="text-sm text-gray-400 mt-2">TLS-based protocol</div>
+                </button>
+                <button class="protocol-btn" data-protocol="shadowsocks">
+                    <div class="text-2xl mb-2">🔒</div>
+                    <div class="font-semibold">Shadowsocks</div>
+                    <div class="text-sm text-gray-400 mt-2">SOCKS5-based proxy</div>
+                </button>
+                <button class="protocol-btn" data-protocol="hysteria">
+                    <div class="text-2xl mb-2">🌪️</div>
+                    <div class="font-semibold">Hysteria</div>
+                    <div class="text-sm text-gray-400 mt-2">QUIC-based protocol</div>
+                </button>
+                <button class="protocol-btn" data-protocol="tuic">
+                    <div class="text-2xl mb-2">🔄</div>
+                    <div class="font-semibold">TUIC</div>
+                    <div class="text-sm text-gray-400 mt-2">UDP-based protocol</div>
+                </button>
+            </div>
+        </section>
+
+        <!-- Step 2 -->
+        <section id="step2" class="bg-gray-800 rounded-xl p-8 border border-gray-700 hidden">
+            <h2 class="text-2xl font-bold mb-6 text-center">Configure Parameters</h2>
+            <div class="grid md:grid-cols-2 gap-6 mb-6">
+                <div>
+                    <label class="block text-sm font-medium mb-2">Server Address</label>
+                    <input id="server" type="text" placeholder="example.com" class="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg focus:border-blue-500 focus:outline-none" />
+                    <p class="text-xs text-gray-400 mt-1">Server hostname or IP address</p>
+                </div>
+                <div>
+                    <label class="block text-sm font-medium mb-2">Port</label>
+                    <input id="port" type="number" placeholder="443" min="1" max="65535" class="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg focus:border-blue-500 focus:outline-none" />
+                    <p class="text-xs text-gray-400 mt-1">Port number (1-65535)</p>
+                </div>
+            </div>
+
+            <!-- VMess Parameters -->
+            <div id="vmess-params" class="protocol-params hidden">
+                <h3 class="text-lg font-semibold mb-4 text-blue-400">VMess Configuration</h3>
+                <div class="grid md:grid-cols-2 gap-6">
+                    <div>
+                        <label class="block text-sm font-medium mb-2">User ID (UUID)</label>
+                        <div class="flex">
+                            <input id="vmess-uuid" type="text" placeholder="Generate or enter UUID" class="flex-1 px-4 py-2 bg-gray-700 border border-gray-600 rounded-l-lg focus:border-blue-500 focus:outline-none" />
+                            <button id="generate-uuid" type="button" class="px-4 py-2 bg-blue-600 hover:bg-blue-700 border border-blue-600 rounded-r-lg transition-colors">Generate</button>
+                        </div>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium mb-2">Alter ID</label>
+                        <input id="vmess-alterId" type="number" value="0" min="0" max="255" class="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg focus:border-blue-500 focus:outline-none" />
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium mb-2">Security</label>
+                        <select id="vmess-security" class="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg focus:border-blue-500 focus:outline-none">
+                            <option value="auto">auto</option>
+                            <option value="aes-128-gcm">aes-128-gcm</option>
+                            <option value="chacha20-poly1305">chacha20-poly1305</option>
+                            <option value="none">none</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium mb-2">Network</label>
+                        <select id="vmess-network" class="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg focus:border-blue-500 focus:outline-none">
+                            <option value="tcp">TCP</option>
+                            <option value="ws">WebSocket</option>
+                            <option value="grpc">gRPC</option>
+                            <option value="h2">HTTP/2</option>
+                        </select>
+                    </div>
+                </div>
+                <div id="ws-settings" class="mt-4 p-4 bg-gray-700 rounded-lg hidden">
+                    <h4 class="font-medium mb-3">WebSocket Settings</h4>
+                    <div class="grid md:grid-cols-2 gap-4">
+                        <div>
+                            <label class="block text-sm font-medium mb-2">Path</label>
+                            <input id="ws-path" type="text" placeholder="/path" class="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg focus:border-blue-500 focus:outline-none" />
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium mb-2">Host</label>
+                            <input id="ws-host" type="text" placeholder="example.com" class="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg focus:border-blue-500 focus:outline-none" />
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- VLESS Parameters -->
+            <div id="vless-params" class="protocol-params hidden">
+                <h3 class="text-lg font-semibold mb-4 text-green-400">VLESS Configuration</h3>
+                <div class="grid md:grid-cols-2 gap-6">
+                    <div>
+                        <label class="block text-sm font-medium mb-2">User ID (UUID)</label>
+                        <div class="flex">
+                            <input id="vless-uuid" type="text" placeholder="Generate or enter UUID" class="flex-1 px-4 py-2 bg-gray-700 border border-gray-600 rounded-l-lg focus:border-blue-500 focus:outline-none" />
+                            <button id="generate-vless-uuid" type="button" class="px-4 py-2 bg-green-600 hover:bg-green-700 border border-green-600 rounded-r-lg transition-colors">Generate</button>
+                        </div>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium mb-2">Encryption</label>
+                        <select id="vless-encryption" class="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg focus:border-blue-500 focus:outline-none">
+                            <option value="none">none</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium mb-2">Flow</label>
+                        <select id="vless-flow" class="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg focus:border-blue-500 focus:outline-none">
+                            <option value="">None</option>
+                            <option value="xtls-rprx-direct">xtls-rprx-direct</option>
+                            <option value="xtls-rprx-splice">xtls-rprx-splice</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium mb-2">Network</label>
+                        <select id="vless-network" class="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg focus:border-blue-500 focus:outline-none">
+                            <option value="tcp">TCP</option>
+                            <option value="ws">WebSocket</option>
+                            <option value="grpc">gRPC</option>
+                            <option value="h2">HTTP/2</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Trojan Parameters -->
+            <div id="trojan-params" class="protocol-params hidden">
+                <h3 class="text-lg font-semibold mb-4 text-yellow-400">Trojan Configuration</h3>
+                <div class="grid md:grid-cols-2 gap-6">
+                    <div>
+                        <label class="block text-sm font-medium mb-2">Password</label>
+                        <div class="flex">
+                            <input id="trojan-password" type="text" placeholder="Enter or generate password" class="flex-1 px-4 py-2 bg-gray-700 border border-gray-600 rounded-l-lg focus:border-blue-500 focus:outline-none" />
+                            <button id="generate-trojan-password" type="button" class="px-4 py-2 bg-yellow-600 hover:bg-yellow-700 border border-yellow-600 rounded-r-lg transition-colors">Generate</button>
+                        </div>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium mb-2">SNI</label>
+                        <input id="trojan-sni" type="text" placeholder="example.com" class="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg focus:border-blue-500 focus:outline-none" />
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium mb-2">Network</label>
+                        <select id="trojan-network" class="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg focus:border-blue-500 focus:outline-none">
+                            <option value="tcp">TCP</option>
+                            <option value="ws">WebSocket</option>
+                            <option value="grpc">gRPC</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="flex items-center space-x-2"><input id="trojan-allowInsecure" type="checkbox" class="w-4 h-4 text-yellow-600" /><span class="text-sm">Allow Insecure</span></label>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Shadowsocks Parameters -->
+            <div id="shadowsocks-params" class="protocol-params hidden">
+                <h3 class="text-lg font-semibold mb-4 text-purple-400">Shadowsocks Configuration</h3>
+                <div class="grid md:grid-cols-2 gap-6">
+                    <div>
+                        <label class="block text-sm font-medium mb-2">Password</label>
+                        <div class="flex">
+                            <input id="ss-password" type="text" placeholder="Enter or generate password" class="flex-1 px-4 py-2 bg-gray-700 border border-gray-600 rounded-l-lg focus:border-blue-500 focus:outline-none" />
+                            <button id="generate-ss-password" type="button" class="px-4 py-2 bg-purple-600 hover:bg-purple-700 border border-purple-600 rounded-r-lg transition-colors">Generate</button>
+                        </div>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium mb-2">Method</label>
+                        <select id="ss-method" class="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg focus:border-blue-500 focus:outline-none">
+                            <option value="aes-256-gcm">aes-256-gcm</option>
+                            <option value="aes-128-gcm">aes-128-gcm</option>
+                            <option value="chacha20-ietf-poly1305">chacha20-ietf-poly1305</option>
+                            <option value="2022-blake3-aes-256-gcm">2022-blake3-aes-256-gcm</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+
+            <div class="flex justify-between mt-8">
+                <button id="prevStep" class="px-6 py-2 bg-gray-600 hover:bg-gray-700 rounded-lg transition-colors">← Previous</button>
+                <button id="nextStep" class="px-6 py-2 bg-blue-600 hover:bg-blue-700 rounded-lg transition-colors">Next →</button>
+            </div>
+        </section>
+
+        <!-- Step 3 -->
+        <section id="step3" class="bg-gray-800 rounded-xl p-8 border border-gray-700 hidden">
+            <h2 class="text-2xl font-bold mb-6 text-center">Generated Configuration</h2>
+            <div class="mb-6">
+                <label class="block text-sm font-medium mb-2">Output Format</label>
+                <div class="flex flex-wrap gap-2">
+                    <button class="format-btn" data-format="url">URL</button>
+                    <button class="format-btn" data-format="json">JSON</button>
+                    <button class="format-btn" data-format="clash">Clash</button>
+                    <button class="format-btn" data-format="singbox">Sing-Box</button>
+                </div>
+            </div>
+            <div class="mb-6">
+                <div class="flex items-center justify-between mb-2">
+                    <label class="text-sm font-medium">Generated Configuration</label>
+                    <div class="flex space-x-2">
+                        <button id="copyConfig" class="px-3 py-1 bg-green-600 hover:bg-green-700 text-sm rounded transition-colors">Copy</button>
+                        <button id="downloadConfig" class="px-3 py-1 bg-blue-600 hover:bg-blue-700 text-sm rounded transition-colors">Download</button>
+                        <button id="testConfig" class="px-3 py-1 bg-yellow-600 hover:bg-yellow-700 text-sm rounded transition-colors">Test</button>
+                    </div>
+                </div>
+                <textarea id="configOutput" readonly class="w-full h-64 px-4 py-3 bg-gray-900 border border-gray-600 rounded-lg font-mono text-sm focus:outline-none" placeholder="Configuration will appear here..."></textarea>
+            </div>
+            <div class="mb-6">
+                <label class="text-sm font-medium mb-2 block">QR Code</label>
+                <div class="flex justify-center p-6 bg-white rounded-lg">
+                    <div id="qrcode" class="w-48 h-48 bg-gray-100 rounded-lg flex items-center justify-center text-gray-500">QR Code will appear here</div>
+                </div>
+            </div>
+            <div class="flex justify-between mt-8">
+                <button id="prevStep3" class="px-6 py-2 bg-gray-600 hover:bg-gray-700 rounded-lg transition-colors">← Previous</button>
+                <button id="restartWizard" class="px-6 py-2 bg-blue-600 hover:bg-blue-700 rounded-lg transition-colors">Start Over</button>
+            </div>
+        </section>
+    </main>
+
+    <footer class="mt-12 border-t border-gray-800">
+        <div class="container mx-auto px-6 py-6">
+            <div class="flex items-center justify-center space-x-6 text-sm text-gray-400">
+                <a href="/interactive.html" class="hover:text-white">Control Panel</a>
+                <span>&bull;</span>
+                <a href="/config_generator.html" class="hover:text-white">Config Generator</a>
+                <span>&bull;</span>
+                <a href="/troubleshooting.html" class="hover:text-white">Troubleshooting</a>
+                <span>&bull;</span>
+                <span>StreamlineVPN v2.0.0</span>
+            </div>
         </div>
-        <div>
-          <label class="block text-sm mb-1">User ID / Password</label>
-          <div class="flex space-x-2">
-            <input id="userId" class="w-full px-3 py-2 bg-gray-700 rounded" placeholder="Auto-generated" />
-            <button id="genUserId" class="btn btn-secondary">Generate</button>
-          </div>
-        </div>
-        <div>
-          <label class="block text-sm mb-1">Network</label>
-          <select id="network" class="w-full px-3 py-2 bg-gray-700 rounded">
-            <option value="tcp">TCP</option>
-            <option value="ws">WebSocket</option>
-            <option value="grpc">gRPC</option>
-            <option value="quic">QUIC</option>
-          </select>
-        </div>
-        <div>
-          <label class="block text-sm mb-1">Encryption</label>
-          <select id="encryption" class="w-full px-3 py-2 bg-gray-700 rounded">
-            <option value="auto">Auto</option>
-            <option value="aes-128-gcm">AES-128-GCM</option>
-            <option value="aes-256-gcm">AES-256-GCM</option>
-            <option value="chacha20-ietf-poly1305">ChaCha20-Poly1305</option>
-          </select>
-        </div>
-        <div class="flex items-center space-x-4">
-          <label class="flex items-center space-x-2"><input id="tls" type="checkbox" class="rounded" checked /><span>TLS</span></label>
-          <label class="flex items-center space-x-2"><input id="insecure" type="checkbox" class="rounded" /><span>Skip Verify</span></label>
-        </div>
-      </div>
-    </section>
+    </footer>
 
-    <!-- Step 3 -->
-    <section id="step3" class="glass rounded-xl p-6 mb-6 hidden">
-      <h2 class="text-xl font-semibold mb-4">Output</h2>
-      <div class="grid md:grid-cols-3 gap-4 mb-4">
-        <label class="flex items-center space-x-2"><input class="fmt" type="checkbox" value="url" checked /><span>Share URL</span></label>
-        <label class="flex items-center space-x-2"><input class="fmt" type="checkbox" value="json" /><span>JSON</span></label>
-        <label class="flex items-center space-x-2"><input class="fmt" type="checkbox" value="clash" /><span>Clash</span></label>
-        <label class="flex items-center space-x-2"><input class="fmt" type="checkbox" value="singbox" /><span>Sing-Box</span></label>
-        <label class="flex items-center space-x-2"><input class="fmt" type="checkbox" value="subscription" /><span>Subscription</span></label>
-      </div>
-      <div class="format-preview" id="preview">Select formats and click Generate</div>
-    </section>
+    <script src="/api-base.js"></script>
+    <script src="/assets/js/main.js"></script>
+    <script>
+    document.addEventListener('DOMContentLoaded', function(){
+        let currentStep = 1;
+        let selectedProtocol = null;
+        const steps = {1:document.getElementById('step1'),2:document.getElementById('step2'),3:document.getElementById('step3')};
+        const badges = [null, document.getElementById('step1Badge'), document.getElementById('step2Badge'), document.getElementById('step3Badge')];
+        const connectors = [null, document.getElementById('connector1'), document.getElementById('connector2')];
 
-    <!-- Batch Generator (Beginner Friendly) -->
-    <section class="glass rounded-xl p-6 mb-6">
-      <div class="flex items-center justify-between mb-4">
-        <h2 class="text-xl font-semibold">Batch Generator</h2>
-        <span class="text-sm text-gray-400">Amateur friendly</span>
-      </div>
-      <p class="text-gray-300 mb-3">Paste one source URL per line. Pick a tier and (optional) default protocol. Click Generate to get a ready-to-use YAML snippet.</p>
-      <div class="grid md:grid-cols-2 gap-4 mb-4">
-        <div>
-          <label class="block text-sm mb-1">Source URLs (one per line)</label>
-          <textarea id="batchUrls" class="w-full h-40 px-3 py-2 bg-gray-700 rounded" placeholder="https://example.com/configs.txt&#10;https://another.com/sub.txt"></textarea>
-        </div>
-        <div>
-          <label class="block text-sm mb-1">Tier</label>
-          <select id="batchTier" class="w-full px-3 py-2 bg-gray-700 rounded">
-            <option value="premium">Premium</option>
-            <option value="reliable">Reliable</option>
-            <option value="community" selected>Community</option>
-            <option value="experimental">Experimental</option>
-          </select>
-          <label class="block text-sm mb-1 mt-3">Default Protocol (optional)</label>
-          <select id="batchProtocol" class="w-full px-3 py-2 bg-gray-700 rounded">
-            <option value="">(none)</option>
-            <option value="vmess">VMess</option>
-            <option value="vless">VLESS</option>
-            <option value="trojan">Trojan</option>
-            <option value="ss">Shadowsocks</option>
-          </select>
-          <label class="flex items-center space-x-2 mt-3"><input id="batchEnabled" type="checkbox" class="rounded" checked><span>Mark sources as enabled</span></label>
-        </div>
-      </div>
-      <div class="flex items-center space-x-2 mb-3">
-        <button id="btnBatchTest" class="btn btn-secondary">Test URLs</button>
-        <button id="btnBatchGenerate" class="btn btn-primary">Generate YAML</button>
-        <button id="btnBatchCopy" class="btn btn-secondary">Copy</button>
-        <button id="btnBatchDownload" class="btn btn-ghost">Download</button>
-      </div>
-      <pre id="batchPreview" class="bg-gray-900 rounded p-4 min-h-[140px]"></pre>
-    </section>
-
-    <div class="flex items-center justify-between">
-      <button id="prev" class="px-4 py-2 border border-gray-600 rounded" disabled>Previous</button>
-      <div class="space-x-2">
-        <button id="reset" class="px-4 py-2 text-gray-300 hover:text-white">Reset</button>
-      </div>
-      <button id="next" class="px-4 py-2 bg-blue-600 hover:bg-blue-700 rounded">Next</button>
-    </div>
-  </div>
-
-  <script>
-  const API_BASE = window.__API_BASE__ || 'http://localhost:8080';
-  const connectionStatus = document.getElementById('connectionStatus');
-  fetch(`${API_BASE}/health`).then(r=>{
-    const ok = r.ok; connectionStatus.querySelector('.status-dot').className = 'status-dot ' + (ok?'status-active':'status-inactive');
-    connectionStatus.querySelector('span:last-child').textContent = ok?'Connected':'Disconnected';
-  }).catch(()=>{
-    connectionStatus.querySelector('.status-dot').className = 'status-dot status-inactive';
-    connectionStatus.querySelector('span:last-child').textContent = 'Disconnected';
-  });
-
-  let step = 1; let protocol = null;
-  const currentStep = document.getElementById('currentStep');
-  const stepEls = [null, document.getElementById('step1'), document.getElementById('step2'), document.getElementById('step3')];
-  const labels = [null, document.getElementById('stepLabel1'), document.getElementById('stepLabel2'), document.getElementById('stepLabel3')];
-  const progressBar = document.getElementById('progressBar');
-
-  function showStep(n){
-    step = n; currentStep.textContent = n;
-    stepEls.forEach((el,i)=>{ if(!el) return; el.classList.toggle('hidden', i!==n); });
-    labels.forEach((l,i)=>{ if(!l) return; l.className = i===n? 'text-blue-400' : 'text-gray-400'; });
-    progressBar.style.width = n===1 ? '33%' : n===2 ? '66%' : '100%';
-    document.getElementById('prev').disabled = n===1;
-    document.getElementById('next').textContent = n===3? 'Generate' : 'Next';
-  }
-
-  document.querySelectorAll('.protocol-btn').forEach(btn=>{
-    btn.addEventListener('click',()=>{ protocol = btn.dataset.protocol; showStep(2); });
-  });
-
-  function uuid(){return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g,c=>{const r=Math.random()*16|0,v=c==='x'?r:(r&0x3|0x8);return v.toString(16);});}
-  document.getElementById('genUserId').addEventListener('click',(e)=>{ e.preventDefault(); document.getElementById('userId').value = uuid(); });
-
-  document.getElementById('reset').addEventListener('click',()=>{ protocol=null; document.getElementById('server').value=''; document.getElementById('port').value=''; document.getElementById('userId').value=''; showStep(1); });
-  document.getElementById('prev').addEventListener('click',()=>showStep(Math.max(1, step-1)));
-  document.getElementById('next').addEventListener('click',()=>{
-    if(step===1){ if(!protocol){alert('Select a protocol'); return;} showStep(2); return; }
-    if(step===2){ showStep(3); return; }
-    if(step===3){ generate(); }
-  });
-
-  function generate(){
-    const cfg = {
-      protocol,
-      server: document.getElementById('server').value,
-      port: parseInt(document.getElementById('port').value||'0',10),
-      userId: document.getElementById('userId').value || uuid(),
-      network: document.getElementById('network').value,
-      encryption: document.getElementById('encryption').value,
-      tls: document.getElementById('tls').checked,
-      insecure: document.getElementById('insecure').checked
-    };
-    const formats = Array.from(document.querySelectorAll('.fmt:checked')).map(x=>x.value);
-    if(formats.length===0){ alert('Select at least one format'); return; }
-    const out = [];
-    if(formats.includes('url')) out.push(url(cfg));
-    if(formats.includes('json')) out.push('JSON\n'+json(cfg));
-    if(formats.includes('clash')) out.push('Clash\n'+clash(cfg));
-    if(formats.includes('singbox')) out.push('Sing-Box\n'+singbox(cfg));
-    if(formats.includes('subscription')) out.push('Subscription\n'+btoa(url(cfg)));
-    document.getElementById('preview').textContent = out.join('\n\n');
-  }
-
-  function url(c){
-    const b = btoa(JSON.stringify({v:'2', ps:`${c.server}:${c.port}`, add:c.server, port:c.port, id:c.userId, aid:0, net:c.network, type:'none', host:'', path:'', tls:c.tls?'tls':'' }));
-    return `${c.protocol}://${b}`;
-  }
-  function json(c){
-    return JSON.stringify({ outbounds: [{ protocol:c.protocol, settings:{ vnext:[{ address:c.server, port:c.port, users:[{id:c.userId, alterId:0, security:c.encryption}]}]}, streamSettings:{ network:c.network, security:c.tls?'tls':'none' } }]}, null, 2);
-  }
-  function clash(c){
-    return `proxies:\n  - name: "${c.server}"\n    type: ${c.protocol}\n    server: ${c.server}\n    port: ${c.port}\n    uuid: ${c.userId}\n    alterId: 0\n    cipher: ${c.encryption}\n    tls: ${c.tls}\n    network: ${c.network}`;
-  }
-  function singbox(c){
-    const o = { outbounds:[{ type:c.protocol, tag:'proxy', server:c.server, server_port:c.port, uuid:c.userId, security:c.encryption, transport:{type:c.network} }]};
-    if(c.tls) o.outbounds[0].tls = { enabled:true, insecure:c.insecure };
-    return JSON.stringify(o, null, 2);
-  }
-
-  // Batch generator helpers
-  function sanitizeUrl(u){ try{ return new URL(u).toString(); }catch(_){ return null; } }
-  function yamlEscape(s){ return (s||'').replace(/"/g,'\\"'); }
-  function buildBatchYaml(urls, tier, proto, enabled){
-    const lines = ['sources:'];
-    let idx = 1;
-    urls.forEach(u=>{
-      const su = sanitizeUrl(u);
-      if (!su) return;
-      const name = `Source_${idx++}`;
-      lines.push(`  - name: "${yamlEscape(name)}"`);
-      lines.push(`    url: "${yamlEscape(su)}"`);
-      lines.push(`    tier: "${tier}"`);
-      if (proto) lines.push(`    protocols: ["${proto}"]`);
-      lines.push(`    enabled: ${enabled ? 'true' : 'false'}`);
-    });
-    return lines.join('\n');
-  }
-
-  document.getElementById('btnBatchGenerate').addEventListener('click', ()=>{
-    const raw = document.getElementById('batchUrls').value || '';
-    const urls = raw.split(/\r?\n/).map(x=>x.trim()).filter(Boolean);
-    if (urls.length === 0) { alert('Please paste at least one URL.'); return; }
-    const tier = document.getElementById('batchTier').value;
-    const proto = document.getElementById('batchProtocol').value;
-    const enabled = document.getElementById('batchEnabled').checked;
-    // Validate before generating
-    if (window.makeApiRequest) {
-      window.makeApiRequest('/api/v1/sources/validate-urls', {
-        method: 'POST',
-        body: JSON.stringify({ urls })
-      }).then(res => {
-        const invalids = (res.results||[]).filter(r => !r.valid);
-        if (invalids.length > 0) {
-          alert('Some URLs look invalid or unsafe:\n\n' + invalids.map(x=>`- ${x.url} ${x.reason? '('+x.reason+')':''}`).join('\n') + '\n\nPlease fix and try again.');
-          return;
+        function updateProgress(){
+            for(let i=1;i<=3;i++){
+                if(badges[i]){
+                    badges[i].className = 'w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold ' + (i<=currentStep ? 'bg-blue-600 text-white':'bg-gray-600 text-gray-300');
+                }
+                if(connectors[i]){
+                    connectors[i].className = 'w-12 h-0.5 ' + (i<currentStep ? 'bg-blue-600':'bg-gray-600');
+                }
+            }
         }
-        const yaml = buildBatchYaml(urls, tier, proto, enabled);
-        document.getElementById('batchPreview').textContent = yaml;
-      }).catch(_ => {
-        // Fallback to client-only validation
-        const bad = urls.filter(u => !sanitizeUrl(u));
-        if (bad.length) { alert('Invalid URLs:\n\n' + bad.join('\n')); return; }
-        const yaml = buildBatchYaml(urls, tier, proto, enabled);
-        document.getElementById('batchPreview').textContent = yaml;
-      });
-    } else {
-      const bad = urls.filter(u => !sanitizeUrl(u));
-      if (bad.length) { alert('Invalid URLs:\n\n' + bad.join('\n')); return; }
-      const yaml = buildBatchYaml(urls, tier, proto, enabled);
-      document.getElementById('batchPreview').textContent = yaml;
-    }
-  });
-
-  document.getElementById('btnBatchCopy').addEventListener('click', ()=>{
-    const text = document.getElementById('batchPreview').textContent || '';
-    if (!text) { alert('Nothing to copy. Generate YAML first.'); return; }
-    if (navigator.clipboard && navigator.clipboard.writeText) {
-      navigator.clipboard.writeText(text).then(()=>alert('Copied!')).catch(()=>alert('Copy failed'));
-    } else {
-      alert('Copy not supported in this browser');
-    }
-  });
-
-  document.getElementById('btnBatchDownload').addEventListener('click', ()=>{
-    const text = document.getElementById('batchPreview').textContent || '';
-    if (!text) { alert('Nothing to download. Generate YAML first.'); return; }
-    const blob = new Blob([text], { type:'text/yaml' });
-    const a = document.createElement('a');
-    a.href = URL.createObjectURL(blob);
-    a.download = 'sources.yaml';
-    a.click();
-    setTimeout(()=>URL.revokeObjectURL(a.href), 1000);
-  });
-
-  document.getElementById('btnBatchTest').addEventListener('click', ()=>{
-    const raw = document.getElementById('batchUrls').value || '';
-    const urls = raw.split(/\r?\n/).map(x=>x.trim()).filter(Boolean);
-    if (urls.length === 0) { alert('Please paste at least one URL.'); return; }
-    if (!window.makeApiRequest) {
-      const bad = urls.filter(u => !sanitizeUrl(u));
-      if (bad.length) { alert('Invalid URLs:\n\n' + bad.join('\n')); } else { alert('URLs look syntactically valid.'); }
-      return;
-    }
-    window.makeApiRequest('/api/v1/sources/validate-urls', {
-      method: 'POST',
-      body: JSON.stringify({ urls })
-    }).then(res => {
-      const invalids = (res.results||[]).filter(r => !r.valid);
-      if (invalids.length > 0) {
-        alert('Some URLs look invalid or unsafe:\n\n' + invalids.map(x=>`- ${x.url} ${x.reason? '('+x.reason+')':''}`).join('\n'));
-      } else {
-        alert('All URLs look valid.');
-      }
-    }).catch(err => {
-      alert('Validation failed: ' + (err?.message || 'unknown error'));
-    });
-  });
-
-  // Defaults
-  document.getElementById('userId').value = uuid();
-  </script>
-  <footer class="mt-12 opacity-90">
-    <div class="container mx-auto px-6 py-6">
-      <div class="flex items-center justify-center space-x-6 text-sm text-gray-300">
-        <a href="/interactive.html" class="hover:text-white">Control Panel</a>
-        <span class="opacity-30">&bull;</span>
-        <a href="/config_generator.html" class="hover:text-white">Config Generator</a>
-        <span class="opacity-30">&bull;</span>
-        <a href="/troubleshooting.html" class="hover:text-white">Troubleshooting</a>
-      </div>
-    </div>
-  </footer>
-  <!-- API Base Debug Banner -->
-  <div id="api-debug-banner" style="position: fixed; bottom: 14px; right: 14px; z-index: 10000;">
-    <div class="glass rounded-lg px-3 py-2 text-xs text-gray-200 border border-white/10 shadow-md" style="backdrop-filter: blur(10px)">
-      <span>API:</span>
-      <span id="api-debug-current" class="font-medium"></span>
-      <span class="opacity-50 mx-1">|</span>
-      <button id="api-debug-change" class="text-blue-300 hover:text-blue-200">Change</button>
-      <span class="opacity-50 mx-1">•</span>
-      <button id="api-debug-clear" class="text-red-300 hover:text-red-200">Clear</button>
-      <span class="opacity-50 mx-1">•</span>
-      <a id="api-debug-meta" href="#" class="text-gray-300 hover:text-white" title="How to override via meta tag">Meta override</a>
-    </div>
-  </div>
-  <script>
-    (function(){
-      function updateBanner(){
-        var el = document.getElementById('api-debug-current');
-        var base = window.__API_BASE__ || (window.location.protocol + '//' + window.location.host);
-        if (el) el.textContent = base;
-      }
-      document.getElementById('api-debug-change').addEventListener('click', function(){
-        var current = window.__API_BASE__ || '';
-        var input = prompt('Enter API Base URL (e.g., https://api.example.com)', current);
-        if (input) { window.setApiBaseOverride(input); }
-      });
-      document.getElementById('api-debug-clear').addEventListener('click', function(){
-        window.clearApiBaseOverride();
-      });
-      document.getElementById('api-debug-meta').addEventListener('click', function(e){
-        e.preventDefault();
-        var snippet = '<meta name="api-base" content="' + (window.__API_BASE__ || 'http://localhost:8080') + '">';
-        var msg = 'Add this to <head> to hard-set API base:\n\n' + snippet + '\n\nThen reload the page.';
-        if (navigator.clipboard) {
-          navigator.clipboard.writeText(snippet).then(function(){ alert(msg + '\n\n(Snippet copied to clipboard)'); });
-        } else {
-          alert(msg);
+        function showStep(n){
+            currentStep = n;
+            Object.values(steps).forEach(s=>s.classList.add('hidden'));
+            steps[n].classList.remove('hidden');
+            updateProgress();
         }
-      });
-      window.addEventListener('api-base-changed', updateBanner);
-      window.addEventListener('api-base-cleared', updateBanner);
-      updateBanner();
-    })();
-  </script>
+        function showParams(proto){
+            document.querySelectorAll('.protocol-params').forEach(p=>p.classList.add('hidden'));
+            const el=document.getElementById(`${proto}-params`);
+            if(el) el.classList.remove('hidden');
+        }
+        document.querySelectorAll('.protocol-btn').forEach(btn=>{
+            btn.addEventListener('click',()=>{
+                selectedProtocol = btn.dataset.protocol;
+                document.querySelectorAll('.protocol-btn').forEach(b=>b.classList.remove('bg-blue-600'));
+                btn.classList.add('bg-blue-600');
+                showParams(selectedProtocol);
+                showStep(2);
+            });
+        });
+
+        document.getElementById('vmess-network').addEventListener('change', e=>{
+            document.getElementById('ws-settings').classList.toggle('hidden', e.target.value !== 'ws');
+        });
+
+        document.getElementById('prevStep').addEventListener('click', ()=>showStep(1));
+        document.getElementById('nextStep').addEventListener('click', ()=>{ generateConfig(); showStep(3); });
+        document.getElementById('prevStep3').addEventListener('click', ()=>showStep(2));
+        document.getElementById('restartWizard').addEventListener('click', ()=>{ selectedProtocol=null; document.getElementById('configOutput').value=''; document.getElementById('qrcode').innerHTML='QR Code will appear here'; showStep(1); });
+
+        document.querySelectorAll('.format-btn').forEach(btn=>{
+            btn.addEventListener('click',()=>{
+                document.querySelectorAll('.format-btn').forEach(b=>b.classList.remove('bg-blue-600','text-white'));
+                btn.classList.add('bg-blue-600','text-white');
+                renderOutput(btn.dataset.format);
+            });
+        });
+
+        document.getElementById('copyConfig').addEventListener('click', async ()=>{
+            const txt=document.getElementById('configOutput').value; if(!txt) return;
+            try{ await navigator.clipboard.writeText(txt); alert('Copied to clipboard'); }catch(_){ alert('Copy failed'); }
+        });
+        document.getElementById('downloadConfig').addEventListener('click', ()=>{
+            const txt=document.getElementById('configOutput').value; if(!txt) return;
+            const blob=new Blob([txt],{type:'text/plain'}); const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download='config.txt'; a.click(); setTimeout(()=>URL.revokeObjectURL(a.href),1000);
+        });
+        document.getElementById('testConfig').addEventListener('click', async ()=>{
+            try{ const res=await window.StreamlineVPN.API.healthCheck(); alert(res.success ? 'API reachable' : 'API error'); }catch(e){ alert('Test failed'); }
+        });
+
+        function generateUUID(){return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g,function(c){const r=Math.random()*16|0,v=c=='x'?r:(r&0x3|0x8);return v.toString(16);});}
+        document.getElementById('generate-uuid').addEventListener('click',()=>{document.getElementById('vmess-uuid').value=generateUUID();});
+        document.getElementById('generate-vless-uuid').addEventListener('click',()=>{document.getElementById('vless-uuid').value=generateUUID();});
+        document.getElementById('generate-trojan-password').addEventListener('click',()=>{document.getElementById('trojan-password').value=generateUUID().replace(/-/g,'');});
+        document.getElementById('generate-ss-password').addEventListener('click',()=>{document.getElementById('ss-password').value=generateUUID().replace(/-/g,'');});
+
+        function gather(){
+            const server=document.getElementById('server').value.trim();
+            const port=parseInt(document.getElementById('port').value.trim(),10)||0;
+            const cfg={protocol:selectedProtocol, server, port};
+            if(selectedProtocol==='vmess'){
+                cfg.uuid=document.getElementById('vmess-uuid').value.trim();
+                cfg.alterId=parseInt(document.getElementById('vmess-alterId').value,10)||0;
+                cfg.security=document.getElementById('vmess-security').value;
+                cfg.network=document.getElementById('vmess-network').value;
+                if(cfg.network==='ws') cfg.ws={path:document.getElementById('ws-path').value, host:document.getElementById('ws-host').value};
+            } else if(selectedProtocol==='vless'){
+                cfg.uuid=document.getElementById('vless-uuid').value.trim();
+                cfg.encryption=document.getElementById('vless-encryption').value;
+                cfg.flow=document.getElementById('vless-flow').value;
+                cfg.network=document.getElementById('vless-network').value;
+            } else if(selectedProtocol==='trojan'){
+                cfg.password=document.getElementById('trojan-password').value.trim();
+                cfg.sni=document.getElementById('trojan-sni').value.trim();
+                cfg.network=document.getElementById('trojan-network').value;
+                cfg.allowInsecure=document.getElementById('trojan-allowInsecure').checked;
+            } else if(selectedProtocol==='shadowsocks'){
+                cfg.password=document.getElementById('ss-password').value.trim();
+                cfg.method=document.getElementById('ss-method').value;
+            }
+            return cfg;
+        }
+
+        function renderOutput(fmt){
+            const cfg=gather();
+            let out='';
+            if(fmt==='json'){
+                out=JSON.stringify(cfg,null,2);
+            } else if(fmt==='clash'){
+                out=['proxies:',`  - name: "${cfg.server}"`,`    type: ${cfg.protocol}`,`    server: ${cfg.server}`,`    port: ${cfg.port}`].join('\n');
+            } else if(fmt==='singbox'){
+                out=JSON.stringify({outbounds:[{type:cfg.protocol,tag:'proxy',server:cfg.server,server_port:cfg.port}]},null,2);
+            } else {
+                out=`${cfg.protocol}://${btoa(JSON.stringify(cfg))}`;
+                updateQRCode(out);
+            }
+            document.getElementById('configOutput').value=out;
+        }
+
+        function updateQRCode(text){
+            const qr=document.getElementById('qrcode');
+            qr.innerHTML='';
+            const img=document.createElement('img');
+            img.src=`https://api.qrserver.com/v1/create-qr-code/?size=192x192&data=${encodeURIComponent(text)}`;
+            img.alt='QR Code';
+            qr.appendChild(img);
+        }
+
+        function generateConfig(){
+            document.querySelectorAll('.format-btn').forEach(b=>b.classList.remove('bg-blue-600','text-white'));
+            const btn=document.querySelector('.format-btn[data-format="url"]');
+            if(btn) btn.classList.add('bg-blue-600','text-white');
+            renderOutput('url');
+        }
+
+        showStep(1);
+    });
+    </script>
 </body>
 </html>
-

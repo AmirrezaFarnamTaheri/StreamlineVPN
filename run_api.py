@@ -16,8 +16,8 @@ def main() -> None:
     """Run the API server via Uvicorn."""
     # Initialize logging early for better error reporting
     setup_logging(
-        level=os.getenv("VPN_LOG_LEVEL", "INFO").upper(),
-        log_file=os.getenv("VPN_LOG_FILE"),
+        level=os.getenv("STREAMLINE_LOG_LEVEL", os.getenv("VPN_LOG_LEVEL", "INFO")).upper(),
+        log_file=os.getenv("STREAMLINE_LOG_FILE", os.getenv("VPN_LOG_FILE")),
     )
     import uvicorn
 

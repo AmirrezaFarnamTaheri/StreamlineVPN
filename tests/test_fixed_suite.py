@@ -108,15 +108,11 @@ class TestAsyncMocks:
                 mock_session = AsyncMock()
                 mock_response = AsyncMock()
                 mock_response.status = 200
-                mock_response.text = AsyncMock(return_value="vmess://test_config")
+                mock_response.text.return_value = "vmess://test_config"
 
-                # async context manager for get
-                mock_get_cm = AsyncMock()
-                mock_get_cm.__aenter__ = AsyncMock(return_value=mock_response)
-                mock_get_cm.__aexit__ = AsyncMock(return_value=None)
-                mock_session.get = Mock(return_value=mock_get_cm)
+                mock_session.get.return_value.__aenter__ = AsyncMock(return_value=mock_response)
+                mock_session.get.return_value.__aexit__ = AsyncMock(return_value=None)
 
-                # async context manager for session
                 mock_session_cm = AsyncMock()
                 mock_session_cm.__aenter__ = AsyncMock(return_value=mock_session)
                 mock_session_cm.__aexit__ = AsyncMock(return_value=None)
@@ -148,12 +144,10 @@ class TestIntegration:
             mock_session = AsyncMock()
             mock_response = AsyncMock()
             mock_response.status = 200
-            mock_response.text = AsyncMock(return_value="vmess://test_config")
+            mock_response.text.return_value = "vmess://test_config"
 
-            mock_cm = AsyncMock()
-            mock_cm.__aenter__ = AsyncMock(return_value=mock_response)
-            mock_cm.__aexit__ = AsyncMock(return_value=None)
-            mock_session.get = Mock(return_value=mock_cm)
+            mock_session.get.return_value.__aenter__ = AsyncMock(return_value=mock_response)
+            mock_session.get.return_value.__aexit__ = AsyncMock(return_value=None)
 
             session_cm = AsyncMock()
             session_cm.__aenter__ = AsyncMock(return_value=mock_session)
