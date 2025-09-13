@@ -1,8 +1,9 @@
 from starlette.testclient import TestClient
-from streamline_vpn.web.unified_api import app
+from streamline_vpn.web.unified_api import create_unified_app
 
 
 def test_validate_urls_endpoint_basic():
+    app = create_unified_app()
     client = TestClient(app)
     payload = {"urls": ["https://example.com/a.txt", "invalid://host", "http://"]}
     r = client.post("/api/v1/sources/validate-urls", json=payload)

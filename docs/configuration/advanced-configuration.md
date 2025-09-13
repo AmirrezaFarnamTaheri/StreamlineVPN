@@ -206,7 +206,7 @@ quality_control:
 ### Using the Configuration Validator
 
 ```python
-from vpn_merger.core import validate_config_file, ValidationResult
+from streamline_vpn.core import validate_config_file, ValidationResult
 
 # Validate configuration file
 result = validate_config_file("config/sources.enhanced.yaml")
@@ -239,7 +239,7 @@ The configuration validator checks:
 ### Custom Validation
 
 ```python
-from vpn_merger.core import ConfigurationValidator
+from streamline_vpn.core import ConfigurationValidator
 
 validator = ConfigurationValidator()
 result = validator.validate_config_file("config/sources.enhanced.yaml")
@@ -307,17 +307,17 @@ print("valid:", res["valid"], "errors:", len(res["errors"]))
 3. **Update Code Usage**
    ```python
    # Old way
-   from vpn_merger.core import get_config_manager
+   from streamline_vpn.core import get_config_manager
    config_manager = get_config_manager()
    
    # New way
-   from vpn_merger.core import get_enhanced_config_manager
+   from streamline_vpn.core import get_enhanced_config_manager
    config_manager = get_enhanced_config_manager()
    ```
 
 4. **Validate Configuration**
    ```python
-   from vpn_merger.core import validate_config_file
+   from streamline_vpn.core import validate_config_file
    
    result = validate_config_file("config/sources.enhanced.yaml")
    if not result.is_valid:

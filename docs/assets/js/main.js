@@ -1,79 +1,69 @@
 /**
- * StreamlineVPN Main JavaScript Application
- * Handles all frontend functionality for the control panel
+ * StreamlineVPN Frontend Main JavaScript - FIXED
+ * ===============================================
+ *
+ * Improved error handling, consistent API communication, and better UX.
  */
 
-class StreamlineVPNApp {
+class StreamlineVPNDashboard {
     constructor() {
-        this.apiBase = window.__API_BASE__ || 'http://localhost:8080';
+        this.apiBase = this.getApiBase();
         this.state = {
-            isConnected: false,
-            statistics: {},
             configurations: [],
             sources: [],
-            jobs: {},
-            logs: []
+            statistics: {},
+            loading: false,
+            error: null
         };
         
         this.elements = {};
-        this.intervals = {};
-        this.ws = null;
-        this.wsBackoff = 1000; // start with 1s
-        this.wsTimer = null;
-        this.flags = { apiConnected: false, wsConnected: false };
+        this.retryAttempts = 3;
+        this.retryDelay = 1000;
         
         this.init();
     }
 
     /**
-     * Initialize the application
+     * Get API base URL with proper fallbacks
+     */
+    getApiBase() {
+        // Check for dynamically injected API base
+        if (window.__API_BASE__) {
+            return window.__API_BASE__;
+        }
+
+        // Check for environment variable or use default
+        return 'http://localhost:8080';
+    }
+
+    /**
+     * Initialize the dashboard
      */
     async init() {
         this.bindElements();
         this.setupEventListeners();
-        await this.checkConnection();
-        this.startPeriodicUpdates();
-        this.setupWebSocket();
+        await this.loadInitialData();
         
-        console.log('[StreamlineVPN] Application initialized');
+        // Set up periodic refresh
+        setInterval(() => {
+            if (!this.state.loading) {
+                this.refreshData();
+            }
+        }, 30000); // Refresh every 30 seconds
     }
 
     /**
-     * Bind DOM elements to properties
+     * Bind DOM elements
      */
     bindElements() {
         this.elements = {
-            // Statistics elements
-            totalSources: document.getElementById('totalSources'),
-            totalConfigs: document.getElementById('totalConfigs'),
-            activeSources: document.getElementById('activeSources'),
-            lastUpdated: document.getElementById('lastUpdated'),
-            
-            // Lists
-            configList: document.getElementById('configsList'),
-            sourceList: document.getElementById('sourcesList'),
-            
-            // Forms and inputs
-            processingForm: document.getElementById('processingForm'),
-            configPath: document.getElementById('configPath'),
-            formatCheckboxes: document.querySelectorAll('.format-cb'),
-            
-            // Buttons
-            startProcessingBtn: document.getElementById('startProcessingBtn'),
-            testConnectionBtn: document.getElementById('testConnectionBtn'),
-            
-            // Status and progress
-            apiStatus: document.getElementById('apiStatus'),
-            progressContainer: document.getElementById('progressContainer'),
-            progressBar: document.getElementById('progressBar'),
-            progressPercent: document.getElementById('progressPercent'),
-            progressMessage: document.getElementById('progressMessage'),
-            
-            // Terminal/logs
-            terminal: document.getElementById('logsContainer'),
-            
-            // Notifications
-            notificationArea: document.getElementById('notificationArea')
+            configList: document.getElementById('config-list'),
+            sourceList: document.getElementById('source-list'),
+            statisticsPanel: document.getElementById('statistics-panel'),
+            refreshButton: document.getElementById('refresh-button'),
+            processButton: document.getElementById('process-button'),
+            errorAlert: document.getElementById('error-alert'),
+            loadingIndicator: document.getElementById('loading-indicator')
         };
     }
 
@@ -81,215 +71,92 @@ class StreamlineVPNApp {
      * Setup event listeners
      */
     setupEventListeners() {
-        // Processing button
-        if (this.elements.startProcessingBtn) {
-            this.elements.startProcessingBtn.addEventListener('click', () => this.startProcessing());
-        }
-
-        // Test connection button
-        if (this.elements.testConnectionBtn) {
-            this.elements.testConnectionBtn.addEventListener('click', () => this.testConnection());
-        }
-
-        // Form submissions
-        if (this.elements.processingForm) {
-            this.elements.processingForm.addEventListener('submit', (e) => {
-                e.preventDefault();
-                this.startProcessing();
+        if (this.elements.refreshButton) {
+            this.elements.refreshButton.addEventListener('click', () => {
+                this.refreshData();
             });
         }
 
-        // Add source functionality
-        const addSourceBtn = document.getElementById('addSourceBtn');
-        if (addSourceBtn) {
-            addSourceBtn.addEventListener('click', () => this.addSource());
+        if (this.elements.processButton) {
+            this.elements.processButton.addEventListener('click', () => {
+                this.runPipeline();
+            });
         }
 
-        // Keyboard shortcuts
-        document.addEventListener('keydown', (e) => {
-            if (e.ctrlKey || e.metaKey) {
-                switch (e.key) {
-                    case 'r':
-                        e.preventDefault();
-                        this.refreshAllData();
-                        break;
-                    case 't':
-                        e.preventDefault();
-                        this.testConnection();
-                        break;
-                }
-            }
+        // Setup export buttons
+        document.querySelectorAll('[data-export]').forEach(button => {
+            button.addEventListener('click', (e) => {
+                const format = e.target.dataset.export;
+                this.exportConfigurations(format);
+            });
         });
     }
 
     /**
-     * Make API request with error handling
+     * Load initial data
+     */
+    async loadInitialData() {
+        this.setLoading(true);
+        
+        try {
+            await Promise.all([
+                this.loadConfigurations(),
+                this.loadSources(),
+                this.loadStatistics()
+            ]);
+            
+            this.clearError();
+        } catch (error) {
+            this.showError('Failed to load initial data', error);
+        } finally {
+            this.setLoading(false);
+        }
+    }
+
+    /**
+     * Refresh all data
+     */
+    async refreshData() {
+        try {
+            await this.loadInitialData();
+        } catch (error) {
+            console.error('Failed to refresh data:', error);
+        }
+    }
+
+    /**
+     * Make API request with retry logic
      */
     async makeRequest(endpoint, options = {}) {
         const url = `${this.apiBase}${endpoint}`;
         
-        const defaultOptions = {
-            headers: {
-                'Content-Type': 'application/json',
-                'Accept': 'application/json'
-            }
-        };
-        
-        const mergedOptions = {
-            ...defaultOptions,
-            ...options,
-            headers: {
-                ...defaultOptions.headers,
-                ...options.headers
-            }
-        };
-        
-        try {
-            const response = await fetch(url, mergedOptions);
-            
-            if (!response.ok) {
-                const body = await response.text().catch(() => '');
-                throw new Error(`Request to ${endpoint} failed (HTTP ${response.status} ${response.statusText})${body ? `\nResponse: ${body.slice(0,200)}${body.length>200?'...':''}` : ''}`);
-            }
-            
-            const contentType = response.headers.get('content-type');
-            if (contentType && contentType.includes('application/json')) {
-                return await response.json();
-            }
-            
-            return await response.text();
-        } catch (error) {
-            this.addTerminalLine(`API request failed for ${endpoint}: ${error.message}`, 'error');
-            throw error;
-        }
-    }
-
-    /**
-     * Check API connection
-     */
-    async checkConnection() {
-        const ctrl = new AbortController();
-        const to = setTimeout(() => ctrl.abort(), 5000);
-        try {
-            // Primary: direct /health on API base
-            const r = await fetch(`${this.apiBase}/health`, { signal: ctrl.signal });
-            clearTimeout(to);
-            if (!r.ok) throw new Error(`HTTP ${r.status}`);
-            this.state.isConnected = true;
-            this.setApiConnectivityFlag(true);
-            this.addTerminalLine(`API connection successful: ${r.status}`, 'success');
-            this.showNotification('API connection established!', 'success');
-            return true;
-        } catch (error) {
-            clearTimeout(to);
-            // Fallback: relative /api/v1/statistics via proxy (when served by static web)
+        for (let attempt = 1; attempt <= this.retryAttempts; attempt++) {
             try {
-                const c2 = new AbortController();
-                const t2 = setTimeout(() => c2.abort(), 5000);
-                const r2 = await fetch('/api/v1/statistics', { signal: c2.signal });
-                clearTimeout(t2);
-                if (r2.ok) {
-                    this.state.isConnected = true;
-                    this.setApiConnectivityFlag(true);
-                    this.addTerminalLine('API proxy reachable via /api (fallback)', 'success');
-                    this.showNotification('API reachable via proxy', 'success');
-                    return true;
+                const response = await fetch(url, {
+                    ...options,
+                    headers: {
+                        'Content-Type': 'application/json',
+                        ...options.headers
+                    }
+                });
+
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
                 }
-            } catch(_) {}
-            this.state.isConnected = false;
-            this.setApiConnectivityFlag(false);
-            this.addTerminalLine(`API connection failed: ${error?.message || 'unknown'}`, 'error');
-            this.showNotification('API connection failed!', 'error');
-            return false;
-        }
-    }
 
-    /**
-     * Test connection manually
-     */
-    async testConnection() {
-        this.addTerminalLine('Testing API connection...', 'info');
-        await this.checkConnection();
-    }
+                const data = await response.json();
+                return data;
 
-    /**
-     * Update connection status UI
-     */
-    updateConnectionStatus(status, message) {
-        if (!this.elements.apiStatus) return;
-        
-        const indicator = this.elements.apiStatus.querySelector('.status-dot');
-        const text = this.elements.apiStatus.querySelector('span:last-child');
-        
-        if (indicator) {
-            indicator.className = `status-dot status-${status === 'connected' ? 'active' : 'inactive'}`;
-        }
-        
-        if (text) {
-            text.textContent = message;
-        }
-    }
+            } catch (error) {
+                console.warn(`API request attempt ${attempt} failed:`, error);
 
-    /**
-     * Update WebSocket status UI
-     */
-    updateWsStatus(status, message) {
-        const container = document.getElementById('wsStatus');
-        if (!container) return;
-        const indicator = container.querySelector('.status-dot');
-        const text = container.querySelector('span:last-child');
-        if (indicator) {
-            indicator.className = `status-dot status-${status === 'connected' ? 'active' : status === 'warning' ? 'warning' : 'inactive'}`;
-        }
-        if (text) {
-            text.textContent = message;
-        }
-        // Tooltip for WS
-        try {
-            const tip = status === 'connected' ? 'WebSocket connected; live updates active'
-                : status === 'warning' ? 'WebSocket error; attempting to recover'
-                : 'WebSocket disconnected; using fallback polling';
-            container.setAttribute('title', tip);
-        } catch(_) {}
-        // Track WS connectivity and refresh combined API indicator
-        this.flags.wsConnected = (status === 'connected');
-        this.updateCombinedStatus();
-    }
+                if (attempt === this.retryAttempts) {
+                    throw new Error(`Failed after ${this.retryAttempts} attempts: ${error.message}`);
+                }
 
-    /**
-     * Load statistics from API
-     */
-    async loadStatistics() {
-        try {
-            const stats = await this.makeRequest('/api/v1/statistics');
-            this.state.statistics = stats;
-            this.renderStatistics();
-        } catch (error) {
-            console.error('Failed to load statistics:', error);
-            this.addTerminalLine('Failed to load statistics: ' + (error?.message || 'unknown error'), 'error');
-        }
-    }
-
-    /**
-     * Render statistics in UI
-     */
-    renderStatistics() {
-        const stats = this.state.statistics;
-        
-        if (this.elements.totalSources) {
-            this.elements.totalSources.textContent = stats.total_sources || '0';
-        }
-        
-        if (this.elements.totalConfigs) {
-            this.elements.totalConfigs.textContent = (stats.total_configs || stats.total_configurations || 0).toString();
-        }
-        
-        if (this.elements.activeSources) {
-            this.elements.activeSources.textContent = stats.active_sources || '0';
-        }
-        
-        if (this.elements.lastUpdated) {
-            this.elements.lastUpdated.textContent = this.formatDate(stats.last_update || stats.last_updated);
+                // Wait before retry
+                await new Promise(resolve => setTimeout(resolve, this.retryDelay * attempt));
+            }
         }
     }
 
@@ -305,9 +172,11 @@ class StreamlineVPNApp {
             const response = await this.makeRequest('/api/v1/configurations?limit=50');
             this.state.configurations = response.configurations || [];
             this.renderConfigurations();
+
         } catch (error) {
-            this.elements.configList.innerHTML = this.getErrorHTML('Failed to load configurations from /api/v1/configurations');
-            console.error('Failed to load configurations from /api/v1/configurations:', error);
+            this.elements.configList.innerHTML = this.getErrorHTML('Failed to load configurations');
+            console.error('Failed to load configurations:', error);
+            throw error;
         }
     }
 
@@ -325,19 +194,30 @@ class StreamlineVPNApp {
         }
         
         let html = '';
-        configs.forEach(config => {
-            const qualityScore = Math.round((config.quality_score || 0) * 100);
+        configs.forEach((config, index) => {
+            const protocol = config.protocol || 'unknown';
+            const server = config.server || 'unknown';
+            const port = config.port || 'N/A';
+            const quality = this.calculateQualityScore(config);
+
             html += `
-                <div class="config-item dark-glass rounded-lg p-4 mb-2">
+                <div class="config-item dark-glass rounded-lg p-4 mb-2 hover:bg-opacity-20 transition-all duration-200">
                     <div class="flex items-center justify-between">
                         <div class="flex-1">
-                            <div class="font-medium">${config.protocol.toUpperCase()}</div>
-                            <div class="text-sm text-gray-400">${config.server}:${config.port}</div>
-                            ${config.name ? `<div class="text-xs text-gray-500">${config.name}</div>` : ''}
+                            <div class="flex items-center space-x-3">
+                                <span class="protocol-badge badge-${protocol}">${protocol.toUpperCase()}</span>
+                                <div class="font-medium text-white">${server}:${port}</div>
+                            </div>
+                            ${config.name ? `<div class="text-xs text-gray-400 mt-1">${config.name}</div>` : ''}
                         </div>
                         <div class="text-right">
-                            <div class="text-sm font-medium ${qualityScore >= 70 ? 'text-green-400' : qualityScore >= 40 ? 'text-yellow-400' : 'text-red-400'}">${qualityScore}%</div>
+                            <div class="text-sm font-medium ${quality >= 70 ? 'text-green-400' : quality >= 40 ? 'text-yellow-400' : 'text-red-400'}">${quality}%</div>
                             <div class="text-xs text-gray-400">Quality</div>
+                        </div>
+                        <div class="ml-4">
+                            <button class="copy-btn text-blue-400 hover:text-blue-300" onclick="copyToClipboard('${this.escapeHtml(config.url || '')}')">
+                                Copy
+                            </button>
                         </div>
                     </div>
                 </div>
@@ -359,9 +239,11 @@ class StreamlineVPNApp {
             const response = await this.makeRequest('/api/v1/sources');
             this.state.sources = response.sources || [];
             this.renderSources();
+
         } catch (error) {
-            this.elements.sourceList.innerHTML = this.getErrorHTML('Failed to load sources from /api/v1/sources');
-            console.error('Failed to load sources from /api/v1/sources:', error);
+            this.elements.sourceList.innerHTML = this.getErrorHTML('Failed to load sources');
+            console.error('Failed to load sources:', error);
+            throw error;
         }
     }
 
@@ -381,20 +263,24 @@ class StreamlineVPNApp {
         let html = '';
         sources.forEach(source => {
             const successRate = Math.round((source.success_rate || 0) * 100);
+            const status = source.status || 'unknown';
+            const configs = source.configs || 0;
+            const latency = source.avg_response_time || 0;
+
             html += `
                 <div class="config-item dark-glass rounded-lg p-4 mb-2">
                     <div class="flex items-center justify-between">
                         <div class="flex-1">
-                            <div class="font-medium truncate">${source.url}</div>
-                            <div class="text-sm text-gray-400">
-                                Configs: ${source.configs || 0} | 
+                            <div class="font-medium text-white truncate">${this.escapeHtml(source.url)}</div>
+                            <div class="text-sm text-gray-400 mt-1">
+                                Configs: ${configs} |
                                 Success: ${successRate}% |
-                                Latency: ${source.avg_response_time || 0}ms
+                                Latency: ${latency}ms
                             </div>
                         </div>
                         <div class="flex items-center space-x-2">
-                            <span class="status-indicator status-${source.status === 'active' ? 'active' : 'inactive'}"></span>
-                            <span class="text-sm capitalize">${source.status || 'unknown'}</span>
+                            <span class="status-indicator status-${status === 'active' ? 'success' : 'error'}"></span>
+                            <span class="text-xs text-gray-400">${status}</span>
                         </div>
                     </div>
                 </div>
@@ -405,432 +291,288 @@ class StreamlineVPNApp {
     }
 
     /**
-     * Start processing pipeline
+     * Load statistics
      */
-    async startProcessing() {
-        if (!this.elements.startProcessingBtn) return;
+    async loadStatistics() {
+        if (!this.elements.statisticsPanel) return;
         
-        const configPath = this.elements.configPath?.value || 'config/sources.unified.yaml';
-        const formats = Array.from(this.elements.formatCheckboxes || [])
-            .filter(cb => cb.checked)
-            .map(cb => cb.value);
-        
-        if (formats.length === 0) {
-            this.showNotification('Please select at least one output format', 'warning');
-            return;
+        try {
+            const response = await this.makeRequest('/api/v1/statistics');
+            this.state.statistics = response || {};
+            this.renderStatistics();
+            
+        } catch (error) {
+            console.error('Failed to load statistics:', error);
+            throw error;
         }
+    }
+
+    /**
+     * Render statistics
+     */
+    renderStatistics() {
+        if (!this.elements.statisticsPanel) return;
         
-        // Update UI state
-        this.elements.startProcessingBtn.disabled = true;
-        this.elements.startProcessingBtn.innerHTML = '<div class="spinner inline-block mr-2"></div>Processing...';
+        const stats = this.state.statistics;
+        const totalConfigs = stats.total_configs || 0;
+        const successRate = Math.round((stats.success_rate || 0) * 100);
+        const totalSources = stats.total_sources || 0;
         
-        if (this.elements.progressContainer) {
-            this.elements.progressContainer.classList.remove('hidden');
-        }
+        this.elements.statisticsPanel.innerHTML = `
+            <div class="grid grid-cols-3 gap-4">
+                <div class="stat-card">
+                    <div class="stat-value">${totalConfigs}</div>
+                    <div class="stat-label">Configurations</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-value">${successRate}%</div>
+                    <div class="stat-label">Success Rate</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-value">${totalSources}</div>
+                    <div class="stat-label">Sources</div>
+                </div>
+            </div>
+        `;
+    }
+
+    /**
+     * Run pipeline
+     */
+    async runPipeline() {
+        if (this.state.loading) return;
+        
+        this.setLoading(true);
         
         try {
             const response = await this.makeRequest('/api/v1/pipeline/run', {
                 method: 'POST',
                 body: JSON.stringify({
-                    config_path: configPath,
+                    config_path: 'config/sources.yaml',
                     output_dir: 'output',
-                    formats: formats
+                    formats: ['json', 'clash']
                 })
             });
             
-            const jobId = response.job_id;
-            this.addTerminalLine(`Processing started (Job: ${jobId})`, 'success');
-            this.showNotification('Processing pipeline started successfully!', 'success');
-            
-            // Start polling job status
-            this.pollJobStatus(jobId);
-            
+            this.showSuccess(`Pipeline started successfully. Job ID: ${response.job_id}`);
+
+            // Refresh data after a delay
+            setTimeout(() => {
+                this.refreshData();
+            }, 2000);
+
         } catch (error) {
-            this.addTerminalLine(`Processing failed: ${error.message}`, 'error');
-            this.showNotification(`Processing failed: ${error.message}`, 'error');
-            this.resetProcessingUI();
+            this.showError('Failed to start pipeline', error);
+        } finally {
+            this.setLoading(false);
         }
     }
 
     /**
-     * Poll job status
+     * Export configurations
      */
-    async pollJobStatus(jobId) {
-        const pollInterval = setInterval(async () => {
-            try {
-                const status = await this.makeRequest(`/api/v1/pipeline/status/${jobId}`);
-                
-                this.updateProgress(status.progress * 100, status.status);
-                
-                if (status.status === 'completed') {
-                    clearInterval(pollInterval);
-                    this.addTerminalLine('Processing completed successfully', 'success');
-                    this.showNotification('Processing completed successfully!', 'success');
-                    this.resetProcessingUI();
-                    await this.refreshAllData();
-                } else if (status.status === 'failed') {
-                    clearInterval(pollInterval);
-                    this.addTerminalLine(`Processing failed: ${status.error || 'Unknown error'}`, 'error');
-                    this.showNotification(`Processing failed: ${status.error || 'Unknown error'}`, 'error');
-                    this.resetProcessingUI();
-                }
-                
-            } catch (error) {
-                clearInterval(pollInterval);
-                this.addTerminalLine(`Status polling failed: ${error.message}`, 'error');
-                this.resetProcessingUI();
-            }
-        }, 2000);
-    }
-
-    /**
-     * Update progress UI
-     */
-    updateProgress(percent, message) {
-        if (this.elements.progressBar) {
-            this.elements.progressBar.style.width = `${percent}%`;
-        }
-        
-        if (this.elements.progressPercent) {
-            this.elements.progressPercent.textContent = `${Math.round(percent)}%`;
-        }
-        
-        if (this.elements.progressMessage) {
-            this.elements.progressMessage.textContent = message;
-        }
-    }
-
-    /**
-     * Reset processing UI
-     */
-    resetProcessingUI() {
-        if (this.elements.startProcessingBtn) {
-            this.elements.startProcessingBtn.disabled = false;
-            this.elements.startProcessingBtn.innerHTML = 'Start Processing';
-        }
-        
-        if (this.elements.progressContainer) {
-            this.elements.progressContainer.classList.add('hidden');
-        }
-    }
-
-    /**
-     * Add source
-     */
-    async addSource() {
-        const input = document.getElementById('newSourceUrl');
-        if (!input) return;
-        
-        const url = input.value.trim();
-        if (!url) {
-            this.showNotification('Please enter a valid URL', 'warning');
-            return;
-        }
-        
+    async exportConfigurations(format) {
         try {
-            const response = await this.makeRequest('/api/v1/sources/add', {
-                method: 'POST',
-                body: JSON.stringify({ url })
-            });
-            
-            this.addTerminalLine(response.message || 'Source added successfully', 'success');
-            this.showNotification('Source added successfully!', 'success');
-            input.value = '';
-            await this.loadSources();
-        } catch (error) {
-            this.addTerminalLine(`Add source error: ${error.message}`, 'error');
-            this.showNotification(`Failed to add source: ${error.message}`, 'error');
-        }
-    }
+            const response = await this.makeRequest(`/api/export/${format}`);
 
-    /**
-     * Add terminal line
-     */
-    addTerminalLine(message, type = 'info') {
-        if (!this.elements.terminal) return;
-        
-        const timestamp = new Date().toLocaleTimeString();
-        const colorMap = {
-            'info': 'text-blue-400',
-            'success': 'text-green-400',
-            'warning': 'text-yellow-400',
-            'error': 'text-red-400'
-        };
-        
-        const logEntry = document.createElement('div');
-        logEntry.className = `${colorMap[type] || 'text-gray-300'}`;
-        logEntry.textContent = `[${timestamp}] ${message}`;
-        
-        this.elements.terminal.appendChild(logEntry);
-        this.elements.terminal.scrollTop = this.elements.terminal.scrollHeight;
-        
-        // Keep only last 100 lines
-        const lines = this.elements.terminal.children;
-        if (lines.length > 100) {
-            this.elements.terminal.removeChild(lines[0]);
-        }
-    }
+            if (format === 'download') {
+                // Trigger download
+                const blob = new Blob([JSON.stringify(response, null, 2)], {
+                    type: 'application/json'
+                });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `streamline_vpn_configs_${new Date().toISOString().split('T')[0]}.json`;
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                URL.revokeObjectURL(url);
 
-    /**
-     * Show notification
-     */
-    showNotification(message, type = 'info') {
-        if (!this.elements.notificationArea) return;
-        
-        const notification = document.createElement('div');
-        notification.className = `notification glass rounded-lg p-4 mb-4 notification-${type}`;
-        
-        const colorMap = {
-            'success': 'border-green-500',
-            'error': 'border-red-500',
-            'warning': 'border-yellow-500',
-            'info': 'border-blue-500'
-        };
-        
-        notification.classList.add(colorMap[type] || 'border-blue-500');
-        notification.innerHTML = `
-            <div class="flex items-center justify-between">
-                <span>${message}</span>
-                <button onclick="this.parentElement.parentElement.remove()" class="ml-4 text-xl hover:text-red-400">&times;</button>
-            </div>
-        `;
-        
-        this.elements.notificationArea.appendChild(notification);
-        
-        // Auto-remove after 5 seconds
-        setTimeout(() => {
-            if (notification.parentElement) {
-                notification.remove();
+                this.showSuccess('Configurations exported successfully');
+            } else {
+                console.log('Export response:', response);
             }
-        }, 5000);
+
+        } catch (error) {
+            this.showError('Failed to export configurations', error);
+        }
     }
 
     /**
-     * Refresh all data
+     * Calculate quality score for a configuration
      */
-    async refreshAllData() {
-        this.addTerminalLine('Refreshing all data...', 'info');
-        await Promise.all([
-            this.loadStatistics(),
-            this.loadConfigurations(),
-            this.loadSources()
-        ]);
-        this.addTerminalLine('Data refresh completed', 'success');
-    }
-
-    /**
-     * Start periodic updates
-     */
-    startPeriodicUpdates() {
-        // Update statistics every 30 seconds
-        this.intervals.stats = setInterval(() => this.loadStatistics(), 30000);
+    calculateQualityScore(config) {
+        let score = 50; // Base score
         
-        // Check connection every 60 seconds
-        this.intervals.connection = setInterval(() => this.checkConnection(), 60000);
+        // Protocol bonus
+        const protocolBonus = {
+            'vless': 25,
+            'vmess': 20,
+            'trojan': 20,
+            'shadowsocks': 15,
+            'shadowsocksr': 10
+        };
+        score += protocolBonus[config.protocol] || 0;
+        
+        // Other factors
+        if (config.tls) score += 10;
+        if (config.port && config.port !== 80 && config.port !== 8080) score += 5;
+        if (config.network === 'ws') score += 5;
+        
+        return Math.min(100, Math.max(0, score));
     }
 
     /**
-     * Stop periodic updates
+     * Utility methods
      */
-    stopPeriodicUpdates() {
-        Object.values(this.intervals).forEach(interval => {
-            clearInterval(interval);
+    setLoading(loading) {
+        this.state.loading = loading;
+        
+        if (this.elements.loadingIndicator) {
+            this.elements.loadingIndicator.style.display = loading ? 'block' : 'none';
+        }
+
+        // Disable buttons during loading
+        const buttons = document.querySelectorAll('button');
+        buttons.forEach(btn => {
+            btn.disabled = loading;
         });
-        this.intervals = {};
     }
 
-    /**
-     * WebSocket: connect to /ws?client_id=...
-     * Uses helpers from api-base.js (openWebSocket, resolveClientId)
-     */
-    setupWebSocket() {
-        try {
-            const cid = (window.resolveClientId && window.resolveClientId()) || 'dashboard';
-            if (!window.openWebSocket) {
-                console.warn('[StreamlineVPN] openWebSocket helper not found; skipping WS.');
-                return;
-            }
-            this._connectWebSocket(cid);
-        } catch (e) {
-            console.warn('[StreamlineVPN] WS init failed:', e);
+    showError(message, error = null) {
+        console.error(message, error);
+
+        if (this.elements.errorAlert) {
+            this.elements.errorAlert.innerHTML = `
+                <div class="alert alert-error">
+                    <div class="font-medium">${message}</div>
+                    ${error ? `<div class="text-sm mt-1">${error.message}</div>` : ''}
+                </div>
+            `;
+            this.elements.errorAlert.style.display = 'block';
         }
     }
 
-    _connectWebSocket(clientId) {
-        try {
-            // Clear any previous timer
-            if (this.wsTimer) {
-                clearTimeout(this.wsTimer);
-                this.wsTimer = null;
-            }
-            const ws = window.openWebSocket(clientId);
-            this.ws = ws;
-            this.wsBackoff = 1000; // reset on successful start
+    showSuccess(message) {
+        if (this.elements.errorAlert) {
+            this.elements.errorAlert.innerHTML = `
+                <div class="alert alert-success">
+                    <div class="font-medium">${message}</div>
+                </div>
+            `;
+            this.elements.errorAlert.style.display = 'block';
 
-            ws.onopen = () => {
-                this.addTerminalLine('WebSocket connected', 'success');
-                this.updateWsStatus('connected', 'WS Connected');
-                // Ask for immediate pong to signal liveness
-                try { ws.send(JSON.stringify({ type: 'ping' })); } catch(_) {}
-            };
-
-            ws.onmessage = (evt) => {
-                try {
-                    const data = JSON.parse(evt.data);
-                    if (data && data.type === 'statistics' && data.data) {
-                        this.state.statistics = data.data;
-                        this.renderStatistics();
-                    } else if (data && data.type === 'pong') {
-                        this.addTerminalLine('WS pong received', 'info');
-                    }
-                } catch (e) {
-                    // Non-JSON or parse error — log and continue
-                    this.addTerminalLine('WS message parse error', 'warning');
-                }
-            };
-
-            ws.onerror = () => {
-                this.addTerminalLine('WebSocket error', 'warning');
-                this.updateWsStatus('warning', 'WS Error');
-            };
-
-            ws.onclose = () => {
-                this.addTerminalLine('WebSocket disconnected; will retry', 'warning');
-                this.updateWsStatus('inactive', 'WS Disconnected');
-                this._scheduleWsReconnect(clientId);
-            };
-        } catch (e) {
-            this.addTerminalLine('WebSocket connect failed', 'error');
-            this._scheduleWsReconnect(clientId);
+            // Auto-hide success messages
+            setTimeout(() => {
+                this.clearError();
+            }, 5000);
         }
     }
 
-    _scheduleWsReconnect(clientId) {
-        if (this.wsTimer) return; // already scheduled
-        // Exponential backoff up to 30s
-        const delay = Math.min(this.wsBackoff, 30000);
-        this.wsBackoff = Math.min(this.wsBackoff * 2, 30000);
-        this.wsTimer = setTimeout(() => {
-            this.wsTimer = null;
-            this._connectWebSocket(clientId);
-        }, delay);
+    clearError() {
+        if (this.elements.errorAlert) {
+            this.elements.errorAlert.style.display = 'none';
+        }
     }
 
-    /**
-     * Utility: Format date
-     */
-    formatDate(dateString) {
-        if (!dateString) return 'Never';
-        
-        const date = new Date(dateString);
-        const now = new Date();
-        const diffMs = now - date;
-        const diffMins = Math.floor(diffMs / 60000);
-        
-        if (diffMins < 1) return 'Just now';
-        if (diffMins < 60) return `${diffMins}m ago`;
-        if (diffMins < 1440) return `${Math.floor(diffMins / 60)}h ago`;
-        return date.toLocaleDateString();
-    }
-
-    /**
-     * Utility: Get loading HTML
-     */
     getLoadingHTML() {
         return `
-            <div class="text-center py-8 text-gray-400">
-                <div class="spinner mx-auto mb-4"></div>
-                <p>Loading...</p>
+            <div class="flex items-center justify-center p-8">
+                <div class="loading-spinner"></div>
+                <span class="ml-3 text-gray-400">Loading...</span>
             </div>
         `;
     }
 
-    /**
-     * Utility: Get error HTML
-     */
     getErrorHTML(message) {
         return `
-            <div class="text-center py-8 text-red-400">
-                <svg class="w-16 h-16 mx-auto mb-4 opacity-50" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
-                </svg>
-                <p>${message}</p>
+            <div class="flex items-center justify-center p-8 text-red-400">
+                <div class="text-center">
+                    <div class="mb-2">⚠️</div>
+                    <div>${message}</div>
+                </div>
             </div>
         `;
     }
 
-    /**
-     * Utility: Get empty HTML
-     */
     getEmptyHTML(message) {
         return `
-            <div class="text-center py-8 text-gray-400">
-                <svg class="w-16 h-16 mx-auto mb-4 opacity-50" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2M4 13h2m0 0V9a1 1 0 011-1h1m-1 1v4h4V9m0 0V6a1 1 0 011-1h1m3 0a1 1 0 011 1v1M9 9h4"></path>
-                </svg>
-                <p>${message}</p>
+            <div class="flex items-center justify-center p-8 text-gray-400">
+                <div class="text-center">
+                    <div class="mb-2">📭</div>
+                    <div>${message}</div>
+                </div>
             </div>
         `;
     }
 
-    /**
-     * Cleanup on page unload
-     */
-    destroy() {
-        this.stopPeriodicUpdates();
-        try { if (this.ws) { this.ws.close(); } } catch(_) {}
-        if (this.wsTimer) { clearTimeout(this.wsTimer); this.wsTimer = null; }
-    }
-
-    /**
-     * Combined API status derived from HTTP and WS flags
-     * - Green (active): API + WS connected
-     * - Yellow (warning): API connected, WS down
-     * - Red (inactive): API down
-     */
-    updateCombinedStatus() {
-        const container = this.elements.apiStatus;
-        if (!container) return;
-        const indicator = container.querySelector('.status-dot');
-        const text = container.querySelector('span:last-child');
-        let cls = 'inactive';
-        let msg = 'API Disconnected';
-        let tip = 'HTTP API unreachable';
-        if (this.flags.apiConnected && this.flags.wsConnected) {
-            cls = 'active';
-            msg = 'API+WS Connected';
-            tip = 'HTTP API reachable and WebSocket streaming live updates';
-        } else if (this.flags.apiConnected && !this.flags.wsConnected) {
-            cls = 'warning';
-            msg = 'API OK, WS Down';
-            tip = 'API reachable; WebSocket is down, updates may be slower';
-        }
-        if (indicator) indicator.className = `status-dot status-${cls}`;
-        if (text) text.textContent = msg;
-        try { container.setAttribute('title', tip); } catch(_) {}
-    }
-
-    setApiConnectivityFlag(isConnected) {
-        this.flags.apiConnected = !!isConnected;
-        this.updateCombinedStatus();
+    escapeHtml(text) {
+        const div = document.createElement('div');
+        div.textContent = text;
+        return div.innerHTML;
     }
 }
 
-// Initialize the application when DOM is ready
-let app = null;
-
-document.addEventListener('DOMContentLoaded', function() {
-    app = new StreamlineVPNApp();
-});
-
-// Cleanup on page unload
-window.addEventListener('beforeunload', function() {
-    if (app) {
-        app.destroy();
+/**
+ * Global utility functions
+ */
+function copyToClipboard(text) {
+    if (navigator.clipboard) {
+        navigator.clipboard.writeText(text).then(() => {
+            showToast('Copied to clipboard!');
+        }).catch(err => {
+            console.error('Failed to copy:', err);
+            showToast('Failed to copy to clipboard', 'error');
+        });
+    } else {
+        // Fallback for older browsers
+        const textArea = document.createElement('textarea');
+        textArea.value = text;
+        document.body.appendChild(textArea);
+        textArea.select();
+        try {
+            document.execCommand('copy');
+            showToast('Copied to clipboard!');
+        } catch (err) {
+            console.error('Failed to copy:', err);
+            showToast('Failed to copy to clipboard', 'error');
+        }
+        document.body.removeChild(textArea);
     }
+}
+
+function showToast(message, type = 'success') {
+    const toast = document.createElement('div');
+    toast.className = `toast toast-${type}`;
+    toast.textContent = message;
+
+    document.body.appendChild(toast);
+
+    // Trigger animation
+    setTimeout(() => {
+        toast.classList.add('show');
+    }, 100);
+
+    // Remove after delay
+    setTimeout(() => {
+        toast.classList.remove('show');
+        setTimeout(() => {
+            document.body.removeChild(toast);
+        }, 300);
+    }, 3000);
+}
+
+/**
+ * Initialize dashboard when DOM is ready
+ */
+document.addEventListener('DOMContentLoaded', () => {
+    window.streamlineVPN = new StreamlineVPNDashboard();
 });
 
-// Export for testing purposes
+/**
+ * Export for module systems
+ */
 if (typeof module !== 'undefined' && module.exports) {
-    module.exports = StreamlineVPNApp;
+    module.exports = StreamlineVPNDashboard;
 }

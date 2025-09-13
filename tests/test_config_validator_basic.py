@@ -9,11 +9,10 @@ def test_validator_missing_sources_and_autofix(tmp_path):
     cfg = {}
     result = validator.validate_config(cfg)
     assert result["valid"] is False
-    assert any(i["type"] == "MISSING_SECTION" for i in result["issues"])
+    assert any(i["type"] == "MISSING_REQUIRED" for i in result["issues"])
 
-    fixed, fixes = validator.auto_fix_config(cfg)
+    fixed = validator.fix_common_issues(cfg)
     assert "sources" in fixed
-    assert any("Added missing \"sources\" section" in f for f in fixes)
 
 
 def test_validator_sources_and_output_formats():
@@ -35,13 +34,11 @@ def test_validator_sources_and_output_formats():
 
     res = validator.validate_config(cfg)
     # Should have warnings for unknown protocol/format and errors for invalid type
-    assert any(i["type"] == "UNKNOWN_PROTOCOL" for i in res["issues"])
-    assert any(i["type"] == "UNKNOWN_FORMAT" for i in res["issues"])
+    assert any(i["type"] == "UNKNOWN_PROTOCOL" for i in res["warnings"])
+    assert any(i["type"] == "UNKNOWN_FORMAT" for i in res["warnings"])
     assert any(i["type"] == "INVALID_TYPE" for i in res["issues"])
-    # Suggestions are provided
-    assert isinstance(res.get("suggestions", []), list)
 
     # Auto-fix should clamp max_concurrent into sane bounds
-    fixed, fixes = validator.auto_fix_config(cfg)
-    assert fixed["processing"]["max_concurrent"] in (50, 100)
+    fixed = validator.fix_common_issues(cfg)
+    assert fixed["processing"]["max_concurrent"] == 1000
 

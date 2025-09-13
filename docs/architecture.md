@@ -28,7 +28,7 @@ flowchart TD
 - **SourceManager**: Loads sources from `config/sources.yaml` with tiered organization
 - **SourceValidator**: Validates source accessibility and content quality
 - **ConfigProcessor**: Handles protocol parsing, deduplication, and quality scoring
-- **VPNSubscriptionMerger**: Orchestrates the entire processing pipeline
+- **StreamlineVPNMerger**: Orchestrates the entire processing pipeline
 
 ### Features
 

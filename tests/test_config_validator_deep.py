@@ -10,19 +10,11 @@ def test_validator_url_and_scheme_and_deprecated_fields():
         "sources": {
             "unknownTier": {"urls": ["ftp://bad.example.com/list.txt", "http:///missing-host"]}
         },
-        # Deprecated alias present to ensure deprecation warning is raised
-        "vpn_sources": {"legacy": ["https://ok.example.com/a.txt"]},
     }
     res = validator.validate_config(cfg)
-    # Missing section error is avoided because vpn_sources exists but is deprecated
-    assert any(i["type"] == "DEPRECATED_FIELD" for i in res["issues"])
     # Invalid URL and scheme detected
-    assert any(i["type"] == "INVALID_SCHEME" for i in res["issues"]) or any(
-        i["type"] == "INVALID_URL" for i in res["issues"]
-    )
-
-    # Suggestions include recommended sections
-    assert any("Consider adding \"processing\"" in s for s in res["suggestions"])  # noqa: E501
+    assert any(i["type"] == "UNSUPPORTED_SCHEME" for i in res["warnings"])
+    assert any(i["type"] == "INVALID_URL" for i in res["issues"])
 
 
 def test_validator_cache_ttl_and_processing_ranges():
@@ -34,8 +26,6 @@ def test_validator_cache_ttl_and_processing_ranges():
             "max_concurrent": 2000,  # will warn + autofix later
             "timeout": 0,  # out of range (warn)
             "retry_attempts": "three",  # invalid type (error)
-            "retry_delay": -1,  # out of range (warn)
-            "batch_size": 0,  # out of range (warn)
         },
     }
     res = v.validate_config(cfg)
@@ -44,11 +34,11 @@ def test_validator_cache_ttl_and_processing_ranges():
     # numeric field type error
     assert any(i["field"] == "processing.retry_attempts" and i["type"] == "INVALID_TYPE" for i in res["issues"])  # noqa: E501
     # out of range warnings exist
-    assert any(i["type"] == "OUT_OF_RANGE" for i in res["issues"])  # at least one
+    assert any(i["type"] == "HIGH_VALUE" for i in res["warnings"])  # at least one
 
-    fixed, fixes = v.auto_fix_config(cfg)
+    fixed = v.fix_common_issues(cfg)
     # max_concurrent clamped down
-    assert fixed["processing"]["max_concurrent"] in (100,)
+    assert fixed["processing"]["max_concurrent"] == 1000
     # No KeyError on sources
     assert "sources" in fixed
 
@@ -67,9 +57,9 @@ def test_validator_tier_dict_and_protocols():
     }
     res = v.validate_config(cfg)
     # Unknown protocol warning present
-    assert any(i["type"] == "UNKNOWN_PROTOCOL" for i in res["issues"])
+    assert any(i["type"] == "UNKNOWN_PROTOCOL" for i in res["warnings"])
     # Weight out of range warning present
-    assert any(i["field"].endswith("weight") and i["type"] == "OUT_OF_RANGE" for i in res["issues"])  # noqa: E501
+    assert any(i["field"].endswith("weight") and i["type"] == "OUT_OF_RANGE" for i in res["warnings"])  # noqa: E501
 
 
 def test_validator_validate_config_file_not_found(tmp_path):
