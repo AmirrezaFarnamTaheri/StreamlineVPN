@@ -278,7 +278,7 @@ python -m vpn_merger --web
 docker-compose up -d
 
 # Using systemd service
-sudo systemctl start vpn-merger-web
+sudo systemctl start streamline-vpn-web
 
 # Using Kubernetes
 kubectl apply -f k8s/deployment.yaml
@@ -315,10 +315,10 @@ Check application logs for detailed error information:
 
 ```bash
 # View logs
-tail -f vpn_merger.log
+tail -f streamline_vpn.log
 
 # Check system logs
-journalctl -u vpn-merger-web -f
+journalctl -u streamline-vpn-web -f
 ```
 
 ### Health Checks
@@ -348,8 +348,8 @@ To contribute to the web interface:
 
 ```bash
 # Clone the repository
-git clone https://github.com/your-org/CleanConfigs-SubMerger.git
-cd CleanConfigs-SubMerger
+git clone https://github.com/your-org/StreamlineVPN.git
+cd StreamlineVPN
 
 # Install development dependencies
 pip install -r requirements-enhanced.txt

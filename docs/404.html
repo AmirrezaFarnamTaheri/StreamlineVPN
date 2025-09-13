@@ -4,36 +4,56 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Page Not Found</title>
-    <meta http-equiv="refresh" content="3; url=index.html">
-    <style>
-        body { margin:0; font-family: system-ui, -apple-system, Segoe UI, Roboto, Inter, sans-serif; background:#0b1020; color:#e5e7eb; }
-        .wrap { min-height:100vh; display:flex; align-items:center; justify-content:center; padding:24px; }
-        .card { background: rgba(255,255,255,0.06); border:1px solid rgba(255,255,255,0.08); border-radius:12px; padding:24px 28px; max-width:720px; }
-        .muted { color:#9ca3af; }
-        a { color:#93c5fd; }
-    </style>
-    <script>
-        // GitHub Pages SPA fallback: redirect any deep link to index.html preserving path as hash
-        (function() {
-            try {
-                var path = window.location.pathname;
-                if (!/\/index\.html$/.test(path)) {
-                    // If the project root serves index.html, navigate there
-                    setTimeout(function(){ window.location.replace('index.html'); }, 0);
-                }
-            } catch (e) {}
-        })();
-    </script>
-    </head>
-<body>
-    <div class="wrap">
-        <div class="card">
-            <h1 style="margin:0 0 8px 0; font-size:22px;">404 — Page Not Found</h1>
-            <p class="muted" style="margin:0 0 16px 0;">We couldn't find that page. Redirecting you to the main documentation…</p>
-            <p style="margin:0;">If you're not redirected automatically, <a href="index.html">click here</a>.</p>
+    <link rel="stylesheet" href="/assets/css/style.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <meta http-equiv="refresh" content="3; url=/index.html">
+</head>
+<body class="control-panel">
+    <!-- Header -->
+    <header class="page-header">
+        <div class="container">
+            <div class="flex items-center justify-between w-full">
+                <div class="flex items-center gap-4">
+                    <a href="/index.html" class="flex items-center space-x-3 group">
+                        <img src="/assets/logo.svg" alt="StreamlineVPN Logo" class="h-10 w-10">
+                        <div>
+                            <h1 class="text-xl font-bold">StreamlineVPN</h1>
+                        </div>
+                    </a>
+                </div>
+            </div>
         </div>
-    </div>
+    </header>
+
+    <!-- Main Content -->
+    <main class="main-content">
+        <div class="container text-center">
+            <div class="card">
+                <h1 class="section-title">404 — Page Not Found</h1>
+                <p class="text-secondary mb-6">We couldn't find that page. Redirecting you to the main page…</p>
+                <p>If you're not redirected automatically, <a href="/index.html" class="text-primary hover:underline">click here</a>.</p>
+            </div>
+        </div>
+    </main>
+
+    <!-- Footer -->
+    <footer class="site-footer">
+        <div class="container">
+            <div class="flex items-center justify-center space-x-6 text-sm text-gray-300">
+                <a href="/interactive.html" class="hover:text-white">Control Panel</a>
+                <span class="opacity-30">•</span>
+                <a href="/config_generator.html" class="hover:text-white">Config Generator</a>
+                <span class="opacity-30">•</span>
+                <a href="/troubleshooting.html" class="hover:text-white">Troubleshooting</a>
+                <span class="opacity-30">•</span>
+                <a href="/api/index.html" class="hover:text-white">API Docs</a>
+            </div>
+            <div class="text-center mt-4 text-xs opacity-60">
+                StreamlineVPN v2.0.0 • Built with ❤️ for the community
+            </div>
+        </div>
+    </footer>
 </body>
 </html>
-
-

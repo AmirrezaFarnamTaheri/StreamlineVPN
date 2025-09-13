@@ -6,6 +6,7 @@ Refactored job management system for StreamlineVPN.
 """
 
 import asyncio
+import os
 from typing import Any, Dict, List, Optional
 
 from ..utils.logging import get_logger

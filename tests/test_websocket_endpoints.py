@@ -1,9 +1,10 @@
 from starlette.testclient import TestClient
 
-from streamline_vpn.web.unified_api import app
+from streamline_vpn.web.unified_api import create_unified_app
 
 
 def test_ws_connection_and_ping():
+    app = create_unified_app()
     with TestClient(app) as client:
         with client.websocket_connect("/ws") as ws:
             # Initial connection message
@@ -19,6 +20,7 @@ def test_ws_connection_and_ping():
 
 
 def test_ws_get_stats_and_echo():
+    app = create_unified_app()
     with TestClient(app) as client:
         with client.websocket_connect("/ws") as ws:
             # Consume initial connection message
