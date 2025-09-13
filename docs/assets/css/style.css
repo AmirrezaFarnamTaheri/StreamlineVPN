@@ -499,6 +499,20 @@ body {
    5. Utility Classes
    =================================================================== */
 
+/* Neon / Glow Removal Utility */
+.no-neon,
+.text-gray-400.no-neon,
+.text-gray-300.no-neon,
+p.no-neon {
+    background: transparent !important;
+    border: 0 !important;
+    outline: 0 !important;
+    filter: none !important;
+    box-shadow: none !important;
+    text-shadow: none !important;
+    animation: none !important;
+}
+
 /* Text Utilities */
 .text-primary { color: var(--text-primary); }
 .text-secondary { color: var(--text-secondary); }
