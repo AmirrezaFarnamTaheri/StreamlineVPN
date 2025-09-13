@@ -6,7 +6,7 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).parent / "src"))
 
-from streamline_vpn.utils.logging import get_logger
+from streamline_vpn.utils.logging import get_logger, setup_logging
 from streamline_vpn.web.settings import Settings
 from streamline_vpn.web.static_server import StaticControlServer
 
@@ -45,6 +45,11 @@ def validate_environment():
 
 def main() -> None:
     """Run the web interface with proper API integration."""
+    # Initialize logging (before validation and server instantiation)
+    setup_logging(
+        level=os.getenv("VPN_LOG_LEVEL", "INFO").upper(),
+        log_file=os.getenv("VPN_LOG_FILE"),
+    )
     # Validate environment
     errors = validate_environment()
     if errors:
@@ -95,6 +100,11 @@ def main() -> None:
     Make sure the API server is running on {api_base_url}
     """)
     
+    # Concise startup log for better readability
+    logger.info(
+        "Web UI starting on http://%s:%d (API %s)", host, web_port, api_base_url
+    )
+
     import uvicorn
     uvicorn.run(
         server.app,

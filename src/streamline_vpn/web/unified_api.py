@@ -21,7 +21,6 @@ import time
 
 from fastapi import (
     BackgroundTasks,
-    Depends,
     FastAPI,
     HTTPException,
     Request,
@@ -38,7 +37,6 @@ from pydantic import BaseModel, Field, field_validator
 from ..core.merger import StreamlineVPNMerger
 from ..models.formats import OutputFormat
 from ..utils.logging import get_logger
-from ..settings import get_settings
 from .ws_debug_middleware import WSLogMiddleware
 
 logger = get_logger(__name__)
@@ -376,6 +374,17 @@ class UnifiedAPI:
         )
 
         self._setup_cors(app)
+        # Assign a request ID to each request for better traceability
+        @app.middleware("http")
+        async def request_id_middleware(request: Request, call_next):
+            rid = request.headers.get("X-Request-ID") or uuid.uuid4().hex[:12]
+            request.state.request_id = rid
+            response = await call_next(request)
+            try:
+                response.headers["X-Request-ID"] = rid
+            except Exception:
+                pass
+            return response
         # Add verbose WS handshake logging to diagnose pre-route rejections (opt-in)
         if os.getenv("WS_DEBUG", "0").lower() in {"1", "true", "yes", "on"}:
             app.add_middleware(WSLogMiddleware)
@@ -498,6 +507,7 @@ class UnifiedAPI:
                 )
 
             job_id = self.job_manager.create_job("pipeline", request.dict())
+            logger.info("Pipeline job created: %s", job_id)
 
             async def run_job() -> None:
                 try:
@@ -728,191 +738,67 @@ class UnifiedAPI:
         @app.websocket("/ws")
         async def websocket_endpoint(websocket: WebSocket) -> None:
             """WebSocket endpoint for real-time updates."""
+            client_id = str(uuid.uuid4())
             try:
                 await websocket.accept()
-                logger.debug("WebSocket connection accepted at %s", datetime.now().isoformat())
-            except Exception as e:
-                logger.error("WebSocket accept error: %s", e)
-                raise
-            
-            try:
-                # Parse client_id from query string
-                qs = websocket.scope.get("query_string", b"")
-                client_id = None
-                try:
-                    from urllib.parse import parse_qs
-                    params = parse_qs(qs.decode("utf-8")) if isinstance(qs, (bytes, bytearray)) else {}
-                    client_id = params.get("client_id", [None])[0]
-                except Exception:
-                    client_id = None
-                
+                logger.info(f"WebSocket client {client_id} connected")
+
                 # Send initial connection confirmation
                 await websocket.send_json({
                     "type": "connection",
                     "status": "connected",
+                    "client_id": client_id,
                     "timestamp": datetime.now().isoformat()
                 })
-                
-                # Keep connection alive and handle messages
+
+                # Main message loop
                 while True:
                     try:
-                        data = await websocket.receive_text()
-                        logger.debug("Received WebSocket message: %s", data[:100])
-                        
-                        # Echo back for now (implement actual logic as needed)
+                        # Receive message
+                        message = await websocket.receive_text()
+                        data = json.loads(message) if message else {}
+
+                        # Handle different message types
+                        if isinstance(data, dict) and data.get("type") == "ping":
+                            await websocket.send_json({
+                                "type": "pong",
+                                "timestamp": datetime.now().isoformat()
+                            })
+                        elif isinstance(data, dict) and data.get("type") == "get_stats" and self.merger:
+                            stats = await self.merger.get_statistics()
+                            await websocket.send_json({
+                                "type": "statistics",
+                                "data": stats,
+                                "timestamp": datetime.now().isoformat()
+                            })
+                        else:
+                            # Echo unknown messages
+                            await websocket.send_json({
+                                "type": "echo",
+                                "received": data,
+                                "timestamp": datetime.now().isoformat()
+                            })
+
+                    except WebSocketDisconnect:
+                        break
+                    except json.JSONDecodeError:
                         await websocket.send_json({
-                            "type": "response",
-                            "data": data,
+                            "type": "error",
+                            "message": "Invalid JSON",
                             "timestamp": datetime.now().isoformat()
                         })
                     except Exception as e:
-                        logger.debug("WebSocket receive error: %s", e)
+                        logger.debug(f"WebSocket error: {e}")
                         break
-                        
+
             except Exception as e:
-                logger.error("WebSocket error: %s", e)
+                logger.error(f"WebSocket connection error: {e}")
             finally:
-                logger.debug("WebSocket connection closed")
-            try:
-                # Parse client_id from query string to support single-endpoint routing
-                qs = websocket.scope.get("query_string", b"")
-                client_id = None
-                try:
-                    from urllib.parse import parse_qs
-                    params = parse_qs(qs.decode("utf-8")) if isinstance(qs, (bytes, bytearray)) else {}
-                    cid = params.get("client_id", [None])[0]
-                    client_id = cid if cid else None
-                except Exception:
-                    client_id = None
-                # If client sends an immediate ping, respond with pong, then continue streaming
-                try:
-                    import json as _json
-                    import asyncio as _asyncio
-                    msg = await _asyncio.wait_for(websocket.receive_text(), timeout=0.05)
-                    try:
-                        data = _json.loads(msg)
-                    except Exception:
-                        data = {}
-                    if isinstance(data, dict) and data.get("type") == "ping":
-                        payload = {"type": "pong", "timestamp": datetime.now().isoformat()}
-                        if client_id:
-                            payload["client_id"] = client_id
-                        await websocket.send_json(payload)
-                except Exception:
-                    # Timeout or parse issue – proceed to stats stream
-                    pass
-                while True:
-                    if self.merger:
-                        stats = await self.merger.get_statistics()
-                        payload = {"type": "statistics", "data": stats, "timestamp": datetime.now().isoformat()}
-                        if client_id:
-                            payload["client_id"] = client_id
-                        await websocket.send_json(payload)
-                    await asyncio.sleep(5)
-            except WebSocketDisconnect:  # pragma: no cover - depends on client
-                logger.info("WebSocket client disconnected")
-            except Exception as e:  # pragma: no cover
-                logger.error("WebSocket error: %s", e)
+                logger.info(f"WebSocket client {client_id} disconnected")
 
-        # Catch-all WS under /ws/* to accept handshakes on environments with strict routing
-        @app.websocket("/ws/{rest:path}")
-        async def websocket_catch_all(websocket: WebSocket, rest: str) -> None:
-            # Accept and behave like /ws/{client_id} with minimal echo
-            await websocket.accept()
-            try:
-                while True:
-                    data = await websocket.receive_json()
-                    if isinstance(data, dict) and data.get("type") == "ping":
-                        await websocket.send_json({"type": "pong", "path": rest, "timestamp": datetime.now().isoformat()})
-                    else:
-                        await websocket.send_json({"type": "ack", "path": rest, "received": data, "timestamp": datetime.now().isoformat()})
-            except WebSocketDisconnect:
-                logger.info("WebSocket catch-all disconnected: %s", rest)
 
-        # Explicit test client endpoint used by some integration tests (register before {client_id} to ensure precedence)
-        @app.websocket("/ws/test_client")
-        async def websocket_test_client(websocket: WebSocket) -> None:
-            """Test client WebSocket endpoint."""
-            try:
-                await websocket.accept()
-                logger.debug("Test client WebSocket connection accepted at %s", datetime.now().isoformat())
-            except Exception as e:
-                logger.error("Test client WebSocket accept error: %s", e)
-                raise
-            
-            try:
-                while True:
-                    message = await websocket.receive_text()
-                    try:
-                        data = json.loads(message)
-                    except Exception:
-                        data = {}
-                    if isinstance(data, dict) and data.get("type") == "ping":
-                        await websocket.send_json({
-                            "type": "pong",
-                            "timestamp": datetime.now().isoformat(),
-                        })
-                    else:
-                        await websocket.send_json({
-                            "type": "ack",
-                            "received": data,
-                            "timestamp": datetime.now().isoformat(),
-                        })
-            except WebSocketDisconnect:  # pragma: no cover
-                logger.info("WebSocket test client disconnected")
-            except Exception as e:  # pragma: no cover
-                logger.error("WebSocket test client error: %s", e)
 
-        # Alias without underscore to bypass strict path validators in some environments
-        @app.websocket("/ws/testclient")
-        async def websocket_testclient_alias(websocket: WebSocket) -> None:
-            await websocket_test_client(websocket)
-
-        # Compatibility: echo/ping endpoint used by tests and some clients
-        @app.websocket("/ws/{client_id}")
-        async def websocket_client_endpoint(websocket: WebSocket, client_id: str) -> None:
-            """Client-specific WebSocket endpoint."""
-            try:
-                await websocket.accept()
-                logger.debug("Client WebSocket connection accepted for %s at %s", client_id, datetime.now().isoformat())
-            except Exception as e:
-                logger.error("Client WebSocket accept error for %s: %s", client_id, e)
-                raise
-            
-            try:
-                while True:
-                    message = await websocket.receive_text()
-                    try:
-                        data = json.loads(message)
-                    except Exception:
-                        data = {}
-                    if isinstance(data, dict) and data.get("type") == "ping":
-                        await websocket.send_json({
-                            "type": "pong",
-                            "client_id": client_id,
-                            "timestamp": datetime.now().isoformat(),
-                        })
-                    else:
-                        # Provide a useful default payload
-                        stats = None
-                        if self.merger:
-                            try:
-                                stats = await self.merger.get_statistics()
-                            except Exception:
-                                stats = None
-                        await websocket.send_json({
-                            "type": "ack",
-                            "client_id": client_id,
-                            "received": data,
-                            "statistics": stats,
-                            "timestamp": datetime.now().isoformat(),
-                        })
-            except WebSocketDisconnect:  # pragma: no cover
-                logger.info("WebSocket client %s disconnected", client_id)
-            except Exception as e:  # pragma: no cover
-                logger.error("WebSocket error for %s: %s", client_id, e)
-
-        # (test_client route moved above for precedence)
+        # (WebSocket endpoints simplified: single "/ws" endpoint only)
 
     def _setup_metrics(self, app: FastAPI) -> None:
         """Attach Prometheus /metrics endpoint and request metrics middleware."""
@@ -934,6 +820,7 @@ class UnifiedAPI:
             if HTTP_REQUESTS_IN_PROGRESS is not None:
                 HTTP_REQUESTS_IN_PROGRESS.inc()
             start = time.perf_counter()
+            status_code = "500"
             try:
                 response = await call_next(request)
                 status_code = str(getattr(response, "status_code", 500))
@@ -965,22 +852,7 @@ class UnifiedAPI:
             return Response(content=data, media_type=CONTENT_TYPE_LATEST)
 
     def _setup_exception_handlers(self, app: FastAPI) -> None:
-        @app.exception_handler(RequestValidationError)
-        async def validation_exception_handler(
-            request: Request, exc: RequestValidationError
-        ) -> JSONResponse:
-            return JSONResponse(
-                status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
-                content={"detail": exc.errors(), "body": getattr(exc, "body", None)},
-            )
-
-        @app.exception_handler(HTTPException)
-        async def http_exception_handler(
-            request: Request, exc: HTTPException
-        ) -> JSONResponse:
-            return JSONResponse(
-                status_code=exc.status_code, content={"detail": exc.detail}
-            )
+        
 
         # Friendly 404s: API JSON, UI fallback to index.html
         @app.exception_handler(404)

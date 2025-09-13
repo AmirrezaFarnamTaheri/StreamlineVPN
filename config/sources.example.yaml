@@ -1,0 +1,44 @@
+# StreamlineVPN Example Configuration
+# Copy this file to sources.yaml and customize
+
+sources:
+  tier_1_premium:
+    description: High-quality premium sources
+    urls:
+    - url: https://your-premium-source.com/configs.txt
+      weight: 0.9
+      protocols:
+      - vmess
+      - vless
+      update: 1h
+      metadata:
+        description: Your premium source
+        region: global
+        enabled: true
+
+  tier_2_reliable:
+    description: Reliable community sources
+    urls:
+    - url: https://your-reliable-source.com/list.txt
+      weight: 0.7
+      protocols:
+      - all
+      update: 4h
+      metadata:
+        description: Your reliable source
+        region: global
+        enabled: true
+
+processing:
+  max_concurrent: 50
+  timeout: 30
+  retry_attempts: 3
+
+output:
+  formats:
+  - json
+  - clash
+  - singbox
+  include_metadata: true
+  sort_by_quality: true
+

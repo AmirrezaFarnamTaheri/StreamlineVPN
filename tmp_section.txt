@@ -1,0 +1,2 @@
+    uvicorn.run(app, host=host, port=port, log_level="info")
+    logger.info("Starting Unified API Server on %s:%s", host, port)
