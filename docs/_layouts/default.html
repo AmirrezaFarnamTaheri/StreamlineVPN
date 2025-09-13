@@ -29,7 +29,7 @@
             bottom: 0;
             background: linear-gradient(125deg, #667eea 0%, #764ba2 25%, #f093fb 50%, #667eea 100%);
             background-size: 400% 400%;
-            animation: gradientShift 15s ease infinite;
+            animation: gradientShift 12s ease infinite;
             opacity: 0.1;
             z-index: -2;
         }
@@ -106,15 +106,19 @@
         .prose a {
             color: #818cf8;
         }
-        .prose code {
-            background: rgba(255, 255, 255, 0.1);
-            padding: 0.2em 0.4em;
-            border-radius: 3px;
+        .prose code, .prose pre {
+            background: transparent !important;
+            border: none !important;
+            box-shadow: none !important;
+            text-shadow: none !important;
         }
         .prose pre {
-            background: rgba(0, 0, 0, 0.5);
             padding: 1em;
             border-radius: 0.5em;
+        }
+        .prose code {
+            padding: 0.2em 0.4em;
+            border-radius: 3px;
         }
 
         ::-webkit-scrollbar {
