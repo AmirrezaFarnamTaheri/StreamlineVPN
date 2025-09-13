@@ -27,14 +27,16 @@ class MergerProcessor:
 
     async def process_sources(
         self, sources: List[Any]
-    ) -> List[VPNConfiguration]:
-        """Process all sources and return configurations.
+    ) -> tuple[List[VPNConfiguration], int]:
+        """Process all sources and return configurations and success count.
 
         Args:
             sources: List of sources to process
 
         Returns:
-            List of processed configurations
+            A tuple containing:
+                - List of processed configurations
+                - Count of successfully processed sources
         """
         logger.info("Processing %d sources", len(sources))
 
@@ -46,42 +48,51 @@ class MergerProcessor:
             tasks, limit=self.merger.max_concurrent
         )
 
-        # Flatten results
-        all_configs = []
-        for configs in results:
+        # Flatten results and count successes
+        all_configs: List[VPNConfiguration] = []
+        successful_sources_count = 0
+        for configs, success in results:
+            if success:
+                successful_sources_count += 1
             if configs:
                 all_configs.extend(configs)
 
         logger.info(
             f"Processed {len(all_configs)} configurations from "
-            f"{len(sources)} sources"
+            f"{successful_sources_count}/{len(sources)} successful sources"
         )
-        return all_configs
+        return all_configs, successful_sources_count
 
     async def _process_single_source(
         self, source: Any
-    ) -> List[VPNConfiguration]:
+    ) -> tuple[List[VPNConfiguration], bool]:
         """Process a single source.
 
         Args:
             source: Source to process
 
         Returns:
-            List of configurations from source
+            A tuple containing:
+                - List of configurations from the source
+                - Boolean indicating if the processing was successful
         """
+        source_url = source.get("url") if isinstance(source, dict) else source
+        if not source_url:
+            logger.error("Skipping source with no URL: %s", source)
+            return [], False
+
         try:
             # Fetch from source URL
             fetch_result = await self.merger.source_manager.fetch_source(
-                source
+                source_url
             )
             if not fetch_result or not fetch_result.success:
                 logger.warning(
-                    "Failed to fetch or no content from source " f"{source}"
+                    "Failed to fetch or no content from source %s", source_url
                 )
-                # Update performance as failed
                 try:
                     await self.merger.source_manager.update_source_performance(
-                        source_url=source,
+                        source_url=source_url,
                         success=False,
                         config_count=0,
                         response_time=(
@@ -89,59 +100,65 @@ class MergerProcessor:
                         ),
                     )
                 except Exception as perf_error:
-                    logger.error("Failed to update source performance: %s", perf_error)
-                return []
+                    logger.error(
+                        "Failed to update source performance for %s: %s",
+                        source_url,
+                        perf_error,
+                    )
+                return [], False
 
             # Parse each configuration line
             parsed_configs: List[VPNConfiguration] = []
             for line in fetch_result.configs:
                 try:
-                    security_analysis = (
-                        self.merger.security_manager.analyze_configuration(line)
-                    )
-                    if not security_analysis["is_safe"]:
-                        logger.warning(
-                            "Skipping unsafe configuration from "
-                            f"{source}: {line}"
-                        )
-                        continue
-
                     parser = self.merger.config_processor.parser
                     cfg = parser.parse_configuration(line)
                     if cfg:
+                        cfg.metadata["source"] = source_url
                         parsed_configs.append(cfg)
                 except Exception as parse_error:
-                    logger.debug("Failed to parse configuration line: %s", parse_error)
+                    logger.debug(
+                        "Failed to parse configuration line from %s: %s",
+                        source_url,
+                        parse_error,
+                    )
                     continue
 
             # Update source performance
             try:
                 await self.merger.source_manager.update_source_performance(
-                    source_url=source,
+                    source_url=source_url,
                     success=True,
                     config_count=len(parsed_configs),
                     response_time=fetch_result.response_time,
                 )
             except Exception as perf_error:
-                logger.error("Failed to update source performance: %s", perf_error)
+                logger.error(
+                    "Failed to update source performance for %s: %s",
+                    source_url,
+                    perf_error,
+                )
 
-            return parsed_configs
+            return parsed_configs, True
 
         except Exception as e:
             logger.error(
-                f"Error processing source "
-                f"{getattr(source, 'name', source)}: {e}"
+                f"Error processing source {source_url}: {e}", exc_info=True
             )
             try:
                 await self.merger.source_manager.update_source_performance(
-                    source_url=source,
+                    source_url=source_url,
                     success=False,
                     config_count=0,
                     response_time=0.0,
                 )
             except Exception as perf_error:
-                logger.error("Failed to update source performance: %s", perf_error)
-            return []
+                logger.error(
+                    "Failed to update source performance for %s: %s",
+                    source_url,
+                    perf_error,
+                )
+            return [], False
 
     async def deduplicate_configurations(
         self, configs: List[VPNConfiguration]

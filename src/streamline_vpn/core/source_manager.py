@@ -90,6 +90,8 @@ class SourceManager:
                 return
 
             sources_config = config.get("sources", {})
+            logger.info(f"sources_config type: {type(sources_config)}")
+            logger.info(f"sources_config content: {sources_config}")
             logger.info("Found %d source tiers in configuration", len(sources_config))
 
             for tier_name, tier_data in sources_config.items():

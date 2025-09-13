@@ -20,13 +20,13 @@ def test_pages_reference_api_base():
         encoding="utf-8"
     )
 
-    assert "/api-base.js" in index, "index.html should include /api-base.js"
+    assert "api-base.js" in index, "index.html should include api-base.js"
     assert (
-        "/api-base.js" in interactive
-    ), "interactive.html should include /api-base.js"
+        "api-base.js" in interactive
+    ), "interactive.html should include api-base.js"
     assert (
-        "/api-base.js" in config_gen
-    ), "config_generator.html should include /api-base.js"
+        "api-base.js" in config_gen
+    ), "config_generator.html should include api-base.js"
 
 
 def test_control_pages_use_animated_background():

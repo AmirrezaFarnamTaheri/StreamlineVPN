@@ -142,36 +142,77 @@ class TestStreamlineVPNMerger:
     """Test StreamlineVPN merger functionality."""
 
     @pytest.fixture
-    def merger(self):
-        """Create merger instance for testing."""
-        with patch("streamline_vpn.core.source_manager.SourceManager"), patch(
-            "streamline_vpn.core.config_processor.ConfigurationProcessor"
-        ), patch("streamline_vpn.core.output_manager.OutputManager"), patch(
-            "streamline_vpn.security.manager.SecurityManager"
-        ):
-            merger = StreamlineVPNMerger()
-            merger.source_manager.get_active_sources = AsyncMock(
-                return_value=[]
-            )
-            return merger
+    async def merger(self, tmp_path):
+        """Create a merger instance with mocked dependencies for testing."""
+        config_file = tmp_path / "test_sources.yaml"
+        config_file.write_text(
+            """
+            sources:
+              premium:
+                urls:
+                  - url: http://source1.com/sub
+            processing:
+              max_concurrent: 10
+            output:
+              formats: [json]
+            """
+        )
+
+        # We patch the class constructors to control the instances created by the merger
+        with patch("streamline_vpn.core.merger.VPNCacheService", autospec=True), \
+             patch("streamline_vpn.core.merger.FetcherService", autospec=True), \
+             patch("streamline_vpn.core.merger.SourceManager", autospec=True) as MockSourceManager, \
+             patch("streamline_vpn.core.merger.ConfigurationProcessor", autospec=True), \
+             patch("streamline_vpn.core.merger.OutputManager", autospec=True), \
+             patch("streamline_vpn.core.merger.SecurityManager", autospec=True), \
+             patch("streamline_vpn.core.merger.MergerProcessor", autospec=True):
+
+            # Configure the return values of the mocked class instances
+            mock_source_manager_instance = MockSourceManager.return_value
+            mock_source_manager_instance.get_source_statistics.return_value = {
+                "total_sources": 1,
+                "active_sources": 1,
+                "average_reputation": 0.5,
+            }
+
+            # The merger instance to be tested
+            merger_instance = StreamlineVPNMerger(config_path=str(config_file))
+
+            # The initialize method will now use the mocked classes
+            await merger_instance.initialize()
+
+            # The merger processor is created inside initialize, so we need to access it from the instance
+            merger_instance.merger_processor.process_sources.return_value = [
+                VPNConfiguration(protocol=Protocol.VMESS, server="test.com", port=443, user_id="123", metadata={})
+            ]
+            merger_instance.merger_processor.deduplicate_configurations.side_effect = lambda configs: configs
+            merger_instance.merger_processor.apply_enhancements.side_effect = lambda configs: configs
+
+            yield merger_instance
 
     @pytest.mark.asyncio
     async def test_merger_initialization(self, merger):
-        """Test merger initialization."""
+        """Test merger initialization with mocked components."""
         assert merger is not None
+        assert merger.initialized is True
         assert merger.source_manager is not None
         assert merger.config_processor is not None
         assert merger.output_manager is not None
+        assert merger.merger_processor is not None
+        assert merger.config['processing']['max_concurrent'] == 10
 
     @pytest.mark.asyncio
-    async def test_process_all_empty_sources(self, merger):
-        """Test processing with no sources."""
-        with patch.object(
-            merger.source_manager, "get_active_sources", return_value=[]
-        ):
-            result = await merger.process_all()
-            assert result["success"] is False
-            assert "No sources found" in result["error"]
+    async def test_process_all_no_configs_found(self, merger):
+        """Test processing when sources yield no configurations."""
+        # Mock the merger_processor to return no configs and 0 successful sources
+        merger.merger_processor.process_sources.return_value = ([], 0)
+        merger.merger_processor.deduplicate_configurations.return_value = []
+
+        result = await merger.process_all()
+
+        assert result["success"] is True
+        assert result["total_configurations"] == 0
+        assert "No configurations found in any source" in result["warnings"]
 
     @pytest.mark.asyncio
     async def test_get_statistics(self, merger):
@@ -179,6 +220,7 @@ class TestStreamlineVPNMerger:
         stats = await merger.get_statistics()
         assert isinstance(stats, dict)
         assert "total_sources" in stats
+        assert stats["total_sources"] == 1
 
 
 class TestSourceManager:
