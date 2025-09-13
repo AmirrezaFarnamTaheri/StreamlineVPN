@@ -277,5 +277,51 @@ tail -f streamline_vpn.log
 4. **Test regularly**: Run tests to ensure system health
 5. **Update dependencies**: Keep packages up to date
 
+## Deployment Issues
+
+This section covers common issues you might encounter when deploying StreamlineVPN with Docker or Kubernetes.
+
+### Docker
+
+#### Container Fails to Start
+**Problem**: The Docker container exits immediately or is stuck in a restart loop.
+**Solutions**:
+- **Check Logs**: Inspect the container logs for errors: `docker logs <container_name_or_id>`
+- **Configuration Mounts**: Ensure that your `config/sources.yaml` is correctly mounted into the container if you are using a custom one. Verify file permissions.
+- **Port Conflicts**: Make sure the ports you are trying to expose (e.g., 8080, 8000) are not already in use on the host machine. Use `docker-compose ps` to see port mappings.
+- **Environment Variables**: Verify that all required environment variables are set correctly in your `docker-compose.yml` or `.env` file.
+
+#### Network Issues
+**Problem**: The application inside the container cannot connect to external sources, or you cannot connect to the application from the host.
+**Solutions**:
+- **Docker Networks**: Ensure all containers that need to communicate are on the same Docker network. `docker-compose` usually handles this automatically.
+- **Firewall**: Check that your host's firewall is not blocking the ports used by the application.
+- **DNS in Container**: If the container cannot resolve domain names, you might need to configure a specific DNS server for Docker. Edit `/etc/docker/daemon.json`.
+
+### Kubernetes
+
+#### Pod is in `CrashLoopBackOff`
+**Problem**: The pod is restarting continuously.
+**Solutions**:
+- **Check Pod Logs**: Use `kubectl logs <pod_name>` to see the application's error messages. To see logs from a previously crashed container, use `kubectl logs <pod_name> --previous`.
+- **Describe Pod**: Get more details about the pod's state and events: `kubectl describe pod <pod_name>`. This can reveal issues like resource limits being exceeded or problems pulling the image.
+- **Liveness/Readiness Probes**: If liveness or readiness probes are configured, they might be failing. Check their configuration and test the endpoints manually.
+
+#### Pod is `Pending`
+**Problem**: The pod is stuck in the `Pending` state and is not being scheduled on a node.
+**Solutions**:
+- **Describe Pod**: `kubectl describe pod <pod_name>` will often show why the pod is pending. Common reasons include:
+    - **Insufficient Resources**: The cluster doesn't have enough CPU or memory to meet the pod's requests.
+    - **Taints and Tolerations**: The pod may not have the necessary tolerations to be scheduled on available nodes.
+    - **Volume Mounting**: The pod might be waiting for a PersistentVolumeClaim (PVC) to be bound.
+
+#### Service Not Accessible
+**Problem**: You cannot access the application through the Kubernetes Service.
+**Solutions**:
+- **Check Service and Endpoints**: Ensure the Service is correctly configured and has endpoints associated with it: `kubectl describe svc <service_name>`. If the "Endpoints" section is empty, the service's selector is not matching any pods.
+- **Port Mapping**: Verify that the `targetPort` on the Service matches the `containerPort` on the Pod.
+- **Network Policies**: If network policies are in place, they might be blocking traffic. Check for any policies that might apply to your pod's namespace.
+- **Ingress**: If you are using an Ingress controller, check its logs and configuration (`kubectl describe ingress <ingress_name>`) to ensure it's correctly routing traffic to your service.
+
 This troubleshooting guide covers the most common issues and solutions. For additional help, refer to the configuration guide or create an issue in the project repository.
 
