@@ -52,7 +52,12 @@ class APIServer:
         # Schedule the pipeline to run every 12 hours
         # self.app.add_event_handler("startup", self.start_scheduler)
 
-        logger.info("API server initialized")
+        logger.info(
+            "API server initialized with %d Redis nodes", len(redis_nodes)
+        )
+        if redis_nodes:
+            addresses = ", ".join(f"{n['host']}:{n['port']}" for n in redis_nodes)
+            logger.debug("Redis nodes configured: %s", addresses)
 
     async def start_scheduler(self):
         """

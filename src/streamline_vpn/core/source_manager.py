@@ -94,7 +94,11 @@ class SourceManager:
 
             for tier_name, tier_data in sources_config.items():
                 if not isinstance(tier_data, dict) or "urls" not in tier_data:
-                    logger.warning("Invalid tier configuration for %s: missing 'urls' key", tier_name)
+                    logger.warning(
+                        "Invalid tier configuration for %s: expected {'urls': [...]}, got %r",
+                        tier_name,
+                        tier_data,
+                    )
                     continue
 
                 tier_str = tier_name.split('_')[-1]
@@ -102,7 +106,12 @@ class SourceManager:
                     tier = SourceTier(tier_str)
                     logger.debug("Processing tier: %s (%s)", tier_name, tier_str)
                 except ValueError:
-                    logger.warning("Unknown tier: %s, skipping", tier_name)
+                    valid = ", ".join(t.value for t in SourceTier)
+                    logger.warning(
+                        "Unknown tier '%s' encountered; valid tiers are [%s]. Skipping",
+                        tier_name,
+                        valid,
+                    )
                     continue
 
                 for source_config in tier_data["urls"]:
@@ -162,11 +171,15 @@ class SourceManager:
                         )
                         continue
 
+            tier_counts: Dict[str, int] = {}
+            for src in self.sources.values():
+                tier_counts[src.tier.value] = tier_counts.get(src.tier.value, 0) + 1
             logger.info(
-                "Successfully loaded %d sources from %s", 
-                len(self.sources), 
-                self.config_path
+                "Successfully loaded %d sources from %s",
+                len(self.sources),
+                self.config_path,
             )
+            logger.info("Tier distribution: %s", tier_counts)
 
         except yaml.YAMLError as e:
             logger.error("Failed to parse YAML configuration: %s - File: %s", e, self.config_path)
@@ -407,7 +420,9 @@ class SourceManager:
                 if source.tier == tier and not source.is_blacklisted
             ]
         except Exception as e:
-            logger.error("Failed to get sources by tier %s: %s", tier, e, exc_info=True)
+            logger.error(
+                "Failed to get sources for tier '%s': %s", tier.value, e, exc_info=True
+            )
             return []
 
     async def fetch_source(self, source_url: str) -> ProcessingResult:

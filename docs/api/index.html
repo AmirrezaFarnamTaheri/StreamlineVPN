@@ -17,10 +17,18 @@
             min-height: 100vh;
         }
         .animated-bg {
-            position: fixed; inset: 0; background: linear-gradient(125deg, #667eea, #764ba2, #f093fb, #667eea);
-            background-size: 400% 400%; animation: gradientShift 12s ease infinite; opacity: 0.05; z-index: -1;
+            position: fixed;
+            inset: 0;
+            background: linear-gradient(125deg, #667eea, #764ba2, #f093fb, #667eea);
+            background-size: 400% 400%;
+            animation: gradient-shift 12s ease infinite;
+            opacity: 0.05;
+            z-index: -1;
         }
-        @keyframes gradientShift { 0%,100%{background-position:0% 50%} 50%{background-position:100% 50%} }
+        @keyframes gradient-shift {
+            0%, 100% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+        }
         .glass { background: rgba(255,255,255,0.08); backdrop-filter: blur(12px); border: 1px solid rgba(255,255,255,0.12); }
         .glass-dark { background: rgba(0,0,0,0.4); backdrop-filter: blur(16px); border: 1px solid rgba(255,255,255,0.08); }
         @keyframes fade-in-up { from { transform: translateY(30px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
@@ -108,6 +116,8 @@
                     </svg>
                     Back to Home
                 </a>
+                <a href="../config_generator.html" class="px-4 py-2 text-gray-300 hover:text-white transition">Generator</a>
+                <a href="../interactive.html" class="px-4 py-2 text-gray-300 hover:text-white transition">Control Panel</a>
                 <div class="px-3 py-1 bg-green-500/20 text-green-400 rounded-full text-sm animate-pulse">
                     API v2.0
                 </div>
@@ -138,7 +148,7 @@
                     <a href="#changelog" class="nav-link block px-4 py-2 rounded-lg text-sm animate-slide-in stagger-9">📝 Changelog</a>
                 </nav>
                 
-                <div class="mt-8 p-4 bg-blue-500/10 rounded-lg border border-blue-500/20 no-neon">
+                <div class="mt-8 p-4 glass rounded-lg no-neon">
                     <h4 class="font-semibold text-blue-400 mb-2">🛠️ Interactive Testing</h4>
                     <p class="text-sm text-gray-300 mb-3">Test API endpoints directly in your browser</p>
                     <button onclick="openSwaggerUI()" class="w-full px-4 py-2 bg-blue-600 hover:bg-blue-700 rounded-lg text-sm transition animate-card-hover">
@@ -146,7 +156,7 @@
                     </button>
                 </div>
 
-                <div class="mt-4 p-4 bg-green-500/10 rounded-lg border border-green-500/20 no-neon">
+                <div class="mt-4 p-4 glass rounded-lg no-neon">
                     <h4 class="font-semibold text-green-400 mb-2">📊 API Status</h4>
                     <div class="space-y-2 text-sm">
                         <div class="flex justify-between">
@@ -201,7 +211,7 @@
                         </div>
                     </div>
 
-                    <div class="bg-gray-800/50 rounded-lg p-6 no-neon">
+                    <div class="glass-dark rounded-lg p-6 no-neon">
                         <h4 class="font-semibold mb-3 animate-text-shimmer">🌐 Base URL</h4>
                         <div class="code-block">
                             <code class="text-green-400 animate-text-shimmer">https://api.streamlinevpn.com/v2</code>
@@ -247,6 +257,24 @@
                                 <pre><code class="language-bash">curl -H "Authorization: Bearer YOUR_JWT_TOKEN" \
      https://api.streamlinevpn.com/v2/health</code></pre>
                             </div>
+                        </div>
+                        <div class="bg-gray-800/50 rounded-lg p-6 no-neon">
+                            <h4 class="font-semibold mb-3 animate-text-shimmer">🔄 Refreshing Tokens</h4>
+                            <div class="code-block">
+<pre><code class="language-bash">curl -X POST \
+  -H "Authorization: Bearer &lt;refresh_token&gt;" \
+  -H "Content-Type: application/json" \
+  -d '{"refresh_token":"&lt;refresh_token&gt;"}' \
+  ${API_BASE}/auth/refresh</code></pre>
+                            </div>
+                            <p class="text-sm text-gray-400 mt-2">Returns a new access/refresh token pair.</p>
+                        </div>
+                        <p class="text-sm text-gray-300 mt-6 no-neon">Tokens are signed with HS256 and embed the user ID and expiry
+                            time. Requests with missing or expired tokens receive a descriptive 401 response:</p>
+                        <div class="code-block mt-2">
+                            <pre><code class="language-json">{
+  "detail": "Not authenticated"
+}</code></pre>
                         </div>
                     </div>
                 </div>
@@ -415,7 +443,7 @@
                     <p class="text-gray-300 mb-6 no-neon">These snippets show how to interact with the API using
                         popular languages and tools.</p>
                     <div class="space-y-6">
-                        <div class="glass-dark rounded-lg p-6 animate-card-hover animate-data-flow">
+                        <div class="glass-dark rounded-lg p-6 no-neon">
                             <h3 class="text-xl font-semibold mb-4 animate-text-shimmer">🐍 Python Example</h3>
                             <div class="code-block">
                                 <pre><code class="language-python">import requests
@@ -442,7 +470,7 @@ print(f"Job started: {result['job_id']}")</code></pre>
                             </div>
                         </div>
 
-                        <div class="glass-dark rounded-lg p-6 animate-card-hover animate-data-flow">
+                        <div class="glass-dark rounded-lg p-6 no-neon">
                             <h3 class="text-xl font-semibold mb-4 animate-text-shimmer">🟨 JavaScript Example</h3>
                             <div class="code-block">
                                 <pre><code class="language-javascript">const API_BASE = 'https://api.streamlinevpn.com/v2';
@@ -479,7 +507,7 @@ async function startProcessing() {
                             </div>
                         </div>
 
-                        <div class="glass-dark rounded-lg p-6 animate-card-hover animate-data-flow">
+                        <div class="glass-dark rounded-lg p-6 no-neon">
                             <h3 class="text-xl font-semibold mb-4 animate-text-shimmer">🐚 cURL Examples</h3>
                             <div class="code-block">
                                 <pre><code class="language-bash"># Get health status
@@ -513,7 +541,7 @@ curl -H "Authorization: Bearer $TOKEN" \
                     <p class="text-gray-300 mb-6 no-neon">All API responses include a machine-readable error code.
                         Use these codes to programmatically react to failures and surface helpful messages to users.</p>
                     <div class="space-y-4">
-                        <div class="glass-dark rounded-lg p-4 animate-card-hover animate-data-flow">
+                        <div class="glass-dark rounded-lg p-4 no-neon">
                             <div class="flex items-center justify-between">
                                 <div>
                                     <h4 class="font-semibold text-red-400 animate-text-shimmer">400 - Bad Request</h4>
@@ -523,7 +551,7 @@ curl -H "Authorization: Bearer $TOKEN" \
                             </div>
                         </div>
                         
-                        <div class="glass-dark rounded-lg p-4 animate-card-hover animate-data-flow">
+                        <div class="glass-dark rounded-lg p-4 no-neon">
                             <div class="flex items-center justify-between">
                                 <div>
                                     <h4 class="font-semibold text-red-400 animate-text-shimmer">401 - Unauthorized</h4>
@@ -533,7 +561,17 @@ curl -H "Authorization: Bearer $TOKEN" \
                             </div>
                         </div>
                         
-                        <div class="glass-dark rounded-lg p-4 animate-card-hover animate-data-flow">
+                        <div class="glass-dark rounded-lg p-4 no-neon">
+                            <div class="flex items-center justify-between">
+                                <div>
+                                    <h4 class="font-semibold text-red-400 animate-text-shimmer">403 - Forbidden</h4>
+                                    <p class="text-sm text-gray-400">Authenticated but lacking permissions</p>
+                                </div>
+                                <code class="text-red-400">INSUFFICIENT_PERMISSIONS</code>
+                            </div>
+                        </div>
+
+                        <div class="glass-dark rounded-lg p-4 no-neon">
                             <div class="flex items-center justify-between">
                                 <div>
                                     <h4 class="font-semibold text-red-400 animate-text-shimmer">404 - Not Found</h4>
@@ -542,8 +580,8 @@ curl -H "Authorization: Bearer $TOKEN" \
                                 <code class="text-red-400">NOT_FOUND</code>
                             </div>
                         </div>
-                        
-                        <div class="glass-dark rounded-lg p-4 animate-card-hover animate-data-flow">
+
+                        <div class="glass-dark rounded-lg p-4 no-neon">
                             <div class="flex items-center justify-between">
                                 <div>
                                     <h4 class="font-semibold text-red-400 animate-text-shimmer">429 - Too Many Requests</h4>
@@ -552,14 +590,24 @@ curl -H "Authorization: Bearer $TOKEN" \
                                 <code class="text-red-400">RATE_LIMITED</code>
                             </div>
                         </div>
-                        
-                        <div class="glass-dark rounded-lg p-4 animate-card-hover animate-data-flow">
+
+                        <div class="glass-dark rounded-lg p-4 no-neon">
                             <div class="flex items-center justify-between">
                                 <div>
                                     <h4 class="font-semibold text-red-400 animate-text-shimmer">500 - Internal Server Error</h4>
                                     <p class="text-sm text-gray-400">Server error or processing failure</p>
                                 </div>
                                 <code class="text-red-400">INTERNAL_ERROR</code>
+                            </div>
+                        </div>
+
+                        <div class="glass-dark rounded-lg p-4 no-neon">
+                            <div class="flex items-center justify-between">
+                                <div>
+                                    <h4 class="font-semibold text-red-400 animate-text-shimmer">503 - Service Unavailable</h4>
+                                    <p class="text-sm text-gray-400">Temporary maintenance or overload</p>
+                                </div>
+                                <code class="text-red-400">SERVICE_UNAVAILABLE</code>
                             </div>
                         </div>
                     </div>
@@ -574,7 +622,7 @@ curl -H "Authorization: Bearer $TOKEN" \
                         rate limits. Applications with higher throughput requirements can request custom quotas
                         via the support channel.</p>
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                        <div class="glass-dark rounded-lg p-6 animate-card-hover animate-data-flow">
+                        <div class="glass-dark rounded-lg p-6 no-neon">
                             <h3 class="text-xl font-semibold mb-4 animate-text-shimmer">📊 Standard Limits</h3>
                             <ul class="space-y-3">
                                 <li class="flex justify-between">
@@ -592,7 +640,7 @@ curl -H "Authorization: Bearer $TOKEN" \
                             </ul>
                         </div>
                         
-                        <div class="glass-dark rounded-lg p-6 animate-card-hover animate-data-flow">
+                        <div class="glass-dark rounded-lg p-6 no-neon">
                             <h3 class="text-xl font-semibold mb-4 animate-text-shimmer">🚀 Premium Limits</h3>
                             <ul class="space-y-3">
                                 <li class="flex justify-between">
@@ -611,7 +659,7 @@ curl -H "Authorization: Bearer $TOKEN" \
                         </div>
                     </div>
                     
-                        <div class="mt-6 p-4 bg-yellow-500/10 rounded-lg border border-yellow-500/20 no-neon">
+                        <div class="mt-6 p-4 glass rounded-lg no-neon">
                         <h4 class="font-semibold text-yellow-400 mb-2 animate-text-shimmer">💡 Rate Limit Headers</h4>
                         <p class="text-sm text-gray-300 mb-3">All responses include rate limit information:</p>
                         <div class="code-block">
@@ -619,6 +667,7 @@ curl -H "Authorization: Bearer $TOKEN" \
 X-RateLimit-Remaining: 95
 X-RateLimit-Reset: 1641234567</code></pre>
                         </div>
+                        <p class="text-sm text-gray-300 mt-3 no-neon">Use these headers to implement adaptive backoff strategies before quotas reset.</p>
                     </div>
                 </div>
             </section>
@@ -631,7 +680,38 @@ X-RateLimit-Reset: 1641234567</code></pre>
                         <li><code>size</code> – number of items per page (max 100)</li>
                         <li><code>sort</code> – field to sort by, prefix with <code>-</code> for descending</li>
                     </ul>
-                    <div class="code-block"><pre><code class="language-bash">curl -H "Authorization: Bearer &lt;token&gt;" "${API_BASE}/api/v1/configurations?page=2&amp;size=50&amp;sort=-created_at"</code></pre></div>
+                    <p class="text-gray-300 mb-4 no-neon">Filtering is available via query parameters such as <code>protocol</code>, <code>country</code> or <code>status</code>.</p>
+                    <div class="code-block"><pre><code class="language-bash">curl -H "Authorization: Bearer &lt;token&gt;" "${API_BASE}/api/v1/configurations?page=2&amp;size=50&amp;sort=-created_at&amp;protocol=vless"</code></pre></div>
+                </div>
+            </section>
+
+            <section id="models" class="mb-12">
+                <div class="glass rounded-xl p-8 animate-fade-in-up">
+                    <h2 class="text-3xl font-bold mb-6 animate-text-shimmer">🧾 Data Models</h2>
+                    <p class="text-gray-300 mb-4 no-neon">Familiarize yourself with the structure of resources returned by the API.</p>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div class="glass-dark rounded-lg p-6 no-neon">
+                            <h3 class="text-xl font-semibold mb-4 animate-text-shimmer">Configuration</h3>
+                            <div class="code-block"><pre><code class="language-json">{
+  "id": "cfg_abc123",
+  "protocol": "vless",
+  "server": "example.com",
+  "port": 443,
+  "country": "DE",
+  "created_at": "2025-01-10T12:00:00Z"
+}</code></pre></div>
+                        </div>
+                        <div class="glass-dark rounded-lg p-6 no-neon">
+                            <h3 class="text-xl font-semibold mb-4 animate-text-shimmer">Source</h3>
+                            <div class="code-block"><pre><code class="language-json">{
+  "id": "src_001",
+  "url": "https://example.com/configs.txt",
+  "tier": "premium",
+  "success_rate": 0.98,
+  "last_checked": "2025-01-10T11:55:00Z"
+}</code></pre></div>
+                        </div>
+                    </div>
                 </div>
             </section>
             <section id="websocket" class="mb-12">

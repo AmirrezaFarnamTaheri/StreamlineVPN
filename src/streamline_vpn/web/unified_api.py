@@ -17,6 +17,8 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from fastapi.staticfiles import StaticFiles
 
+from ..core.merger import StreamlineVPNMerger
+
 logger = logging.getLogger(__name__)
 
 
@@ -29,10 +31,14 @@ class UnifiedAPIServer:
             description="Unified API for StreamlineVPN configuration management",
             version="2.0.0"
         )
+        self.merger: Optional[StreamlineVPNMerger] = None
+
         self._setup_middleware()
         self._setup_exception_handlers()
         self._setup_static_files()
         self._setup_routes()
+
+        self._setup_lifecycle()
 
     def _setup_middleware(self) -> None:
         """Setup CORS and other middleware."""
@@ -208,56 +214,76 @@ console.log('StreamlineVPN API Base:', window.__API_BASE__);
                 }
             }
 
-        # API v1 placeholder routes
         @self.app.get("/api/v1/sources")
         async def get_sources():
-            """Get available sources."""
-            # This would be replaced with actual implementation
+            """Return configured source URLs."""
+            if not self.merger:
+                raise HTTPException(status_code=503, detail="Merger not initialized")
+
+            sources = list(self.merger.source_manager.sources.keys())
+            logger.info("Listing %d sources", len(sources))
             return {
-                "sources": [],
-                "total": 0,
-                "timestamp": datetime.now().isoformat()
+                "sources": sources,
+                "total": len(sources),
+                "timestamp": datetime.now().isoformat(),
             }
 
         @self.app.get("/api/v1/configurations")
         async def get_configurations(limit: int = 100, offset: int = 0):
-            """Get VPN configurations."""
-            # This would be replaced with actual implementation
+            """Process sources and return VPN configurations."""
+            if not self.merger:
+                raise HTTPException(status_code=503, detail="Merger not initialized")
+
+            await self.merger.process_all()
+            configs = [cfg.to_dict() for cfg in getattr(self.merger, "results", [])]
+            total = len(configs)
+            logger.info("Returning %d/%d configurations", min(limit, total - offset), total)
             return {
-                "configurations": [],
-                "total": 0,
+                "configurations": configs[offset : offset + limit],
+                "total": total,
                 "limit": limit,
                 "offset": offset,
-                "timestamp": datetime.now().isoformat()
+                "timestamp": datetime.now().isoformat(),
             }
 
         @self.app.post("/api/v1/pipeline/run")
         async def run_pipeline(request: Dict[str, Any]):
-            """Run the VPN configuration pipeline."""
-            # This would be replaced with actual implementation
+            """Run the VPN configuration pipeline and return summary."""
+            if not self.merger:
+                raise HTTPException(status_code=503, detail="Merger not initialized")
+
+            result = await self.merger.process_all()
             job_id = f"job_{uuid.uuid4().hex[:12]}"
+            logger.info("Pipeline executed via API job %s", job_id)
 
             return {
                 "job_id": job_id,
-                "status": "accepted",
-                "message": "Pipeline job queued for execution",
-                "timestamp": datetime.now().isoformat()
+                "status": "completed" if result.get("success") else "failed",
+                "result": result,
+                "timestamp": datetime.now().isoformat(),
             }
 
         @self.app.post("/api/v1/sources/validate-urls")
         async def validate_urls(request: Request):
-            """Validate a list of URLs."""
+            """Validate a list of URLs and return validation results."""
             from urllib.parse import urlparse
+
             body = await request.json()
             urls = body.get("urls", [])
             results = []
             for url in urls:
                 try:
                     parsed = urlparse(url)
-                    is_valid = all([parsed.scheme, parsed.netloc]) and parsed.scheme in ['http', 'https']
+                    is_valid = (
+                        all([parsed.scheme, parsed.netloc])
+                        and parsed.scheme in ["http", "https"]
+                    )
                 except Exception:
                     is_valid = False
+                if not is_valid:
+                    logger.debug("URL validation failed for %s", url)
                 results.append({"url": url, "valid": is_valid})
+            logger.info("Validated %d URLs", len(urls))
             return {"checked": len(urls), "results": results}
 
         @self.app.websocket("/ws")
@@ -274,6 +300,28 @@ console.log('StreamlineVPN API Base:', window.__API_BASE__);
                         await websocket.send_json({"type": "echo", "received": data})
             except Exception:
                 pass
+
+    def _setup_lifecycle(self) -> None:
+        """Setup application startup and shutdown events."""
+
+        @self.app.on_event("startup")
+        async def startup_event() -> None:
+            try:
+                self.merger = StreamlineVPNMerger()
+                await self.merger.initialize()
+                logger.info("Unified API merger initialized")
+            except Exception as e:
+                logger.error("Failed to initialize merger: %s", e, exc_info=True)
+                self.merger = None
+
+        @self.app.on_event("shutdown")
+        async def shutdown_event() -> None:
+            if self.merger:
+                try:
+                    await self.merger.shutdown()
+                    logger.info("Unified API merger shut down")
+                except Exception as e:
+                    logger.error("Error shutting down merger: %s", e)
 
     def get_app(self) -> FastAPI:
         """Get the FastAPI application instance."""
