@@ -98,10 +98,14 @@ class TestAsyncMocks:
     async def test_merger_with_async_mocks(self):
         with patch("streamline_vpn.core.source_manager.SourceManager") as MockSourceManager:
             mock_source_manager = AsyncMock()
-            mock_source_manager.get_active_sources = AsyncMock(return_value=[
+            mock_source_manager.get_active_sources = AsyncMock()
+
+            mock_source_manager.get_active_sources.return_value.__aenter__ = AsyncMock(return_value=[
                 "http://example.com/source1.txt",
                 "http://example.com/source2.txt",
             ])
+
+            mock_source_manager.get_active_sources.return_value.__aexit__ = AsyncMock(return_value=None)
             MockSourceManager.return_value = mock_source_manager
 
             with patch("aiohttp.ClientSession") as MockSession:

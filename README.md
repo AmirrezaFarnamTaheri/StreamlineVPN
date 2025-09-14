@@ -127,3 +127,42 @@ src/streamline_vpn/
 ## License
 
 GPL-3.0 – see [LICENSE](./LICENSE).
+
+## API Documentation
+
+The StreamlineVPN API provides programmatic access to VPN configuration management:
+
+- **GET /api/v1/sources** - List configured sources
+- **GET /api/v1/configurations** - Retrieve processed configurations
+- **POST /api/v1/pipeline/run** - Trigger processing pipeline
+- **GET /api/statistics** - Get real-time statistics
+- **GET /api/health** - Health check endpoint
+
+See [API Documentation](docs/api/index.html) for complete details.
+
+## Security
+
+StreamlineVPN implements several security measures:
+
+- Input validation for all configuration sources
+- Rate limiting on API endpoints
+- Secure credential handling via environment variables
+- CORS protection for web interfaces
+
+## Performance
+
+- Multi-level caching (Redis L2, SQLite L3)
+- Async processing with configurable concurrency
+- Background job scheduling with APScheduler
+- Optimized deduplication algorithms
+
+## Troubleshooting
+
+Common issues and solutions:
+
+1. **Redis Connection Issues**: Ensure Redis is running or disable L2 cache
+2. **Source Timeout**: Increase timeout values in config
+3. **Memory Usage**: Reduce max_concurrent setting
+4. **API Errors**: Check logs in `logs/` directory
+
+For detailed troubleshooting, see [Troubleshooting Guide](docs/troubleshooting.html).

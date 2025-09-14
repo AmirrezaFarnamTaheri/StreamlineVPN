@@ -19,20 +19,20 @@ class ImportStandardizer:
         self.project_root = Path(project_root)
         self.replacements = [
             # Primary package name replacements
-            (r"from vpn_merger\.", "from streamline_vpn."),
-            (r"import vpn_merger\.", "import streamline_vpn."),
-            (r"from vpn_merger import", "from streamline_vpn import"),
-            (r"import vpn_merger", "import streamline_vpn"),
+            (r"from streamline_vpn\.", "from streamline_vpn."),
+            (r"import streamline_vpn\.", "import streamline_vpn."),
+            (r"from streamline_vpn import", "from streamline_vpn import"),
+            (r"import streamline_vpn", "import streamline_vpn"),
             
             # Specific legacy module paths that need updating
-            (r"from vpn_merger\.core\.output\.manager", "from streamline_vpn.core.output_manager"),
+            (r"from streamline_vpn\.core\.output\.manager", "from streamline_vpn.core.output_manager"),
             (
-                r"from vpn_merger\.core\.merger import VPNSubscriptionMerger",
+                r"from streamline_vpn\.core\.merger import StreamlineVPNMerger",
                 "from streamline_vpn.core.merger import StreamlineVPNMerger",
             ),
             
             # Class name standardization
-            (r"VPNSubscriptionMerger", "StreamlineVPNMerger"),
+            (r"StreamlineVPNMerger", "StreamlineVPNMerger"),
             (r"CleanConfigs-SubMerger", "StreamlineVPN"),
             
             # Remove outdated try/except import fallbacks
