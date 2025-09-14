@@ -135,12 +135,27 @@ def check_sources_yaml(root: Path) -> CheckResult:
         return res
     try:
         data = yaml.safe_load(cfg.read_text(encoding="utf-8"))
+        if not isinstance(data, dict):
+            res.error("sources.yaml must be a mapping at top level")
+            return res
+
         if "sources" not in data:
             res.error("'sources' key missing in sources.yaml")
-        # Count sources across tiers
+            return res
+
+        # Count sources across tiers; support both 'sources' (preferred) and 'urls' (legacy)
         total = 0
-        for tier in (data.get("sources", {}) or {}).values():
-            total += len((tier or {}).get("sources", []) or [])
+        tiers = (data.get("sources", {}) or {})
+        if isinstance(tiers, dict):
+            for tier in tiers.values():
+                if not isinstance(tier, dict):
+                    continue
+                tier_sources = tier.get("sources")
+                tier_urls = tier.get("urls")
+                if isinstance(tier_sources, list):
+                    total += len(tier_sources)
+                elif isinstance(tier_urls, list):
+                    total += len(tier_urls)
         if total < 5:
             res.warn(f"Only {total} sources configured; consider adding more")
     except Exception as exc:
@@ -209,6 +224,47 @@ def run_checks(root: Path) -> Dict[str, Any]:
     }
     return results
 
+def _supports_unicode() -> bool:
+    try:
+        "✓".encode(sys.stdout.encoding or "utf-8", errors="strict")
+        return True
+    except Exception:
+        return False
+
+def print_report_win_safe(results: Dict[str, Any]) -> None:
+    s = results["summary"]
+    use_unicode = _supports_unicode()
+    pass_icon = "✅" if use_unicode else "PASS"
+    fail_icon = "❌" if use_unicode else "FAIL"
+    warn_icon = "⚠️" if use_unicode else "WARN"
+
+    print("# StreamlineVPN Project Validation Report\n")
+    print("Summary:")
+    print(f"- Checks: {s['total_checks']}")
+    print(f"- Passed: {s['passed']}")
+    print(f"- Failed: {s['failed']}")
+    print(f"- Warnings: {s['warnings']}")
+    overall = s.get('status', 'NEEDS_ATTENTION')
+    overall_mark = pass_icon if overall == 'PASS' else (fail_icon if overall == 'FAIL' else warn_icon)
+    print(f"- Overall: {overall} {overall_mark}")
+    print()
+
+    for name, data in results["checks"].items():
+        icon = pass_icon if data.get("status") == "passed" else fail_icon
+        print(f"## {icon} {name}")
+        issues = data.get("issues", [])
+        if not issues:
+            print("- No issues found\n")
+            continue
+        for issue in issues:
+            sev = issue.get("severity", "info").upper()
+            desc = issue.get("description", "")
+            file = issue.get("file") or issue.get("path")
+            extra = f" (file: {file})" if file else ""
+            marker = warn_icon if sev == 'WARNING' else (fail_icon if sev == 'ERROR' else ("•" if use_unicode else "*"))
+            print(f"- {marker} {sev}: {desc}{extra}")
+        print()
+
 
 def print_report(results: Dict[str, Any]) -> None:
     s = results["summary"]
@@ -253,7 +309,8 @@ def main(argv: List[str] | None = None) -> int:
         if args.json:
             print(json.dumps(results, indent=2))
         else:
-            print_report(results)
+            # Windows-safe text report with emoji fallback
+            print_report_win_safe(results)
 
     failed = results["summary"].get("failed", 0)
     return 0 if failed == 0 else 1
@@ -261,4 +318,3 @@ def main(argv: List[str] | None = None) -> int:
 
 if __name__ == "__main__":
     sys.exit(main())
-

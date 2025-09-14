@@ -1,0 +1,10 @@
+FROM nginx:alpine AS production
+
+# Copy static docs into default html directory
+COPY docs /usr/share/nginx/html
+
+# Provide a simple server listening on 8000 and proxy /api to streamline-api
+COPY config/nginx/web-default.conf /etc/nginx/conf.d/default.conf
+
+EXPOSE 8000
+

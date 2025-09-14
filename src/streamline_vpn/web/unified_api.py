@@ -12,7 +12,7 @@ from datetime import datetime
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 
-from fastapi import FastAPI, HTTPException, Request, status, WebSocket
+from fastapi import FastAPI, HTTPException, Request, status, WebSocket, UploadFile, File
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from fastapi.staticfiles import StaticFiles
@@ -305,6 +305,26 @@ console.log('StreamlineVPN API Base:', window.__API_BASE__);
 
             from fastapi.responses import Response
             return Response(content=content, media_type=formatter.media_type)
+
+        # Minimal upload endpoint for demo/testing uploads
+        @self.app.post("/api/upload")
+        async def upload_file(file: UploadFile = File(...)):
+            """Accept a file upload and return basic metadata.
+
+            This endpoint is intended for frontend demo/testing purposes.
+            """
+            try:
+                content = await file.read()
+                size = len(content)
+                return {
+                    "filename": file.filename,
+                    "content_type": file.content_type,
+                    "size": size,
+                    "status": "received",
+                    "timestamp": datetime.now().isoformat(),
+                }
+            except Exception as e:
+                raise HTTPException(status_code=400, detail=f"Upload failed: {e}")
 
         @self.app.post("/api/v1/sources/validate-urls")
         async def validate_urls(request: Request):

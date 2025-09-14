@@ -216,6 +216,26 @@ class StaticControlServer:
             self.update_task = asyncio.create_task(self._auto_update_loop())
             await self._perform_update()
 
+        @app.get("/health")
+        async def health() -> JSONResponse:
+            """Basic health endpoint for web container monitoring."""
+            status = "ok"
+            backend = "unknown"
+            try:
+                if self.backend_client:
+                    async with self.backend_client.get(f"{self.api_base}/health") as resp:
+                        backend = "healthy" if resp.status == 200 else f"http_{resp.status}"
+                else:
+                    backend = "client_uninitialized"
+            except Exception:
+                backend = "unreachable"
+            return JSONResponse({
+                "status": status,
+                "service": "streamline-web",
+                "backend": backend,
+                "api_base": self.api_base,
+            })
+
         @app.on_event("shutdown")
         async def shutdown_event() -> None:
             """Clean shutdown."""

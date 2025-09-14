@@ -223,6 +223,112 @@
                         </div>
                     </div>
                 </div>
+</section>
+
+            <!-- Advanced Client Examples -->
+            <section id="advanced-examples" class="mb-12">
+                <div class="glass rounded-xl p-8 animate-fade-in-up">
+                    <h2 class="text-3xl font-bold mb-6">🚀 Advanced Client Examples</h2>
+                    <p class="text-lg text-gray-300 mb-6">Examples using the advanced API client with retries, timeouts, file upload, and WebSocket helper.</p>
+
+                    <div class="example-content">
+                        <h3 class="text-xl font-semibold mb-4 text-blue-400">JavaScript (Browser)</h3>
+                        <div class="code-block">
+// Configure base URL if needed
+window.__API_BASE__ = 'http://localhost:8080';
+
+// Initialize is automatic on DOM ready, but you can call explicitly:
+API.init();
+
+// GET with query params
+API.get('/api/v1/configurations', { limit: 25 })
+  .then(data => console.log('configs', data))
+  .catch(err => console.error('request failed', err));
+
+// POST with JSON body
+API.post('/api/v1/pipeline/run', { formats: ['json','clash'] })
+  .then(res => console.log('pipeline', res))
+  .catch(err => console.error('pipeline error', err));
+
+// Upload a file with progress callback
+const input = document.querySelector('#upload-input');
+input.addEventListener('change', () => {
+  const file = input.files[0];
+  API.upload('/api/upload', file, pct => console.log(`progress: ${pct}%`))
+    .then(res => console.log('upload ok', res))
+    .catch(err => console.error('upload error', err));
+});
+
+// WebSocket smoke test
+const ws = API.connectWebSocket('/ws');
+ws.addEventListener('open', () => ws.send(JSON.stringify({ type: 'ping'})));
+ws.addEventListener('message', (ev) => console.log('ws message', ev.data));
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Upload Endpoint -->
+            <section id="upload-endpoint" class="mb-12">
+                <div class="glass rounded-xl p-8 animate-fade-in-up">
+                    <h2 class="text-3xl font-bold mb-6">📤 File Upload Endpoint</h2>
+                    <p class="text-lg text-gray-300 mb-6">
+                        Minimal endpoint to demonstrate file uploads from the frontend client. Accepts a single file and returns basic metadata.
+                    </p>
+
+                    <div class="mb-6">
+                        <div class="glass-dark rounded-lg p-4">
+                            <div class="flex items-center gap-2 mb-2">
+                                <span class="inline-block px-2 py-1 text-sm rounded bg-green-600/30 text-green-300">POST</span>
+                                <code class="text-gray-200">/api/upload</code>
+                            </div>
+                            <p class="text-gray-300">Content-Type: <code>multipart/form-data</code></p>
+                        </div>
+                    </div>
+
+                    <h3 class="text-xl font-semibold mb-3">Request</h3>
+                    <ul class="list-disc ml-6 text-gray-300 mb-4">
+                        <li>Form field <code>file</code>: The file to upload (required)</li>
+                    </ul>
+
+                    <h3 class="text-xl font-semibold mb-3">Response</h3>
+                    <div class="code-block">
+{
+  "filename": "example.txt",
+  "content_type": "text/plain",
+  "size": 12345,
+  "status": "received",
+  "timestamp": "2025-01-01T12:34:56.789Z"
+}
+                    </div>
+
+                    <h3 class="text-xl font-semibold mb-3">Examples</h3>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div>
+                            <h4 class="font-semibold mb-2">cURL</h4>
+                            <div class="code-block">
+curl -X POST "http://localhost:8080/api/upload" \
+  -H "Accept: application/json" \
+  -F "file=@/path/to/your/file.txt"
+                            </div>
+                        </div>
+                        <div>
+                            <h4 class="font-semibold mb-2">JavaScript (Browser)</h4>
+                            <div class="code-block">
+const input = document.querySelector('#file');
+API.upload('/api/upload', input.files[0], p => console.log('progress', p))
+  .then(res => console.log('uploaded', res))
+  .catch(err => console.error(err));
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="mt-6 text-gray-300">
+                        Quick links: 
+                        <a href="/upload-test.html" class="text-blue-400 hover:underline">Upload Demo</a> ·
+                        <a href="/ws-test.html" class="text-blue-400 hover:underline">WebSocket Test</a>
+                    </div>
+                </div>
             </section>
 
             <!-- Authentication Section -->

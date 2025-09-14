@@ -1,123 +1,152 @@
-sources:
-  tier_1_premium:
-    description: High-quality, reliable sources with excellent uptime
-    urls:
-    - url: https://raw.githubusercontent.com/mahdibland/V2RayAggregator/master/sub/sub_merge.txt
-      weight: 0.9
-      protocols:
-      - vmess
-      - vless
-      - trojan
-      update: 1h
-      metadata:
-        description: Premium aggregated VPN configurations
-        region: global
-        enabled: true
-    - url: https://raw.githubusercontent.com/vveg26/get_proxy/main/dist/v2ray.config.txt
-      weight: 0.85
-      protocols:
-      - vmess
-      - vless
-      update: 2h
-      metadata:
-        description: Reliable proxy aggregator
-        region: global
-        enabled: true
-    - url: https://raw.githubusercontent.com/tbbatbb/Proxy/master/dist/v2ray.config.txt
-      weight: 0.85
-      protocols:
-      - vmess
-      - vless
-      - trojan
-      update: 2h
-      metadata:
-        description: High-speed proxy collection
-        region: global
-        enabled: true
-  tier_2_reliable:
-    description: Trusted sources with good performance
-    urls:
-    - url: https://raw.githubusercontent.com/freefq/free/master/v2
-      weight: 0.7
-      protocols:
-      - vmess
-      - vless
-      - trojan
-      - ss
-      update: 4h
-      metadata:
-        description: Free VPN configurations
-        region: global
-        enabled: true
-    - url: https://raw.githubusercontent.com/Pawdroid/Free-servers/main/sub
-      weight: 0.75
-      protocols:
-      - vmess
-      - vless
-      - trojan
-      update: 6h
-      metadata:
-        description: SubCrawler aggregated sources
-        region: global
-        enabled: true
-    - url: https://raw.githubusercontent.com/aiboboxx/v2rayfree/main/v2
-      weight: 0.7
-      protocols:
-      - vmess
-      - vless
-      update: 4h
-      metadata:
-        description: Free v2ray collection
-        region: global
-        enabled: true
-  tier_3_bulk:
-    description: Bulk sources with many configurations
-    urls:
-    - url: https://raw.githubusercontent.com/mfuu/v2ray/master/v2ray
-      weight: 0.6
-      protocols:
-      - vmess
-      - vless
-      - trojan
-      - ss
-      - ssr
-      update: 12h
-      metadata:
-        description: Large collection of free nodes
-        region: global
-        enabled: true
-    - url: https://raw.githubusercontent.com/peasoft/NoMoreWalls/master/list.txt
-      weight: 0.5
-      protocols:
-      - vmess
-      - vless
-      - trojan
-      - ss
-      - ssr
-      update: 12h
-      metadata:
-        description: NoMoreWalls aggregated sources
-        region: global
-        enabled: true
-    - url: https://raw.githubusercontent.com/ermaozi/get_subscribe/main/subscribe/v2ray.txt
-      weight: 0.55
-      protocols:
-      - vmess
-      - vless
-      - trojan
-      update: 12h
-      metadata:
-        description: Auto-updated subscription list
-        region: global
-        enabled: true
-processing:
-  max_concurrent: 50
+# StreamlineVPN Source Configuration (Production-ready schema)
+metadata:
+  version: "2.0"
+  description: "Aligned schema with curated sources from your previous config"
+  last_updated: "2025-09-14"
+
+global_settings:
   timeout: 30
+  max_concurrent: 50
   retry_attempts: 3
   retry_delay: 2
-quality:
-  min_score: 0.3
-  high_quality_threshold: 0.7
+  user_agent: "StreamlineVPN/2.0 (Compatible VPN Aggregator)"
+  verify_ssl: true
+  default_headers:
+    Accept: "text/plain, application/json, */*"
+    Accept-Language: "en-US,en;q=0.9"
+    Cache-Control: "no-cache"
+
+sources:
+  tier_1_premium:
+    description: "High-quality, reliable sources with excellent uptime"
+    weight_multiplier: 1.0
+    priority: 1
+    sources:
+      - url: "https://raw.githubusercontent.com/mahdibland/V2RayAggregator/master/sub/sub_merge.txt"
+        name: "V2RayAggregator"
+        protocols: ["vmess", "vless", "trojan"]
+        update_frequency: "hourly"
+        reliability: 0.9
+      - url: "https://raw.githubusercontent.com/vveg26/get_proxy/main/dist/v2ray.config.txt"
+        name: "vveg26 get_proxy"
+        protocols: ["vmess", "vless"]
+        update_frequency: "2-hourly"
+        reliability: 0.85
+      - url: "https://raw.githubusercontent.com/tbbatbb/Proxy/master/dist/v2ray.config.txt"
+        name: "tbbatbb Proxy"
+        protocols: ["vmess", "vless", "trojan"]
+        update_frequency: "2-hourly"
+        reliability: 0.85
+
+  tier_2_reliable:
+    description: "Trusted sources with good performance"
+    weight_multiplier: 0.8
+    priority: 2
+    sources:
+      - url: "https://raw.githubusercontent.com/freefq/free/master/v2"
+        name: "freefq"
+        protocols: ["vmess", "vless", "trojan", "ss"]
+        update_frequency: "4-hourly"
+        reliability: 0.7
+      - url: "https://raw.githubusercontent.com/Pawdroid/Free-servers/main/sub"
+        name: "Pawdroid Free Servers"
+        protocols: ["vmess", "vless", "trojan"]
+        update_frequency: "6-hourly"
+        reliability: 0.75
+      - url: "https://raw.githubusercontent.com/aiboboxx/v2rayfree/main/v2"
+        name: "aiboboxx v2rayfree"
+        protocols: ["vmess", "vless"]
+        update_frequency: "4-hourly"
+        reliability: 0.7
+
+  tier_3_bulk:
+    description: "Bulk sources with many configurations"
+    weight_multiplier: 0.6
+    priority: 3
+    sources:
+      - url: "https://raw.githubusercontent.com/mfuu/v2ray/master/v2ray"
+        name: "mfuu v2ray"
+        protocols: ["vmess", "vless", "trojan", "ss", "ssr"]
+        update_frequency: "12-hourly"
+        reliability: 0.6
+      - url: "https://raw.githubusercontent.com/peasoft/NoMoreWalls/master/list.txt"
+        name: "NoMoreWalls list"
+        protocols: ["vmess", "vless", "trojan", "ss", "ssr"]
+        update_frequency: "12-hourly"
+        reliability: 0.5
+      - url: "https://raw.githubusercontent.com/ermaozi/get_subscribe/main/subscribe/v2ray.txt"
+        name: "ermaozi subscribe"
+        protocols: ["vmess", "vless", "trojan"]
+        update_frequency: "12-hourly"
+        reliability: 0.55
+
+quality_filters:
+  min_requirements:
+    require_server: true
+    require_port: true
+    require_protocol_fields: true
+  protocol_requirements:
+    vmess:
+      required_fields: ["uuid"]
+      optional_fields: ["alterId", "security", "network", "path", "host"]
+    vless:
+      required_fields: ["uuid"]
+      optional_fields: ["security", "network", "path", "host", "serviceName"]
+    trojan:
+      required_fields: ["password"]
+      optional_fields: ["sni", "alpn"]
+    ss:
+      required_fields: ["method", "password"]
+      optional_fields: ["plugin", "plugin-opts"]
+  performance_filters:
+    blocked_ports: [25, 135, 139, 445, 1433, 1434, 3389, 5432]
+    suspicious_patterns: ["test", "example", "localhost", "127.0.0.1", "0.0.0.0"]
+    allowed_countries: []
+    blocked_countries: []
+  security_filters:
+    require_encryption: true
+    blocked_methods: ["none", "plain"]
+    require_tls_protocols: ["trojan"]
+
+output_config:
+  default_formats: ["json", "clash", "singbox", "base64"]
+  max_configs_per_format: 1000
+  deduplication:
+    enabled: true
+    match_criteria: ["server", "port"]
+    keep_highest_tier: true
+  validation:
+    enabled: true
+    test_connectivity: false
+    connectivity_timeout: 10
+
+cache_config:
+  enabled: true
+  ttl: 3600
+  cache_sources: true
+  cache_processed: true
+
+monitoring:
+  enabled: true
+  health_checks:
+    check_sources: true
+    min_success_rate: 0.7
+  metrics:
+    enabled: true
+    detailed_timing: true
+    track_rates: true
+
+advanced_features:
+  ml_scoring:
+    enabled: false
+    model_path: "models/quality_model.joblib"
+  geo_optimization:
+    enabled: false
+    preferred_countries: ["US", "DE", "SG", "JP"]
+  load_balancing:
+    enabled: true
+    tier_balancing: true
+    randomize_within_tier: true
   blacklist_threshold: 0.1
 output:
   formats:

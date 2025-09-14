@@ -1,45 +1,33 @@
 version: '3.8'
 
 services:
-  api:
-    command: uvicorn streamline_vpn.web.unified_api:create_unified_app --host 0.0.0.0 --port 8080 --reload
+  streamline-api-dev:
+    image: python:3.11-slim
+    container_name: streamline-api-dev
+    working_dir: /app
     environment:
-      - VPN_ENVIRONMENT=development
-      - VPN_DEBUG=true
-      - API_HOST=0.0.0.0
-      - API_PORT=8080
-      - ALLOWED_ORIGINS=["http://localhost:8000","http://127.0.0.1:8000","http://localhost:8080"]
-      - ALLOWED_METHODS=["GET","POST","PUT","DELETE","OPTIONS"]
-      - ALLOWED_HEADERS=["Content-Type","Authorization"]
-      - ALLOW_CREDENTIALS=true
+      API_HOST: 0.0.0.0
+      API_PORT: 8080
+      STREAMLINE_ENV: development
+      STREAMLINE_LOG_LEVEL: INFO
+    command: /bin/sh -c "pip install --no-cache-dir -r requirements.txt && python run_unified.py"
     volumes:
-      - ./src:/app/src:ro
-      - ./config:/app/config:ro
-      - ./output:/app/output:rw
-      - ./logs:/app/logs:rw
-    healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8080/health"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-      start_period: 10s
+      - ./:/app
+    ports:
+      - "8080:8080"
+    restart: unless-stopped
 
-  web:
+  streamline-web-dev:
+    image: nginx:alpine
+    container_name: streamline-web-dev
     environment:
-      - VPN_ENVIRONMENT=development
-      - WEB_HOST=0.0.0.0
-      - WEB_PORT=8000
-      - API_BASE_URL=http://api:8080
+      - STREAMLINE_ENV=development
     volumes:
-      - ./docs:/app/docs:ro
-      - ./src:/app/src:ro
-      - ./logs:/app/logs:rw
-    command: python run_web.py
-    healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-      start_period: 10s
+      - ./docs:/usr/share/nginx/html:ro
+      - ./config/nginx/web-default.conf:/etc/nginx/conf.d/default.conf:ro
+    ports:
+      - "8000:8000"
     depends_on:
-      - api
+      - streamline-api-dev
+    restart: unless-stopped
+
