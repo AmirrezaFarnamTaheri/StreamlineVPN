@@ -137,6 +137,7 @@ config/sources.production.yaml
 config/*.env
 config/secrets.yaml
 config/*.local
+secrets/
 *.key
 *.pem
 

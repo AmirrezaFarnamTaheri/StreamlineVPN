@@ -263,6 +263,49 @@ console.log('StreamlineVPN API Base:', window.__API_BASE__);
                 "timestamp": datetime.now().isoformat(),
             }
 
+        @self.app.get("/api/statistics")
+        async def get_statistics():
+            """Get processing statistics."""
+            if not self.merger:
+                raise HTTPException(status_code=503, detail="Merger not initialized")
+
+            stats = await self.merger.get_statistics()
+            return stats
+
+        @self.app.get("/api/jobs")
+        async def get_jobs():
+            """Get all jobs."""
+            # This is a placeholder implementation
+            return {"jobs": []}
+
+        @self.app.post("/api/refresh")
+        async def refresh_data():
+            """Refresh all data."""
+            if not self.merger:
+                raise HTTPException(status_code=503, detail="Merger not initialized")
+
+            await self.merger.process_all(force_refresh=True)
+            return {"status": "refreshing"}
+
+        @self.app.get("/api/export/{format}")
+        async def export_configurations(format: str):
+            """Export configurations in a specific format."""
+            if not self.merger:
+                raise HTTPException(status_code=503, detail="Merger not initialized")
+
+            if not self.merger.output_manager:
+                raise HTTPException(status_code=503, detail="Output manager not initialized")
+
+            if format not in self.merger.output_manager.formatters:
+                raise HTTPException(status_code=400, detail=f"Format '{format}' not supported")
+
+            configs = self.merger.get_configurations()
+            formatter = self.merger.output_manager.formatters[format]
+            content = formatter.format(configs)
+
+            from fastapi.responses import Response
+            return Response(content=content, media_type=formatter.media_type)
+
         @self.app.post("/api/v1/sources/validate-urls")
         async def validate_urls(request: Request):
             """Validate a list of URLs and return validation results."""

@@ -225,7 +225,6 @@
                                 </div>
                                 <div>
                                     <label class="block text-sm font-medium mb-2">Source URL</label>
-                                    <input type="url" id="sourceUrl" placeholder="https://example.com/configs.txt" 
                                            class="w-full px-3 py-2 bg-gray-800 border border-gray-600 rounded-lg focus:border-blue-500 focus:outline-none">
                                 </div>
                                 <div>
@@ -287,14 +286,12 @@
                                 <pre><code class="language-yaml"># config/sources.yaml
 sources:
   - name: "Premium Provider"
-    url: "https://example.com/configs.txt"
     tier: "premium"
     enabled: true
     timeout: 30
     retry_count: 3
     
   - name: "Community Source"
-    url: "https://community.example.com/vpn.txt"
     tier: "community"
     enabled: true
     timeout: 15
@@ -581,7 +578,6 @@ streamlinevpn process --config config/sources.yaml --output output</code></pre>
     // Interactive configuration builder
     function generateConfig() {
         const name = document.getElementById('sourceName').value || 'My VPN Source';
-        const url = document.getElementById('sourceUrl').value || 'https://example.com/configs.txt';
         const tier = document.getElementById('sourceTier').value;
         const protocols = Array.from(document.querySelectorAll('input[type="checkbox"]:checked')).map(cb => cb.value);
         

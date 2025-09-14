@@ -178,6 +178,11 @@
 
         <!-- Main Content -->
         <div class="lg:col-span-3">
+            <!-- Placeholder for additional documentation -->
+            <div class="bg-yellow-500/20 text-yellow-300 p-4 rounded-lg mb-8 border border-yellow-500/30">
+                <h3 class="font-bold">Documentation In Progress</h3>
+                <p>This API documentation is currently under review and may be incomplete. Please check back later for updates.</p>
+            </div>
             <!-- Overview Section -->
             <section id="overview" class="mb-12">
                 <div class="glass rounded-xl p-8 animate-fade-in-up animate-morphing">
@@ -366,7 +371,6 @@
     {
       "id": "cfg_abc123",
       "protocol": "vless",
-      "server": "example.com",
       "port": 443,
       "quality_score": 0.92
     }
@@ -391,7 +395,6 @@
   "sources": [
     {
       "id": "src_001",
-      "url": "https://example.com/configs.txt",
       "tier": "premium",
       "status": "active",
       "success_rate": 0.98
@@ -487,7 +490,6 @@ async function getConfigurations() {
         headers
     });
     const data = await response.json();
-    console.log(`Found ${data.total} configurations`);
     return data.configurations;
 }
 
@@ -502,7 +504,6 @@ async function startProcessing() {
         })
     });
     const result = await response.json();
-    console.log(`Pipeline started: ${result.job_id}`);
 }</code></pre>
                             </div>
                         </div>
@@ -695,7 +696,6 @@ X-RateLimit-Reset: 1641234567</code></pre>
                             <div class="code-block"><pre><code class="language-json">{
   "id": "cfg_abc123",
   "protocol": "vless",
-  "server": "example.com",
   "port": 443,
   "country": "DE",
   "created_at": "2025-01-10T12:00:00Z"
@@ -705,7 +705,6 @@ X-RateLimit-Reset: 1641234567</code></pre>
                             <h3 class="text-xl font-semibold mb-4 animate-text-shimmer">Source</h3>
                             <div class="code-block"><pre><code class="language-json">{
   "id": "src_001",
-  "url": "https://example.com/configs.txt",
   "tier": "premium",
   "success_rate": 0.98,
   "last_checked": "2025-01-10T11:55:00Z"
@@ -719,7 +718,6 @@ X-RateLimit-Reset: 1641234567</code></pre>
                     <h2 class="text-3xl font-bold mb-6 animate-text-shimmer">🛰️ WebSocket Streams</h2>
                     <p class="text-gray-300 mb-4 no-neon">Subscribe to real-time updates for processing jobs and metrics via WebSocket.</p>
                     <div class="code-block"><pre><code class="language-javascript">const ws = new WebSocket(`${API_BASE.replace('http', 'ws')}/ws/status`);
-ws.onmessage = (e) =&gt; console.log('update:', e.data);</code></pre></div>
                 </div>
             </section>
             <section id="changelog" class="mb-12">

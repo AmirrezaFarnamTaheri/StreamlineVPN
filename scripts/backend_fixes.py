@@ -116,12 +116,12 @@ class BackendFixer:
         # Fix relative imports
         for i, line in enumerate(lines):
             # Fix old VPN merger imports
-            if 'from vpn_merger' in line or 'import vpn_merger' in line:
+            if 'from streamline_vpn' in line or 'import streamline_vpn' in line:
                 old_line = line
-                line = re.sub(r'from vpn_merger\.', 'from streamline_vpn.', line)
-                line = re.sub(r'import vpn_merger\.', 'import streamline_vpn.', line)
-                line = re.sub(r'import vpn_merger', 'import streamline_vpn', line)
-                line = re.sub(r'from vpn_merger import', 'from streamline_vpn import', line)
+                line = re.sub(r'from streamline_vpn\.', 'from streamline_vpn.', line)
+                line = re.sub(r'import streamline_vpn\.', 'import streamline_vpn.', line)
+                line = re.sub(r'import streamline_vpn', 'import streamline_vpn', line)
+                line = re.sub(r'from streamline_vpn import', 'from streamline_vpn import', line)
 
                 if line != old_line:
                     lines[i] = line
@@ -135,9 +135,9 @@ class BackendFixer:
                     })
 
             # Fix class name imports
-            if 'VPNSubscriptionMerger' in line:
+            if 'StreamlineVPNMerger' in line:
                 old_line = line
-                line = line.replace('VPNSubscriptionMerger', 'StreamlineVPNMerger')
+                line = line.replace('StreamlineVPNMerger', 'StreamlineVPNMerger')
                 if line != old_line:
                     lines[i] = line
                     modified = True
@@ -324,10 +324,8 @@ class BackendFixer:
                     indent = len(line) - len(line.lstrip())
                     if 'def ' in line:
                         func_name = line.split('def ')[1].split('(')[0]
-                        docstring = f'{" " * (indent + 4)}"""TODO: Add docstring for {func_name}."""'
                     else:
                         class_name = line.split('class ')[1].split('(')[0].split(':')[0]
-                        docstring = f'{" " * (indent + 4)}"""TODO: Add docstring for {class_name}."""'
 
                     lines.insert(i + 1, docstring)
                     modified = True

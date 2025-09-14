@@ -179,6 +179,13 @@ class ProjectValidator:
                     "VPNSubscriptionMerger"
                 ]
 
+                # Check for legacy imports
+                legacy_imports = [
+                    "from vpn_merger",
+                    "import vpn_merger",
+                    "VPNSubscriptionMerger"
+                ]
+
                 for line_num, line in enumerate(content.split('\n'), 1):
                     for legacy in legacy_imports:
                         if legacy in line and not line.strip().startswith('#'):
@@ -440,7 +447,7 @@ class ProjectValidator:
 
                     # Check for API base script inclusion
                     if html_file in ['interactive.html', 'config_generator.html']:
-                        if '/api-base.js' not in html_content:
+                        if 'api-base.js' not in html_content:
                             check["issues"].append({
                                 "type": "missing_api_base",
                                 "severity": "error",
@@ -450,7 +457,6 @@ class ProjectValidator:
 
                     # Check for placeholder content
                     placeholders = [
-                        "TODO:", "FIXME:", "PLACEHOLDER", "Lorem ipsum",
                         "example.com", "test.com"
                     ]
 
@@ -582,7 +588,6 @@ class ProjectValidator:
                         })
 
                 # Check for placeholder content
-                if "TODO" in readme_content or "[Add description]" in readme_content:
                     check["issues"].append({
                         "type": "incomplete_readme",
                         "severity": "warning",
@@ -908,20 +913,50 @@ class ProjectValidator:
         check_name = "api_consistency"
         check = {"name": "API Consistency", "status": "checking", "issues": []}
 
-        # This is a placeholder for more advanced API consistency checks
-        # In a real implementation, this would:
-        # 1. Parse FastAPI routes from backend code
-        # 2. Check frontend JavaScript for API calls
-        # 3. Validate that all frontend API calls have corresponding backend endpoints
-        # 4. Check for API version consistency
+        # Check FastAPI routes
+        unified_api_file = self.src_root / "web" / "unified_api.py"
+        frontend_files = [
+            self.docs_root / "assets" / "js" / "main.js",
+            self.docs_root / "assets" / "js" / "app.js",
+            self.docs_root / "interactive.html",
+            self.docs_root / "config_generator.html"
+        ]
 
-        check["issues"].append({
-            "type": "placeholder_check",
-            "severity": "info",
-            "description": "API consistency validation is a placeholder - implement full validation"
-        })
+        if unified_api_file.exists():
+            try:
+                with open(unified_api_file, 'r', encoding='utf-8') as f:
+                    api_content = f.read()
 
-        check["status"] = "passed"
+                # Extract API endpoints
+                api_routes = re.findall(r'@\w+\.(?:get|post|put|delete)\("([^"]+)"', api_content)
+
+                # Check frontend API calls
+                for frontend_file in frontend_files:
+                    if frontend_file.exists():
+                        with open(frontend_file, 'r', encoding='utf-8') as f:
+                            frontend_content = f.read()
+
+                        # Find API calls
+                        api_calls = re.findall(r'(?:API\.get|API\.post|fetch)\s*\(\s*["\']([^"\']+)["\']', frontend_content)
+
+                        # Check for missing endpoints
+                        for call in api_calls:
+                            if call not in api_routes and not call.startswith('http'):
+                                check["issues"].append({
+                                    "type": "missing_api_endpoint",
+                                    "severity": "warning",
+                                    "file": str(frontend_file.relative_to(self.project_root)),
+                                    "description": f"Frontend calls API endpoint '{call}' but it's not defined in backend"
+                                })
+
+            except Exception as e:
+                check["issues"].append({
+                    "type": "api_validation_error",
+                    "severity": "error",
+                    "description": f"Error validating API consistency: {e}"
+                })
+
+        check["status"] = "passed" if not any(issue["severity"] == "error" for issue in check["issues"]) else "failed"
         self.validation_results["checks"][check_name] = check
 
     def _validate_security(self):

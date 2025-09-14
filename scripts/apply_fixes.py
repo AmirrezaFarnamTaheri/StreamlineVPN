@@ -195,11 +195,11 @@ from pathlib import Path
 
 def standardize_imports(project_root):
     replacements = [
-        (r'from vpn_merger\\.', 'from streamline_vpn.'),
-        (r'import vpn_merger\\.', 'import streamline_vpn.'),
-        (r'from vpn_merger import', 'from streamline_vpn import'),
-        (r'import vpn_merger', 'import streamline_vpn'),
-        (r'VPNSubscriptionMerger', 'StreamlineVPNMerger'),
+        (r'from streamline_vpn\\.', 'from streamline_vpn.'),
+        (r'import streamline_vpn\\.', 'import streamline_vpn.'),
+        (r'from streamline_vpn import', 'from streamline_vpn import'),
+        (r'import streamline_vpn', 'import streamline_vpn'),
+        (r'StreamlineVPNMerger', 'StreamlineVPNMerger'),
         (r'CleanConfigs-SubMerger', 'StreamlineVPN'),
     ]
     
@@ -368,10 +368,8 @@ if __name__ == '__main__':
                                     indent = len(line) - len(line.lstrip())
                                     if 'def ' in line:
                                         func_name = line.split('def ')[1].split('(')[0]
-                                        docstring = f'{" " * (indent + 4)}"""TODO: Add docstring for {func_name}."""'
                                     else:
                                         class_name = line.split('class ')[1].split('(')[0].split(':')[0]
-                                        docstring = f'{" " * (indent + 4)}"""TODO: Add docstring for {class_name}."""'
                                     lines.insert(i + 1, docstring)
                                     modified = True
                         if modified:

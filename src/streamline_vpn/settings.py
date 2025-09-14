@@ -17,6 +17,7 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
 class FetcherSettings(BaseSettings):
+    """Settings for the FetcherService."""
     max_concurrent: int = 50
     timeout_seconds: int = 30
     retry_attempts: int = 3
@@ -31,6 +32,7 @@ class FetcherSettings(BaseSettings):
 
 
 class SecuritySettings(BaseSettings):
+    """Settings for the SecurityManager."""
     suspicious_tlds: List[str] = [".tk", ".ml", ".ga", ".cf", ".pw"]
     safe_protocols: List[str] = [
         "http",
@@ -94,12 +96,14 @@ class SecuritySettings(BaseSettings):
 
 
 class RedisSettings(BaseSettings):
+    """Settings for the Redis client."""
     nodes: List[Dict[str, str]] = [{"host": "redis", "port": "6379"}]
 
     model_config = SettingsConfigDict(env_prefix="STREAMLINE_REDIS_")
 
 
 class Settings(BaseSettings):
+    """Global application settings."""
     secret_key: str = "CHANGE_THIS_IN_PRODUCTION_USE_ENVIRONMENT_VARIABLE"  # WARNING: Change in production!
     fetcher: FetcherSettings = Field(default_factory=FetcherSettings)
     security: SecuritySettings = Field(default_factory=SecuritySettings)

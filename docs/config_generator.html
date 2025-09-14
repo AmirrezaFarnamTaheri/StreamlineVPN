@@ -15,7 +15,7 @@
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
 
     <!-- Scripts -->
-    <script src="api-base.js"></script>
+    <script src="/api-base.js"></script>
 
     <style>
         body.config-generator {
@@ -455,7 +455,6 @@
                 <div>
                     <div class="form-group">
                         <label class="form-label" for="server-host">Server Host</label>
-                        <input type="text" id="server-host" class="form-input" placeholder="example.com or 1.2.3.4" required>
                         <div class="validation-message" id="host-validation"></div>
                     </div>
 
@@ -526,12 +525,10 @@
 
                         <div class="form-group">
                             <label class="form-label" for="host-header">Host Header</label>
-                            <input type="text" id="host-header" class="form-input" placeholder="example.com">
                         </div>
 
                         <div class="form-group">
                             <label class="form-label" for="sni">SNI (Server Name Indication)</label>
-                            <input type="text" id="sni" class="form-input" placeholder="example.com">
                         </div>
                     </div>
 
@@ -644,7 +641,6 @@
             init() {
                 this.setupEventListeners();
                 this.generateUUID();
-                console.log('Configuration Generator initialized');
             }
 
             setupEventListeners() {

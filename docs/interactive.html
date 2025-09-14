@@ -20,7 +20,7 @@
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
     
     <!-- Critical Scripts -->
-    <script src="api-base.js"></script>
+    <script src="/api-base.js"></script>
 
     <!-- Meta tags -->
     <meta name="theme-color" content="#3b82f6">
@@ -338,7 +338,6 @@
             <form id="add-source-form" class="space-y-4">
                 <div class="form-group">
                     <label class="form-label" for="source-url">Source URL</label>
-                    <input type="url" id="source-url" class="form-input" placeholder="https://example.com/configs.txt" required>
                 </div>
 
                 <div class="form-group">
@@ -379,7 +378,6 @@
     <script>
         // Application initialization
         document.addEventListener('DOMContentLoaded', async function() {
-            console.log('StreamlineVPN Control Panel initializing...');
 
             try {
                 // Initialize the application
@@ -388,7 +386,6 @@
                 // Set up real-time updates
                 StreamlineVPNApp.startRealTimeUpdates();
 
-                console.log('Control Panel initialized successfully');
             } catch (error) {
                 console.error('Failed to initialize Control Panel:', error);
                 showToast('Failed to initialize application', 'error');

@@ -51,7 +51,11 @@ COPY --from=builder /usr/local/bin /usr/local/bin
 WORKDIR /app
 
 # Copy application code
-COPY --chown=streamline:streamline . .
+COPY --chown=streamline:streamline src/ src/
+COPY --chown=streamline:streamline config/ config/
+COPY --chown=streamline:streamline docs/ docs/
+COPY --chown=streamline:streamline *.py ./
+COPY --chown=streamline:streamline pyproject.toml ./
 
 # Create necessary directories
 RUN mkdir -p logs output data config && \
