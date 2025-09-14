@@ -1,124 +1,165 @@
-"""Run the StreamlineVPN Web Interface."""
+#!/usr/bin/env python3
+"""
+Web Server Runner
+=================
+
+Runs a lightweight static file server for the control panel frontend.
+"""
 
 import os
 import sys
+import logging
 from pathlib import Path
+from http.server import HTTPServer, SimpleHTTPRequestHandler
+import json
+import urllib.request
+import urllib.error
 
-sys.path.insert(0, str(Path(__file__).parent / "src"))
+# Configure logging
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+)
+logger = logging.getLogger(__name__)
 
-from streamline_vpn.utils.logging import get_logger, setup_logging
-from streamline_vpn.web.settings import Settings
-from streamline_vpn.web.static_server import StaticControlServer
 
-logger = get_logger(__name__)
+class StreamlineWebHandler(SimpleHTTPRequestHandler):
+    """Custom handler for serving static files and proxying API requests."""
+
+    def __init__(self, *args, **kwargs):
+        # Set the document root to docs directory
+        self.docs_root = Path(__file__).parent / "docs"
+        super().__init__(*args, directory=str(self.docs_root), **kwargs)
+
+    def end_headers(self):
+        """Add security headers."""
+        self.send_header('X-Frame-Options', 'DENY')
+        self.send_header('X-Content-Type-Options', 'nosniff')
+        self.send_header('X-XSS-Protection', '1; mode=block')
+        super().end_headers()
+
+    def do_GET(self):
+        """Handle GET requests with API proxying."""
+        if self.path.startswith('/api/'):
+            self.proxy_api_request()
+        else:
+            # Serve static files
+            if self.path == '/':
+                self.path = '/index.html'
+            super().do_GET()
+
+    def do_POST(self):
+        """Handle POST requests by proxying to API."""
+        if self.path.startswith('/api/'):
+            self.proxy_api_request()
+        else:
+            self.send_error(404, "Not Found")
+
+    def proxy_api_request(self):
+        """Proxy API requests to the backend server."""
+        api_base_url = os.getenv("API_BASE_URL", "http://localhost:8080")
+        api_url = f"{api_base_url}{self.path}"
+
+        try:
+            # Prepare request
+            req = urllib.request.Request(api_url)
+
+            # Copy headers (excluding host-specific ones)
+            for header, value in self.headers.items():
+                if header.lower() not in ['host', 'connection']:
+                    req.add_header(header, value)
+
+            # Handle POST data
+            if self.command == 'POST':
+                content_length = int(self.headers.get('Content-Length', 0))
+                post_data = self.rfile.read(content_length)
+                req.data = post_data
+
+            # Make request
+            with urllib.request.urlopen(req, timeout=30) as response:
+                # Send response
+                self.send_response(response.getcode())
+
+                # Copy response headers
+                for header, value in response.headers.items():
+                    if header.lower() not in ['connection', 'transfer-encoding']:
+                        self.send_header(header, value)
+
+                self.end_headers()
+
+                # Copy response body
+                self.wfile.write(response.read())
+
+        except urllib.error.HTTPError as e:
+            self.send_error(e.code, e.reason)
+        except urllib.error.URLError as e:
+            logger.error(f"API proxy error: {e}")
+            self.send_error(502, "Bad Gateway - API server unavailable")
+        except Exception as e:
+            logger.error(f"Unexpected proxy error: {e}")
+            self.send_error(500, "Internal Server Error")
+
+    def log_message(self, format, *args):
+        """Override to use proper logging."""
+        logger.info(f"{self.address_string()} - {format % args}")
 
 
-def validate_environment():
-    """Validate environment variables."""
-    errors = []
-    
-    # Validate ports
-    web_port = os.getenv("WEB_PORT", "8000")
-    api_port = os.getenv("API_PORT", "8080")
+def check_api_server():
+    """Check if API server is running."""
+    api_base_url = os.getenv("API_BASE_URL", "http://localhost:8080")
+    health_url = f"{api_base_url}/health"
     
     try:
-        web_port_int = int(web_port)
-        if not 1 <= web_port_int <= 65535:
-            errors.append(f"Invalid WEB_PORT: {web_port} (must be 1-65535)")
-    except ValueError:
-        errors.append(f"Invalid WEB_PORT: {web_port} (must be integer)")
-    
-    try:
-        api_port_int = int(api_port)
-        if not 1 <= api_port_int <= 65535:
-            errors.append(f"Invalid API_PORT: {api_port} (must be 1-65535)")
-    except ValueError:
-        errors.append(f"Invalid API_PORT: {api_port} (must be integer)")
-    
-    # Check if docs directory exists
-    docs_path = Path(__file__).parent / "docs"
-    if not docs_path.exists():
-        errors.append(f"Docs directory not found: {docs_path}")
-    
-    return errors
+        with urllib.request.urlopen(health_url, timeout=5) as response:
+            if response.getcode() == 200:
+                logger.info(f"✅ API server is running at {api_base_url}")
+                return True
+    except Exception:
+        pass
+
+    logger.warning(f"⚠️  API server not responding at {api_base_url}")
+    logger.warning("Some features may not work properly")
+    return False
 
 
-def main() -> None:
-    """Run the web interface with proper API integration."""
-    # Initialize logging (before validation and server instantiation)
-    setup_logging(
-        level=os.getenv("STREAMLINE_LOG_LEVEL", os.getenv("VPN_LOG_LEVEL", "INFO")).upper(),
-        log_file=os.getenv("STREAMLINE_LOG_FILE", os.getenv("VPN_LOG_FILE")),
-    )
-    # Validate environment
-    errors = validate_environment()
-    if errors:
-        for error in errors:
-            logger.error(error)
-        sys.exit(1)
-    
-    settings = Settings()
-    
-    # Configuration
-    host = os.getenv("WEB_HOST", "0.0.0.0")
-    web_port = int(os.getenv("WEB_PORT", "8000"))
-    api_host = os.getenv("API_HOST", "localhost")
-    api_port = int(os.getenv("API_PORT", "8080"))
-    
-    # Set API base URL for frontend
-    api_base_url = os.getenv("API_BASE_URL", f"http://{api_host}:{api_port}")
-    
-    # Create logs directory if it doesn't exist
-    logs_dir = Path(__file__).parent / "logs"
-    logs_dir.mkdir(exist_ok=True)
-    
-    # Create server
+def main():
+    """Main entry point for the web server."""
     try:
-        server = StaticControlServer(settings=settings)
-        server.app.state.api_base = api_base_url
+        # Configuration from environment
+        host = os.getenv("WEB_HOST", "0.0.0.0")
+        port = int(os.getenv("WEB_PORT", "8000"))
+
+        # Check if docs directory exists
+        docs_root = Path(__file__).parent / "docs"
+        if not docs_root.exists():
+            logger.error(f"Documentation directory not found: {docs_root}")
+            logger.error("Please ensure the 'docs' directory exists with frontend files")
+            sys.exit(1)
+
+        # Check API server
+        check_api_server()
+
+        # Start server
+        logger.info(f"Starting web server on {host}:{port}")
+        logger.info(f"Serving files from: {docs_root}")
+        logger.info(f"API proxy target: {os.getenv('API_BASE_URL', 'http://localhost:8080')}")
+
+        httpd = HTTPServer((host, port), StreamlineWebHandler)
+
+        logger.info("🌐 StreamlineVPN Control Panel is running!")
+        logger.info(f"📂 Frontend: http://{host}:{port}")
+        logger.info(f"🔧 Interactive: http://{host}:{port}/interactive.html")
+        logger.info(f"⚙️  Config Gen: http://{host}:{port}/config_generator.html")
+        logger.info("Press Ctrl+C to stop")
+
+        httpd.serve_forever()
+
+    except KeyboardInterrupt:
+        logger.info("Shutting down web server...")
     except Exception as e:
-        logger.error(f"Failed to create server: {e}")
+        logger.error(f"Failed to start web server: {e}")
         sys.exit(1)
-    
-    # Add middleware to inject API base
-    @server.app.middleware("http")
-    async def inject_api_base(request, call_next):
-        response = await call_next(request)
-        # Add API base as header for debugging
-        response.headers["X-API-Base"] = api_base_url
-        return response
-    
-    logger.info(f"""
-    ╔══════════════════════════════════════════════════════════╗
-    ║           StreamlineVPN Web Interface v2.0               ║
-    ╠══════════════════════════════════════════════════════════╣
-    ║  🌐 Web Interface: http://localhost:{web_port:<5}              ║
-    ║  📊 Control Panel: http://localhost:{web_port}/interactive.html  ║
-    ║  📡 API Server: {api_base_url:<25}    ║
-    ╚══════════════════════════════════════════════════════════╝
-    
-    Make sure the API server is running on {api_base_url}
-    """)
-    
-    # Concise startup log for better readability
-    logger.info(
-        "Web UI starting on http://%s:%d (API %s)", host, web_port, api_base_url
-    )
-
-    import uvicorn
-    uvicorn.run(
-        server.app,
-        host=host,
-        port=web_port,
-        log_level="info"
-    )
 
 
 if __name__ == "__main__":
-    try:
-        main()
-    except KeyboardInterrupt:
-        logger.info("Shutting down web interface...")
-    except Exception as exc:
-        logger.error(f"Fatal error: {exc}", exc_info=True)
-        sys.exit(1)
+    main()

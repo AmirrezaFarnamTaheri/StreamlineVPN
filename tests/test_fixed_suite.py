@@ -97,15 +97,15 @@ class TestAsyncMocks:
     @pytest.mark.asyncio
     async def test_merger_with_async_mocks(self):
         with patch("streamline_vpn.core.source_manager.SourceManager") as MockSourceManager:
-            mock_source_manager = AsyncMock()
-            mock_source_manager.get_active_sources = AsyncMock()
+            mock_source_manager = Mock()
 
-            mock_source_manager.get_active_sources.return_value.__aenter__ = AsyncMock(return_value=[
+            mock_cm = AsyncMock()
+            mock_cm.__aenter__.return_value = [
                 "http://example.com/source1.txt",
                 "http://example.com/source2.txt",
-            ])
+            ]
+            mock_source_manager.get_active_sources.return_value = mock_cm
 
-            mock_source_manager.get_active_sources.return_value.__aexit__ = AsyncMock(return_value=None)
             MockSourceManager.return_value = mock_source_manager
 
             with patch("aiohttp.ClientSession") as MockSession:
@@ -123,8 +123,8 @@ class TestAsyncMocks:
                 MockSession.return_value = mock_session_cm
 
                 merger = StreamlineVPNMerger()
-                sources = await mock_source_manager.get_active_sources()
-                assert len(sources) == 2
+                async with mock_source_manager.get_active_sources() as sources:
+                    assert len(sources) == 2
 
     @pytest.mark.asyncio
     async def test_configuration_processor_parse(self):

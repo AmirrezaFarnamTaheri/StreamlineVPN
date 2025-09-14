@@ -1,3 +1,9 @@
+[project]
+name = "streamline-vpn"
+version = "2.0.0"
+description = "StreamlineVPN - Advanced VPN Configuration Aggregator"
+requires-python = ">=3.8"
+
 [tool.black]
 line-length = 79
 target-version = ['py38']

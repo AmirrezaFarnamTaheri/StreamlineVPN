@@ -178,11 +178,536 @@
 
         <!-- Main Content -->
         <div class="lg:col-span-3">
-            <!-- Placeholder for additional documentation -->
-            <div class="bg-yellow-500/20 text-yellow-300 p-4 rounded-lg mb-8 border border-yellow-500/30">
-                <h3 class="font-bold">Documentation In Progress</h3>
-                <p>This API documentation is currently under review and may be incomplete. Please check back later for updates.</p>
-            </div>
+            <!-- Error Codes Section -->
+            <section id="error-codes" class="mb-12">
+                <div class="glass rounded-xl p-8 animate-fade-in-up">
+                    <h2 class="text-3xl font-bold mb-6 animate-text-shimmer">⚠️ Error Codes</h2>
+                    <p class="text-lg text-gray-300 mb-6">
+                        StreamlineVPN API uses standard HTTP status codes and provides detailed error responses to help diagnose issues.
+                    </p>
+
+                    <div class="space-y-6">
+                        <!-- Success Codes -->
+                        <div class="error-category">
+                            <h3 class="text-xl font-semibold text-green-400 mb-3">✅ Success Codes</h3>
+                            <div class="space-y-3">
+                                <div class="error-item">
+                                    <span class="error-code success">200</span>
+                                    <span class="error-name">OK</span>
+                                    <span class="error-description">Request successful, data returned</span>
+                                </div>
+                                <div class="error-item">
+                                    <span class="error-code success">201</span>
+                                    <span class="error-name">Created</span>
+                                    <span class="error-description">Resource created successfully</span>
+                                </div>
+                                <div class="error-item">
+                                    <span class="error-code success">204</span>
+                                    <span class="error-name">No Content</span>
+                                    <span class="error-description">Request successful, no data to return</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Client Error Codes -->
+                        <div class="error-category">
+                            <h3 class="text-xl font-semibold text-yellow-400 mb-3">⚠️ Client Error Codes</h3>
+                            <div class="space-y-3">
+                                <div class="error-item">
+                                    <span class="error-code client">400</span>
+                                    <span class="error-name">Bad Request</span>
+                                    <span class="error-description">Invalid request format or parameters</span>
+                                </div>
+                                <div class="error-item">
+                                    <span class="error-code client">401</span>
+                                    <span class="error-name">Unauthorized</span>
+                                    <span class="error-description">Authentication required or token invalid</span>
+                                </div>
+                                <div class="error-item">
+                                    <span class="error-code client">403</span>
+                                    <span class="error-name">Forbidden</span>
+                                    <span class="error-description">Access denied to this resource</span>
+                                </div>
+                                <div class="error-item">
+                                    <span class="error-code client">404</span>
+                                    <span class="error-name">Not Found</span>
+                                    <span class="error-description">Resource or endpoint not found</span>
+                                </div>
+                                <div class="error-item">
+                                    <span class="error-code client">429</span>
+                                    <span class="error-name">Too Many Requests</span>
+                                    <span class="error-description">Rate limit exceeded</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Server Error Codes -->
+                        <div class="error-category">
+                            <h3 class="text-xl font-semibold text-red-400 mb-3">❌ Server Error Codes</h3>
+                            <div class="space-y-3">
+                                <div class="error-item">
+                                    <span class="error-code server">500</span>
+                                    <span class="error-name">Internal Server Error</span>
+                                    <span class="error-description">Unexpected server error occurred</span>
+                                </div>
+                                <div class="error-item">
+                                    <span class="error-code server">502</span>
+                                    <span class="error-name">Bad Gateway</span>
+                                    <span class="error-description">Upstream service unavailable</span>
+                                </div>
+                                <div class="error-item">
+                                    <span class="error-code server">503</span>
+                                    <span class="error-name">Service Unavailable</span>
+                                    <span class="error-description">Server temporarily unavailable</span>
+                                </div>
+                                <div class="error-item">
+                                    <span class="error-code server">504</span>
+                                    <span class="error-name">Gateway Timeout</span>
+                                    <span class="error-description">Request timeout from upstream service</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Error Response Format -->
+                    <div class="mt-8">
+                        <h3 class="text-xl font-semibold mb-4">Error Response Format</h3>
+                        <p class="text-gray-300 mb-4">All error responses follow a consistent JSON format:</p>
+                        <div class="code-block">
+{
+  "error": {
+    "code": "VALIDATION_ERROR",
+    "message": "Invalid request parameters",
+    "details": {
+      "field": "url",
+      "issue": "URL format is invalid",
+      "provided": "not-a-valid-url"
+    },
+    "timestamp": "2024-01-15T10:30:00Z",
+    "request_id": "req_abc123def456"
+  }
+}
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Rate Limits Section -->
+            <section id="rate-limits" class="mb-12">
+                <div class="glass rounded-xl p-8 animate-fade-in-up">
+                    <h2 class="text-3xl font-bold mb-6 animate-text-shimmer">🚦 Rate Limits</h2>
+                    <p class="text-lg text-gray-300 mb-6">
+                        API rate limits are designed to ensure fair usage and system stability for all users.
+                    </p>
+
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+                        <div class="rate-limit-card">
+                            <h3 class="text-lg font-semibold text-blue-400 mb-2">🔍 Read Operations</h3>
+                            <div class="rate-limit-info">
+                                <span class="rate-number">100</span>
+                                <span class="rate-unit">requests/minute</span>
+                            </div>
+                            <p class="text-sm text-gray-400">GET requests to most endpoints</p>
+                        </div>
+
+                        <div class="rate-limit-card">
+                            <h3 class="text-lg font-semibold text-green-400 mb-2">✏️ Write Operations</h3>
+                            <div class="rate-limit-info">
+                                <span class="rate-number">20</span>
+                                <span class="rate-unit">requests/minute</span>
+                            </div>
+                            <p class="text-sm text-gray-400">POST, PUT, DELETE requests</p>
+                        </div>
+
+                        <div class="rate-limit-card">
+                            <h3 class="text-lg font-semibold text-purple-400 mb-2">🔄 Pipeline Operations</h3>
+                            <div class="rate-limit-info">
+                                <span class="rate-number">5</span>
+                                <span class="rate-unit">requests/hour</span>
+                            </div>
+                            <p class="text-sm text-gray-400">Pipeline execution requests</p>
+                        </div>
+
+                        <div class="rate-limit-card">
+                            <h3 class="text-lg font-semibold text-orange-400 mb-2">🌐 WebSocket</h3>
+                            <div class="rate-limit-info">
+                                <span class="rate-number">10</span>
+                                <span class="rate-unit">connections/IP</span>
+                            </div>
+                            <p class="text-sm text-gray-400">Concurrent WebSocket connections</p>
+                        </div>
+                    </div>
+
+                    <!-- Rate Limit Headers -->
+                    <div class="mt-6">
+                        <h3 class="text-xl font-semibold mb-4">Rate Limit Headers</h3>
+                        <p class="text-gray-300 mb-4">Each API response includes rate limit information in headers:</p>
+                        <div class="code-block">
+X-RateLimit-Limit: 100
+X-RateLimit-Remaining: 75
+X-RateLimit-Reset: 1642248000
+X-RateLimit-Reset-Time: 2024-01-15T11:00:00Z
+                        </div>
+                    </div>
+
+                    <!-- Rate Limit Exceeded -->
+                    <div class="mt-6">
+                        <h3 class="text-xl font-semibold mb-4">When Rate Limit is Exceeded</h3>
+                        <div class="code-block">
+HTTP/1.1 429 Too Many Requests
+{
+  "error": {
+    "code": "RATE_LIMIT_EXCEEDED",
+    "message": "Rate limit exceeded. Try again in 60 seconds.",
+    "retry_after": 60,
+    "limit": 100,
+    "window": "1m"
+  }
+}
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Examples Section -->
+            <section id="examples" class="mb-12">
+                <div class="glass rounded-xl p-8 animate-fade-in-up">
+                    <h2 class="text-3xl font-bold mb-6 animate-text-shimmer">💡 Usage Examples</h2>
+                    <p class="text-lg text-gray-300 mb-6">
+                        Practical examples of how to integrate with the StreamlineVPN API using different programming languages.
+                    </p>
+
+                    <!-- Example Tabs -->
+                    <div class="example-tabs mb-6">
+                        <button class="tab-button active" onclick="showExample('curl')">cURL</button>
+                        <button class="tab-button" onclick="showExample('python')">Python</button>
+                        <button class="tab-button" onclick="showExample('javascript')">JavaScript</button>
+                        <button class="tab-button" onclick="showExample('nodejs')">Node.js</button>
+                    </div>
+
+                    <!-- cURL Examples -->
+                    <div id="example-curl" class="example-content active">
+                        <h3 class="text-xl font-semibold mb-4 text-green-400">cURL Examples</h3>
+
+                        <div class="example-item mb-6">
+                            <h4 class="font-semibold mb-2">Get API Health Status</h4>
+                            <div class="code-block">
+curl -X GET "http://localhost:8080/health" \
+  -H "Accept: application/json"
+                            </div>
+                        </div>
+
+                        <div class="example-item mb-6">
+                            <h4 class="font-semibold mb-2">List All Sources</h4>
+                            <div class="code-block">
+curl -X GET "http://localhost:8080/api/v1/sources?tier=premium&limit=10" \
+  -H "Accept: application/json" \
+  -H "Authorization: Bearer YOUR_TOKEN_HERE"
+                            </div>
+                        </div>
+
+                        <div class="example-item mb-6">
+                            <h4 class="font-semibold mb-2">Run Processing Pipeline</h4>
+                            <div class="code-block">
+curl -X POST "http://localhost:8080/api/v1/pipeline/run" \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer YOUR_TOKEN_HERE" \
+  -d '{
+    "formats": ["json", "clash"],
+    "max_concurrent": 30,
+    "filters": {
+      "protocols": ["vmess", "vless"],
+      "countries": ["US", "DE"]
+    }
+  }'
+                            </div>
+                        </div>
+
+                        <div class="example-item mb-6">
+                            <h4 class="font-semibold mb-2">Get Configurations with Filtering</h4>
+                            <div class="code-block">
+curl -X GET "http://localhost:8080/api/v1/configurations?protocol=vmess&country=US&limit=50&format=json" \
+  -H "Accept: application/json" \
+  -H "Authorization: Bearer YOUR_TOKEN_HERE"
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Python Examples -->
+                    <div id="example-python" class="example-content">
+                        <h3 class="text-xl font-semibold mb-4 text-blue-400">Python Examples</h3>
+
+                        <div class="example-item mb-6">
+                            <h4 class="font-semibold mb-2">Basic API Client Setup</h4>
+                            <div class="code-block">
+import requests
+import json
+from typing import Dict, List, Optional
+
+class StreamlineVPNClient:
+    def __init__(self, base_url: str = "http://localhost:8080", token: Optional[str] = None):
+        self.base_url = base_url
+        self.session = requests.Session()
+        if token:
+            self.session.headers.update({"Authorization": f"Bearer {token}"})
+        self.session.headers.update({"Content-Type": "application/json"})
+
+    def get_health(self) -> Dict:
+        """Get API health status"""
+        response = self.session.get(f"{self.base_url}/health")
+        response.raise_for_status()
+        return response.json()
+
+    def get_sources(self, tier: Optional[str] = None, limit: int = 50) -> Dict:
+        """Get VPN sources with optional filtering"""
+        params = {"limit": limit}
+        if tier:
+            params["tier"] = tier
+
+        response = self.session.get(f"{self.base_url}/api/v1/sources", params=params)
+        response.raise_for_status()
+        return response.json()
+
+    def run_pipeline(self, formats: List[str] = None, **kwargs) -> Dict:
+        """Run the processing pipeline"""
+        data = {
+            "formats": formats or ["json", "clash"],
+            **kwargs
+        }
+
+        response = self.session.post(f"{self.base_url}/api/v1/pipeline/run", json=data)
+        response.raise_for_status()
+        return response.json()
+
+# Usage example
+client = StreamlineVPNClient(token="your-api-token")
+health = client.get_health()
+print(f"API Status: {health['status']}")
+
+sources = client.get_sources(tier="premium", limit=10)
+print(f"Found {sources['total']} sources")
+
+pipeline_result = client.run_pipeline(
+    formats=["json", "clash"],
+    filters={"protocols": ["vmess", "vless"]}
+)
+print(f"Pipeline completed: {pipeline_result['status']}")
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- JavaScript Examples -->
+                    <div id="example-javascript" class="example-content">
+                        <h3 class="text-xl font-semibold mb-4 text-yellow-400">JavaScript Examples</h3>
+
+                        <div class="example-item mb-6">
+                            <h4 class="font-semibold mb-2">Browser API Client</h4>
+                            <div class="code-block">
+class StreamlineAPI {
+    constructor(baseURL = 'http://localhost:8080', token = null) {
+        this.baseURL = baseURL;
+        this.token = token;
+    }
+
+    async request(endpoint, options = {}) {
+        const url = `${this.baseURL}${endpoint}`;
+        const headers = {
+            'Content-Type': 'application/json',
+            ...options.headers
+        };
+
+        if (this.token) {
+            headers.Authorization = `Bearer ${this.token}`;
+        }
+
+        const response = await fetch(url, {
+            ...options,
+            headers
+        });
+
+        if (!response.ok) {
+            throw new Error(`API Error: ${response.status} ${response.statusText}`);
+        }
+
+        return response.json();
+    }
+
+    async getHealth() {
+        return this.request('/health');
+    }
+
+    async getSources(filters = {}) {
+        const params = new URLSearchParams(filters).toString();
+        return this.request(`/api/v1/sources?${params}`);
+    }
+
+    async runPipeline(config = {}) {
+        return this.request('/api/v1/pipeline/run', {
+            method: 'POST',
+            body: JSON.stringify(config)
+        });
+    }
+
+    async getConfigurations(filters = {}) {
+        const params = new URLSearchParams(filters).toString();
+        return this.request(`/api/v1/configurations?${params}`);
+    }
+}
+
+// Usage example
+const api = new StreamlineAPI('http://localhost:8080', 'your-api-token');
+
+// Check API health
+api.getHealth().then(health => {
+    console.log('API Status:', health.status);
+});
+
+// Get premium sources
+api.getSources({ tier: 'premium', limit: 10 }).then(sources => {
+    console.log(`Found ${sources.total} sources`);
+});
+
+// Run pipeline
+api.runPipeline({
+    formats: ['json', 'clash'],
+    filters: {
+        protocols: ['vmess', 'vless'],
+        countries: ['US', 'DE']
+    }
+}).then(result => {
+    console.log('Pipeline result:', result);
+});
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Node.js Examples -->
+                    <div id="example-nodejs" class="example-content">
+                        <h3 class="text-xl font-semibold mb-4 text-green-400">Node.js Examples</h3>
+
+                        <div class="example-item mb-6">
+                            <h4 class="font-semibold mb-2">Complete Node.js Integration</h4>
+                            <div class="code-block">
+const axios = require('axios');
+const fs = require('fs').promises;
+
+class StreamlineVPNService {
+    constructor(baseURL = 'http://localhost:8080', token = null) {
+        this.client = axios.create({
+            baseURL,
+            headers: {
+                'Content-Type': 'application/json',
+                ...(token && { Authorization: `Bearer ${token}` })
+            },
+            timeout: 30000
+        });
+
+        // Add response interceptor for error handling
+        this.client.interceptors.response.use(
+            response => response,
+            error => {
+                console.error('API Error:', error.response?.data || error.message);
+                throw error;
+            }
+        );
+    }
+
+    async checkHealth() {
+        const response = await this.client.get('/health');
+        return response.data;
+    }
+
+    async getAllSources() {
+        const response = await this.client.get('/api/v1/sources');
+        return response.data;
+    }
+
+    async runPipelineAndWait(config = {}) {
+        // Start pipeline
+        const pipelineResponse = await this.client.post('/api/v1/pipeline/run', config);
+        const jobId = pipelineResponse.data.job_id;
+
+        console.log(`Pipeline started with job ID: ${jobId}`);
+
+        // Poll for completion
+        let status;
+        do {
+            await new Promise(resolve => setTimeout(resolve, 5000)); // Wait 5 seconds
+            const statusResponse = await this.client.get(`/api/v1/pipeline/status/${jobId}`);
+            status = statusResponse.data;
+            console.log(`Pipeline progress: ${Math.round(status.progress * 100)}%`);
+        } while (status.status === 'running');
+
+        return status;
+    }
+
+    async downloadConfigurations(format = 'json', outputPath = './configs') {
+        const response = await this.client.get(`/api/v1/configurations?format=${format}`);
+        const configs = response.data;
+
+        // Create output directory
+        await fs.mkdir(outputPath, { recursive: true });
+
+        // Save configurations
+        const filename = `${outputPath}/configurations.${format}`;
+        await fs.writeFile(filename, JSON.stringify(configs, null, 2));
+
+        console.log(`Configurations saved to ${filename}`);
+        return filename;
+    }
+
+    async monitorSources() {
+        const sources = await this.getAllSources();
+
+        console.log('Source Health Report:');
+        console.log('===================');
+
+        for (const source of sources.sources) {
+            const status = source.status === 'active' ? '✅' : '❌';
+            const successRate = Math.round(source.success_rate * 100);
+
+            console.log(`${status} ${source.name}: ${successRate}% success, ${source.config_count} configs`);
+        }
+    }
+}
+
+// Usage example
+async function main() {
+    const vpnService = new StreamlineVPNService('http://localhost:8080', 'your-api-token');
+
+    try {
+        // Check API health
+        const health = await vpnService.checkHealth();
+        console.log('API is healthy:', health.status === 'healthy');
+
+        // Monitor sources
+        await vpnService.monitorSources();
+
+        // Run pipeline and wait for completion
+        const result = await vpnService.runPipelineAndWait({
+            formats: ['json', 'clash'],
+            max_concurrent: 50
+        });
+
+        console.log(`Pipeline completed in ${result.duration}s`);
+        console.log(`Generated ${result.statistics.final_configs} configurations`);
+
+        // Download configurations
+        await vpnService.downloadConfigurations('json', './output');
+
+    } catch (error) {
+        console.error('Service error:', error.message);
+        process.exit(1);
+    }
+}
+
+// Run the example
+main();
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
             <!-- Overview Section -->
             <section id="overview" class="mb-12">
                 <div class="glass rounded-xl p-8 animate-fade-in-up animate-morphing">
@@ -315,6 +840,27 @@
                         <div class="endpoint-card glass-dark rounded-lg p-6 animate-card-hover animate-data-flow">
                             <div class="flex items-center justify-between mb-4">
                                 <h3 class="text-xl font-semibold animate-text-shimmer">Get Statistics</h3>
+                                <span class="method-get px-3 py-1 rounded-full text-white text-sm font-medium">GET</span>
+                            </div>
+                            <div class="mb-4">
+                                <code class="text-blue-400 animate-text-shimmer">/api/statistics</code>
+                            </div>
+                            <p class="text-gray-300 mb-4">Retrieve processing statistics and metrics</p>
+                            <div class="code-block">
+                                <pre><code class="language-json">{
+  "total_sources": 523,
+  "active_sources": 486,
+  "total_configs": 15234,
+  "success_rate": 0.93,
+  "last_update": "2025-01-10T11:45:00Z"
+}</code></pre>
+                            </div>
+                        </div>
+
+                        <!-- V1 Statistics -->
+                        <div class="endpoint-card glass-dark rounded-lg p-6 animate-card-hover animate-data-flow">
+                            <div class="flex items-center justify-between mb-4">
+                                <h3 class="text-xl font-semibold animate-text-shimmer">Get Statistics (v1)</h3>
                                 <span class="method-get px-3 py-1 rounded-full text-white text-sm font-medium">GET</span>
                             </div>
                             <div class="mb-4">

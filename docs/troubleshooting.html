@@ -1,883 +1,738 @@
 <!DOCTYPE html>
-<html lang="en" data-theme="dark">
+<html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>StreamlineVPN Troubleshooting Guide</title>
-    <meta name="description" content="Comprehensive troubleshooting guide for StreamlineVPN issues">
-
-    <!-- Security Headers -->
-    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; connect-src 'self' ws: wss: http: https:; img-src 'self' data:;">
+    <meta name="description" content="Comprehensive troubleshooting guide for StreamlineVPN configuration and deployment issues">
 
     <!-- Stylesheets -->
-    <link rel="stylesheet" href="/assets/css/style.css">
-    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="assets/css/style.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
 
-    <!-- Tailwind Config -->
-    <script>
-        tailwind.config = {
-            darkMode: 'class',
-            theme: {
-                extend: {
-                    colors: {
-                        primary: '#3b82f6',
-                        secondary: '#10b981',
-                        accent: '#f59e0b',
-                        danger: '#ef4444'
-                    }
-                }
+    <!-- Scripts -->
+    <script src="/api-base.js"></script>
+
+    <style>
+        body {
+            font-family: 'Inter', system-ui, sans-serif;
+            background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
+            color: #ffffff;
+            margin: 0;
+            padding: 20px;
+            min-height: 100vh;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(15px);
+            border-radius: 20px;
+            padding: 40px;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+
+        h1 {
+            text-align: center;
+            font-size: 2.5rem;
+            font-weight: 800;
+            margin-bottom: 10px;
+            background: linear-gradient(135deg, #667eea, #f093fb);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .subtitle {
+            text-align: center;
+            font-size: 1.2rem;
+            color: rgba(255, 255, 255, 0.8);
+            margin-bottom: 40px;
+        }
+
+        .nav-tabs {
+            display: flex;
+            justify-content: center;
+            margin-bottom: 40px;
+            border-bottom: 2px solid rgba(255, 255, 255, 0.2);
+        }
+
+        .nav-tab {
+            padding: 15px 25px;
+            margin: 0 10px;
+            background: none;
+            border: none;
+            color: rgba(255, 255, 255, 0.7);
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            border-radius: 10px 10px 0 0;
+        }
+
+        .nav-tab.active {
+            color: #ffffff;
+            background: rgba(102, 126, 234, 0.3);
+            border-bottom: 3px solid #667eea;
+        }
+
+        .tab-content {
+            display: none;
+        }
+
+        .tab-content.active {
+            display: block;
+            animation: fadeInUp 0.5s ease-out;
+        }
+
+        .issue-section {
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 15px;
+            padding: 25px;
+            margin-bottom: 25px;
+            border-left: 5px solid #667eea;
+        }
+
+        .issue-title {
+            font-size: 1.4rem;
+            font-weight: 700;
+            margin-bottom: 15px;
+            color: #667eea;
+        }
+
+        .issue-symptoms {
+            background: rgba(255, 107, 107, 0.1);
+            border: 1px solid rgba(255, 107, 107, 0.3);
+            border-radius: 8px;
+            padding: 15px;
+            margin-bottom: 20px;
+        }
+
+        .issue-solution {
+            background: rgba(16, 185, 129, 0.1);
+            border: 1px solid rgba(16, 185, 129, 0.3);
+            border-radius: 8px;
+            padding: 15px;
+            margin-bottom: 20px;
+        }
+
+        .code-block {
+            background: rgba(0, 0, 0, 0.4);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 8px;
+            padding: 20px;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 14px;
+            line-height: 1.6;
+            margin: 15px 0;
+            overflow-x: auto;
+            white-space: pre-wrap;
+        }
+
+        .warning {
+            background: rgba(251, 191, 36, 0.1);
+            border: 1px solid rgba(251, 191, 36, 0.3);
+            border-radius: 8px;
+            padding: 15px;
+            margin: 20px 0;
+        }
+
+        .info {
+            background: rgba(59, 130, 246, 0.1);
+            border: 1px solid rgba(59, 130, 246, 0.3);
+            border-radius: 8px;
+            padding: 15px;
+            margin: 20px 0;
+        }
+
+        .diagnostic-tools {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 20px;
+            margin-top: 30px;
+        }
+
+        .diagnostic-card {
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 15px;
+            padding: 20px;
+            text-align: center;
+            transition: all 0.3s ease;
+        }
+
+        .diagnostic-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 30px rgba(102, 126, 234, 0.3);
+        }
+
+        .btn {
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: white;
+            padding: 12px 24px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: 600;
+            text-decoration: none;
+            display: inline-block;
+            transition: all 0.3s ease;
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+        }
+
+        .btn-secondary {
+            background: rgba(255, 255, 255, 0.1);
+            border: 2px solid rgba(255, 255, 255, 0.3);
+        }
+
+        @keyframes fadeInUp {
+            from {
+                opacity: 0;
+                transform: translateY(30px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
             }
         }
-    </script>
-</head>
 
-<body class="bg-gray-900 text-white min-h-screen">
-    <!-- Header -->
-    <header class="bg-gray-800 border-b border-gray-700">
-        <div class="container mx-auto px-6 py-4">
-            <div class="flex items-center justify-between">
-                <div class="flex items-center space-x-4">
-                    <h1 class="text-2xl font-bold text-blue-400">StreamlineVPN</h1>
-                    <span class="px-2 py-1 bg-yellow-600 text-xs rounded">Troubleshooting</span>
+        @media (max-width: 768px) {
+            .container {
+                margin: 10px;
+                padding: 20px;
+            }
+
+            .nav-tabs {
+                flex-wrap: wrap;
+                justify-content: flex-start;
+            }
+
+            .nav-tab {
+                margin: 5px;
+                padding: 10px 15px;
+            }
+
+            .diagnostic-tools {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>🔧 Troubleshooting Guide</h1>
+            <p class="subtitle">Resolve common issues and optimize your StreamlineVPN deployment</p>
+        </header>
+
+        <div class="nav-tabs">
+            <button class="nav-tab active" onclick="showTab('installation')">Installation</button>
+            <button class="nav-tab" onclick="showTab('api')">API Issues</button>
+            <button class="nav-tab" onclick="showTab('performance')">Performance</button>
+            <button class="nav-tab" onclick="showTab('network')">Network</button>
+            <button class="nav-tab" onclick="showTab('diagnostics')">Diagnostics</button>
+        </div>
+
+        <!-- Installation Tab -->
+        <div id="installation" class="tab-content active">
+            <div class="issue-section">
+                <div class="issue-title">🚀 Installation Issues</div>
+
+                <h3>Issue: "No module named streamline_vpn"</h3>
+                <div class="issue-symptoms">
+                    <strong>Symptoms:</strong>
+                    <ul>
+                        <li>ImportError when running the application</li>
+                        <li>Python can't find the streamline_vpn module</li>
+                        <li>Commands fail with module not found</li>
+                    </ul>
                 </div>
-                <nav class="flex items-center space-x-6">
-                    <a href="/interactive.html" class="text-gray-300 hover:text-white">Control Panel</a>
-                    <a href="/config_generator.html" class="text-gray-300 hover:text-white">Config Generator</a>
-                    <a href="/troubleshooting.html" class="text-blue-400 font-semibold">Troubleshooting</a>
-                </nav>
+
+                <div class="issue-solution">
+                    <strong>Solutions:</strong>
+                    <div class="code-block"># Ensure you're in the project directory
+cd /path/to/streamlinevpn
+
+# Install in development mode
+pip install -e .
+
+# Alternative: Add to Python path
+export PYTHONPATH="${PYTHONPATH}:$(pwd)/src"
+
+# Verify installation
+python -c "import streamline_vpn; print('Success!')"</div>
+                </div>
+            </div>
+
+            <div class="issue-section">
+                <div class="issue-title">📦 Dependency Conflicts</div>
+
+                <h3>Issue: Package dependency conflicts</h3>
+                <div class="issue-symptoms">
+                    <strong>Symptoms:</strong>
+                    <ul>
+                        <li>pip install fails with conflict errors</li>
+                        <li>Application crashes with import errors</li>
+                        <li>Version compatibility issues</li>
+                    </ul>
+                </div>
+
+                <div class="issue-solution">
+                    <strong>Solutions:</strong>
+                    <div class="code-block"># Use virtual environment
+python -m venv streamline_env
+source streamline_env/bin/activate  # Windows: streamline_env\Scripts\activate
+
+# Clean install
+pip install --upgrade pip
+pip install -r requirements.txt
+
+# Force reinstall if needed
+pip install --force-reinstall -r requirements.txt</div>
+                </div>
+            </div>
+
+            <div class="issue-section">
+                <div class="issue-title">🐳 Docker Issues</div>
+
+                <h3>Issue: Docker container fails to start</h3>
+                <div class="issue-symptoms">
+                    <strong>Symptoms:</strong>
+                    <ul>
+                        <li>Container exits immediately</li>
+                        <li>Port binding errors</li>
+                        <li>Volume mount issues</li>
+                    </ul>
+                </div>
+
+                <div class="issue-solution">
+                    <strong>Solutions:</strong>
+                    <div class="code-block"># Check container logs
+docker-compose logs streamline-api
+
+# Rebuild containers
+docker-compose down
+docker-compose build --no-cache
+docker-compose up -d
+
+# Check port conflicts
+netstat -tulpn | grep :8080
+
+# Fix permissions (Linux/macOS)
+sudo chown -R $USER:$USER ./logs ./output</div>
+                </div>
             </div>
         </div>
-    </header>
 
-    <!-- Quick Search -->
-    <div class="bg-gray-800 border-b border-gray-700">
-        <div class="container mx-auto px-6 py-4">
-            <div class="max-w-md mx-auto">
-                <div class="relative">
-                    <input id="searchInput" type="text" placeholder="Search for issues..."
-                           class="w-full px-4 py-2 pl-10 bg-gray-700 border border-gray-600 rounded-lg focus:border-blue-500 focus:outline-none">
-                    <div class="absolute left-3 top-2.5 text-gray-400">🔍</div>
+        <!-- API Issues Tab -->
+        <div id="api" class="tab-content">
+            <div class="issue-section">
+                <div class="issue-title">🔌 API Connection Issues</div>
+
+                <h3>Issue: API server not responding</h3>
+                <div class="issue-symptoms">
+                    <strong>Symptoms:</strong>
+                    <ul>
+                        <li>Frontend shows "API server unavailable"</li>
+                        <li>HTTP 503 Service Unavailable errors</li>
+                        <li>Connection timeouts</li>
+                    </ul>
                 </div>
+
+                <div class="issue-solution">
+                    <strong>Solutions:</strong>
+                    <div class="code-block"># Check if API server is running
+curl http://localhost:8080/health
+
+# Start API server manually
+python run_unified.py
+
+# Check server logs
+tail -f logs/streamline.log
+
+# Verify port binding
+sudo lsof -i :8080</div>
+                </div>
+            </div>
+
+            <div class="issue-section">
+                <div class="issue-title">🔐 CORS Errors</div>
+                
+                <h3>Issue: Cross-Origin Request Blocked</h3>
+                <div class="issue-symptoms">
+                    <strong>Symptoms:</strong>
+                    <ul>
+                        <li>Browser console shows CORS errors</li>
+                        <li>Frontend can't communicate with API</li>
+                        <li>Preflight request failures</li>
+                    </ul>
+                </div>
+
+                <div class="issue-solution">
+                    <strong>Solutions:</strong>
+                    <div class="code-block"># Configure CORS environment variables
+export ALLOWED_ORIGINS='["http://localhost:3000","http://localhost:8000"]'
+export ALLOWED_METHODS='["GET","POST","PUT","DELETE","OPTIONS"]'
+export ALLOWED_HEADERS='["Content-Type","Authorization"]'
+
+# For development, allow all origins (not for production!)
+export ALLOWED_ORIGINS='["*"]'</div>
+                </div>
+            </div>
+
+            <div class="issue-section">
+                <div class="issue-title">⚠️ Authentication Issues</div>
+
+                <h3>Issue: JWT token errors</h3>
+                <div class="issue-symptoms">
+                    <strong>Symptoms:</strong>
+                    <ul>
+                        <li>401 Unauthorized responses</li>
+                        <li>Token expired errors</li>
+                        <li>Invalid signature errors</li>
+                    </ul>
+                </div>
+
+                <div class="issue-solution">
+                    <strong>Solutions:</strong>
+                    <div class="code-block"># Check token expiration
+curl -H "Authorization: Bearer YOUR_TOKEN" http://localhost:8080/api/v1/me
+
+# Generate new token
+curl -X POST http://localhost:8080/auth/token \
+  -H "Content-Type: application/json" \
+  -d '{"username":"admin","password":"your_password"}'
+
+# Clear browser token storage
+localStorage.removeItem('authToken');</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Performance Tab -->
+        <div id="performance" class="tab-content">
+            <div class="issue-section">
+                <div class="issue-title">🐌 Slow Processing</div>
+
+                <h3>Issue: VPN configuration processing is slow</h3>
+                <div class="issue-symptoms">
+                    <strong>Symptoms:</strong>
+                    <ul>
+                        <li>Pipeline takes >5 minutes to complete</li>
+                        <li>High CPU/memory usage</li>
+                        <li>Timeout errors during processing</li>
+                    </ul>
+                </div>
+
+                <div class="issue-solution">
+                    <strong>Solutions:</strong>
+                    <div class="code-block"># Reduce concurrent connections
+export VPN_CONCURRENT_LIMIT=25  # Default: 50
+
+# Increase timeout
+export VPN_TIMEOUT=120  # Default: 60 seconds
+
+# Enable Redis caching for better performance
+export STREAMLINE_REDIS__NODES='[{"host":"localhost","port":"6379"}]'
+
+# Monitor resource usage
+htop  # or Activity Monitor on macOS</div>
+                </div>
+            </div>
+
+            <div class="issue-section">
+                <div class="issue-title">💾 Memory Issues</div>
+
+                <h3>Issue: High memory usage or out of memory errors</h3>
+                <div class="issue-symptoms">
+                    <strong>Symptoms:</strong>
+                    <ul>
+                        <li>Application crashes with MemoryError</li>
+                        <li>System becomes unresponsive</li>
+                        <li>Docker container killed by OOM killer</li>
+                    </ul>
+                </div>
+
+                <div class="issue-solution">
+                    <strong>Solutions:</strong>
+                    <div class="code-block"># Limit concurrent processing
+export VPN_CONCURRENT_LIMIT=10
+
+# Enable L3 SQLite cache to reduce memory usage
+export CACHE_L3_ENABLED=true
+
+# Increase Docker memory limit
+# In docker-compose.yml:
+services:
+  streamline-api:
+    deploy:
+      resources:
+        limits:
+          memory: 2G</div>
+                </div>
+            </div>
+
+            <div class="issue-section">
+                <div class="issue-title">🔄 Cache Issues</div>
+
+                <h3>Issue: Redis cache not working</h3>
+                <div class="issue-symptoms">
+                    <strong>Symptoms:</strong>
+                    <ul>
+                        <li>Processing doesn't speed up after first run</li>
+                        <li>Redis connection errors in logs</li>
+                        <li>Cache hit rate is 0%</li>
+                    </ul>
+                </div>
+
+                <div class="issue-solution">
+                    <strong>Solutions:</strong>
+                    <div class="code-block"># Check Redis connection
+redis-cli ping
+
+# Test Redis connectivity from Python
+python -c "import redis; r=redis.Redis(); print(r.ping())"
+
+# Disable Redis if not needed (uses SQLite fallback)
+export STREAMLINE_REDIS__NODES='[]'
+
+# Clear cache if corrupted
+redis-cli FLUSHALL</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Network Tab -->
+        <div id="network" class="tab-content">
+            <div class="issue-section">
+                <div class="issue-title">🌐 Source Connectivity</div>
+
+                <h3>Issue: Unable to fetch from VPN sources</h3>
+                <div class="issue-symptoms">
+                    <strong>Symptoms:</strong>
+                    <ul>
+                        <li>Timeout errors when fetching sources</li>
+                        <li>DNS resolution failures</li>
+                        <li>SSL/TLS certificate errors</li>
+                    </ul>
+                </div>
+
+                <div class="issue-solution">
+                    <strong>Solutions:</strong>
+                    <div class="code-block"># Test source connectivity manually
+curl -I https://raw.githubusercontent.com/user/repo/main/configs.txt
+
+# Check DNS resolution
+nslookup raw.githubusercontent.com
+
+# Test with different timeout
+export VPN_TIMEOUT=180
+
+# Bypass SSL verification (temporary fix)
+export PYTHONHTTPSVERIFY=0  # Not recommended for production</div>
+                </div>
+            </div>
+
+            <div class="issue-section">
+                <div class="issue-title">🔒 Firewall Issues</div>
+
+                <h3>Issue: Firewall blocking requests</h3>
+                <div class="issue-symptoms">
+                    <strong>Symptoms:</strong>
+                    <ul>
+                        <li>Connection refused errors</li>
+                        <li>Requests hang indefinitely</li>
+                        <li>Only some sources work</li>
+                    </ul>
+                </div>
+
+                <div class="issue-solution">
+                    <strong>Solutions:</strong>
+                    <div class="code-block"># Check firewall status (Ubuntu/CentOS)
+sudo ufw status  # Ubuntu
+sudo firewall-cmd --list-all  # CentOS
+
+# Open required ports
+sudo ufw allow 8080  # API port
+sudo ufw allow 8000  # Web port
+
+# Test with proxy if corporate firewall blocks direct access
+export HTTP_PROXY=http://proxy.company.com:8080
+export HTTPS_PROXY=http://proxy.company.com:8080</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Diagnostics Tab -->
+        <div id="diagnostics" class="tab-content">
+            <div class="diagnostic-tools">
+                <div class="diagnostic-card">
+                    <h3>🔍 System Check</h3>
+                    <p>Run comprehensive system diagnostics</p>
+                    <button class="btn" onclick="runSystemCheck()">Run Check</button>
+                </div>
+
+                <div class="diagnostic-card">
+                    <h3>📊 Performance Test</h3>
+                    <p>Test processing speed and memory usage</p>
+                    <button class="btn" onclick="runPerformanceTest()">Start Test</button>
+                </div>
+
+                <div class="diagnostic-card">
+                    <h3>🌐 Network Test</h3>
+                    <p>Check connectivity to VPN sources</p>
+                    <button class="btn" onclick="runNetworkTest()">Test Network</button>
+                </div>
+
+                <div class="diagnostic-card">
+                    <h3>💾 Cache Health</h3>
+                    <p>Analyze cache performance and health</p>
+                    <button class="btn" onclick="checkCacheHealth()">Check Cache</button>
+                </div>
+            </div>
+
+            <div id="diagnostics-output" class="code-block" style="display: none; margin-top: 30px;">
+                <!-- Diagnostic results will appear here -->
+            </div>
+
+            <div class="info">
+                <strong>ℹ️ Need More Help?</strong>
+                <p>If you're still experiencing issues:</p>
+                <ul>
+                    <li>Check the <code>logs/streamline.log</code> file for detailed error messages</li>
+                    <li>Run with debug mode: <code>export STREAMLINE_LOG_LEVEL=DEBUG</code></li>
+                    <li>Create an issue on GitHub with full error logs and system information</li>
+                    <li>Join our community Discord for real-time support</li>
+                </ul>
+            </div>
+
+            <div class="warning">
+                <strong>⚠️ Before Seeking Help:</strong>
+                <p>Please gather the following information:</p>
+                <ul>
+                    <li>Operating system and Python version</li>
+                    <li>StreamlineVPN version</li>
+                    <li>Full error message and stack trace</li>
+                    <li>Steps to reproduce the issue</li>
+                    <li>Recent changes to your setup</li>
+                </ul>
             </div>
         </div>
     </div>
 
-    <!-- Main Content -->
-    <main class="container mx-auto px-6 py-8 max-w-6xl">
-
-        <!-- Quick Fixes Section -->
-        <section class="mb-12">
-            <h2 class="text-3xl font-bold mb-6">🚀 Quick Fixes</h2>
-            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                
-                <!-- API Not Responding -->
-                <div class="bg-gray-800 border border-gray-700 rounded-xl p-6 hover:border-blue-500 transition-colors">
-                    <div class="flex items-center mb-3">
-                        <div class="w-10 h-10 bg-red-600 rounded-lg flex items-center justify-center mr-3">🚨</div>
-                        <h3 class="text-lg font-semibold">API Not Responding</h3>
-                    </div>
-                    <p class="text-gray-400 text-sm mb-4">The control panel shows "Disconnected" status</p>
-                    <div class="space-y-2">
-                        <button class="quick-fix-btn w-full text-left px-3 py-2 bg-gray-700 hover:bg-gray-600 rounded text-sm transition-colors"
-                                data-fix="api-restart">
-                            ↻ Restart API Server
-                        </button>
-                        <button class="quick-fix-btn w-full text-left px-3 py-2 bg-gray-700 hover:bg-gray-600 rounded text-sm transition-colors"
-                                data-fix="api-check-logs">
-                            📋 Check API Logs
-                        </button>
-                        <button class="quick-fix-btn w-full text-left px-3 py-2 bg-gray-700 hover:bg-gray-600 rounded text-sm transition-colors"
-                                data-fix="api-port-check">
-                            🔌 Check Port 8080
-                        </button>
-                    </div>
-                </div>
-
-                <!-- No Configurations Found -->
-                <div class="bg-gray-800 border border-gray-700 rounded-xl p-6 hover:border-yellow-500 transition-colors">
-                    <div class="flex items-center mb-3">
-                        <div class="w-10 h-10 bg-yellow-600 rounded-lg flex items-center justify-center mr-3">⚠️</div>
-                        <h3 class="text-lg font-semibold">No Configurations</h3>
-                    </div>
-                    <p class="text-gray-400 text-sm mb-4">Processing completes but finds no valid configs</p>
-                    <div class="space-y-2">
-                        <button class="quick-fix-btn w-full text-left px-3 py-2 bg-gray-700 hover:bg-gray-600 rounded text-sm transition-colors"
-                                data-fix="check-sources">
-                            🌐 Validate Sources
-                        </button>
-                        <button class="quick-fix-btn w-full text-left px-3 py-2 bg-gray-700 hover:bg-gray-600 rounded text-sm transition-colors"
-                                data-fix="network-test">
-                            🌍 Test Network Access
-                        </button>
-                        <button class="quick-fix-btn w-full text-left px-3 py-2 bg-gray-700 hover:bg-gray-600 rounded text-sm transition-colors"
-                                data-fix="config-format">
-                            🔧 Check Config Format
-                        </button>
-                    </div>
-                </div>
-
-                <!-- Processing Stuck -->
-                <div class="bg-gray-800 border border-gray-700 rounded-xl p-6 hover:border-green-500 transition-colors">
-                    <div class="flex items-center mb-3">
-                        <div class="w-10 h-10 bg-blue-600 rounded-lg flex items-center justify-center mr-3">⏳</div>
-                        <h3 class="text-lg font-semibold">Processing Stuck</h3>
-                    </div>
-                    <p class="text-gray-400 text-sm mb-4">Job shows same progress for extended time</p>
-                    <div class="space-y-2">
-                        <button class="quick-fix-btn w-full text-left px-3 py-2 bg-gray-700 hover:bg-gray-600 rounded text-sm transition-colors"
-                                data-fix="cancel-job">
-                            ❌ Cancel Current Job
-                        </button>
-                        <button class="quick-fix-btn w-full text-left px-3 py-2 bg-gray-700 hover:bg-gray-600 rounded text-sm transition-colors"
-                                data-fix="reduce-concurrency">
-                            🐌 Reduce Concurrency
-                        </button>
-                        <button class="quick-fix-btn w-full text-left px-3 py-2 bg-gray-700 hover:bg-gray-600 rounded text-sm transition-colors"
-                                data-fix="restart-processing">
-                            🔄 Restart Processing
-                        </button>
-                    </div>
-                </div>
-
-            </div>
-        </section>
-
-        <!-- Common Issues -->
-        <section class="mb-12">
-            <h2 class="text-3xl font-bold mb-6">🔍 Common Issues</h2>
-
-            <!-- Installation Issues -->
-            <div class="mb-8">
-                <details class="bg-gray-800 border border-gray-700 rounded-xl overflow-hidden">
-                    <summary class="px-6 py-4 cursor-pointer hover:bg-gray-750 transition-colors">
-                        <div class="flex items-center">
-                            <span class="text-xl mr-3">📦</span>
-                            <h3 class="text-xl font-semibold">Installation & Dependencies</h3>
-                        </div>
-                    </summary>
-                    <div class="px-6 pb-6">
-
-                        <!-- Python Version Issues -->
-                        <div class="mb-6">
-                            <h4 class="text-lg font-medium mb-3 text-blue-400">Python Version Issues</h4>
-                            <div class="bg-gray-900 rounded-lg p-4 mb-3">
-                                <p class="text-red-400 font-mono text-sm mb-2">ERROR: Python 3.7 is not supported</p>
-                            </div>
-                            <div class="space-y-3">
-                                <div class="bg-gray-750 rounded-lg p-4">
-                                    <h5 class="font-medium mb-2">✅ Solution:</h5>
-                                    <p class="text-gray-300 mb-3">StreamlineVPN requires Python 3.8 or higher. Upgrade your Python version:</p>
-                                    <div class="bg-black rounded p-3 font-mono text-sm">
-                                        <div class="text-green-400"># Check current Python version</div>
-                                        <div>python --version</div>
-                                        <div class="text-green-400 mt-2"># Install Python 3.11 (recommended)</div>
-                                        <div>sudo apt update && sudo apt install python3.11</div>
-                                        <div class="text-green-400 mt-2"># Use pyenv for version management</div>
-                                        <div>pyenv install 3.11.7 && pyenv global 3.11.7</div>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-
-                        <!-- Missing Dependencies -->
-                        <div class="mb-6">
-                            <h4 class="text-lg font-medium mb-3 text-blue-400">Missing Dependencies</h4>
-                            <div class="bg-gray-900 rounded-lg p-4 mb-3">
-                                <p class="text-red-400 font-mono text-sm mb-2">ModuleNotFoundError: No module named 'aiohttp'</p>
-                            </div>
-                            <div class="space-y-3">
-                                <div class="bg-gray-750 rounded-lg p-4">
-                                    <h5 class="font-medium mb-2">✅ Solution:</h5>
-                                    <div class="bg-black rounded p-3 font-mono text-sm">
-                                        <div class="text-green-400"># Install all dependencies</div>
-                                        <div>pip install -r requirements.txt</div>
-                                        <div class="text-green-400 mt-2"># For development</div>
-                                        <div>pip install -r requirements-dev.txt</div>
-                                        <div class="text-green-400 mt-2"># Verify installation</div>
-                                        <div>python -c "import streamline_vpn; print('✅ Installation successful!')"</div>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-
-                        <!-- Docker Issues -->
-                        <div class="mb-6">
-                            <h4 class="text-lg font-medium mb-3 text-blue-400">Docker Issues</h4>
-                            <div class="bg-gray-900 rounded-lg p-4 mb-3">
-                                <p class="text-red-400 font-mono text-sm mb-2">docker: permission denied</p>
-                            </div>
-                            <div class="space-y-3">
-                                <div class="bg-gray-750 rounded-lg p-4">
-                                    <h5 class="font-medium mb-2">✅ Solutions:</h5>
-                                    <div class="bg-black rounded p-3 font-mono text-sm">
-                                        <div class="text-green-400"># Add user to docker group</div>
-                                        <div>sudo usermod -aG docker $USER</div>
-                                        <div>newgrp docker</div>
-                                        <div class="text-green-400 mt-2"># Or use sudo</div>
-                                        <div>sudo docker-compose up -d</div>
-                                        <div class="text-green-400 mt-2"># Check Docker status</div>
-                                        <div>docker --version && docker-compose --version</div>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-
-                    </div>
-                </details>
-            </div>
-
-            <!-- Configuration Issues -->
-            <div class="mb-8">
-                <details class="bg-gray-800 border border-gray-700 rounded-xl overflow-hidden">
-                    <summary class="px-6 py-4 cursor-pointer hover:bg-gray-750 transition-colors">
-                        <div class="flex items-center">
-                            <span class="text-xl mr-3">⚙️</span>
-                            <h3 class="text-xl font-semibold">Configuration Problems</h3>
-                        </div>
-                    </summary>
-                    <div class="px-6 pb-6">
-
-                        <!-- Invalid YAML -->
-                        <div class="mb-6">
-                            <h4 class="text-lg font-medium mb-3 text-blue-400">Invalid YAML Configuration</h4>
-                            <div class="bg-gray-900 rounded-lg p-4 mb-3">
-                                <p class="text-red-400 font-mono text-sm mb-2">yaml.scanner.ScannerError: while parsing</p>
-                            </div>
-                            <div class="space-y-3">
-                                <div class="bg-gray-750 rounded-lg p-4">
-                                    <h5 class="font-medium mb-2">✅ Solutions:</h5>
-                                    <div class="bg-black rounded p-3 font-mono text-sm">
-                                        <div class="text-green-400"># Validate YAML syntax</div>
-                                        <div>python -c "import yaml; yaml.safe_load(open('config/sources.yaml'))"</div>
-                                        <div class="text-green-400 mt-2"># Use online YAML validator</div>
-                                        <div>curl -X POST -d @config/sources.yaml https://yamlvalidator.com/</div>
-                                        <div class="text-green-400 mt-2"># Check indentation (use spaces, not tabs)</div>
-                                        <div>cat -A config/sources.yaml | head -20</div>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-
-                        <!-- Environment Variables -->
-                        <div class="mb-6">
-                            <h4 class="text-lg font-medium mb-3 text-blue-400">Environment Variable Issues</h4>
-                            <div class="bg-gray-750 rounded-lg p-4">
-                                <h5 class="font-medium mb-2">🔧 Environment Setup:</h5>
-                                <div class="bg-black rounded p-3 font-mono text-sm">
-                                    <div class="text-green-400"># Create .env file</div>
-                                    <div>cat > .env << EOF</div>
-                                    <div>API_HOST=0.0.0.0</div>
-                                    <div>API_PORT=8080</div>
-                                    <div>WEB_HOST=0.0.0.0</div>
-                                    <div>WEB_PORT=8000</div>
-                                    <div>STREAMLINE_ENV=development</div>
-                                    <div>STREAMLINE_LOG_LEVEL=INFO</div>
-                                    <div>EOF</div>
-                                    <div class="text-green-400 mt-2"># Verify environment</div>
-                                    <div>python -c "import os; print('API_PORT:', os.getenv('API_PORT', 'Not set'))"</div>
-                                </div>
-                            </div>
-                        </div>
-
-                    </div>
-                </details>
-            </div>
-
-            <!-- Network and Connectivity -->
-            <div class="mb-8">
-                <details class="bg-gray-800 border border-gray-700 rounded-xl overflow-hidden">
-                    <summary class="px-6 py-4 cursor-pointer hover:bg-gray-750 transition-colors">
-                        <div class="flex items-center">
-                            <span class="text-xl mr-3">🌐</span>
-                            <h3 class="text-xl font-semibold">Network & Connectivity</h3>
-                        </div>
-                    </summary>
-                    <div class="px-6 pb-6">
-                        
-                        <!-- Port Conflicts -->
-                        <div class="mb-6">
-                            <h4 class="text-lg font-medium mb-3 text-blue-400">Port Already in Use</h4>
-                            <div class="bg-gray-900 rounded-lg p-4 mb-3">
-                                <p class="text-red-400 font-mono text-sm mb-2">OSError: [Errno 48] Address already in use</p>
-                            </div>
-                            <div class="space-y-3">
-                                <div class="bg-gray-750 rounded-lg p-4">
-                                    <h5 class="font-medium mb-2">✅ Solutions:</h5>
-                                    <div class="bg-black rounded p-3 font-mono text-sm">
-                                        <div class="text-green-400"># Find process using port 8080</div>
-                                        <div>lsof -i :8080</div>
-                                        <div class="text-green-400 mt-2"># Kill the process (replace PID)</div>
-                                        <div>kill -9 &lt;PID&gt;</div>
-                                        <div class="text-green-400 mt-2"># Use different ports</div>
-                                        <div>export API_PORT=8081</div>
-                                        <div>export WEB_PORT=8001</div>
-                                        <div>python run_unified.py</div>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-
-                        <!-- Firewall Issues -->
-                        <div class="mb-6">
-                            <h4 class="text-lg font-medium mb-3 text-blue-400">Firewall Blocking Connections</h4>
-                            <div class="bg-gray-750 rounded-lg p-4">
-                                <h5 class="font-medium mb-2">🔧 Firewall Configuration:</h5>
-                                <div class="bg-black rounded p-3 font-mono text-sm">
-                                    <div class="text-green-400"># Ubuntu/Debian</div>
-                                    <div>sudo ufw allow 8080</div>
-                                    <div>sudo ufw allow 8000</div>
-                                    <div class="text-green-400 mt-2"># CentOS/RHEL</div>
-                                    <div>sudo firewall-cmd --add-port=8080/tcp --permanent</div>
-                                    <div>sudo firewall-cmd --add-port=8000/tcp --permanent</div>
-                                    <div>sudo firewall-cmd --reload</div>
-                                    <div class="text-green-400 mt-2"># Test connectivity</div>
-                                    <div>curl -I http://localhost:8080/health</div>
-                                </div>
-                            </div>
-                        </div>
-
-                    </div>
-                </details>
-            </div>
-
-            <!-- Performance Issues -->
-            <div class="mb-8">
-                <details class="bg-gray-800 border border-gray-700 rounded-xl overflow-hidden">
-                    <summary class="px-6 py-4 cursor-pointer hover:bg-gray-750 transition-colors">
-                        <div class="flex items-center">
-                            <span class="text-xl mr-3">⚡</span>
-                            <h3 class="text-xl font-semibold">Performance Issues</h3>
-                        </div>
-                    </summary>
-                    <div class="px-6 pb-6">
-
-                        <!-- Slow Processing -->
-                        <div class="mb-6">
-                            <h4 class="text-lg font-medium mb-3 text-blue-400">Slow Configuration Processing</h4>
-                            <div class="space-y-3">
-                                <div class="bg-gray-750 rounded-lg p-4">
-                                    <h5 class="font-medium mb-2">🔧 Performance Tuning:</h5>
-                                    <div class="bg-black rounded p-3 font-mono text-sm">
-                                        <div class="text-green-400"># Reduce concurrent requests</div>
-                                        <div>export STREAMLINE_MAX_CONCURRENT=25</div>
-                                        <div class="text-green-400 mt-2"># Increase timeout</div>
-                                        <div>export STREAMLINE_TIMEOUT=60</div>
-                                        <div class="text-green-400 mt-2"># Enable caching</div>
-                                        <div>export STREAMLINE_CACHE_ENABLED=true</div>
-                                        <div>export STREAMLINE_REDIS_URL=redis://localhost:6379</div>
-                                        <div class="text-green-400 mt-2"># Monitor resources</div>
-                                        <div>htop # or top</div>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-
-                        <!-- Memory Issues -->
-                        <div class="mb-6">
-                            <h4 class="text-lg font-medium mb-3 text-blue-400">High Memory Usage</h4>
-                            <div class="space-y-3">
-                                <div class="bg-gray-750 rounded-lg p-4">
-                                    <h5 class="font-medium mb-2">🔧 Memory Optimization:</h5>
-                                    <div class="bg-black rounded p-3 font-mono text-sm">
-                                        <div class="text-green-400"># Reduce batch size</div>
-                                        <div>export STREAMLINE_BATCH_SIZE=5</div>
-                                        <div class="text-green-400 mt-2"># Limit worker processes</div>
-                                        <div>export WORKERS=1</div>
-                                        <div class="text-green-400 mt-2"># Monitor memory</div>
-                                        <div>python -m memory_profiler run_unified.py</div>
-                                        <div class="text-green-400 mt-2"># Clear cache periodically</div>
-                                        <div>redis-cli FLUSHALL</div>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-
-                    </div>
-                </details>
-            </div>
-
-        </section>
-
-        <!-- Diagnostic Tools -->
-        <section class="mb-12">
-            <h2 class="text-3xl font-bold mb-6">🔧 Diagnostic Tools</h2>
-
-            <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
-
-                <!-- System Health Check -->
-                <div class="bg-gray-800 border border-gray-700 rounded-xl p-6">
-                    <h3 class="text-xl font-semibold mb-4 flex items-center">
-                        <span class="text-2xl mr-3">🏥</span>
-                        System Health Check
-                    </h3>
-                    <p class="text-gray-400 mb-4">Run comprehensive system diagnostics</p>
-
-                    <div class="space-y-3">
-                        <button id="healthCheckBtn" class="w-full px-4 py-3 bg-blue-600 hover:bg-blue-700 rounded-lg font-medium transition-colors">
-                            🔍 Run Health Check
-                        </button>
-
-                        <div id="healthCheckResults" class="hidden mt-4 p-4 bg-gray-900 rounded-lg">
-                            <div class="space-y-2 text-sm font-mono">
-                                <div class="flex justify-between">
-                                    <span>Python Version:</span>
-                                    <span id="pythonVersion" class="text-green-400">-</span>
-                                </div>
-                                <div class="flex justify-between">
-                                    <span>API Server:</span>
-                                    <span id="apiStatus" class="text-yellow-400">Checking...</span>
-                                </div>
-                                <div class="flex justify-between">
-                                    <span>Web Interface:</span>
-                                    <span id="webStatus" class="text-yellow-400">Checking...</span>
-                                </div>
-                                <div class="flex justify-between">
-                                    <span>Redis Cache:</span>
-                                    <span id="redisStatus" class="text-yellow-400">Checking...</span>
-                                </div>
-                                <div class="flex justify-between">
-                                    <span>Configuration:</span>
-                                    <span id="configStatus" class="text-yellow-400">Checking...</span>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Log Viewer -->
-                <div class="bg-gray-800 border border-gray-700 rounded-xl p-6">
-                    <h3 class="text-xl font-semibold mb-4 flex items-center">
-                        <span class="text-2xl mr-3">📋</span>
-                        Live Logs
-                    </h3>
-                    <p class="text-gray-400 mb-4">Monitor application logs in real-time</p>
-                    
-                    <div class="space-y-3">
-                        <div class="flex space-x-2">
-                            <select id="logLevel" class="flex-1 px-3 py-2 bg-gray-700 border border-gray-600 rounded focus:border-blue-500">
-                                <option value="all">All Levels</option>
-                                <option value="error">Errors Only</option>
-                                <option value="warning">Warnings & Errors</option>
-                                <option value="info">Info & Above</option>
-                            </select>
-                            <button id="startLogBtn" class="px-4 py-2 bg-green-600 hover:bg-green-700 rounded font-medium transition-colors">
-                                ▶️ Start
-                            </button>
-                        </div>
-
-                        <div id="logOutput" class="h-64 p-3 bg-black rounded font-mono text-xs overflow-y-auto">
-                            <div class="text-gray-500">Click "Start" to begin monitoring logs...</div>
-                        </div>
-
-                        <div class="flex space-x-2">
-                            <button id="clearLogsBtn" class="flex-1 px-3 py-2 bg-gray-600 hover:bg-gray-700 rounded text-sm transition-colors">
-                                🗑️ Clear
-                            </button>
-                            <button id="downloadLogsBtn" class="flex-1 px-3 py-2 bg-blue-600 hover:bg-blue-700 rounded text-sm transition-colors">
-                                💾 Download
-                            </button>
-                        </div>
-                    </div>
-                </div>
-
-            </div>
-        </section>
-
-        <!-- Recovery Procedures -->
-        <section class="mb-12">
-            <h2 class="text-3xl font-bold mb-6">🚑 Recovery Procedures</h2>
-
-            <div class="space-y-6">
-
-                <!-- Complete Reset -->
-                <div class="bg-gray-800 border border-red-600 rounded-xl p-6">
-                    <h3 class="text-xl font-semibold mb-3 text-red-400">⚠️ Complete System Reset</h3>
-                    <p class="text-gray-400 mb-4">Use this as a last resort when other solutions don't work.</p>
-
-                    <div class="bg-gray-900 rounded-lg p-4">
-                        <div class="font-mono text-sm space-y-1">
-                            <div class="text-green-400"># Stop all services</div>
-                            <div>pkill -f streamline_vpn</div>
-                            <div>docker-compose down</div>
-                            <div class="text-green-400 mt-2"># Clean cache and temporary files</div>
-                            <div>rm -rf cache/ logs/ output/*</div>
-                            <div>redis-cli FLUSHALL</div>
-                            <div class="text-green-400 mt-2"># Reinstall dependencies</div>
-                            <div>pip uninstall -y streamline-vpn</div>
-                            <div>pip install -r requirements.txt</div>
-                            <div class="text-green-400 mt-2"># Reset configuration</div>
-                            <div>cp config/sources.yaml.example config/sources.yaml</div>
-                            <div class="text-green-400 mt-2"># Restart services</div>
-                            <div>python run_unified.py</div>
-                        </div>
-                    </div>
-
-                    <div class="mt-4 p-3 bg-red-900 rounded-lg">
-                        <p class="text-red-200 text-sm">⚠️ This will delete all cached data and reset configuration to defaults.</p>
-                    </div>
-                </div>
-
-                <!-- Safe Mode -->
-                <div class="bg-gray-800 border border-yellow-600 rounded-xl p-6">
-                    <h3 class="text-xl font-semibold mb-3 text-yellow-400">🔒 Safe Mode Start</h3>
-                    <p class="text-gray-400 mb-4">Start with minimal configuration for troubleshooting.</p>
-
-                    <div class="bg-gray-900 rounded-lg p-4">
-                        <div class="font-mono text-sm space-y-1">
-                            <div class="text-green-400"># Start in safe mode</div>
-                            <div>export STREAMLINE_ENV=development</div>
-                            <div>export STREAMLINE_MAX_CONCURRENT=5</div>
-                            <div>export STREAMLINE_CACHE_ENABLED=false</div>
-                            <div>export STREAMLINE_LOG_LEVEL=DEBUG</div>
-                            <div>python run_unified.py</div>
-                        </div>
-                    </div>
-                </div>
-
-            </div>
-        </section>
-
-        <!-- Getting Help -->
-        <section class="mb-12">
-            <h2 class="text-3xl font-bold mb-6">💬 Getting Help</h2>
-
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                
-                <div class="bg-gray-800 border border-gray-700 rounded-xl p-6">
-                    <h3 class="text-lg font-semibold mb-3">📖 Documentation</h3>
-                    <ul class="space-y-2 text-gray-300">
-                        <li><a href="/api/" class="text-blue-400 hover:text-blue-300">• API Documentation</a></li>
-                        <li><a href="/configuration/" class="text-blue-400 hover:text-blue-300">• Configuration Guide</a></li>
-                        <li><a href="/deployment/" class="text-blue-400 hover:text-blue-300">• Deployment Guide</a></li>
-                        <li><a href="/faq.html" class="text-blue-400 hover:text-blue-300">• Frequently Asked Questions</a></li>
-                    </ul>
-                </div>
-
-                <div class="bg-gray-800 border border-gray-700 rounded-xl p-6">
-                    <h3 class="text-lg font-semibold mb-3">🔗 Community & Support</h3>
-                    <ul class="space-y-2 text-gray-300">
-                        <li><a href="#" class="text-blue-400 hover:text-blue-300">• GitHub Issues</a></li>
-                        <li><a href="#" class="text-blue-400 hover:text-blue-300">• Discord Community</a></li>
-                        <li><a href="#" class="text-blue-400 hover:text-blue-300">• Reddit Community</a></li>
-                        <li><a href="#" class="text-blue-400 hover:text-blue-300">• Stack Overflow</a></li>
-                    </ul>
-                </div>
-
-            </div>
-
-            <!-- Submit Bug Report -->
-            <div class="mt-8 bg-gray-800 border border-gray-700 rounded-xl p-6">
-                <h3 class="text-lg font-semibold mb-4">🐛 Report a Bug</h3>
-                <p class="text-gray-400 mb-4">If you found a bug not covered in this guide, please report it:</p>
-                <div class="flex space-x-4">
-                    <button id="generateBugReport" class="px-6 py-3 bg-red-600 hover:bg-red-700 rounded-lg font-medium transition-colors">
-                        📋 Generate Bug Report
-                    </button>
-                    <button id="copySystemInfo" class="px-6 py-3 bg-blue-600 hover:bg-blue-700 rounded-lg font-medium transition-colors">
-                        📋 Copy System Info
-                    </button>
-                </div>
-            </div>
-        </section>
-
-    </main>
-
-    <!-- Footer -->
-    <footer class="mt-12 border-t border-gray-800">
-        <div class="container mx-auto px-6 py-6">
-            <div class="flex items-center justify-center space-x-6 text-sm text-gray-400">
-                <a href="/interactive.html" class="hover:text-white">Control Panel</a>
-                <span>&bull;</span>
-                <a href="/config_generator.html" class="hover:text-white">Config Generator</a>
-                <span>&bull;</span>
-                <a href="/troubleshooting.html" class="hover:text-white">Troubleshooting</a>
-                <span>&bull;</span>
-                <span>StreamlineVPN v2.0.0</span>
-            </div>
-        </div>
-    </footer>
-
-    <!-- Scripts -->
-    <script src="/api-base.js"></script>
     <script>
-        // Troubleshooting functionality
-        class TroubleshootingApp {
-            constructor() {
-                this.apiBase = window.__API_BASE__ || 'http://localhost:8080';
-                this.logPolling = null;
-                this.init();
-            }
+        function showTab(tabName) {
+            // Hide all tab contents
+            const contents = document.querySelectorAll('.tab-content');
+            contents.forEach(content => {
+                content.classList.remove('active');
+            });
 
-            init() {
-                this.bindEvents();
-            }
+            // Remove active class from all tabs
+            const tabs = document.querySelectorAll('.nav-tab');
+            tabs.forEach(tab => {
+                tab.classList.remove('active');
+            });
 
-            bindEvents() {
-                // Search functionality
-                document.getElementById('searchInput')?.addEventListener('input', (e) => {
-                    this.searchIssues(e.target.value);
-                });
+            // Show selected tab content
+            document.getElementById(tabName).classList.add('active');
 
-                // Health check
-                document.getElementById('healthCheckBtn')?.addEventListener('click', () => {
-                    this.runHealthCheck();
-                });
+            // Mark selected tab as active
+            event.target.classList.add('active');
+        }
 
-                // Log viewer
-                document.getElementById('startLogBtn')?.addEventListener('click', () => {
-                    this.toggleLogViewer();
-                });
+        function showDiagnosticOutput(content) {
+            const output = document.getElementById('diagnostics-output');
+            output.innerHTML = content;
+            output.style.display = 'block';
+        }
 
-                document.getElementById('clearLogsBtn')?.addEventListener('click', () => {
-                    this.clearLogs();
-                });
+        async function runSystemCheck() {
+            showDiagnosticOutput('🔍 Running system check...\n\n');
 
-                document.getElementById('downloadLogsBtn')?.addEventListener('click', () => {
-                    this.downloadLogs();
-                });
+            try {
+                const result = await API.get('/api/diagnostics/system');
+                showDiagnosticOutput(`System Check Results:
 
-                // Bug reporting
-                document.getElementById('generateBugReport')?.addEventListener('click', () => {
-                    this.generateBugReport();
-                });
+✅ Python Version: ${result.python_version}
+✅ Platform: ${result.platform}
+✅ Memory Available: ${result.memory_available}GB
+✅ Disk Space: ${result.disk_space}GB
+✅ Dependencies: ${result.dependencies_ok ? 'OK' : 'Issues found'}
 
-                document.getElementById('copySystemInfo')?.addEventListener('click', () => {
-                    this.copySystemInfo();
-                });
-
-                // Quick fixes
-                document.querySelectorAll('.quick-fix-btn').forEach(btn => {
-                    btn.addEventListener('click', (e) => {
-                        this.executeQuickFix(e.target.dataset.fix);
-                    });
-                });
-            }
-
-            searchIssues(query) {
-                const sections = document.querySelectorAll('details');
-                sections.forEach(section => {
-                    const content = section.textContent.toLowerCase();
-                    const matches = query.toLowerCase().split(' ').every(term =>
-                        content.includes(term)
-                    );
-                    section.style.display = matches || !query ? 'block' : 'none';
-                });
-            }
-
-            async runHealthCheck() {
-                const btn = document.getElementById('healthCheckBtn');
-                const results = document.getElementById('healthCheckResults');
-
-                btn.textContent = '🔄 Checking...';
-                btn.disabled = true;
-                results.classList.remove('hidden');
-
-                // Check Python version
-                document.getElementById('pythonVersion').textContent = 'Python 3.x';
-                document.getElementById('pythonVersion').className = 'text-green-400';
-
-                // Check API server
-                try {
-                    const response = await fetch(`${this.apiBase}/health`);
-                    if (response.ok) {
-                        document.getElementById('apiStatus').textContent = '✅ Online';
-                        document.getElementById('apiStatus').className = 'text-green-400';
-                    } else {
-                        throw new Error(`HTTP ${response.status}`);
-                    }
-                } catch (error) {
-                    document.getElementById('apiStatus').textContent = '❌ Offline';
-                    document.getElementById('apiStatus').className = 'text-red-400';
-                }
-
-                // Check web interface (this page loaded, so it's working)
-                document.getElementById('webStatus').textContent = '✅ Online';
-                document.getElementById('webStatus').className = 'text-green-400';
-
-                // Check Redis (through API)
-                try {
-                    const response = await fetch(`${this.apiBase}/api/v1/statistics`);
-                    if (response.ok) {
-                        document.getElementById('redisStatus').textContent = '✅ Connected';
-                        document.getElementById('redisStatus').className = 'text-green-400';
-                    } else {
-                        throw new Error('Stats unavailable');
-                    }
-                } catch (error) {
-                    document.getElementById('redisStatus').textContent = '⚠️ Unknown';
-                    document.getElementById('redisStatus').className = 'text-yellow-400';
-                }
-
-                // Check configuration
-                document.getElementById('configStatus').textContent = '✅ Valid';
-                document.getElementById('configStatus').className = 'text-green-400';
-
-                btn.textContent = '🔍 Run Health Check';
-                btn.disabled = false;
-            }
-
-            toggleLogViewer() {
-                const btn = document.getElementById('startLogBtn');
-                const output = document.getElementById('logOutput');
-
-                if (this.logPolling) {
-                    // Stop logging
-                    clearInterval(this.logPolling);
-                    this.logPolling = null;
-                    btn.textContent = '▶️ Start';
-                    btn.className = 'px-4 py-2 bg-green-600 hover:bg-green-700 rounded font-medium transition-colors';
-                } else {
-                    // Start logging
-                    btn.textContent = '⏹️ Stop';
-                    btn.className = 'px-4 py-2 bg-red-600 hover:bg-red-700 rounded font-medium transition-colors';
-
-                    this.logPolling = setInterval(() => {
-                        this.fetchLogs();
-                    }, 2000);
-
-                    // Initial fetch
-                    this.fetchLogs();
-                }
-            }
-
-            async fetchLogs() {
-                const output = document.getElementById('logOutput');
-                const level = document.getElementById('logLevel').value;
-
-                // Simulate log entries (in real implementation, fetch from API)
-                const timestamp = new Date().toISOString().substring(11, 19);
-                const logEntry = `[${timestamp}] INFO - Processing sources: 15/24 completed\n`;
-
-                output.innerHTML += logEntry;
-                output.scrollTop = output.scrollHeight;
-
-                // Limit output size
-                const lines = output.innerHTML.split('\n');
-                if (lines.length > 100) {
-                    output.innerHTML = lines.slice(-100).join('\n');
-                }
-            }
-
-            clearLogs() {
-                document.getElementById('logOutput').innerHTML = '';
-            }
-
-            downloadLogs() {
-                const content = document.getElementById('logOutput').textContent;
-                const blob = new Blob([content], { type: 'text/plain' });
-                const url = URL.createObjectURL(blob);
-
-                const a = document.createElement('a');
-                a.href = url;
-                a.download = `streamline-logs-${new Date().toISOString().split('T')[0]}.txt`;
-                a.click();
-
-                URL.revokeObjectURL(url);
-            }
-
-            async executeQuickFix(fixType) {
-                switch (fixType) {
-                    case 'api-restart':
-                        this.showNotification('Attempting to restart API server...', 'info');
-                        // In real implementation, make API call to restart
-                        setTimeout(() => {
-                            this.showNotification('API server restart initiated. Check status in 30 seconds.', 'success');
-                        }, 2000);
-                        break;
-
-                    case 'api-check-logs':
-                        document.getElementById('startLogBtn')?.click();
-                        break;
-
-                    case 'cancel-job':
-                        this.showNotification('Cancelling running jobs...', 'info');
-                        // In real implementation, cancel via API
-                        break;
-
-                    default:
-                        this.showNotification(`Quick fix "${fixType}" not yet implemented`, 'warning');
-                }
-            }
-
-            generateBugReport() {
-                const report = {
-                    timestamp: new Date().toISOString(),
-                    user_agent: navigator.userAgent,
-                    url: window.location.href,
-                    api_base: this.apiBase,
-                    issue: 'User-reported issue from troubleshooting page'
-                };
-
-                const reportText = JSON.stringify(report, null, 2);
-                navigator.clipboard.writeText(reportText).then(() => {
-                    this.showNotification('Bug report copied to clipboard!', 'success');
-                });
-            }
-
-            copySystemInfo() {
-                const info = `StreamlineVPN System Information
-================================
-Timestamp: ${new Date().toISOString()}
-User Agent: ${navigator.userAgent}
-Current URL: ${window.location.href}
-API Base: ${this.apiBase}
-Screen Resolution: ${screen.width}x${screen.height}
-Timezone: ${Intl.DateTimeFormat().resolvedOptions().timeZone}
-Language: ${navigator.language}`;
-
-                navigator.clipboard.writeText(info).then(() => {
-                    this.showNotification('System information copied to clipboard!', 'success');
-                });
-            }
-
-            showNotification(message, type = 'info') {
-                const colors = {
-                    success: 'bg-green-600',
-                    error: 'bg-red-600',
-                    warning: 'bg-yellow-600',
-                    info: 'bg-blue-600'
-                };
-
-                const notification = document.createElement('div');
-                notification.className = `fixed top-4 right-4 p-4 rounded-lg text-white z-50 ${colors[type] || 'bg-gray-600'} animate-fade-in`;
-                notification.textContent = message;
-
-                document.body.appendChild(notification);
-
-                setTimeout(() => {
-                    notification.remove();
-                }, 5000);
+${result.issues ? 'Issues:\n' + result.issues.join('\n') : 'All checks passed!'}
+                `);
+            } catch (error) {
+                showDiagnosticOutput(`❌ System check failed: ${error.message}`);
             }
         }
 
-        // Initialize when DOM is loaded
-        document.addEventListener('DOMContentLoaded', function() {
-            new TroubleshootingApp();
-        });
+        async function runPerformanceTest() {
+            showDiagnosticOutput('📊 Running performance test...\n\n');
+
+            try {
+                const result = await API.post('/api/diagnostics/performance');
+                showDiagnosticOutput(`Performance Test Results:
+
+⏱️  Processing Speed: ${result.processing_speed} configs/sec
+💾 Memory Usage: ${result.memory_usage}MB peak
+🔄 Cache Hit Rate: ${result.cache_hit_rate}%
+⚡ Average Response Time: ${result.avg_response_time}ms
+
+${result.recommendations ? 'Recommendations:\n' + result.recommendations.join('\n') : 'Performance is optimal!'}
+                `);
+            } catch (error) {
+                showDiagnosticOutput(`❌ Performance test failed: ${error.message}`);
+            }
+        }
+
+        async function runNetworkTest() {
+            showDiagnosticOutput('🌐 Testing network connectivity...\n\n');
+
+            try {
+                const result = await API.get('/api/diagnostics/network');
+                showDiagnosticOutput(`Network Test Results:
+
+🌍 Internet Connectivity: ${result.internet_ok ? 'OK' : 'Failed'}
+📡 DNS Resolution: ${result.dns_ok ? 'OK' : 'Failed'}
+🔗 Source Accessibility: ${result.sources_accessible}/${result.total_sources}
+⏱️  Average Latency: ${result.avg_latency}ms
+
+Failed Sources:
+${result.failed_sources.map(s => `❌ ${s.url} - ${s.error}`).join('\n')}
+                `);
+            } catch (error) {
+                showDiagnosticOutput(`❌ Network test failed: ${error.message}`);
+            }
+        }
+
+        async function checkCacheHealth() {
+            showDiagnosticOutput('💾 Checking cache health...\n\n');
+
+            try {
+                const result = await API.get('/api/diagnostics/cache');
+                showDiagnosticOutput(`Cache Health Report:
+
+🔄 L1 Cache (Memory): ${result.l1_status}
+🔄 L2 Cache (Redis): ${result.l2_status}
+🔄 L3 Cache (SQLite): ${result.l3_status}
+
+📊 Statistics:
+- Total Entries: ${result.total_entries}
+- Hit Rate: ${result.hit_rate}%
+- Cache Size: ${result.cache_size}MB
+
+${result.issues ? 'Issues:\n' + result.issues.join('\n') : '✅ Cache is healthy!'}
+                `);
+            } catch (error) {
+                showDiagnosticOutput(`❌ Cache health check failed: ${error.message}`);
+            }
+        }
     </script>
-
-    <style>
-        .bg-gray-750 {
-            background-color: #2d3748;
-        }
-
-        details[open] summary {
-            margin-bottom: 1rem;
-        }
-
-        .animate-fade-in {
-            animation: fadeIn 0.3s ease-out;
-        }
-
-        @keyframes fadeIn {
-            from { opacity: 0; transform: translateY(-10px); }
-            to { opacity: 1; transform: translateY(0); }
-        }
-
-        /* Smooth scroll for anchor links */
-        html {
-            scroll-behavior: smooth;
-        }
-    </style>
 </body>
 </html>
