@@ -81,7 +81,7 @@ print(configs.get('total'), len(configs.get('configurations', [])))
 print(requests.get(f"{API}/api/v1/sources").json())
 print(
     requests.post(
-        f"{API}/api/v1/sources", json={"url": "https://example.com/configs.txt"}
+        f"{API}/api/v1/sources", json={"url": "https://test-server.example/configs.txt"}
     ).json()
 )
 ```

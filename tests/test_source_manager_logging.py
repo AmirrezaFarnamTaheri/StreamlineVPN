@@ -17,10 +17,10 @@ def test_load_sources_logs_distribution(tmp_path, caplog):
 sources:
   tier_1_premium:
     urls:
-      - https://example.com/a
+      - https://test-server.example/a
   tier_5_unknown:
     urls:
-      - https://example.com/b
+      - https://test-server.example/b
   tier_bad: {}
 """,
         encoding="utf-8",

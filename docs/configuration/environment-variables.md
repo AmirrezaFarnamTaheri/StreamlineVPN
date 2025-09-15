@@ -264,7 +264,7 @@ export VPN_REDIS_URL="redis://localhost:6379/0"
 export VPN_REDIS_URL="redis://user:password@localhost:6379/0"
 
 # Use Redis with SSL
-export VPN_REDIS_URL="rediss://user:password@redis.example.com:6380/0"
+export VPN_REDIS_URL="rediss://user:password@redis.test-server.example:6380/0"
 ```
 
 **Validation:**
@@ -419,11 +419,11 @@ export VPN_WEB_PORT=9000
 **Type:** String  
 **Default:** `*`  
 **Required:** No  
-**Example:** `VPN_WEB_CORS_ORIGINS=https://example.com,https://app.example.com`
+**Example:** `VPN_WEB_CORS_ORIGINS=https://test-server.example,https://app.test-server.example`
 
 ```bash
 # Allow specific origins
-export VPN_WEB_CORS_ORIGINS="https://example.com,https://app.example.com"
+export VPN_WEB_CORS_ORIGINS="https://test-server.example,https://app.test-server.example"
 
 # Allow all origins (default)
 export VPN_WEB_CORS_ORIGINS="*"
@@ -841,7 +841,7 @@ Points the Web UI to the API server.
 Examples:
 
 ```bash
-export API_BASE_URL="https://api.example.com"
+export API_BASE_URL="https://api.test-server.example"
 python run_web.py
 ```
 
@@ -852,9 +852,9 @@ Optional extra CSP `connect-src` origins for the Web UI (space or comma separate
 Examples:
 
 ```bash
-export WEB_CONNECT_SRC_EXTRA="https://api.example.com wss://ws.example.com"
+export WEB_CONNECT_SRC_EXTRA="https://api.test-server.example wss://ws.test-server.example"
 # or
-export WEB_CONNECT_SRC_EXTRA="api.example.com:8443, ws.example.com:8443"
+export WEB_CONNECT_SRC_EXTRA="api.test-server.example:8443, ws.test-server.example:8443"
 python run_web.py
 ```
 

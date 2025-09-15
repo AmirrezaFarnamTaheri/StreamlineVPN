@@ -1,44 +1,68 @@
 # StreamlineVPN Example Configuration
 # Copy this file to sources.yaml and customize
 
+# Configuration metadata
+metadata:
+  version: "2.0"
+  description: "Example configuration for StreamlineVPN"
+  last_updated: "2024-01-01"
+
+# Global settings
+global_settings:
+  timeout: 30
+  max_concurrent: 10
+  retry_attempts: 3
+  verify_ssl: true
+
+# Source definitions organized by tier
 sources:
   tier_1_premium:
-    description: High-quality premium sources
-    urls:
-    - url: https://your-premium-source.com/configs.txt
-      weight: 0.9
-      protocols:
-      - vmess
-      - vless
-      update: 1h
-      metadata:
-        description: Your premium source
-        region: global
-        enabled: true
+    description: "High-quality premium sources"
+    weight_multiplier: 1.0
+    priority: 1
+    sources:
+      - url: "https://your-premium-source.com/configs.txt"
+        name: "Your Premium Source"
+        protocols: ["vmess", "vless", "trojan"]
+        update_frequency: "hourly"
+        reliability: 0.95
 
   tier_2_reliable:
-    description: Reliable community sources
-    urls:
-    - url: https://your-reliable-source.com/list.txt
-      weight: 0.7
-      protocols:
-      - all
-      update: 4h
-      metadata:
-        description: Your reliable source
-        region: global
-        enabled: true
+    description: "Reliable community sources"
+    weight_multiplier: 0.8
+    priority: 2
+    sources:
+      - url: "https://your-reliable-source.com/list.txt"
+        name: "Your Reliable Source"
+        protocols: ["vmess", "vless", "shadowsocks"]
+        update_frequency: "4-hourly"
+        reliability: 0.85
 
+# Processing configuration
 processing:
-  max_concurrent: 50
+  max_concurrent: 10
   timeout: 30
   retry_attempts: 3
+  batch_size: 50
 
+# Output configuration
 output:
-  formats:
-  - json
-  - clash
-  - singbox
+  formats: ["json", "clash", "singbox", "base64"]
   include_metadata: true
   sort_by_quality: true
+  max_configs_per_format: 1000
+
+# Quality filters
+quality_filters:
+  min_requirements:
+    require_server: true
+    require_port: true
+    require_protocol_fields: true
+
+# Caching configuration
+cache_config:
+  enabled: true
+  ttl: 3600
+  cache_sources: true
+  cache_processed: true
 

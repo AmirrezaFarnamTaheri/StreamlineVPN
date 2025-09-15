@@ -14,9 +14,9 @@ The VPN Subscription Merger supports multiple output formats to meet different u
 
 **Example**:
 ```
-vless://550e8400-e29b-41d4-a716-446655440000@example.com:443?encryption=none&security=reality&sni=www.microsoft.com&type=tcp&flow=xtls-rprx-vision&pbk=public_key&sid=short_id&spx=spider_x&fp=chrome&dest=www.microsoft.com:443#Server1
+vless://550e8400-e29b-41d4-a716-446655440000@test-server.example:443?encryption=none&security=reality&sni=www.microsoft.com&type=tcp&flow=xtls-rprx-vision&pbk=public_key&sid=short_id&spx=spider_x&fp=chrome&dest=www.microsoft.com:443#Server1
 vmess://eyJ2IjoiMiIsInBzIjoiU2VydmVyMiIsImFkZCI6ImV4YW1wbGUuY29tIiwicG9ydCI6NDQzLCJpZCI6IjU1MGU4NDAwLWUyOWItNDFkNC1hNzE2LTQ0NjY1NTQ0MDAwMCIsImFpZCI6MCwic2N5IjoiYXV0byIsIm5ldCI6InRjcCIsInR5cGUiOiJub25lIiwiaG9zdCI6IiIsInBhdGgiOiIiLCJ0bHMiOiJ0bHMifQ==
-trojan://password123@example.com:443?security=tls&type=tcp&headerType=none#Server3
+trojan://password123@test-server.example:443?security=tls&type=tcp&headerType=none#Server3
 ```
 
 **Use Cases**:
@@ -62,9 +62,9 @@ export VPN_WRITE_BASE64=true
 **Example**:
 ```csv
 protocol,host,port,quality_score,latency_ms,country,created_at,config
-vless,example.com,443,0.95,45.2,US,2023-12-01T10:00:00Z,vless://550e8400-e29b-41d4-a716-446655440000@example.com:443?encryption=none&security=reality&sni=www.microsoft.com&type=tcp&flow=xtls-rprx-vision&pbk=public_key&sid=short_id&spx=spider_x&fp=chrome&dest=www.microsoft.com:443#Server1
-vmess,example.com,443,0.88,52.1,US,2023-12-01T10:00:00Z,vmess://eyJ2IjoiMiIsInBzIjoiU2VydmVyMiIsImFkZCI6ImV4YW1wbGUuY29tIiwicG9ydCI6NDQzLCJpZCI6IjU1MGU4NDAwLWUyOWItNDFkNC1hNzE2LTQ0NjY1NTQ0MDAwMCIsImFpZCI6MCwic2N5IjoiYXV0byIsIm5ldCI6InRjcCIsInR5cGUiOiJub25lIiwiaG9zdCI6IiIsInBhdGgiOiIiLCJ0bHMiOiJ0bHMifQ==
-trojan,example.com,443,0.92,38.7,US,2023-12-01T10:00:00Z,trojan://password123@example.com:443?security=tls&type=tcp&headerType=none#Server3
+vless,test-server.example,443,0.95,45.2,US,2023-12-01T10:00:00Z,vless://550e8400-e29b-41d4-a716-446655440000@test-server.example:443?encryption=none&security=reality&sni=www.microsoft.com&type=tcp&flow=xtls-rprx-vision&pbk=public_key&sid=short_id&spx=spider_x&fp=chrome&dest=www.microsoft.com:443#Server1
+vmess,test-server.example,443,0.88,52.1,US,2023-12-01T10:00:00Z,vmess://eyJ2IjoiMiIsInBzIjoiU2VydmVyMiIsImFkZCI6ImV4YW1wbGUuY29tIiwicG9ydCI6NDQzLCJpZCI6IjU1MGU4NDAwLWUyOWItNDFkNC1hNzE2LTQ0NjY1NTQ0MDAwMCIsImFpZCI6MCwic2N5IjoiYXV0byIsIm5ldCI6InRjcCIsInR5cGUiOiJub25lIiwiaG9zdCI6IiIsInBhdGgiOiIiLCJ0bHMiOiJ0bHMifQ==
+trojan,test-server.example,443,0.92,38.7,US,2023-12-01T10:00:00Z,trojan://password123@test-server.example:443?security=tls&type=tcp&headerType=none#Server3
 ```
 
 **Columns**:
@@ -134,12 +134,12 @@ export VPN_WRITE_CSV=true
     {
       "id": "config_001",
       "protocol": "vless",
-      "host": "example.com",
+      "host": "test-server.example",
       "port": 443,
       "quality_score": 0.95,
       "latency_ms": 45.2,
       "country": "US",
-      "config": "vless://550e8400-e29b-41d4-a716-446655440000@example.com:443?encryption=none&security=reality&sni=www.microsoft.com&type=tcp&flow=xtls-rprx-vision&pbk=public_key&sid=short_id&spx=spider_x&fp=chrome&dest=www.microsoft.com:443#Server1",
+      "config": "vless://550e8400-e29b-41d4-a716-446655440000@test-server.example:443?encryption=none&security=reality&sni=www.microsoft.com&type=tcp&flow=xtls-rprx-vision&pbk=public_key&sid=short_id&spx=spider_x&fp=chrome&dest=www.microsoft.com:443#Server1",
       "created_at": "2023-12-01T10:00:00Z"
     }
   ]
@@ -200,12 +200,12 @@ statistics:
 configurations:
   - id: "config_001"
     protocol: "vless"
-    host: "example.com"
+    host: "test-server.example"
     port: 443
     quality_score: 0.95
     latency_ms: 45.2
     country: "US"
-    config: "vless://550e8400-e29b-41d4-a716-446655440000@example.com:443?encryption=none&security=reality&sni=www.microsoft.com&type=tcp&flow=xtls-rprx-vision&pbk=public_key&sid=short_id&spx=spider_x&fp=chrome&dest=www.microsoft.com:443#Server1"
+    config: "vless://550e8400-e29b-41d4-a716-446655440000@test-server.example:443?encryption=none&security=reality&sni=www.microsoft.com&type=tcp&flow=xtls-rprx-vision&pbk=public_key&sid=short_id&spx=spider_x&fp=chrome&dest=www.microsoft.com:443#Server1"
     created_at: "2023-12-01T10:00:00Z"
 ```
 
@@ -234,7 +234,7 @@ export VPN_WRITE_YAML=true
     {
       "type": "vless",
       "tag": "server1",
-      "server": "example.com",
+      "server": "test-server.example",
       "server_port": 443,
       "uuid": "550e8400-e29b-41d4-a716-446655440000",
       "flow": "xtls-rprx-vision",
@@ -254,7 +254,7 @@ export VPN_WRITE_YAML=true
     {
       "type": "vmess",
       "tag": "server2",
-      "server": "example.com",
+      "server": "test-server.example",
       "server_port": 443,
       "uuid": "550e8400-e29b-41d4-a716-446655440000",
       "alter_id": 0,
@@ -305,7 +305,7 @@ external-controller: 127.0.0.1:9090
 proxies:
   - name: "server1"
     type: vless
-    server: example.com
+    server: test-server.example
     port: 443
     uuid: 550e8400-e29b-41d4-a716-446655440000
     flow: xtls-rprx-vision
@@ -320,7 +320,7 @@ proxies:
 
   - name: "server2"
     type: vmess
-    server: example.com
+    server: test-server.example
     port: 443
     uuid: 550e8400-e29b-41d4-a716-446655440000
     alterId: 0

@@ -22,11 +22,11 @@ def test_validator_sources_and_output_formats():
         "sources": {
             "premium": {
                 "urls": [
-                    "https://example.com/a.txt",
-                    {"url": "https://example.com/b.txt", "weight": 0.9, "protocols": ["vmess", "vless", "bogus"]},
+                    "https://test-server.example/a.txt",
+                    {"url": "https://test-server.example/b.txt", "weight": 0.9, "protocols": ["vmess", "vless", "bogus"]},
                 ]
             },
-            "tier_1": ["https://example.com/c.txt", 123],  # 123 should trigger error
+            "tier_1": ["https://test-server.example/c.txt", 123],  # 123 should trigger error
         },
         "output": {"formats": ["json", "clash", "unknown"]},
         "processing": {"max_concurrent": 5000, "timeout": 0},

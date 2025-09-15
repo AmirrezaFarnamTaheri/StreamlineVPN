@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>StreamlineVPN WebSocket API</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="../api-base.js"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;800&display=swap" rel="stylesheet">
+  <style>
+    body { font-family: 'Inter', system-ui, -apple-system, sans-serif; }
+    .glass { background: rgba(255,255,255,0.06); backdrop-filter: blur(12px); border: 1px solid rgba(255,255,255,0.1); }
+    .code { font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace; }
+  </style>
+</head>
+<body class="min-h-screen bg-slate-900 text-slate-100">
+  <div class="max-w-4xl mx-auto p-6">
+    <header class="mb-8 flex items-center justify-between">
+      <h1 class="text-3xl font-extrabold">WebSocket API</h1>
+      <nav class="text-blue-300 space-x-4">
+        <a class="hover:underline" href="/">Home</a>
+        <a class="hover:underline" href="/api/index.html">API Docs</a>
+        <a class="hover:underline" href="/ws-test.html">WS Test</a>
+      </nav>
+    </header>
+
+    <section class="glass rounded-xl p-6 mb-6">
+      <h2 class="text-xl font-semibold mb-2">Endpoint</h2>
+      <p>WebSocket URL: <span class="code">/ws</span> (same host/port as API). The advanced client builds this automatically:</p>
+      <div class="code bg-slate-800 rounded p-3 mt-3">const ws = API.connectWebSocket('/ws');</div>
+    </section>
+
+    <section class="glass rounded-xl p-6 mb-6">
+      <h2 class="text-xl font-semibold mb-2">Connection Lifecycle</h2>
+      <ul class="list-disc ml-6 text-slate-200">
+        <li>On connect, server replies with a JSON message: <span class="code">{"type":"connection","status":"connected","client_id":"..."}</span></li>
+        <li>Client may send health pings: <span class="code">{"type":"ping"}</span></li>
+        <li>Server replies: <span class="code">{"type":"pong"}</span></li>
+        <li>Unrecognized messages echo back: <span class="code">{"type":"echo","received":{...}}</span></li>
+      </ul>
+    </section>
+
+    <section class="glass rounded-xl p-6 mb-6">
+      <h2 class="text-xl font-semibold mb-2">Message Shapes</h2>
+      <div class="grid md:grid-cols-2 gap-4">
+        <div class="bg-slate-800 rounded p-4 code">
+// Client → Server (Ping)
+{"type": "ping"}
+
+// Server → Client (Pong)
+{"type": "pong"}
+        </div>
+        <div class="bg-slate-800 rounded p-4 code">
+// Client → Server (Custom)
+{"type": "custom", "text": "hello"}
+
+// Server → Client (Echo)
+{"type": "echo", "received": {"type":"custom","text":"hello"}}
+        </div>
+      </div>
+    </section>
+
+    <section class="glass rounded-xl p-6 mb-6">
+      <h2 class="text-xl font-semibold mb-2">JavaScript Example</h2>
+      <div class="code bg-slate-800 rounded p-3">
+const ws = API.connectWebSocket('/ws');
+ws.addEventListener('open', () => ws.send(JSON.stringify({ type: 'ping' })));
+ws.addEventListener('message', (ev) => console.log('WS message', ev.data));
+ws.addEventListener('close', (ev) => console.log('closed', ev.code, ev.reason));
+      </div>
+    </section>
+
+    <footer class="text-slate-400 text-sm mt-8">Tip: Use <a class="text-blue-300 hover:underline" href="/ws-test.html">WS Test</a> to try messages quickly.</footer>
+  </div>
+</body>
+</html>
+

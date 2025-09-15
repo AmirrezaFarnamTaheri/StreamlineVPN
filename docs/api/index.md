@@ -98,14 +98,14 @@ curl "http://localhost:8080/api/v1/configurations?protocol=vmess&limit=50&min_qu
     {
       "id": "cfg_123456",
       "protocol": "vmess",
-      "server": "example.com",
+      "server": "test-server.example",
       "port": 443,
       "user_id": "12345678-1234-1234-1234-123456789012",
       "alter_id": 0,
       "security": "aes-128-gcm",
       "network": "ws",
       "path": "/path",
-      "host": "example.com",
+      "host": "test-server.example",
       "tls": "tls",
       "quality_score": 0.85,
       "location": {
@@ -114,7 +114,7 @@ curl "http://localhost:8080/api/v1/configurations?protocol=vmess&limit=50&min_qu
         "city": "San Francisco"
       },
       "metadata": {
-        "source_url": "https://example.com/configs",
+        "source_url": "https://test-server.example/configs",
         "last_tested": "2025-01-14T10:25:00Z",
         "response_time": 120,
         "success_rate": 0.92
@@ -138,7 +138,7 @@ Retrieve a specific configuration by ID.
 {
   "id": "cfg_123456",
   "protocol": "vmess",
-  "server": "example.com",
+  "server": "test-server.example",
   "port": 443,
   "configuration_url": "vmess://eyJ2IjoyLCJwcyI6InRlc3QiLCJhZGQiOiJleGFtcGxlLmNvbSI...",
   "quality_score": 0.85,
@@ -163,7 +163,7 @@ List all configured sources with their status and performance metrics.
   "sources": [
     {
       "id": "src_123",
-      "url": "https://example.com/configs",
+      "url": "https://test-server.example/configs",
       "tier": "premium",
       "status": "active",
       "enabled": true,
@@ -311,7 +311,7 @@ Get the status of a running pipeline job.
   "current_stage": {
     "name": "source_processing",
     "progress": 0.75,
-    "details": "Processing https://example.com/configs"
+    "details": "Processing https://test-server.example/configs"
   },
   "statistics": {
     "sources_processed": 18,
@@ -412,7 +412,7 @@ Generate subscription URLs for various clients.
 dHJvamFuOi8vcGFzc3dvcmRAZXhhbXBsZS5jb206NDQzP3NuaT1leGFtcGxlLmNvbSMlRTklQTYlOTk=
 
 # For base64=false (raw URLs)
-trojan://password@example.com:443?sni=example.com#%E9%A6%99
+trojan://password@test-server.example:443?sni=test-server.example#%E9%A6%99
 vmess://eyJ2IjoyLCJwcyI6InRlc3QiLCJhZGQiOiJleGFtcGxlLmNvbSJ9
 ```
 
@@ -460,7 +460,7 @@ Test a source URL for accessibility and configuration extraction.
 **Request Body:**
 ```json
 {
-  "source_url": "https://example.com/configs",
+  "source_url": "https://test-server.example/configs",
   "timeout": 30,
   "validate_configs": true
 }
@@ -469,7 +469,7 @@ Test a source URL for accessibility and configuration extraction.
 **Response:**
 ```json
 {
-  "source_url": "https://example.com/configs",
+  "source_url": "https://test-server.example/configs",
   "status": "accessible",
   "response_time": 2.1,
   "configurations_found": 67,
@@ -535,7 +535,7 @@ ws.onmessage = function(event) {
   "type": "source_update",
   "data": {
     "source_id": "src_123",
-    "url": "https://example.com/configs",
+    "url": "https://test-server.example/configs",
     "status": "updated",
     "new_configs": 5
   }

@@ -10,7 +10,7 @@ from streamline_vpn.models.configuration import VPNConfiguration, Protocol
 def sample_config() -> VPNConfiguration:
     return VPNConfiguration(
         protocol=Protocol.VMESS,
-        server="s.example.com",
+        server="s.test-server.example",
         port=443,
         user_id="uuid",
         tls=True,

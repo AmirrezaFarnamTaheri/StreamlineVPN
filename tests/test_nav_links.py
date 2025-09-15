@@ -20,6 +20,6 @@ def test_control_panel_has_consistent_nav():
 
 
 def test_api_docs_link_to_generator_and_panel():
-    html = (DOCS / "api/index.html").read_text()
+    html = (DOCS / "api/index.html").read_text(encoding='utf-8')
     assert "../config_generator.html" in html
     assert "../interactive.html" in html

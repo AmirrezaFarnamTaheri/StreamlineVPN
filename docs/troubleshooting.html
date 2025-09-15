@@ -43,6 +43,9 @@
                 <nav class="flex items-center space-x-6">
                     <a href="/interactive.html" class="text-gray-300 hover:text-white">Control Panel</a>
                     <a href="/config_generator.html" class="text-gray-300 hover:text-white">Config Generator</a>
+                    <a href="/api/index.html" class="text-gray-300 hover:text-white">API Docs</a>
+                    <a href="/ws-test.html" class="text-gray-300 hover:text-white">WebSocket Test</a>
+                    <a href="/upload-test.html" class="text-gray-300 hover:text-white">Upload Demo</a>
                     <a href="/troubleshooting.html" class="text-blue-400 font-semibold">Troubleshooting</a>
                 </nav>
             </div>
@@ -140,6 +143,35 @@
                 </div>
 
             </div>
+        </section>
+
+        <!-- Diagnostics -->
+        <section class="mb-12">
+            <h2 class="text-3xl font-bold mb-6">Diagnostics</h2>
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                <div class="bg-gray-800 border border-gray-700 rounded-xl p-6">
+                    <h3 class="text-lg font-semibold mb-2">System Check</h3>
+                    <p class="text-gray-400 mb-4">Run environment and dependency diagnostics</p>
+                    <button class="btn btn-primary" onclick="runSystemCheck()">Run Check</button>
+                </div>
+                <div class="bg-gray-800 border border-gray-700 rounded-xl p-6">
+                    <h3 class="text-lg font-semibold mb-2">Performance Test</h3>
+                    <p class="text-gray-400 mb-4">Quick performance and latency test</p>
+                    <button class="btn btn-secondary" onclick="runPerformanceTest()">Start Test</button>
+                </div>
+                <div class="bg-gray-800 border border-gray-700 rounded-xl p-6">
+                    <h3 class="text-lg font-semibold mb-2">Network Test</h3>
+                    <p class="text-gray-400 mb-4">Check connectivity to common sources</p>
+                    <button class="btn btn-outline" onclick="runNetworkTest()">Test Network</button>
+                </div>
+                <div class="bg-gray-800 border border-gray-700 rounded-xl p-6">
+                    <h3 class="text-lg font-semibold mb-2">Cache Health</h3>
+                    <p class="text-gray-400 mb-4">Validate multi-level cache status</p>
+                    <button class="btn btn-outline" onclick="checkCacheHealth()">Check Cache</button>
+                </div>
+            </div>
+
+            <div id="diagnostics-output" class="mt-6 p-4 bg-black rounded font-mono text-sm overflow-x-auto hidden"></div>
         </section>
 
         <!-- Common Issues -->
@@ -580,7 +612,7 @@
             </div>
         </section>
 
-    </main>
+</main>
 
     <!-- Footer -->
     <footer class="mt-12 border-t border-gray-800">
@@ -879,5 +911,54 @@ Language: ${navigator.language}`;
             scroll-behavior: smooth;
         }
     </style>
+<script>
+    function showDiag(content) {
+        const el = document.getElementById('diagnostics-output');
+        if (!el) return;
+        el.classList.remove('hidden');
+        el.textContent = content;
+    }
+
+    async function runSystemCheck() {
+        try {
+            showDiag('Running system check...');
+            const res = await API.get('/api/diagnostics/system');
+            showDiag(JSON.stringify(res, null, 2));
+        } catch (e) {
+            showDiag('System check failed: ' + (e && e.message ? e.message : e));
+        }
+    }
+
+    async function runPerformanceTest() {
+        try {
+            showDiag('Running performance test...');
+            const res = await API.post('/api/diagnostics/performance', {});
+            showDiag(JSON.stringify(res, null, 2));
+        } catch (e) {
+            showDiag('Performance test failed: ' + (e && e.message ? e.message : e));
+        }
+    }
+
+    async function runNetworkTest() {
+        try {
+            showDiag('Testing network connectivity...');
+            const res = await API.get('/api/diagnostics/network');
+            showDiag(JSON.stringify(res, null, 2));
+        } catch (e) {
+            showDiag('Network test failed: ' + (e && e.message ? e.message : e));
+        }
+    }
+
+    async function checkCacheHealth() {
+        try {
+            showDiag('Checking cache health...');
+            const res = await API.get('/api/diagnostics/cache');
+            showDiag(JSON.stringify(res, null, 2));
+        } catch (e) {
+            showDiag('Cache health check failed: ' + (e && e.message ? e.message : e));
+        }
+    }
+</script>
+
 </body>
 </html>

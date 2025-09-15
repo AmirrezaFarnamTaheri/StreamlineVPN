@@ -19,10 +19,10 @@ This page documents configuration keys supported by StreamlineVPN’s validator 
 sources:
   premium:
     urls:
-      - https://example.com/a.txt
-      - { url: https://example.com/b.txt, weight: 0.9, protocols: [vmess, vless] }
+      - https://test-server.example/a.txt
+      - { url: https://test-server.example/b.txt, weight: 0.9, protocols: [vmess, vless] }
   tier_1:
-    - https://example.com/c.txt
+    - https://test-server.example/c.txt
 
 processing:
   max_concurrent: 50     # 1..1000 (validator warns outside 1..1000)

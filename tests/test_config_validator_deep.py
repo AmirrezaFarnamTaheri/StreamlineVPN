@@ -8,7 +8,7 @@ def test_validator_url_and_scheme_and_deprecated_fields():
     cfg = {
         # Current field containing invalid urls
         "sources": {
-            "unknownTier": {"urls": ["ftp://bad.example.com/list.txt", "http:///missing-host"]}
+            "unknownTier": {"urls": ["ftp://bad.test-server.example/list.txt", "http:///missing-host"]}
         },
     }
     res = validator.validate_config(cfg)
@@ -20,7 +20,7 @@ def test_validator_url_and_scheme_and_deprecated_fields():
 def test_validator_cache_ttl_and_processing_ranges():
     v = ConfigurationValidator()
     cfg = {
-        "sources": {"premium": ["https://ok.example.com/a.txt"]},
+        "sources": {"premium": ["https://ok.test-server.example/a.txt"]},
         "cache": {"ttl": -5},  # invalid negative ttl
         "processing": {
             "max_concurrent": 2000,  # will warn + autofix later
@@ -49,8 +49,8 @@ def test_validator_tier_dict_and_protocols():
         "sources": {
             "tier_1": {
                 "urls": [
-                    {"url": "https://ok.example.com/a.txt", "weight": 0.5, "protocols": ["vmess", "bogus"]},
-                    {"url": "https://ok.example.com/b.txt", "weight": 2.0},  # out of range -> warning
+                    {"url": "https://ok.test-server.example/a.txt", "weight": 0.5, "protocols": ["vmess", "bogus"]},
+                    {"url": "https://ok.test-server.example/b.txt", "weight": 2.0},  # out of range -> warning
                 ]
             },
         }

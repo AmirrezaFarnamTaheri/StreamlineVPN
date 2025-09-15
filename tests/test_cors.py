@@ -2,7 +2,9 @@ import importlib.util
 import sys
 from pathlib import Path
 
-from fastapi.testclient import TestClient
+import pytest
+import httpx
+from httpx import ASGITransport
 
 from streamline_vpn.settings import Settings
 
@@ -24,7 +26,8 @@ def load_api_app():
     return module.create_app
 
 
-def test_disallowed_origin_rejected(monkeypatch):
+@pytest.mark.asyncio
+async def test_disallowed_origin_rejected(monkeypatch):
     custom = Settings(
         allowed_origins=["https://allowed.com"],
         allowed_methods=["GET"],
@@ -36,6 +39,7 @@ def test_disallowed_origin_rejected(monkeypatch):
     module = sys.modules[app_factory.__module__]
     monkeypatch.setattr(module, "get_settings", lambda: custom)
 
-    with TestClient(app_factory()) as client:
-        resp = client.get("/health", headers={"Origin": "https://bad.com"})
+    app = app_factory()
+    async with httpx.AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+        resp = await client.get("/health", headers={"Origin": "https://bad.com"})
         assert "access-control-allow-origin" not in resp.headers

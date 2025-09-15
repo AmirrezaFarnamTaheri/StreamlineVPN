@@ -33,6 +33,12 @@
       } else if (global && global.__API_BASE__) {
         this.config.baseURL = global.__API_BASE__;
       }
+      // Expose resolved base for other scripts and smoke checks
+      try {
+        if (typeof window !== 'undefined') {
+          window.__API_BASE__ = window.__API_BASE__ || this.config.baseURL;
+        }
+      } catch {}
       try {
         console.log('StreamlineVPN API initialized:', this.config.baseURL);
       } catch {}

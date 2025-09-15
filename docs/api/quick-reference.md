@@ -58,13 +58,13 @@ curl "http://localhost:8080/api/v1/configurations?limit=50&offset=0"
 
 - GET `/api/v1/sources` — list configured sources
 - POST `/api/v1/sources` — add a source
-  - Body (JSON): `{ "url": "https://example.com/configs.txt" }`
+  - Body (JSON): `{ "url": "https://test-server.example/configs.txt" }`
 
 Examples:
 ```bash
 curl http://localhost:8080/api/v1/sources
 curl -X POST -H "Content-Type: application/json" \
-  -d '{"url":"https://example.com/configs.txt"}' \
+  -d '{"url":"https://test-server.example/configs.txt"}' \
   http://localhost:8080/api/v1/sources
 ```
 

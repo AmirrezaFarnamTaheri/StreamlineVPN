@@ -100,7 +100,7 @@ POST /api/v1/generate/vless
 Content-Type: application/json
 
 {
-  "host": "example.com",
+  "host": "test-server.example",
   "port": 443,
   "uuid": "xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx",
   "sni": "www.microsoft.com",
@@ -113,7 +113,7 @@ POST /api/v1/generate/singbox
 Content-Type: application/json
 
 {
-  "host": "example.com",
+  "host": "test-server.example",
   "port": 443,
   "uuid": "xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx",
   "sni": "www.microsoft.com",
@@ -126,7 +126,7 @@ POST /api/v1/generate/wireguard
 Content-Type: application/json
 
 {
-  "endpoint": "vpn.example.com:51820",
+  "endpoint": "vpn.test-server.example:51820",
   "server_public_key": "server_public_key_base64",
   "client_private_key": "client_private_key_base64",
   "address": "10.0.0.2/32",
@@ -140,7 +140,7 @@ POST /api/v1/generate/shadowsocks
 Content-Type: application/json
 
 {
-  "host": "example.com",
+  "host": "test-server.example",
   "port": 8388,
   "method": "chacha20-ietf-poly1305",
   "password": "secure_password"
@@ -252,8 +252,8 @@ Examples:
 
 ```bash
 # Point UI to a hosted API and allow WebSocket connections
-API_BASE_URL=https://api.example.com \
-WEB_CONNECT_SRC_EXTRA="https://api.example.com wss://ws.example.com" \
+API_BASE_URL=https://api.test-server.example \
+WEB_CONNECT_SRC_EXTRA="https://api.test-server.example wss://ws.test-server.example" \
 python run_web.py
 ```
 
@@ -293,7 +293,7 @@ WEB_PORT=8000
 # API base for the Web UI
 API_BASE_URL=http://localhost:8080
 # Optional extra CSP connect-src origins (space/comma separated)
-WEB_CONNECT_SRC_EXTRA="https://api.example.com wss://ws.example.com"
+WEB_CONNECT_SRC_EXTRA="https://api.test-server.example wss://ws.test-server.example"
 
 # Security
 DASHBOARD_TOKEN=your_secure_token

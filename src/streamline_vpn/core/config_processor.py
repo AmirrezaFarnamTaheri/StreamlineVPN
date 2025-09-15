@@ -115,7 +115,7 @@ class ConfigurationProcessor:
 
         Example:
             >>> processor = ConfigurationProcessor()
-            >>> processor.validate_config({"protocol": "vmess", "server": "example.com", "port": 443})
+            >>> processor.validate_config({"protocol": "vmess", "server": "test-server.example", "port": 443})
             True
         """
         return self.validate_configuration(config_data)

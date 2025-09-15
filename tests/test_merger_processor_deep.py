@@ -62,7 +62,7 @@ async def test_process_single_source_parses_and_updates():
     """
     m = FakeMerger()
     proc = MergerProcessor(m)
-    configs, success = await proc._process_single_source("http://example.com/list.txt")
+    configs, success = await proc._process_single_source("http://test-server.example/list.txt")
     # "safe" and "unsafe" are parsed. "parse" fails. Expect 2 configs.
     assert len(configs) == 2
     assert success is True

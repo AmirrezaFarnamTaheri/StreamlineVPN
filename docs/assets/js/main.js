@@ -14,6 +14,8 @@ class StreamlineVPNApp {
             await this.loadInitialData();
             this.setupEventListeners();
             this.startPeriodicUpdates();
+            // Try real-time updates via WebSocket if API helper is available
+            this.connectWebSocketSafe();
             this.isInitialized = true;
         } catch (error) {
             console.error('Failed to initialize StreamlineVPN App:', error);
@@ -31,8 +33,14 @@ class StreamlineVPNApp {
 
     async loadStatistics() {
         try {
-            const stats = await API.get('/api/statistics');
-            this.updateStatisticsDisplay(stats);
+            // Try v1 first for back-compat, then fallback
+            let stats;
+            try {
+                stats = await API.get('/api/v1/statistics');
+            } catch (e) {
+                stats = await API.get('/api/statistics');
+            }
+            this.updateStatisticsDisplay(stats || {});
         } catch (error) {
             console.error('Failed to load statistics:', error);
             this.showError('Failed to load statistics');
@@ -58,17 +66,22 @@ class StreamlineVPNApp {
     }
 
     updateStatisticsDisplay(stats) {
-        const elements = {
-            totalConfigs: document.getElementById('total-configs'),
-            activeSources: document.getElementById('active-sources'),
-            lastUpdate: document.getElementById('last-update'),
-            qualityScore: document.getElementById('quality-score')
-        };
+        const pick = (ids) => ids.map(id => document.getElementById(id)).find(Boolean);
+        const elTotalConfigs = pick(['total-configs','stat-total-configs']);
+        const elActiveSources = pick(['active-sources','total-sources','stat-active-sources']);
+        const elLastUpdate = pick(['last-update','last-updated','stat-last-update']);
+        const elQuality = pick(['quality-score','success-rate']);
 
-        if (elements.totalConfigs) elements.totalConfigs.textContent = stats.total_configurations || 0;
-        if (elements.activeSources) elements.activeSources.textContent = stats.active_sources || 0;
-        if (elements.lastUpdate) elements.lastUpdate.textContent = stats.last_update || 'Never';
-        if (elements.qualityScore) elements.qualityScore.textContent = stats.quality_score || 'N/A';
+        if (elTotalConfigs) elTotalConfigs.textContent = stats.total_configurations || stats.total_configs || 0;
+        if (elActiveSources) elActiveSources.textContent = stats.total_sources || stats.active_sources || 0;
+        if (elLastUpdate) {
+            const t = stats.last_update || stats.last_updated || stats.timestamp || null;
+            elLastUpdate.textContent = t ? new Date(t).toLocaleString() : 'Never';
+        }
+        if (elQuality) {
+            const rate = (stats.success_rate || stats.quality_score || 0);
+            elQuality.textContent = typeof rate === 'number' ? `${Math.round(rate * 100)}%` : rate;
+        }
     }
 
     updateSourcesDisplay(sources) {
@@ -126,6 +139,12 @@ class StreamlineVPNApp {
                 this.exportConfigurations(format);
             });
         });
+
+        // Clear cache button (landing page)
+        const clearCacheBtn = document.getElementById('clear-cache-btn');
+        if (clearCacheBtn) {
+            clearCacheBtn.addEventListener('click', () => this.handleClearCache());
+        }
     }
 
     async runProcess() {
@@ -155,21 +174,41 @@ class StreamlineVPNApp {
 
     async exportConfigurations(format) {
         try {
-            const response = await API.get(`/api/export/${format}`);
-            if (format === 'download') {
-                // Handle file download
-                const blob = new Blob([JSON.stringify(response)], { type: 'application/json' });
+            // Prefer v1 download route if present
+            if (format === 'json' || format === 'download') {
+                const res = await fetch(API.url('/api/v1/export/configurations.json'));
+                const blob = await res.blob();
                 const url = URL.createObjectURL(blob);
                 const a = document.createElement('a');
                 a.href = url;
-                a.download = `vpn_configs_${new Date().toISOString().split('T')[0]}.json`;
+                a.download = `streamline_configurations.json`;
                 a.click();
                 URL.revokeObjectURL(url);
+                this.showSuccess('Export completed');
+                return;
             }
-            this.showSuccess(`Export to ${format} completed`);
+            // Fallback to generic export endpoint
+            const data = await API.get(`/api/export/${format}`);
+            const blob = new Blob([typeof data === 'string' ? data : JSON.stringify(data)], { type: 'text/plain' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `export.${format}`;
+            a.click();
+            URL.revokeObjectURL(url);
+            this.showSuccess(`Exported ${format}`);
         } catch (error) {
             console.error('Export failed:', error);
             this.showError('Export failed');
+        }
+    }
+
+    async handleClearCache() {
+        try {
+            await API.post('/api/v1/cache/clear');
+            this.showSuccess('Cache cleared successfully');
+        } catch (e) {
+            this.showError('Failed to clear cache');
         }
     }
 
@@ -179,6 +218,37 @@ class StreamlineVPNApp {
                 this.loadStatistics();
             }
         }, this.config.updateInterval);
+    }
+
+    // --- Real-time updates via WebSocket (optional) ---
+    connectWebSocketSafe() {
+        try {
+            if (typeof API === 'undefined' || typeof API.connectWebSocket !== 'function') {
+                return; // API helper not present
+            }
+            const ws = API.connectWebSocket('/ws');
+            this._ws = ws;
+
+            ws.addEventListener('message', (event) => {
+                try {
+                    const data = JSON.parse(event.data);
+                    if (data && data.type === 'statistics_update' && data.data) {
+                        this.updateStatisticsDisplay(data.data);
+                    } else if (data && data.type === 'notification') {
+                        this.showSuccess(data.message || 'Update received');
+                    }
+                } catch (e) {
+                    // ignore malformed messages
+                }
+            });
+
+            ws.addEventListener('close', () => {
+                // Reconnect after delay
+                setTimeout(() => this.connectWebSocketSafe(), 5000);
+            });
+        } catch (e) {
+            // Non-fatal; ignore WS errors
+        }
     }
 
     showProcessing() {

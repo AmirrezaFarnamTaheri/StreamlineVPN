@@ -1,0 +1,425 @@
+# StreamlineVPN Environment Configuration
+# ========================================
+# Copy this file to .env and customize for your deployment
+
+# =============================================================================
+# CORE APPLICATION SETTINGS
+# =============================================================================
+
+# Environment mode (development, production, testing)
+STREAMLINE_ENV=development
+
+# Application version (automatically set by deployment)
+APP_VERSION=2.0.0
+
+# Debug mode (true/false) - enables detailed logging and error traces
+STREAMLINE_DEBUG=true
+
+# Log level (DEBUG, INFO, WARNING, ERROR, CRITICAL)
+STREAMLINE_LOG_LEVEL=INFO
+
+# Log format (json, console)
+LOG_FORMAT=console
+
+# =============================================================================
+# SERVER CONFIGURATION
+# =============================================================================
+
+# API Server Settings
+API_HOST=0.0.0.0
+API_PORT=8080
+
+# Web Server Settings
+WEB_HOST=0.0.0.0
+WEB_PORT=8000
+
+# Base URL for API (used by web interface)
+API_BASE_URL=http://localhost:8080
+
+# Server workers (for production deployment)
+WORKERS=4
+
+# =============================================================================
+# CORS CONFIGURATION
+# =============================================================================
+
+# Allowed origins for CORS (JSON array format preferred)
+ALLOWED_ORIGINS=["http://localhost:3000","http://localhost:8000","http://localhost:8080","http://127.0.0.1:8000","http://127.0.0.1:8080"]
+
+# Alternative comma-separated format
+# ALLOWED_ORIGINS=http://localhost:3000,http://localhost:8000,http://localhost:8080
+
+# Allowed HTTP methods
+ALLOWED_METHODS=["GET","POST","PUT","DELETE","OPTIONS","HEAD","PATCH"]
+
+# Allowed headers
+ALLOWED_HEADERS=["Content-Type","Authorization","X-Request-ID","X-API-Key","Accept","Origin","X-Requested-With"]
+
+# Allow credentials (true/false)
+ALLOW_CREDENTIALS=true
+
+# =============================================================================
+# VPN PROCESSING CONFIGURATION
+# =============================================================================
+
+# Source configuration file path
+VPN_CONFIG_PATH=config/sources.yaml
+
+# Output directory for generated files
+VPN_OUTPUT_DIR=output
+
+# Processing timeout per source (seconds)
+VPN_TIMEOUT=60
+
+# Maximum concurrent source fetches
+VPN_CONCURRENT_LIMIT=50
+
+# Retry configuration
+VPN_RETRY_ATTEMPTS=3
+VPN_RETRY_DELAY=2
+
+# User agent for HTTP requests
+VPN_USER_AGENT=StreamlineVPN/2.0 (Compatible VPN Aggregator)
+
+# SSL verification (true/false)
+VPN_VERIFY_SSL=true
+
+# Default output formats (comma-separated)
+VPN_DEFAULT_FORMATS=json,clash,singbox,base64
+
+# Maximum configurations per format
+VPN_MAX_CONFIGS=1000
+
+# =============================================================================
+# CACHE CONFIGURATION
+# =============================================================================
+
+# Enable caching system (true/false)
+CACHE_ENABLED=true
+
+# Cache TTL in seconds (3600 = 1 hour)
+CACHE_TTL=3600
+
+# Enable L1 (memory) cache
+CACHE_L1_ENABLED=true
+
+# L1 cache size (MB)
+CACHE_L1_SIZE=128
+
+# Enable L2 (Redis) cache
+CACHE_L2_ENABLED=true
+
+# Enable L3 (SQLite) cache fallback
+CACHE_L3_ENABLED=true
+
+# L3 cache database path
+CACHE_L3_PATH=data/cache.db
+
+# =============================================================================
+# REDIS CONFIGURATION
+# =============================================================================
+
+# Redis nodes configuration (JSON array format)
+STREAMLINE_REDIS__NODES=[{"host":"localhost","port":"6379"}]
+
+# Alternative single Redis instance
+# REDIS_URL=redis://localhost:6379
+
+# Redis password (if required)
+# REDIS_PASSWORD=your_redis_password
+
+# Redis database number
+REDIS_DB=0
+
+# Redis connection timeout (seconds)
+REDIS_TIMEOUT=10
+
+# Redis connection pool size
+REDIS_POOL_SIZE=10
+
+# Redis key prefix
+REDIS_KEY_PREFIX=streamline:
+
+# =============================================================================
+# DATABASE CONFIGURATION
+# =============================================================================
+
+# Primary database URL (SQLite default, can use PostgreSQL/MySQL)
+DATABASE_URL=sqlite:///data/streamline.db
+
+# Alternative PostgreSQL example:
+# DATABASE_URL=postgresql://user:password@localhost:5432/streamline_vpn
+
+# Alternative MySQL example:
+# DATABASE_URL=mysql://user:password@localhost:3306/streamline_vpn
+
+# Database connection pool settings
+DB_POOL_SIZE=10
+DB_MAX_OVERFLOW=20
+
+# =============================================================================
+# SECURITY CONFIGURATION
+# =============================================================================
+
+# Secret key for JWT tokens (CHANGE THIS IN PRODUCTION!)
+SECRET_KEY=your-super-secret-key-change-this-in-production-min-32-chars
+
+# JWT algorithm
+JWT_ALGORITHM=HS256
+
+# JWT token expiration (seconds) - 24 hours
+JWT_EXPIRATION=86400
+
+# API key for protected endpoints (optional)
+API_KEY=your-api-key-for-protected-endpoints
+
+# Rate limiting (requests per minute per IP)
+RATE_LIMIT_PER_MINUTE=60
+
+# =============================================================================
+# FILE STORAGE CONFIGURATION
+# =============================================================================
+
+# Data directory
+DATA_DIR=data
+
+# Logs directory
+LOGS_DIR=logs
+
+# Jobs directory (for background task persistence)
+JOBS_DIR=data
+
+# Jobs file path
+JOBS_FILE=data/jobs.json
+
+# Maximum log file size (MB)
+MAX_LOG_SIZE=100
+
+# Number of log files to keep
+LOG_BACKUP_COUNT=10
+
+# =============================================================================
+# BACKGROUND JOBS CONFIGURATION
+# =============================================================================
+
+# Enable background job processing
+JOBS_ENABLED=true
+
+# Job processing interval (seconds)
+JOB_INTERVAL=300
+
+# Maximum job retries
+JOB_MAX_RETRIES=3
+
+# Job timeout (seconds)
+JOB_TIMEOUT=600
+
+# Cleanup old jobs (days)
+JOB_CLEANUP_DAYS=7
+
+# =============================================================================
+# SCHEDULER CONFIGURATION
+# =============================================================================
+
+# Enable scheduled tasks
+SCHEDULER_ENABLED=true
+
+# Timezone for scheduled tasks
+SCHEDULER_TIMEZONE=UTC
+
+# Automatic pipeline execution interval (cron format)
+# Default: Every 4 hours
+AUTO_PIPELINE_SCHEDULE=0 */4 * * *
+
+# Enable pipeline on startup
+RUN_PIPELINE_ON_STARTUP=true
+
+# =============================================================================
+# MONITORING & HEALTH CHECKS
+# =============================================================================
+
+# Enable health checks
+HEALTH_CHECKS_ENABLED=true
+
+# Health check timeout (seconds)
+HEALTH_CHECK_TIMEOUT=30
+
+# Enable metrics collection
+METRICS_ENABLED=true
+
+# Metrics endpoint path
+METRICS_ENDPOINT=/metrics
+
+# Enable Prometheus metrics
+PROMETHEUS_ENABLED=false
+
+# =============================================================================
+# EXTERNAL INTEGRATIONS
+# =============================================================================
+
+# Webhook URL for notifications (optional)
+WEBHOOK_URL=
+
+# Webhook authentication token
+WEBHOOK_TOKEN=
+
+# Telegram bot token for notifications (optional)
+TELEGRAM_BOT_TOKEN=
+
+# Telegram chat ID for notifications
+TELEGRAM_CHAT_ID=
+
+# Discord webhook URL (optional)
+DISCORD_WEBHOOK_URL=
+
+# Slack webhook URL (optional)
+SLACK_WEBHOOK_URL=
+
+# =============================================================================
+# DEVELOPMENT & TESTING
+# =============================================================================
+
+# Enable development features
+DEV_MODE=false
+
+# Enable API documentation (Swagger UI)
+ENABLE_DOCS=true
+
+# Enable testing endpoints
+ENABLE_TEST_ENDPOINTS=false
+
+# Mock external services
+MOCK_EXTERNAL_SERVICES=false
+
+# =============================================================================
+# PERFORMANCE TUNING
+# =============================================================================
+
+# HTTP connection pool size
+HTTP_POOL_SIZE=100
+
+# HTTP keep-alive timeout (seconds)
+HTTP_KEEP_ALIVE=30
+
+# Enable compression for API responses
+ENABLE_COMPRESSION=true
+
+# Maximum request body size (MB)
+MAX_REQUEST_SIZE=10
+
+# Enable async processing
+ASYNC_PROCESSING=true
+
+# Thread pool size for CPU-bound tasks
+THREAD_POOL_SIZE=4
+
+# =============================================================================
+# CONTENT SECURITY POLICY (for web interface)
+# =============================================================================
+
+# Additional connect-src domains (space or comma separated)
+WEB_CONNECT_SRC_EXTRA=
+
+# Additional script-src domains
+WEB_SCRIPT_SRC_EXTRA=
+
+# Additional img-src domains
+WEB_IMG_SRC_EXTRA=
+
+# =============================================================================
+# FEATURE FLAGS
+# =============================================================================
+
+# Enable machine learning features
+ML_ENABLED=false
+
+# Enable geographic optimization
+GEO_OPTIMIZATION_ENABLED=false
+
+# Enable advanced analytics
+ANALYTICS_ENABLED=false
+
+# Enable real-time updates via WebSocket
+WEBSOCKET_ENABLED=true
+
+# Enable configuration validation
+CONFIG_VALIDATION_ENABLED=true
+
+# Enable source health monitoring
+SOURCE_MONITORING_ENABLED=true
+
+# =============================================================================
+# CLOUD & DEPLOYMENT
+# =============================================================================
+
+# Cloud provider (aws, gcp, azure, none)
+CLOUD_PROVIDER=none
+
+# AWS S3 bucket for file storage (if using AWS)
+# AWS_S3_BUCKET=streamline-vpn-storage
+
+# AWS region
+# AWS_REGION=us-east-1
+
+# Container orchestration platform (docker, kubernetes, none)
+ORCHESTRATION=docker
+
+# Deployment environment (local, staging, production)
+DEPLOYMENT_ENV=local
+
+# =============================================================================
+# BACKUP & RECOVERY
+# =============================================================================
+
+# Enable automatic backups
+BACKUP_ENABLED=false
+
+# Backup interval (cron format)
+BACKUP_SCHEDULE=0 2 * * *
+
+# Backup retention (days)
+BACKUP_RETENTION_DAYS=30
+
+# Backup storage path
+BACKUP_PATH=backups/
+
+# =============================================================================
+# CUSTOM EXTENSIONS
+# =============================================================================
+
+# Custom plugin directory
+PLUGINS_DIR=plugins/
+
+# Enable custom plugins
+PLUGINS_ENABLED=false
+
+# Custom theme directory
+THEMES_DIR=themes/
+
+# Default theme
+DEFAULT_THEME=default
+
+# =============================================================================
+# EXAMPLE VALUES FOR DIFFERENT ENVIRONMENTS
+# =============================================================================
+
+# Production example:
+# STREAMLINE_ENV=production
+# STREAMLINE_DEBUG=false
+# STREAMLINE_LOG_LEVEL=WARNING
+# WORKERS=8
+# CACHE_L1_SIZE=512
+# VPN_CONCURRENT_LIMIT=100
+
+# Development example:
+# STREAMLINE_ENV=development
+# STREAMLINE_DEBUG=true
+# STREAMLINE_LOG_LEVEL=DEBUG
+# ENABLE_TEST_ENDPOINTS=true
+# DEV_MODE=true
+
+# Testing example:
+# STREAMLINE_ENV=testing
+# DATABASE_URL=sqlite:///:memory:
+# CACHE_ENABLED=false
+# MOCK_EXTERNAL_SERVICES=true

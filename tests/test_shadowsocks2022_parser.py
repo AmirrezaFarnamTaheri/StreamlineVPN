@@ -12,11 +12,11 @@ from streamline_vpn.models.configuration import Protocol
 @pytest.mark.asyncio
 async def test_ss2022_parser_valid_uri():
     parser = Shadowsocks2022Parser()
-    uri = "ss://2022-aes-256-gcm:passw0rd@example.com:8388?plugin=none"
+    uri = "ss://2022-aes-256-gcm:passw0rd@test-server.example:8388?plugin=none"
     cfg = await parser.parse(uri)
     assert cfg is not None
     assert cfg.protocol == Protocol.SHADOWSOCKS
-    assert cfg.server == "example.com"
+    assert cfg.server == "test-server.example"
     assert cfg.port == 8388
     assert cfg.password == "passw0rd"
     assert cfg.encryption == "aes-256-gcm"

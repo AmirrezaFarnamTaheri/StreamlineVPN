@@ -18,7 +18,7 @@ async def test_merger_process_all_orchestration(tmp_path):
     """
     # 1. Setup: Create a dummy config and a merger with mocked dependencies
     config_file = tmp_path / "sources.yaml"
-    config_file.write_text("sources:\n  tier_1:\n    urls:\n      - https://example.com/sub1\n      - https://example.com/sub2")
+    config_file.write_text("sources:\n  tier_1:\n    urls:\n      - https://test-server.example/sub1\n      - https://test-server.example/sub2")
 
     # We patch the class constructors to control the instances created by the merger
     with patch("streamline_vpn.core.merger.VPNCacheService", autospec=True), \

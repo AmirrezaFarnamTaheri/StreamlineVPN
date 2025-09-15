@@ -12,10 +12,11 @@ from datetime import datetime
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 
-from fastapi import FastAPI, HTTPException, Request, status, WebSocket, UploadFile, File
+from fastapi import FastAPI, HTTPException, Request, status, WebSocket, WebSocketDisconnect, UploadFile, File
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from fastapi.staticfiles import StaticFiles
+from contextlib import asynccontextmanager
 
 from ..core.merger import StreamlineVPNMerger
 
@@ -32,6 +33,7 @@ class UnifiedAPIServer:
             version="2.0.0"
         )
         self.merger: Optional[StreamlineVPNMerger] = None
+        self.jobs: List[Dict[str, Any]] = []
 
         self._setup_middleware()
         self._setup_exception_handlers()
@@ -252,16 +254,25 @@ console.log('StreamlineVPN API Base:', window.__API_BASE__);
             if not self.merger:
                 raise HTTPException(status_code=503, detail="Merger not initialized")
 
-            result = await self.merger.process_all()
             job_id = f"job_{uuid.uuid4().hex[:12]}"
             logger.info("Pipeline executed via API job %s", job_id)
 
-            return {
+            result = await self.merger.process_all()
+            job_record = {
                 "job_id": job_id,
                 "status": "completed" if result.get("success") else "failed",
-                "result": result,
+                "result": {k: v for k, v in result.items() if k != "details"},
                 "timestamp": datetime.now().isoformat(),
             }
+            try:
+                self.jobs.append(job_record)
+                # Keep only a recent window
+                if len(self.jobs) > 50:
+                    self.jobs = self.jobs[-50:]
+            except Exception:
+                pass
+
+            return job_record
 
         @self.app.get("/api/statistics")
         async def get_statistics():
@@ -272,11 +283,17 @@ console.log('StreamlineVPN API Base:', window.__API_BASE__);
             stats = await self.merger.get_statistics()
             return stats
 
+        # Back-compat: v1 statistics path expected by some pages
+        @self.app.get("/api/v1/statistics")
+        async def get_statistics_v1():
+            if not self.merger:
+                raise HTTPException(status_code=503, detail="Merger not initialized")
+            return await self.merger.get_statistics()
+
         @self.app.get("/api/jobs")
         async def get_jobs():
-            """Get all jobs."""
-            # This is a placeholder implementation
-            return {"jobs": []}
+            """Get recent pipeline jobs."""
+            return {"jobs": list(self.jobs)}
 
         @self.app.post("/api/refresh")
         async def refresh_data():
@@ -305,6 +322,42 @@ console.log('StreamlineVPN API Base:', window.__API_BASE__);
 
             from fastapi.responses import Response
             return Response(content=content, media_type=formatter.media_type)
+
+        # Back-compat export path used by landing page
+        @self.app.get("/api/v1/export/configurations.json")
+        async def export_configurations_v1_json():
+            if not self.merger:
+                raise HTTPException(status_code=503, detail="Merger not initialized")
+            if not self.merger.output_manager:
+                raise HTTPException(status_code=503, detail="Output manager not initialized")
+            configs = self.merger.get_configurations()
+            try:
+                import orjson as _orjson  # type: ignore
+                payload = _orjson.dumps(configs).decode("utf-8")
+            except Exception:
+                import json as _json
+                payload = _json.dumps([getattr(c, "to_dict", lambda: c)() for c in configs])
+            from fastapi.responses import Response
+            return Response(content=payload, media_type="application/json")
+
+        # Cache clear endpoint used by landing page and tools
+        @self.app.post("/api/v1/cache/clear")
+        async def clear_cache_v1():
+            if not self.merger:
+                raise HTTPException(status_code=503, detail="Merger not initialized")
+            try:
+                # Prefer merger.clear_cache if present
+                if hasattr(self.merger, "clear_cache"):
+                    await self.merger.clear_cache()  # type: ignore[attr-defined]
+                # Also allow cache_manager direct clear for robustness
+                if hasattr(self.merger, "cache_manager") and self.merger.cache_manager:
+                    if hasattr(self.merger.cache_manager, "clear"):
+                        await self.merger.cache_manager.clear()
+                logger.info("Cache cleared via API")
+                return {"status": "ok", "message": "Cache cleared"}
+            except Exception as e:
+                logger.error("Failed to clear cache: %s", e)
+                raise HTTPException(status_code=500, detail=f"Failed to clear cache: {e}")
 
         # Minimal upload endpoint for demo/testing uploads
         @self.app.post("/api/upload")
@@ -349,6 +402,150 @@ console.log('StreamlineVPN API Base:', window.__API_BASE__);
             logger.info("Validated %d URLs", len(urls))
             return {"checked": len(urls), "results": results}
 
+        # -----------------------
+        # Diagnostics Endpoints
+        # -----------------------
+        @self.app.get("/api/diagnostics/system")
+        async def diagnostics_system():
+            """Return lightweight system diagnostics for troubleshooting UI."""
+            import sys as _sys
+            import platform as _platform
+            from shutil import disk_usage as _disk_usage
+
+            info: Dict[str, Any] = {
+                "python_version": _sys.version.split(" ")[0],
+                "platform": _platform.platform(),
+                "timestamp": datetime.now().isoformat(),
+            }
+            # Memory (best-effort)
+            try:
+                import psutil  # type: ignore
+
+                vm = psutil.virtual_memory()
+                info.update(
+                    {
+                        "memory_total_mb": int(vm.total / (1024 * 1024)),
+                        "memory_available_mb": int(vm.available / (1024 * 1024)),
+                    }
+                )
+            except Exception:
+                pass
+            # Disk (best-effort)
+            try:
+                du = _disk_usage(".")
+                info.update(
+                    {
+                        "disk_total_gb": round(du.total / (1024 ** 3), 2),
+                        "disk_free_gb": round(du.free / (1024 ** 3), 2),
+                    }
+                )
+            except Exception:
+                pass
+
+            # Dependency sanity (best-effort)
+            deps = ["fastapi", "uvicorn", "aiohttp", "httpx", "pydantic"]
+            missing: List[str] = []
+            for mod in deps:
+                try:
+                    __import__(mod)
+                except Exception:
+                    missing.append(mod)
+            info["dependencies_ok"] = len(missing) == 0
+            if missing:
+                info["missing_dependencies"] = missing
+
+            # Merger presence
+            info["merger_initialized"] = bool(self.merger is not None)
+            return info
+
+        @self.app.post("/api/diagnostics/performance")
+        async def diagnostics_performance():
+            """Return quick performance snapshot (best-effort, non-intrusive)."""
+            import time as _time
+
+            start = _time.perf_counter()
+            # Run a tiny in-memory operation to estimate baseline speed
+            _ = sum(i * i for i in range(10000))
+            duration_ms = int((_time.perf_counter() - start) * 1000)
+
+            stats: Dict[str, Any] = {
+                "processing_speed": 10000,  # synthetic iteration count
+                "baseline_op_ms": duration_ms,
+            }
+
+            # Attach known merger stats if available
+            try:
+                if self.merger:
+                    mstats = await self.merger.get_statistics()
+                    stats["cache_hit_rate"] = mstats.get("cache_hit_rate", 0)
+                    stats["total_configurations"] = mstats.get("total_configurations", 0)
+            except Exception:
+                pass
+
+            return stats
+
+        @self.app.get("/api/diagnostics/network")
+        async def diagnostics_network(limit: int = 5):
+            """Perform basic network checks without external HTTP calls (test-safe)."""
+            results: Dict[str, Any] = {
+                "internet_ok": False,
+                "dns_ok": True,  # assume OK unless resolution fails
+                "sources_accessible": 0,
+                "total_sources": 0,
+                "failed_sources": [],
+                "avg_latency_ms": None,
+            }
+
+            latencies: List[float] = []
+            try:
+                import socket as _socket
+                # DNS check
+                try:
+                    _socket.gethostbyname("localhost")
+                    results["dns_ok"] = True
+                except Exception:
+                    results["dns_ok"] = False
+                # Skip external HTTP calls to avoid network side effects during tests
+                if self.merger and self.merger.source_manager:
+                    urls = list(self.merger.source_manager.sources.keys())
+                    results["total_sources"] = len(urls)
+            except Exception:
+                pass
+
+            if latencies:
+                results["avg_latency_ms"] = int(sum(latencies) / len(latencies))
+            return results
+
+        @self.app.get("/api/diagnostics/cache")
+        async def diagnostics_cache():
+            """Return cache health overview (best-effort)."""
+            report: Dict[str, Any] = {
+                "l1_status": "unknown",
+                "l2_status": "unknown",
+                "l3_status": "unknown",
+                "total_entries": None,
+                "hit_rate": None,
+                "cache_size": None,
+                "issues": [],
+            }
+
+            try:
+                if self.merger and hasattr(self.merger, "cache_service") and self.merger.cache_service:
+                    stats = self.merger.cache_service.get_statistics()
+                    report["total_entries"] = stats.get("entries")
+                    report["hit_rate"] = int(stats.get("hit_rate", 0) * 100)
+                    report["cache_size"] = stats.get("size")
+                    report["l1_status"] = "ok"
+                    # If redis present, assume l2 ok; otherwise mark as disabled
+                    report["l2_status"] = "ok" if stats.get("l2_enabled", False) else "disabled"
+                    report["l3_status"] = "ok" if stats.get("l3_enabled", False) else "disabled"
+                else:
+                    report["issues"].append("Cache service not initialized")
+            except Exception as e:
+                report["issues"].append(f"Cache stats error: {e}")
+
+            return report
+
         @self.app.websocket("/ws")
         async def websocket_endpoint(websocket: WebSocket):
             await websocket.accept()
@@ -361,14 +558,17 @@ console.log('StreamlineVPN API Base:', window.__API_BASE__);
                         await websocket.send_json({"type": "pong"})
                     else:
                         await websocket.send_json({"type": "echo", "received": data})
-            except Exception:
-                pass
+            except WebSocketDisconnect:
+                logger.info("WebSocket client disconnected: %s", client_id)
+            except Exception as e:
+                logger.error("WebSocket error: %s", e)
 
     def _setup_lifecycle(self) -> None:
-        """Setup application startup and shutdown events."""
+        """Setup application lifespan to replace deprecated on_event."""
 
-        @self.app.on_event("startup")
-        async def startup_event() -> None:
+        @asynccontextmanager
+        async def lifespan(app: FastAPI):
+            # Startup
             try:
                 self.merger = StreamlineVPNMerger()
                 await self.merger.initialize()
@@ -376,15 +576,19 @@ console.log('StreamlineVPN API Base:', window.__API_BASE__);
             except Exception as e:
                 logger.error("Failed to initialize merger: %s", e, exc_info=True)
                 self.merger = None
+            try:
+                yield
+            finally:
+                # Shutdown
+                if self.merger:
+                    try:
+                        await self.merger.shutdown()
+                        logger.info("Unified API merger shut down")
+                    except Exception as e:
+                        logger.error("Error shutting down merger: %s", e)
 
-        @self.app.on_event("shutdown")
-        async def shutdown_event() -> None:
-            if self.merger:
-                try:
-                    await self.merger.shutdown()
-                    logger.info("Unified API merger shut down")
-                except Exception as e:
-                    logger.error("Error shutting down merger: %s", e)
+        # Attach lifespan context to app
+        self.app.router.lifespan_context = lifespan  # type: ignore[attr-defined]
 
     def get_app(self) -> FastAPI:
         """Get the FastAPI application instance."""

@@ -12,7 +12,7 @@ from streamline_vpn.models.source import SourceMetadata, SourceTier
 def test_vpn_configuration_valid_roundtrip():
     cfg = VPNConfiguration(
         protocol=Protocol.VMESS,
-        server="test.example.com",
+        server="test.test-server.example",
         port=443,
         user_id="uuid-123",
         encryption="auto",
@@ -20,7 +20,7 @@ def test_vpn_configuration_valid_roundtrip():
         path="/path",
         tls=True,
         quality_score=0.75,
-        source_url="https://source.example.com",
+        source_url="https://source.test-server.example",
         metadata={"region": "us"},
     )
     assert cfg.is_valid
@@ -67,7 +67,7 @@ def test_output_format_enum():
 
 
 def test_source_metadata_basic_and_reputation():
-    s = SourceMetadata(url="https://example.com", tier=SourceTier.RELIABLE, weight=0.7)
+    s = SourceMetadata(url="https://test-server.example", tier=SourceTier.RELIABLE, weight=0.7)
     assert s.enabled is True
     # Add some performance history
     s.add_performance_record(success=True, config_count=100, response_time=1.0)

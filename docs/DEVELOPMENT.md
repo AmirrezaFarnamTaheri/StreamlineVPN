@@ -60,5 +60,5 @@ python run_web.py
 Environment tips:
 
 - API: `API_HOST` (default `0.0.0.0`), `API_PORT` (default `8080`).
-- Web: `API_BASE_URL` to point the UI at a non-default API (e.g., `https://api.example.com`).
+- Web: `API_BASE_URL` to point the UI at a non-default API (e.g., `https://api.test-server.example`).
 - Web CSP: `WEB_CONNECT_SRC_EXTRA` to add extra `connect-src` origins (space or comma separated).

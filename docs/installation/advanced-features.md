@@ -78,7 +78,7 @@ export STREAMLINE_REDIS__NODES='[{"host":"localhost","port":"6379"}]'
 python run_web.py  # WEB_PORT, API_PORT, API_BASE_URL supported
 
 # Extend CSP connect-src (space or comma separated)
-export WEB_CONNECT_SRC_EXTRA="https://api.example.com wss://ws.example.com"
+export WEB_CONNECT_SRC_EXTRA="https://api.test-server.example wss://ws.test-server.example"
 ```
 
 ### 4. Metrics

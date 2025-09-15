@@ -147,7 +147,7 @@ All API errors follow a consistent JSON format:
   "error": "SOURCE_FETCH_FAILED",
   "message": "Failed to fetch source URL",
   "details": {
-    "source_url": "https://example.com/sources.txt",
+    "source_url": "https://test-server.example/sources.txt",
     "status_code": 404,
     "error": "Not Found"
   }

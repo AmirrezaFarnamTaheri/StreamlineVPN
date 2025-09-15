@@ -39,11 +39,11 @@ def client_with_mock_merger():
 def test_add_source_success(client_with_mock_merger):
     """Test successfully adding a new source."""
     client, merger = client_with_mock_merger
-    response = client.post("/api/v1/sources", json={"url": "https://example.com"})
+    response = client.post("/api/v1/sources", json={"url": "https://test-server.example"})
 
     assert response.status_code == 201
     assert response.json()["status"] == "success"
-    assert "https://example.com" in merger.source_manager.sources
+    assert "https://test-server.example" in merger.source_manager.sources
 
 
 def test_add_source_duplicate(client_with_mock_merger):

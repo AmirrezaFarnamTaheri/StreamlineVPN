@@ -16,8 +16,8 @@ class DummyMerger:
     def __init__(self, *args, **kwargs):  # pragma: no cover - signature
         self.source_manager = SimpleNamespace(
             sources={
-                "http://example.com": SourceMetadata(
-                    url="http://example.com", tier=SourceTier.PREMIUM
+                "http://test-server.example": SourceMetadata(
+                    url="http://test-server.example", tier=SourceTier.PREMIUM
                 )
             }
         )

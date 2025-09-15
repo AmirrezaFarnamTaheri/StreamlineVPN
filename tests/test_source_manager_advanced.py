@@ -32,7 +32,7 @@ def test_source_manager_load_add_and_stats(tmp_path):
 
     # Add a new source
     import asyncio
-    url = "https://new.example.com/list.txt"
+    url = "https://new.test-server.example/list.txt"
     asyncio.run(sm.add_source(url, tier=SourceTier.RELIABLE))
     assert url in sm.sources
 

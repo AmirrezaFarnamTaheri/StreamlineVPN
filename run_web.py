@@ -79,7 +79,20 @@ def main() -> None:
     except Exception as e:
         logger.error(f"Failed to create server: {e}")
         sys.exit(1)
-    
+
+    # Optional: preflight API health check for operator visibility
+    try:
+        import urllib.request  # stdlib
+        with urllib.request.urlopen(f"{api_base_url}/health", timeout=5) as resp:
+            status = getattr(resp, "status", 200)
+            if status == 200:
+                logger.info("API health check OK at %s", api_base_url)
+            else:
+                logger.warning("API health check returned HTTP %s at %s", status, api_base_url)
+    except Exception:
+        # Non-fatal: UI still serves static pages, but certain actions may fail
+        logger.warning("API server not responding at %s; continuing to serve UI", api_base_url)
+
     # Add middleware to inject API base
     @server.app.middleware("http")
     async def inject_api_base(request, call_next):
@@ -87,6 +100,11 @@ def main() -> None:
         # Add API base as header for debugging
         response.headers["X-API-Base"] = api_base_url
         return response
+
+    # Simple health endpoint for container/ops checks
+    @server.app.get("/health")
+    async def health():  # type: ignore[func-returns-value]
+        return {"status": "healthy", "timestamp": __import__("datetime").datetime.now().isoformat()}
     
     logger.info(f"""
     ╔══════════════════════════════════════════════════════════╗

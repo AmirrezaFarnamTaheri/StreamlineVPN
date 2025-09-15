@@ -498,9 +498,7 @@ class OptimizedSQLite:
         
         # Prepare statement
         columns = list(data[0].keys())
-        placeholders = ', '.join(['?' for _ in columns])
-        query = f"INSERT INTO {table} ({', '.join(columns)}) VALUES ({placeholders})"
-        
+                query = f"INSERT INTO {table} ({', '.join(columns)}) VALUES ({        
         # Execute bulk insert
         values = [tuple(row[col] for col in columns) for row in data]
         self.connection.executemany(query, values)

@@ -25,13 +25,13 @@ sources:
         description: Test reliable source
         region: test
         enabled: true
-    - url: https://example.com/test-configs.txt
+    - url: https://test-server.example/test-configs.txt
       weight: 0.5
       protocols:
       - all
       update: 24h
       metadata:
-        description: Test example source
+        description: Test server source
         region: test
         enabled: true
 processing:

@@ -632,7 +632,7 @@ class TestConfigurationValidation:
         """Test valid configuration passes validation."""
         config = {
             'sources': {
-                'tier_1_premium': ['https://example.com/sources.txt'],
+                'tier_1_premium': ['https://test-server.example/sources.txt'],
                 'tier_2_reliable': ['https://example2.com/sources.txt']
             },
             'processing': {
@@ -672,7 +672,7 @@ class TestConfigurationValidation:
         """Test invalid max_concurrent value fails validation."""
         config = {
             'sources': {
-                'tier_1_premium': ['https://example.com/sources.txt']
+                'tier_1_premium': ['https://test-server.example/sources.txt']
             },
             'processing': {
                 'max_concurrent': 2000  # Too high
@@ -688,7 +688,7 @@ class TestAPIValidation:
     def test_valid_vless_request(self):
         """Test valid VLESS request passes validation."""
         request_data = {
-            'host': 'example.com',
+            'host': 'test-server.example',
             'port': 443,
             'uuid': '550e8400-e29b-41d4-a716-446655440000',
             'server_name': 'www.microsoft.com',
@@ -703,7 +703,7 @@ class TestAPIValidation:
     def test_invalid_uuid(self):
         """Test invalid UUID fails validation."""
         request_data = {
-            'host': 'example.com',
+            'host': 'test-server.example',
             'port': 443,
             'uuid': 'invalid-uuid',
             'server_name': 'www.microsoft.com',

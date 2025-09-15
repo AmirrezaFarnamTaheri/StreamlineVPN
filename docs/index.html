@@ -25,8 +25,48 @@
     <!-- Animated Background -->
     <div class="animated-bg"></div>
 
+    <!-- Global Navigation (consistent with site header) -->
+    <header class="glass-dark fixed top-0 left-0 right-0 z-50">
+        <div class="container mx-auto px-6 py-4 flex justify-between items-center">
+            <a href="index.html" class="flex items-center space-x-2">
+                <img src="assets/logo.svg" alt="StreamlineVPN" style="height:32px;">
+                <span class="text-xl font-bold text-white">StreamlineVPN</span>
+            </a>
+            <nav class="hidden md:flex items-center space-x-4">
+                <a href="index.html" class="text-gray-300 hover:text-white px-3 py-2 rounded-md text-sm font-medium">Home</a>
+                <a href="quick-start.html" class="text-gray-300 hover:text-white px-3 py-2 rounded-md text-sm font-medium">Quick Start</a>
+                <a href="api/index.html" class="text-gray-300 hover:text-white px-3 py-2 rounded-md text-sm font-medium">API</a>
+                <a href="configuration/index.html" class="text-gray-300 hover:text-white px-3 py-2 rounded-md text-sm font-medium">Configuration</a>
+                <a href="interactive.html" class="text-white bg-purple-600 hover:bg-purple-700 px-4 py-2 rounded-md text-sm font-bold">Control Panel</a>
+            </nav>
+            <div class="md:hidden">
+                <button id="mobile-menu-btn" class="text-white" aria-label="Toggle navigation">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16m-7 6h7"></path></svg>
+                </button>
+            </div>
+        </div>
+        <div id="mobile-menu" class="md:hidden hidden bg-gray-800">
+            <a href="index.html" class="block text-gray-300 hover:text-white px-3 py-2 rounded-md text-base font-medium">Home</a>
+            <a href="quick-start.html" class="block text-gray-300 hover:text-white px-3 py-2 rounded-md text-base font-medium">Quick Start</a>
+            <a href="api/index.html" class="block text-gray-300 hover:text-white px-3 py-2 rounded-md text-base font-medium">API</a>
+            <a href="configuration/index.html" class="block text-gray-300 hover:text-white px-3 py-2 rounded-md text-base font-medium">Configuration</a>
+            <a href="interactive.html" class="block text-white bg-purple-600 hover:bg-purple-700 px-3 py-2 rounded-md text-base font-bold">Control Panel</a>
+        </div>
+    </header>
+    <script>
+        (function(){
+            var btn = document.getElementById('mobile-menu-btn');
+            var menu = document.getElementById('mobile-menu');
+            if (btn && menu) {
+                btn.addEventListener('click', function(){
+                    menu.classList.toggle('hidden');
+                });
+            }
+        })();
+    </script>
+
     <!-- Main Content -->
-    <div class="container">
+    <div class="container" style="padding-top:80px;">
         <!-- Header -->
         <header class="text-center py-8">
             <h1 class="text-5xl font-bold mb-4 bg-gradient-to-r from-blue-400 to-green-400 bg-clip-text text-transparent">
@@ -114,16 +154,33 @@
         <section class="card text-center">
             <h2 class="text-2xl font-semibold mb-6">Quick Actions</h2>
             <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <button onclick="triggerProcessing()" class="btn btn-primary">
+                <button id="process-btn" class="btn btn-primary">
                     Process Configurations
                 </button>
-                <button onclick="clearCache()" class="btn btn-secondary">
+                <button id="clear-cache-btn" class="btn btn-secondary">
                     Clear Cache
                 </button>
-                <button onclick="exportConfigs()" class="btn btn-outline">
+                <button id="export-btn" class="btn btn-outline" data-export="json">
                     Export Configurations
                 </button>
             </div>
+        </section>
+        
+        <!-- Sources Overview -->
+        <section class="card mb-12">
+            <div class="flex items-center justify-between mb-4">
+                <h2 class="text-2xl font-semibold">Sources Overview</h2>
+                <button id="refresh-btn" class="btn btn-outline btn-sm">Refresh</button>
+            </div>
+            <div id="sources-list" class="grid gap-4"></div>
+        </section>
+
+        <!-- Recent Jobs -->
+        <section class="card mb-12">
+            <div class="flex items-center justify-between mb-4">
+                <h2 class="text-2xl font-semibold">Recent Jobs</h2>
+            </div>
+            <div id="jobs-list" class="space-y-3"></div>
         </section>
     </div>
 
@@ -137,89 +194,6 @@
 
     <!-- Scripts -->
     <script src="assets/js/main.js"></script>
-    <script>
-        // Initialize dashboard
-        document.addEventListener('DOMContentLoaded', async function() {
-            await loadDashboardData();
-            startRealTimeUpdates();
-        });
-        
-        async function loadDashboardData() {
-            try {
-                const stats = await API.get('/api/v1/statistics');
-                updateStatistics(stats);
-            } catch (error) {
-                console.error('Failed to load dashboard data:', error);
-                showErrorMessage('Failed to connect to API');
-            }
-        }
-        
-        function updateStatistics(stats) {
-            document.getElementById('total-sources').textContent = stats.total_sources || 0;
-            document.getElementById('total-configs').textContent = stats.total_configurations || 0;
-            document.getElementById('success-rate').textContent = Math.round((stats.success_rate || 0) * 100) + '%';
-            document.getElementById('last-updated').textContent = new Date(stats.last_updated || Date.now()).toLocaleTimeString();
-        }
-        
-        function startRealTimeUpdates() {
-            setInterval(loadDashboardData, 30000); // Update every 30 seconds
-        }
-
-        async function triggerProcessing() {
-            const overlay = document.getElementById('loading-overlay');
-            overlay.classList.remove('hidden');
-
-            try {
-                const result = await API.post('/api/v1/pipeline/run', {
-                    output_dir: 'output',
-                    formats: ['json', 'clash', 'singbox']
-                });
-
-                showSuccessMessage('Processing completed successfully');
-                await loadDashboardData();
-            } catch (error) {
-                showErrorMessage('Processing failed: ' + error.message);
-            } finally {
-                overlay.classList.add('hidden');
-            }
-        }
-
-        async function clearCache() {
-            try {
-                await API.post('/api/v1/cache/clear');
-                showSuccessMessage('Cache cleared successfully');
-            } catch (error) {
-                showErrorMessage('Failed to clear cache: ' + error.message);
-            }
-        }
-        
-        async function exportConfigs() {
-            try {
-                const response = await fetch(API.url('/api/v1/export/configurations.json'));
-                const blob = await response.blob();
-
-                const url = window.URL.createObjectURL(blob);
-                const a = document.createElement('a');
-                a.href = url;
-                a.download = 'streamline_configurations.json';
-                a.click();
-                window.URL.revokeObjectURL(url);
-                
-                showSuccessMessage('Configurations exported successfully');
-            } catch (error) {
-                showErrorMessage('Export failed: ' + error.message);
-            }
-        }
-
-        function showSuccessMessage(message) {
-            // Implement toast notification
-        }
-
-        function showErrorMessage(message) {
-            // Implement toast notification
-            console.error('ERROR:', message);
-        }
-    </script>
 </body>
 </html>
 <!-- Links to interactive test harnesses -->

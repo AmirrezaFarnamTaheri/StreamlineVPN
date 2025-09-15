@@ -183,7 +183,7 @@ class TestStreamlineVPNMerger:
 
             # The merger processor is created inside initialize, so we need to access it from the instance
             merger_instance.merger_processor.process_sources.return_value = [
-                VPNConfiguration(protocol=Protocol.VMESS, server="test.com", port=443, user_id="123", metadata={})
+                VPNConfiguration(protocol=Protocol.VMESS, server="test-server.example", port=443, user_id="123", metadata={})
             ]
             merger_instance.merger_processor.deduplicate_configurations.side_effect = lambda configs: configs
             merger_instance.merger_processor.apply_enhancements.side_effect = lambda configs: configs
@@ -303,7 +303,7 @@ class TestOutputManager:
         configs = [
             VPNConfiguration(
                 protocol=Protocol.VMESS,
-                server="test.com",
+                server="test-server.example",
                 port=443,
                 user_id="test-id",
             )

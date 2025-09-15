@@ -65,7 +65,7 @@ HEALTH_CHECK_INTERVAL=60
 ```yaml
 sources:
   primary:
-    - "https://example.com/free.txt"
+    - "https://test-server.example/free.txt"
     - "https://another.com/nodes.txt"
   
   secondary:
@@ -76,7 +76,7 @@ sources:
 ```yaml
 sources:
   community_maintained:
-    - url: "https://example.com/free.txt"
+    - url: "https://test-server.example/free.txt"
       priority: 1
       reliability: 0.9
       last_updated: "2023-12-01T14:30:22Z"
@@ -89,23 +89,23 @@ sources:
   
   regional_specific:
     us:
-      - url: "https://us.example.com/nodes.txt"
+      - url: "https://us.test-server.example/nodes.txt"
         priority: 1
         reliability: 0.85
     
     eu:
-      - url: "https://eu.example.com/nodes.txt"
+      - url: "https://eu.test-server.example/nodes.txt"
         priority: 1
         reliability: 0.85
   
   protocol_specific:
     vless:
-      - url: "https://vless.example.com/configs.txt"
+      - url: "https://vless.test-server.example/configs.txt"
         priority: 1
         reliability: 0.9
     
     wireguard:
-      - url: "https://wg.example.com/configs.txt"
+      - url: "https://wg.test-server.example/configs.txt"
         priority: 1
         reliability: 0.8
 ```
@@ -345,7 +345,7 @@ settings:
 # Complete configuration example
 sources:
   community_maintained:
-    - url: "https://example.com/free.txt"
+    - url: "https://test-server.example/free.txt"
       priority: 1
       reliability: 0.9
       last_updated: "2023-12-01T14:30:22Z"
@@ -540,7 +540,7 @@ data:
   sources.yaml: |
     sources:
       community_maintained:
-        - url: "https://example.com/free.txt"
+        - url: "https://test-server.example/free.txt"
           priority: 1
           reliability: 0.9
   

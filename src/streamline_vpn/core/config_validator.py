@@ -469,9 +469,9 @@ if __name__ == "__main__":
     sample_config = {
         "sources": {
             "tier_1": [
-                "https://example.com/config1.txt",
+                "https://test-server.example/config1.txt",
                 {
-                    "url": "https://example.com/config2.txt",
+                    "url": "https://test-server.example/config2.txt",
                     "weight": 0.8,
                     "protocols": ["vless", "vmess"]
                 }
