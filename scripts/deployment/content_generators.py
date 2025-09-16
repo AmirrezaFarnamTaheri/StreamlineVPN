@@ -425,6 +425,7 @@ dependencies = [
     "uvicorn[standard]>=0.24.0",
     "aiohttp>=3.9.0",
     "pydantic>=2.5.0",
+    "pydantic-settings>=2.2.1",
     "click>=8.1.0",
     "pyyaml>=6.0.1",
     "redis>=5.0.0",
@@ -436,6 +437,9 @@ dependencies = [
     "python-multipart>=0.0.6",
     "jinja2>=3.1.0",
     "aiofiles>=23.2.0",
+    "requests>=2.31.0",
+    "psutil>=5.9.0",
+    "orjson>=3.9.0"
 ]
 
 [project.optional-dependencies]
@@ -473,24 +477,6 @@ where = ["src"]
 
 [tool.setuptools.package-data]
 "streamline_vpn" = ["web/static/*", "web/templates/*"]
-
-[tool.black]
-line-length = 88
-target-version = ['py38', 'py39', 'py310', 'py311', 'py312']
-include = '\\.pyi?$'
-extend-exclude = '''
-/(
-  # directories
-  \\.eggs
-  | \\.git
-  | \\.hg
-  | \\.mypy_cache
-  | \\.tox
-  | \\.venv
-  | build
-  | dist
-)/
-'''
 
 [tool.isort]
 profile = "black"
@@ -533,20 +519,6 @@ omit = [
     "*/test_*",
     "*/__pycache__/*",
     "*/migrations/*",
-]
-
-[tool.coverage.report]
-exclude_lines = [
-    "pragma: no cover",
-    "def __repr__",
-    "if self.debug:",
-    "if settings.DEBUG",
-    "raise AssertionError",
-    "raise NotImplementedError",
-    "if 0:",
-    "if __name__ == .__main__.:",
-    "class .*\\bProtocol\\):",
-    "@(abc\\.)?abstractmethod",
 ]
 '''
     
@@ -634,4 +606,3 @@ memory-profiler>=0.61.0
 bandit>=1.7.0
 safety>=2.3.0
 '''
-
