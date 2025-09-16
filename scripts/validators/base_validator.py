@@ -115,7 +115,7 @@ class BaseValidator:
     def _check_python_syntax(self, file_path: str) -> bool:
         """Check if a Python file has valid syntax."""
         content = self._read_file_content(file_path)
-        if not content:
+        if content is None:
             return False
         
         try:

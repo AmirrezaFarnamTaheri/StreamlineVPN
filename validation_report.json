@@ -1,0 +1,2228 @@
+{
+  "timestamp": null,
+  "project_root": "/app",
+  "validator_version": "2.1.0",
+  "validation_modules": {
+    "structure": {
+      "timestamp": "2025-09-16T14:37:49.150892",
+      "project_root": "/app",
+      "validator_version": "2.0.0",
+      "checks": {
+        "dir_exists_src": {
+          "status": "PASS",
+          "message": "Source code directory exists",
+          "details": {},
+          "critical": false,
+          "timestamp": "2025-09-16T14:37:49.151453"
+        },
+        "dir_exists_tests": {
+          "status": "PASS",
+          "message": "Test suite directory exists",
+          "details": {},
+          "critical": false,
+          "timestamp": "2025-09-16T14:37:49.151487"
+        },
+        "dir_exists_config": {
+          "status": "PASS",
+          "message": "Configuration files directory exists",
+          "details": {},
+          "critical": false,
+          "timestamp": "2025-09-16T14:37:49.151514"
+        },
+        "dir_exists_docs": {
+          "status": "PASS",
+          "message": "Documentation directory exists",
+          "details": {},
+          "critical": false,
+          "timestamp": "2025-09-16T14:37:49.151541"
+        },
+        "dir_exists_scripts": {
+          "status": "PASS",
+          "message": "Utility scripts directory exists",
+          "details": {},
+          "critical": false,
+          "timestamp": "2025-09-16T14:37:49.151572"
+        },
+        "dir_exists_src_streamline_vpn": {
+          "status": "PASS",
+          "message": "Main package directory exists",
+          "details": {},
+          "critical": false,
+          "timestamp": "2025-09-16T14:37:49.151643"
+        },
+        "dir_exists_src_streamline_vpn_core": {
+          "status": "PASS",
+          "message": "Core modules directory exists",
+          "details": {},
+          "critical": false,
+          "timestamp": "2025-09-16T14:37:49.151694"
+        },
+        "dir_exists_src_streamline_vpn_api": {
+          "status": "PASS",
+          "message": "API modules directory exists",
+          "details": {},
+          "critical": false,
+          "timestamp": "2025-09-16T14:37:49.151723"
+        },
+        "dir_exists_src_streamline_vpn_web": {
+          "status": "PASS",
+          "message": "Web interface directory exists",
+          "details": {},
+          "critical": false,
+          "timestamp": "2025-09-16T14:37:49.151749"
+        },
+        "dir_exists_src_streamline_vpn_utils": {
+          "status": "PASS",
+          "message": "Utility modules directory exists",
+          "details": {},
+          "critical": false,
+          "timestamp": "2025-09-16T14:37:49.151773"
+        },
+        "dir_exists_src_streamline_vpn_security": {
+          "status": "PASS",
+          "message": "Security modules directory exists",
+          "details": {},
+          "critical": false,
+          "timestamp": "2025-09-16T14:37:49.151854"
+        },
+        "dir_exists_src_streamline_vpn_monitoring": {
+          "status": "PASS",
+          "message": "Monitoring modules directory exists",
+          "details": {},
+          "critical": false,
+          "timestamp": "2025-09-16T14:37:49.151937"
+        },
+        "dir_exists_src_streamline_vpn_jobs": {
+          "status": "PASS",
+          "message": "Job management directory exists",
+          "details": {},
+          "critical": false,
+          "timestamp": "2025-09-16T14:37:49.151976"
+        },
+        "dir_exists_src_streamline_vpn_caching": {
+          "status": "PASS",
+          "message": "Caching modules directory exists",
+          "details": {},
+          "critical": false,
+          "timestamp": "2025-09-16T14:37:49.152002"
+        },
+        "dir_exists_src_streamline_vpn_fetcher": {
+          "status": "PASS",
+          "message": "Data fetching directory exists",
+          "details": {},
+          "critical": false,
+          "timestamp": "2025-09-16T14:37:49.152026"
+        },
+        "dir_exists_src_streamline_vpn_discovery": {
+          "status": "PASS",
+          "message": "Source discovery directory exists",
+          "details": {},
+          "critical": false,
+          "timestamp": "2025-09-16T14:37:49.152050"
+        },
+        "file_exists_src_streamline_vpn___init__.py": {
+          "status": "PASS",
+          "message": "Package init file: src/streamline_vpn/__init__.py exists",
+          "details": {},
+          "critical": false,
+          "timestamp": "2025-09-16T14:37:49.152081"
+        },
+        "file_exists_src_streamline_vpn_core___init__.py": {
+          "status": "PASS",
+          "message": "Package init file: src/streamline_vpn/core/__init__.py exists",
+          "details": {},
+          "critical": false,
+          "timestamp": "2025-09-16T14:37:49.152109"
+        },
+        "file_exists_src_streamline_vpn_api___init__.py": {
+          "status": "PASS",
+          "message": "Package init file: src/streamline_vpn/api/__init__.py exists",
+          "details": {},
+          "critical": false,
+          "timestamp": "2025-09-16T14:37:49.152134"
+        },
+        "file_exists_src_streamline_vpn_web___init__.py": {
+          "status": "PASS",
+          "message": "Package init file: src/streamline_vpn/web/__init__.py exists",
+          "details": {},
+          "critical": false,
+          "timestamp": "2025-09-16T14:37:49.152158"
+        },
+        "file_exists_src_streamline_vpn_utils___init__.py": {
+          "status": "PASS",
+          "message": "Package init file: src/streamline_vpn/utils/__init__.py exists",
+          "details": {},
+          "critical": false,
+          "timestamp": "2025-09-16T14:37:49.152182"
+        },
+        "file_exists_src_streamline_vpn_security___init__.py": {
+          "status": "PASS",
+          "message": "Package init file: src/streamline_vpn/security/__init__.py exists",
+          "details": {},
+          "critical": false,
+          "timestamp": "2025-09-16T14:37:49.152205"
+        },
+        "file_exists_src_streamline_vpn_monitoring___init__.py": {
+          "status": "PASS",
+          "message": "Package init file: src/streamline_vpn/monitoring/__init__.py exists",
+          "details": {},
+          "critical": false,
+          "timestamp": "2025-09-16T14:37:49.152229"
+        },
+        "file_exists_src_streamline_vpn_jobs___init__.py": {
+          "status": "PASS",
+          "message": "Package init file: src/streamline_vpn/jobs/__init__.py exists",
+          "details": {},
+          "critical": false,
+          "timestamp": "2025-09-16T14:37:49.152252"
+        },
+        "file_exists_src_streamline_vpn_caching___init__.py": {
+          "status": "PASS",
+          "message": "Package init file: src/streamline_vpn/caching/__init__.py exists",
+          "details": {},
+          "critical": false,
+          "timestamp": "2025-09-16T14:37:49.152274"
+        },
+        "file_exists_src_streamline_vpn_fetcher___init__.py": {
+          "status": "PASS",
+          "message": "Package init file: src/streamline_vpn/fetcher/__init__.py exists",
+          "details": {},
+          "critical": false,
+          "timestamp": "2025-09-16T14:37:49.152297"
+        },
+        "file_exists_src_streamline_vpn_discovery___init__.py": {
+          "status": "PASS",
+          "message": "Package init file: src/streamline_vpn/discovery/__init__.py exists",
+          "details": {},
+          "critical": false,
+          "timestamp": "2025-09-16T14:37:49.152319"
+        },
+        "file_exists_src_streamline_vpn___main__.py": {
+          "status": "PASS",
+          "message": "Entry point: src/streamline_vpn/__main__.py exists",
+          "details": {},
+          "critical": false,
+          "timestamp": "2025-09-16T14:37:49.152342"
+        },
+        "file_exists_run_unified.py": {
+          "status": "PASS",
+          "message": "Entry point: run_unified.py exists",
+          "details": {},
+          "critical": false,
+          "timestamp": "2025-09-16T14:37:49.152366"
+        },
+        "file_exists_run_api.py": {
+          "status": "PASS",
+          "message": "Entry point: run_api.py exists",
+          "details": {},
+          "critical": false,
+          "timestamp": "2025-09-16T14:37:49.152387"
+        },
+        "file_exists_run_web.py": {
+          "status": "PASS",
+          "message": "Entry point: run_web.py exists",
+          "details": {},
+          "critical": false,
+          "timestamp": "2025-09-16T14:37:49.152408"
+        },
+        "file_exists_setup.py": {
+          "status": "PASS",
+          "message": "Package setup exists",
+          "details": {},
+          "critical": false,
+          "timestamp": "2025-09-16T14:37:49.152440"
+        },
+        "file_exists_pyproject.toml": {
+          "status": "PASS",
+          "message": "Modern Python packaging exists",
+          "details": {},
+          "critical": false,
+          "timestamp": "2025-09-16T14:37:49.152519"
+        },
+        "file_exists_requirements.txt": {
+          "status": "PASS",
+          "message": "Production dependencies exists",
+          "details": {},
+          "critical": false,
+          "timestamp": "2025-09-16T14:37:49.152587"
+        },
+        "file_exists_requirements-dev.txt": {
+          "status": "PASS",
+          "message": "Development dependencies exists",
+          "details": {},
+          "critical": false,
+          "timestamp": "2025-09-16T14:37:49.152628"
+        },
+        "file_exists_README.md": {
+          "status": "PASS",
+          "message": "Project documentation exists",
+          "details": {},
+          "critical": false,
+          "timestamp": "2025-09-16T14:37:49.152671"
+        },
+        "file_exists_LICENSE": {
+          "status": "PASS",
+          "message": "License file exists",
+          "details": {},
+          "critical": false,
+          "timestamp": "2025-09-16T14:37:49.152706"
+        },
+        "file_exists_.gitignore": {
+          "status": "PASS",
+          "message": "Git ignore rules exists",
+          "details": {},
+          "critical": false,
+          "timestamp": "2025-09-16T14:37:49.152742"
+        },
+        "file_exists_config_sources.yaml": {
+          "status": "PASS",
+          "message": "Source configuration exists",
+          "details": {},
+          "critical": false,
+          "timestamp": "2025-09-16T14:37:49.152879"
+        },
+        "file_exists_.env.example": {
+          "status": "PASS",
+          "message": "Environment template exists",
+          "details": {},
+          "critical": false,
+          "timestamp": "2025-09-16T14:37:49.152926"
+        },
+        "file_exists_docker-compose.yml": {
+          "status": "PASS",
+          "message": "Docker composition exists",
+          "details": {},
+          "critical": false,
+          "timestamp": "2025-09-16T14:37:49.152951"
+        },
+        "file_exists_Dockerfile": {
+          "status": "PASS",
+          "message": "Docker configuration exists",
+          "details": {},
+          "critical": false,
+          "timestamp": "2025-09-16T14:37:49.152976"
+        },
+        "file_exists_nginx.conf": {
+          "status": "PASS",
+          "message": "Nginx configuration exists",
+          "details": {},
+          "critical": false,
+          "timestamp": "2025-09-16T14:37:49.152999"
+        },
+        "file_exists_pytest.ini": {
+          "status": "PASS",
+          "message": "Test config: pytest.ini exists",
+          "details": {},
+          "critical": false,
+          "timestamp": "2025-09-16T14:37:49.153025"
+        },
+        "pytest_config_pytest.ini": {
+          "status": "PASS",
+          "message": "Pytest configuration found in pytest.ini",
+          "details": {},
+          "critical": false,
+          "timestamp": "2025-09-16T14:37:49.153164"
+        },
+        "file_exists_conftest.py": {
+          "status": "PASS",
+          "message": "Test config: conftest.py exists",
+          "details": {},
+          "critical": false,
+          "timestamp": "2025-09-16T14:37:49.153197"
+        },
+        "file_exists_tests_conftest.py": {
+          "status": "PASS",
+          "message": "Test config: tests/conftest.py exists",
+          "details": {},
+          "critical": false,
+          "timestamp": "2025-09-16T14:37:49.153342"
+        },
+        "pytest_config_tests/conftest.py": {
+          "status": "PASS",
+          "message": "Pytest configuration found in tests/conftest.py",
+          "details": {},
+          "critical": false,
+          "timestamp": "2025-09-16T14:37:49.153455"
+        }
+      },
+      "summary": {
+        "total_checks": 48,
+        "passed": 48,
+        "failed": 0,
+        "warnings": 0,
+        "critical_errors": 0,
+        "recommendations": []
+      }
+    },
+    "files": {
+      "timestamp": "2025-09-16T14:37:49.150963",
+      "project_root": "/app",
+      "validator_version": "2.0.0",
+      "checks": {
+        "file_exists_run_unified.py": {
+          "status": "PASS",
+          "message": "Unified runner exists",
+          "details": {},
+          "critical": false,
+          "timestamp": "2025-09-16T14:37:49.153552"
+        },
+        "syntax_run_unified.py": {
+          "status": "PASS",
+          "message": "Unified runner has valid Python syntax",
+          "details": {},
+          "critical": false,
+          "timestamp": "2025-09-16T14:37:49.155496"
+        },
+        "main_function_run_unified.py": {
+          "status": "PASS",
+          "message": "Unified runner has main entry point",
+          "details": {},
+          "critical": false,
+          "timestamp": "2025-09-16T14:37:49.155661"
+        },
+        "file_exists_run_api.py": {
+          "status": "PASS",
+          "message": "API runner exists",
+          "details": {},
+          "critical": false,
+          "timestamp": "2025-09-16T14:37:49.155708"
+        },
+        "syntax_run_api.py": {
+          "status": "PASS",
+          "message": "API runner has valid Python syntax",
+          "details": {},
+          "critical": false,
+          "timestamp": "2025-09-16T14:37:49.156213"
+        },
+        "main_function_run_api.py": {
+          "status": "PASS",
+          "message": "API runner has main entry point",
+          "details": {},
+          "critical": false,
+          "timestamp": "2025-09-16T14:37:49.156375"
+        },
+        "file_exists_run_web.py": {
+          "status": "PASS",
+          "message": "Web runner exists",
+          "details": {},
+          "critical": false,
+          "timestamp": "2025-09-16T14:37:49.156425"
+        },
+        "syntax_run_web.py": {
+          "status": "PASS",
+          "message": "Web runner has valid Python syntax",
+          "details": {},
+          "critical": false,
+          "timestamp": "2025-09-16T14:37:49.156870"
+        },
+        "main_function_run_web.py": {
+          "status": "PASS",
+          "message": "Web runner has main entry point",
+          "details": {},
+          "critical": false,
+          "timestamp": "2025-09-16T14:37:49.156967"
+        },
+        "python_syntax_validation": {
+          "status": "PASS",
+          "message": "All Python files have valid syntax",
+          "details": {},
+          "critical": false,
+          "timestamp": "2025-09-16T14:37:49.640644"
+        },
+        "import_resolution": {
+          "status": "WARN",
+          "message": "Found 20 potentially unresolved imports",
+          "details": {
+            "import_errors": [
+              "cli.py: import httpx",
+              "start_streamline.py: import requests",
+              "tests/test_diagnostics_endpoints.py: import httpx",
+              "tests/test_cors.py: import httpx",
+              "tests/test_api_configurations_filters.py: import streamline_vpn.web.api as api_module",
+              "scripts/benchmark/benchmark_utils.py: import psutil",
+              "scripts/benchmark/benchmark_tests.py: import psutil",
+              "src/streamline_vpn/utils/helpers.py: import aiofiles",
+              "src/streamline_vpn/web/api.py: import python_multipart  # noqa: F401 - ensure import for starlette deprecation warning",
+              "src/streamline_vpn/web/unified_api.py: import orjson as _orjson  # type: ignore"
+            ]
+          },
+          "critical": false,
+          "timestamp": "2025-09-16T14:37:50.451039"
+        }
+      },
+      "summary": {
+        "total_checks": 11,
+        "passed": 10,
+        "failed": 0,
+        "warnings": 1,
+        "critical_errors": 0,
+        "recommendations": []
+      }
+    },
+    "integration": {
+      "timestamp": "2025-09-16T14:37:49.151106",
+      "project_root": "/app",
+      "validator_version": "2.0.0",
+      "checks": {
+        "file_exists_src_streamline_vpn_core_merger.py": {
+          "status": "PASS",
+          "message": "Core module: src/streamline_vpn/core/merger.py exists",
+          "details": {},
+          "critical": false,
+          "timestamp": "2025-09-16T14:37:50.451387"
+        },
+        "module_structure_src_streamline_vpn_core_merger.py": {
+          "status": "PASS",
+          "message": "Module src/streamline_vpn/core/merger.py has proper structure",
+          "details": {},
+          "critical": false,
+          "timestamp": "2025-09-16T14:37:50.452416"
+        },
+        "file_exists_src_streamline_vpn_core_config_processor.py": {
+          "status": "PASS",
+          "message": "Core module: src/streamline_vpn/core/config_processor.py exists",
+          "details": {},
+          "critical": false,
+          "timestamp": "2025-09-16T14:37:50.452488"
+        },
+        "module_structure_src_streamline_vpn_core_config_processor.py": {
+          "status": "PASS",
+          "message": "Module src/streamline_vpn/core/config_processor.py has proper structure",
+          "details": {},
+          "critical": false,
+          "timestamp": "2025-09-16T14:37:50.452582"
+        },
+        "file_exists_src_streamline_vpn_core_source_manager.py": {
+          "status": "PASS",
+          "message": "Core module: src/streamline_vpn/core/source_manager.py exists",
+          "details": {},
+          "critical": false,
+          "timestamp": "2025-09-16T14:37:50.452614"
+        },
+        "module_structure_src_streamline_vpn_core_source_manager.py": {
+          "status": "PASS",
+          "message": "Module src/streamline_vpn/core/source_manager.py has proper structure",
+          "details": {},
+          "critical": false,
+          "timestamp": "2025-09-16T14:37:50.452672"
+        },
+        "file_exists_src_streamline_vpn_api_api.py": {
+          "status": "PASS",
+          "message": "API module: src/streamline_vpn/api/api.py exists",
+          "details": {},
+          "critical": false,
+          "timestamp": "2025-09-16T14:37:50.452704"
+        },
+        "file_exists_src_streamline_vpn_api_unified_api.py": {
+          "status": "PASS",
+          "message": "API module: src/streamline_vpn/api/unified_api.py exists",
+          "details": {},
+          "critical": false,
+          "timestamp": "2025-09-16T14:37:50.452825"
+        },
+        "file_exists_src_streamline_vpn_api_schema.py": {
+          "status": "PASS",
+          "message": "API schema: src/streamline_vpn/api/schema.py exists",
+          "details": {},
+          "critical": false,
+          "timestamp": "2025-09-16T14:37:50.453736"
+        },
+        "file_exists_src_streamline_vpn_web_static_server.py": {
+          "status": "PASS",
+          "message": "Web file: src/streamline_vpn/web/static_server.py exists",
+          "details": {},
+          "critical": false,
+          "timestamp": "2025-09-16T14:37:50.452997"
+        },
+        "file_exists_src_streamline_vpn_web_templates": {
+          "status": "PASS",
+          "message": "Web file: src/streamline_vpn/web/templates exists",
+          "details": {},
+          "critical": false,
+          "timestamp": "2025-09-16T14:37:50.453025"
+        },
+        "file_exists_src_streamline_vpn_web_static": {
+          "status": "PASS",
+          "message": "Web file: src/streamline_vpn/web/static exists",
+          "details": {},
+          "critical": false,
+          "timestamp": "2025-09-16T14:37:50.453050"
+        },
+        "html_templates": {
+          "status": "WARN",
+          "message": "No HTML template files found",
+          "details": {},
+          "critical": false,
+          "timestamp": "2025-09-16T14:37:50.453625"
+        },
+        "file_exists_docs_api_index.html": {
+          "status": "PASS",
+          "message": "API documentation: docs/api/index.html exists",
+          "details": {},
+          "critical": false,
+          "timestamp": "2025-09-16T14:37:50.453680"
+        },
+        "file_exists_docs_api_endpoints.md": {
+          "status": "PASS",
+          "message": "API documentation: docs/api/endpoints.md exists",
+          "details": {},
+          "critical": false,
+          "timestamp": "2025-09-16T14:37:50.453710"
+        },
+        "file_exists_docs_api_openapi.json": {
+          "status": "PASS",
+          "message": "API schema: docs/api/openapi.json exists",
+          "details": {},
+          "critical": false,
+          "timestamp": "2025-09-16T14:37:50.453879"
+        },
+        "api_schema_docs_api_openapi.json": {
+          "status": "WARN",
+          "message": "Schema file docs/api/openapi.json may be incomplete",
+          "details": {},
+          "critical": false,
+          "timestamp": "2025-09-16T14:37:50.453943"
+        }
+      },
+      "summary": {
+        "total_checks": 18,
+        "passed": 16,
+        "failed": 0,
+        "warnings": 2,
+        "critical_errors": 0,
+        "recommendations": []
+      }
+    },
+    "config": {
+      "timestamp": "2025-09-16T14:37:49.151166",
+      "project_root": "/app",
+      "validator_version": "2.0.0",
+      "checks": {
+        "file_exists_config_sources.yaml": {
+          "status": "PASS",
+          "message": "Config file: config/sources.yaml exists",
+          "details": {},
+          "critical": false,
+          "timestamp": "2025-09-16T14:37:50.453996"
+        },
+        "yaml_syntax_config_sources.yaml": {
+          "status": "PASS",
+          "message": "YAML file config/sources.yaml has valid syntax",
+          "details": {},
+          "critical": false,
+          "timestamp": "2025-09-16T14:37:50.457328"
+        },
+        "file_exists_config_nginx_nginx.conf": {
+          "status": "PASS",
+          "message": "Config file: config/nginx/nginx.conf exists",
+          "details": {},
+          "critical": false,
+          "timestamp": "2025-09-16T14:37:50.457402"
+        },
+        "yaml_syntax_config_nginx_nginx.conf": {
+          "status": "PASS",
+          "message": "YAML file config/nginx/nginx.conf has valid syntax",
+          "details": {},
+          "critical": false,
+          "timestamp": "2025-09-16T14:37:50.457749"
+        },
+        "file_exists_.env.example": {
+          "status": "PASS",
+          "message": "Environment file: .env.example exists",
+          "details": {},
+          "critical": false,
+          "timestamp": "2025-09-16T14:37:50.457832"
+        },
+        "env_format_.env.example": {
+          "status": "PASS",
+          "message": "Environment file .env.example has 5 valid entries",
+          "details": {},
+          "critical": false,
+          "timestamp": "2025-09-16T14:37:50.457925"
+        },
+        "file_exists_.env": {
+          "status": "PASS",
+          "message": "Environment file: .env exists",
+          "details": {},
+          "critical": false,
+          "timestamp": "2025-09-16T14:37:50.457959"
+        },
+        "env_format_.env": {
+          "status": "PASS",
+          "message": "Environment file .env has 5 valid entries",
+          "details": {},
+          "critical": false,
+          "timestamp": "2025-09-16T14:37:50.458022"
+        },
+        "env_variables": {
+          "status": "WARN",
+          "message": "Missing environment variables in .env.example: DATABASE_URL, REDIS_URL, API_KEY, SECRET_KEY",
+          "details": {},
+          "critical": false,
+          "timestamp": "2025-09-16T14:37:50.458087"
+        },
+        "file_exists_requirements.txt": {
+          "status": "PASS",
+          "message": "Requirements file: requirements.txt exists",
+          "details": {},
+          "critical": false,
+          "timestamp": "2025-09-16T14:37:50.458122"
+        },
+        "requirements_content_requirements.txt": {
+          "status": "PASS",
+          "message": "Requirements file requirements.txt has 6 packages",
+          "details": {},
+          "critical": false,
+          "timestamp": "2025-09-16T14:37:50.458204"
+        },
+        "file_exists_requirements-dev.txt": {
+          "status": "PASS",
+          "message": "Requirements file: requirements-dev.txt exists",
+          "details": {},
+          "critical": false,
+          "timestamp": "2025-09-16T14:37:50.458235"
+        },
+        "requirements_content_requirements-dev.txt": {
+          "status": "PASS",
+          "message": "Requirements file requirements-dev.txt has 4 packages",
+          "details": {},
+          "critical": false,
+          "timestamp": "2025-09-16T14:37:50.458303"
+        },
+        "file_exists_setup.py": {
+          "status": "PASS",
+          "message": "Package setup exists",
+          "details": {},
+          "critical": false,
+          "timestamp": "2025-09-16T14:37:50.458330"
+        },
+        "setup_py_complete": {
+          "status": "WARN",
+          "message": "setup.py missing: install_requires",
+          "details": {},
+          "critical": false,
+          "timestamp": "2025-09-16T14:37:50.458385"
+        },
+        "file_exists_pyproject.toml": {
+          "status": "PASS",
+          "message": "Modern packaging config exists",
+          "details": {},
+          "critical": false,
+          "timestamp": "2025-09-16T14:37:50.458412"
+        },
+        "pyproject_toml_valid": {
+          "status": "PASS",
+          "message": "pyproject.toml has valid structure",
+          "details": {},
+          "critical": false,
+          "timestamp": "2025-09-16T14:37:50.458463"
+        }
+      },
+      "summary": {
+        "total_checks": 17,
+        "passed": 15,
+        "failed": 0,
+        "warnings": 2,
+        "critical_errors": 0,
+        "recommendations": []
+      }
+    },
+    "tests": {
+      "timestamp": "2025-09-16T14:37:49.151250",
+      "project_root": "/app",
+      "validator_version": "2.0.0",
+      "checks": {
+        "test_files_exist": {
+          "status": "PASS",
+          "message": "Found 93 test files",
+          "details": {},
+          "critical": false,
+          "timestamp": "2025-09-16T14:37:50.459657"
+        },
+        "test_functions_tests_test_utils_validation_focused.py": {
+          "status": "PASS",
+          "message": "Test file tests/test_utils_validation_focused.py has test functions",
+          "details": {},
+          "critical": false,
+          "timestamp": "2025-09-16T14:37:50.459911"
+        },
+        "test_imports_tests_test_utils_validation_focused.py": {
+          "status": "PASS",
+          "message": "Test file tests/test_utils_validation_focused.py imports pytest",
+          "details": {},
+          "critical": false,
+          "timestamp": "2025-09-16T14:37:50.459921"
+        },
+        "test_functions_tests_test_main_module.py": {
+          "status": "PASS",
+          "message": "Test file tests/test_main_module.py has test functions",
+          "details": {},
+          "critical": false,
+          "timestamp": "2025-09-16T14:37:50.460064"
+        },
+        "test_imports_tests_test_main_module.py": {
+          "status": "PASS",
+          "message": "Test file tests/test_main_module.py imports pytest",
+          "details": {},
+          "critical": false,
+          "timestamp": "2025-09-16T14:37:50.460070"
+        },
+        "test_functions_tests_test_processing_and_output.py": {
+          "status": "PASS",
+          "message": "Test file tests/test_processing_and_output.py has test functions",
+          "details": {},
+          "critical": false,
+          "timestamp": "2025-09-16T14:37:50.460194"
+        },
+        "test_imports_tests_test_processing_and_output.py": {
+          "status": "PASS",
+          "message": "Test file tests/test_processing_and_output.py imports pytest",
+          "details": {},
+          "critical": false,
+          "timestamp": "2025-09-16T14:37:50.460200"
+        },
+        "test_functions_tests_test_source_manager_focused.py": {
+          "status": "PASS",
+          "message": "Test file tests/test_source_manager_focused.py has test functions",
+          "details": {},
+          "critical": false,
+          "timestamp": "2025-09-16T14:37:50.460322"
+        },
+        "test_imports_tests_test_source_manager_focused.py": {
+          "status": "PASS",
+          "message": "Test file tests/test_source_manager_focused.py imports pytest",
+          "details": {},
+          "critical": false,
+          "timestamp": "2025-09-16T14:37:50.460328"
+        },
+        "test_functions_tests_test_websocket_endpoints.py": {
+          "status": "PASS",
+          "message": "Test file tests/test_websocket_endpoints.py has test functions",
+          "details": {},
+          "critical": false,
+          "timestamp": "2025-09-16T14:37:50.460446"
+        },
+        "test_functions_tests_test_utils_logging_error.py": {
+          "status": "PASS",
+          "message": "Test file tests/test_utils_logging_error.py has test functions",
+          "details": {},
+          "critical": false,
+          "timestamp": "2025-09-16T14:37:50.460573"
+        },
+        "test_imports_tests_test_utils_logging_error.py": {
+          "status": "PASS",
+          "message": "Test file tests/test_utils_logging_error.py imports pytest",
+          "details": {},
+          "critical": false,
+          "timestamp": "2025-09-16T14:37:50.460649"
+        },
+        "test_functions_tests_test_caching_l3_sqlite.py": {
+          "status": "PASS",
+          "message": "Test file tests/test_caching_l3_sqlite.py has test functions",
+          "details": {},
+          "critical": false,
+          "timestamp": "2025-09-16T14:37:50.460842"
+        },
+        "test_imports_tests_test_caching_l3_sqlite.py": {
+          "status": "PASS",
+          "message": "Test file tests/test_caching_l3_sqlite.py imports pytest",
+          "details": {},
+          "critical": false,
+          "timestamp": "2025-09-16T14:37:50.460848"
+        },
+        "test_functions_tests_test_cli_functionality.py": {
+          "status": "PASS",
+          "message": "Test file tests/test_cli_functionality.py has test functions",
+          "details": {},
+          "critical": false,
+          "timestamp": "2025-09-16T14:37:50.460978"
+        },
+        "test_imports_tests_test_cli_functionality.py": {
+          "status": "PASS",
+          "message": "Test file tests/test_cli_functionality.py imports pytest",
+          "details": {},
+          "critical": false,
+          "timestamp": "2025-09-16T14:37:50.460983"
+        },
+        "test_functions_tests_test_deduplicator.py": {
+          "status": "PASS",
+          "message": "Test file tests/test_deduplicator.py has test functions",
+          "details": {},
+          "critical": false,
+          "timestamp": "2025-09-16T14:37:50.461117"
+        },
+        "test_functions_tests_test_diagnostics_endpoints.py": {
+          "status": "PASS",
+          "message": "Test file tests/test_diagnostics_endpoints.py has test functions",
+          "details": {},
+          "critical": false,
+          "timestamp": "2025-09-16T14:37:50.461234"
+        },
+        "test_imports_tests_test_diagnostics_endpoints.py": {
+          "status": "PASS",
+          "message": "Test file tests/test_diagnostics_endpoints.py imports pytest",
+          "details": {},
+          "critical": false,
+          "timestamp": "2025-09-16T14:37:50.461240"
+        },
+        "test_functions_tests_test_models_basic.py": {
+          "status": "PASS",
+          "message": "Test file tests/test_models_basic.py has test functions",
+          "details": {},
+          "critical": false,
+          "timestamp": "2025-09-16T14:37:50.461354"
+        },
+        "test_imports_tests_test_models_basic.py": {
+          "status": "PASS",
+          "message": "Test file tests/test_models_basic.py imports pytest",
+          "details": {},
+          "critical": false,
+          "timestamp": "2025-09-16T14:37:50.461359"
+        },
+        "test_functions_tests_test_cors.py": {
+          "status": "PASS",
+          "message": "Test file tests/test_cors.py has test functions",
+          "details": {},
+          "critical": false,
+          "timestamp": "2025-09-16T14:37:50.461481"
+        },
+        "test_imports_tests_test_cors.py": {
+          "status": "PASS",
+          "message": "Test file tests/test_cors.py imports pytest",
+          "details": {},
+          "critical": false,
+          "timestamp": "2025-09-16T14:37:50.461487"
+        },
+        "test_functions_tests_test_web_api_basic.py": {
+          "status": "PASS",
+          "message": "Test file tests/test_web_api_basic.py has test functions",
+          "details": {},
+          "critical": false,
+          "timestamp": "2025-09-16T14:37:50.461613"
+        },
+        "test_imports_tests_test_web_api_basic.py": {
+          "status": "PASS",
+          "message": "Test file tests/test_web_api_basic.py imports pytest",
+          "details": {},
+          "critical": false,
+          "timestamp": "2025-09-16T14:37:50.461618"
+        },
+        "test_functions_tests_test_utils_simple.py": {
+          "status": "PASS",
+          "message": "Test file tests/test_utils_simple.py has test functions",
+          "details": {},
+          "critical": false,
+          "timestamp": "2025-09-16T14:37:50.461735"
+        },
+        "test_imports_tests_test_utils_simple.py": {
+          "status": "PASS",
+          "message": "Test file tests/test_utils_simple.py imports pytest",
+          "details": {},
+          "critical": false,
+          "timestamp": "2025-09-16T14:37:50.461749"
+        },
+        "test_functions_tests_test_discovery_basic.py": {
+          "status": "PASS",
+          "message": "Test file tests/test_discovery_basic.py has test functions",
+          "details": {},
+          "critical": false,
+          "timestamp": "2025-09-16T14:37:50.461919"
+        },
+        "test_imports_tests_test_discovery_basic.py": {
+          "status": "PASS",
+          "message": "Test file tests/test_discovery_basic.py imports pytest",
+          "details": {},
+          "critical": false,
+          "timestamp": "2025-09-16T14:37:50.461925"
+        },
+        "test_functions_tests_test_pipeline_formats.py": {
+          "status": "PASS",
+          "message": "Test file tests/test_pipeline_formats.py has test functions",
+          "details": {},
+          "critical": false,
+          "timestamp": "2025-09-16T14:37:50.462045"
+        },
+        "test_functions_tests_test_config_processor_focused.py": {
+          "status": "PASS",
+          "message": "Test file tests/test_config_processor_focused.py has test functions",
+          "details": {},
+          "critical": false,
+          "timestamp": "2025-09-16T14:37:50.462161"
+        },
+        "test_imports_tests_test_config_processor_focused.py": {
+          "status": "PASS",
+          "message": "Test file tests/test_config_processor_focused.py imports pytest",
+          "details": {},
+          "critical": false,
+          "timestamp": "2025-09-16T14:37:50.462166"
+        },
+        "test_functions_tests_test_nav_links.py": {
+          "status": "PASS",
+          "message": "Test file tests/test_nav_links.py has test functions",
+          "details": {},
+          "critical": false,
+          "timestamp": "2025-09-16T14:37:50.462281"
+        },
+        "test_functions_tests_test_config_validator_basic.py": {
+          "status": "PASS",
+          "message": "Test file tests/test_config_validator_basic.py has test functions",
+          "details": {},
+          "critical": false,
+          "timestamp": "2025-09-16T14:37:50.462406"
+        },
+        "test_functions_tests_test_threat_analyzer_logging.py": {
+          "status": "PASS",
+          "message": "Test file tests/test_threat_analyzer_logging.py has test functions",
+          "details": {},
+          "critical": false,
+          "timestamp": "2025-09-16T14:37:50.462529"
+        },
+        "test_imports_tests_test_threat_analyzer_logging.py": {
+          "status": "PASS",
+          "message": "Test file tests/test_threat_analyzer_logging.py imports pytest",
+          "details": {},
+          "critical": false,
+          "timestamp": "2025-09-16T14:37:50.462534"
+        },
+        "test_functions_tests_test_source_manager_logging.py": {
+          "status": "PASS",
+          "message": "Test file tests/test_source_manager_logging.py has test functions",
+          "details": {},
+          "critical": false,
+          "timestamp": "2025-09-16T14:37:50.462649"
+        },
+        "test_functions_tests_test_merger_focused.py": {
+          "status": "PASS",
+          "message": "Test file tests/test_merger_focused.py has test functions",
+          "details": {},
+          "critical": false,
+          "timestamp": "2025-09-16T14:37:50.462795"
+        },
+        "test_imports_tests_test_merger_focused.py": {
+          "status": "PASS",
+          "message": "Test file tests/test_merger_focused.py imports pytest",
+          "details": {},
+          "critical": false,
+          "timestamp": "2025-09-16T14:37:50.462803"
+        },
+        "test_functions_tests_test_job_models_focused.py": {
+          "status": "PASS",
+          "message": "Test file tests/test_job_models_focused.py has test functions",
+          "details": {},
+          "critical": false,
+          "timestamp": "2025-09-16T14:37:50.462939"
+        },
+        "test_imports_tests_test_job_models_focused.py": {
+          "status": "PASS",
+          "message": "Test file tests/test_job_models_focused.py imports pytest",
+          "details": {},
+          "critical": false,
+          "timestamp": "2025-09-16T14:37:50.462944"
+        },
+        "test_functions_tests_test_frontend_assets.py": {
+          "status": "PASS",
+          "message": "Test file tests/test_frontend_assets.py has test functions",
+          "details": {},
+          "critical": false,
+          "timestamp": "2025-09-16T14:37:50.463066"
+        },
+        "test_functions_tests_test_processing_parser.py": {
+          "status": "PASS",
+          "message": "Test file tests/test_processing_parser.py has test functions",
+          "details": {},
+          "critical": false,
+          "timestamp": "2025-09-16T14:37:50.463187"
+        },
+        "test_functions_tests_test_unified_api.py": {
+          "status": "PASS",
+          "message": "Test file tests/test_unified_api.py has test functions",
+          "details": {},
+          "critical": false,
+          "timestamp": "2025-09-16T14:37:50.463382"
+        },
+        "test_imports_tests_test_unified_api.py": {
+          "status": "PASS",
+          "message": "Test file tests/test_unified_api.py imports pytest",
+          "details": {},
+          "critical": false,
+          "timestamp": "2025-09-16T14:37:50.463388"
+        },
+        "test_functions_tests_test_output_manager_formats.py": {
+          "status": "PASS",
+          "message": "Test file tests/test_output_manager_formats.py has test functions",
+          "details": {},
+          "critical": false,
+          "timestamp": "2025-09-16T14:37:50.463512"
+        },
+        "test_imports_tests_test_output_manager_formats.py": {
+          "status": "PASS",
+          "message": "Test file tests/test_output_manager_formats.py imports pytest",
+          "details": {},
+          "critical": false,
+          "timestamp": "2025-09-16T14:37:50.463522"
+        },
+        "test_functions_tests_test_merger_orchestration.py": {
+          "status": "PASS",
+          "message": "Test file tests/test_merger_orchestration.py has test functions",
+          "details": {},
+          "critical": false,
+          "timestamp": "2025-09-16T14:37:50.463643"
+        },
+        "test_imports_tests_test_merger_orchestration.py": {
+          "status": "PASS",
+          "message": "Test file tests/test_merger_orchestration.py imports pytest",
+          "details": {},
+          "critical": false,
+          "timestamp": "2025-09-16T14:37:50.463648"
+        },
+        "test_functions_tests_test_imports.py": {
+          "status": "PASS",
+          "message": "Test file tests/test_imports.py has test functions",
+          "details": {},
+          "critical": false,
+          "timestamp": "2025-09-16T14:37:50.463803"
+        },
+        "test_imports_tests_test_imports.py": {
+          "status": "PASS",
+          "message": "Test file tests/test_imports.py imports pytest",
+          "details": {},
+          "critical": false,
+          "timestamp": "2025-09-16T14:37:50.463810"
+        },
+        "test_functions_tests_test_utils_helpers_focused.py": {
+          "status": "PASS",
+          "message": "Test file tests/test_utils_helpers_focused.py has test functions",
+          "details": {},
+          "critical": false,
+          "timestamp": "2025-09-16T14:37:50.463946"
+        },
+        "test_imports_tests_test_utils_helpers_focused.py": {
+          "status": "PASS",
+          "message": "Test file tests/test_utils_helpers_focused.py imports pytest",
+          "details": {},
+          "critical": false,
+          "timestamp": "2025-09-16T14:37:50.463952"
+        },
+        "test_functions_tests_test_merger_processor_deep.py": {
+          "status": "PASS",
+          "message": "Test file tests/test_merger_processor_deep.py has test functions",
+          "details": {},
+          "critical": false,
+          "timestamp": "2025-09-16T14:37:50.464071"
+        },
+        "test_imports_tests_test_merger_processor_deep.py": {
+          "status": "PASS",
+          "message": "Test file tests/test_merger_processor_deep.py imports pytest",
+          "details": {},
+          "critical": false,
+          "timestamp": "2025-09-16T14:37:50.464076"
+        },
+        "test_functions_tests_test_validate_urls.py": {
+          "status": "PASS",
+          "message": "Test file tests/test_validate_urls.py has test functions",
+          "details": {},
+          "critical": false,
+          "timestamp": "2025-09-16T14:37:50.464194"
+        },
+        "test_functions_tests_test_session_manager.py": {
+          "status": "PASS",
+          "message": "Test file tests/test_session_manager.py has test functions",
+          "details": {},
+          "critical": false,
+          "timestamp": "2025-09-16T14:37:50.464318"
+        },
+        "test_imports_tests_test_session_manager.py": {
+          "status": "PASS",
+          "message": "Test file tests/test_session_manager.py imports pytest",
+          "details": {},
+          "critical": false,
+          "timestamp": "2025-09-16T14:37:50.464323"
+        },
+        "test_functions_tests_test_scheduler.py": {
+          "status": "PASS",
+          "message": "Test file tests/test_scheduler.py has test functions",
+          "details": {},
+          "critical": false,
+          "timestamp": "2025-09-16T14:37:50.464437"
+        },
+        "test_imports_tests_test_scheduler.py": {
+          "status": "PASS",
+          "message": "Test file tests/test_scheduler.py imports pytest",
+          "details": {},
+          "critical": false,
+          "timestamp": "2025-09-16T14:37:50.464442"
+        },
+        "test_functions_tests_test_caching_l2_l3.py": {
+          "status": "PASS",
+          "message": "Test file tests/test_caching_l2_l3.py has test functions",
+          "details": {},
+          "critical": false,
+          "timestamp": "2025-09-16T14:37:50.464567"
+        },
+        "test_imports_tests_test_caching_l2_l3.py": {
+          "status": "PASS",
+          "message": "Test file tests/test_caching_l2_l3.py imports pytest",
+          "details": {},
+          "critical": false,
+          "timestamp": "2025-09-16T14:37:50.464572"
+        },
+        "test_functions_tests_test_security_and_utils.py": {
+          "status": "PASS",
+          "message": "Test file tests/test_security_and_utils.py has test functions",
+          "details": {},
+          "critical": false,
+          "timestamp": "2025-09-16T14:37:50.464686"
+        },
+        "test_imports_tests_test_security_and_utils.py": {
+          "status": "PASS",
+          "message": "Test file tests/test_security_and_utils.py imports pytest",
+          "details": {},
+          "critical": false,
+          "timestamp": "2025-09-16T14:37:50.464691"
+        },
+        "test_functions_tests_test_api_configurations_filters.py": {
+          "status": "PASS",
+          "message": "Test file tests/test_api_configurations_filters.py has test functions",
+          "details": {},
+          "critical": false,
+          "timestamp": "2025-09-16T14:37:50.464849"
+        },
+        "test_imports_tests_test_api_configurations_filters.py": {
+          "status": "PASS",
+          "message": "Test file tests/test_api_configurations_filters.py imports pytest",
+          "details": {},
+          "critical": false,
+          "timestamp": "2025-09-16T14:37:50.464855"
+        },
+        "test_functions_tests_test_job_manager_focused.py": {
+          "status": "PASS",
+          "message": "Test file tests/test_job_manager_focused.py has test functions",
+          "details": {},
+          "critical": false,
+          "timestamp": "2025-09-16T14:37:50.464979"
+        },
+        "test_imports_tests_test_job_manager_focused.py": {
+          "status": "PASS",
+          "message": "Test file tests/test_job_manager_focused.py imports pytest",
+          "details": {},
+          "critical": false,
+          "timestamp": "2025-09-16T14:37:50.464984"
+        },
+        "test_functions_tests_test_shadowsocks2022_parser.py": {
+          "status": "PASS",
+          "message": "Test file tests/test_shadowsocks2022_parser.py has test functions",
+          "details": {},
+          "critical": false,
+          "timestamp": "2025-09-16T14:37:50.465098"
+        },
+        "test_imports_tests_test_shadowsocks2022_parser.py": {
+          "status": "PASS",
+          "message": "Test file tests/test_shadowsocks2022_parser.py imports pytest",
+          "details": {},
+          "critical": false,
+          "timestamp": "2025-09-16T14:37:50.465103"
+        },
+        "test_functions_tests_test_utils_error_handling_focused.py": {
+          "status": "PASS",
+          "message": "Test file tests/test_utils_error_handling_focused.py has test functions",
+          "details": {},
+          "critical": false,
+          "timestamp": "2025-09-16T14:37:50.465218"
+        },
+        "test_imports_tests_test_utils_error_handling_focused.py": {
+          "status": "PASS",
+          "message": "Test file tests/test_utils_error_handling_focused.py imports pytest",
+          "details": {},
+          "critical": false,
+          "timestamp": "2025-09-16T14:37:50.465223"
+        },
+        "test_functions_tests_test_job_cleanup_file.py": {
+          "status": "PASS",
+          "message": "Test file tests/test_job_cleanup_file.py has test functions",
+          "details": {},
+          "critical": false,
+          "timestamp": "2025-09-16T14:37:50.465338"
+        },
+        "test_functions_tests_test_api.py": {
+          "status": "PASS",
+          "message": "Test file tests/test_api.py has test functions",
+          "details": {},
+          "critical": false,
+          "timestamp": "2025-09-16T14:37:50.465453"
+        },
+        "test_imports_tests_test_api.py": {
+          "status": "PASS",
+          "message": "Test file tests/test_api.py imports pytest",
+          "details": {},
+          "critical": false,
+          "timestamp": "2025-09-16T14:37:50.465459"
+        },
+        "test_functions_tests_test_monitoring_alerting_focused.py": {
+          "status": "PASS",
+          "message": "Test file tests/test_monitoring_alerting_focused.py has test functions",
+          "details": {},
+          "critical": false,
+          "timestamp": "2025-09-16T14:37:50.465583"
+        },
+        "test_imports_tests_test_monitoring_alerting_focused.py": {
+          "status": "PASS",
+          "message": "Test file tests/test_monitoring_alerting_focused.py imports pytest",
+          "details": {},
+          "critical": false,
+          "timestamp": "2025-09-16T14:37:50.465588"
+        },
+        "test_functions_tests_test_api_docs_content.py": {
+          "status": "PASS",
+          "message": "Test file tests/test_api_docs_content.py has test functions",
+          "details": {},
+          "critical": false,
+          "timestamp": "2025-09-16T14:37:50.465701"
+        },
+        "test_functions_tests_test_security_manager_focused.py": {
+          "status": "PASS",
+          "message": "Test file tests/test_security_manager_focused.py has test functions",
+          "details": {},
+          "critical": false,
+          "timestamp": "2025-09-16T14:37:50.465944"
+        },
+        "test_imports_tests_test_security_manager_focused.py": {
+          "status": "PASS",
+          "message": "Test file tests/test_security_manager_focused.py imports pytest",
+          "details": {},
+          "critical": false,
+          "timestamp": "2025-09-16T14:37:50.465952"
+        },
+        "test_functions_tests_test_caching_l1.py": {
+          "status": "PASS",
+          "message": "Test file tests/test_caching_l1.py has test functions",
+          "details": {},
+          "critical": false,
+          "timestamp": "2025-09-16T14:37:50.466091"
+        },
+        "test_imports_tests_test_caching_l1.py": {
+          "status": "PASS",
+          "message": "Test file tests/test_caching_l1.py imports pytest",
+          "details": {},
+          "critical": false,
+          "timestamp": "2025-09-16T14:37:50.466096"
+        },
+        "test_functions_tests_test_job_executor_focused.py": {
+          "status": "PASS",
+          "message": "Test file tests/test_job_executor_focused.py has test functions",
+          "details": {},
+          "critical": false,
+          "timestamp": "2025-09-16T14:37:50.466212"
+        },
+        "test_imports_tests_test_job_executor_focused.py": {
+          "status": "PASS",
+          "message": "Test file tests/test_job_executor_focused.py imports pytest",
+          "details": {},
+          "critical": false,
+          "timestamp": "2025-09-16T14:37:50.466217"
+        },
+        "test_functions_tests_test_statistics_endpoint.py": {
+          "status": "PASS",
+          "message": "Test file tests/test_statistics_endpoint.py has test functions",
+          "details": {},
+          "critical": false,
+          "timestamp": "2025-09-16T14:37:50.466334"
+        },
+        "test_functions_tests_test_source_manager_advanced.py": {
+          "status": "PASS",
+          "message": "Test file tests/test_source_manager_advanced.py has test functions",
+          "details": {},
+          "critical": false,
+          "timestamp": "2025-09-16T14:37:50.466451"
+        },
+        "test_imports_tests_test_source_manager_advanced.py": {
+          "status": "PASS",
+          "message": "Test file tests/test_source_manager_advanced.py imports pytest",
+          "details": {},
+          "critical": false,
+          "timestamp": "2025-09-16T14:37:50.466458"
+        },
+        "test_functions_tests_test_settings_and_validation.py": {
+          "status": "PASS",
+          "message": "Test file tests/test_settings_and_validation.py has test functions",
+          "details": {},
+          "critical": false,
+          "timestamp": "2025-09-16T14:37:50.466584"
+        },
+        "test_imports_tests_test_settings_and_validation.py": {
+          "status": "PASS",
+          "message": "Test file tests/test_settings_and_validation.py imports pytest",
+          "details": {},
+          "critical": false,
+          "timestamp": "2025-09-16T14:37:50.466589"
+        },
+        "test_functions_tests_test_config_validator_focused.py": {
+          "status": "PASS",
+          "message": "Test file tests/test_config_validator_focused.py has test functions",
+          "details": {},
+          "critical": false,
+          "timestamp": "2025-09-16T14:37:50.466706"
+        },
+        "test_imports_tests_test_config_validator_focused.py": {
+          "status": "PASS",
+          "message": "Test file tests/test_config_validator_focused.py imports pytest",
+          "details": {},
+          "critical": false,
+          "timestamp": "2025-09-16T14:37:50.466711"
+        },
+        "test_functions_tests_test_config_validator_deep.py": {
+          "status": "PASS",
+          "message": "Test file tests/test_config_validator_deep.py has test functions",
+          "details": {},
+          "critical": false,
+          "timestamp": "2025-09-16T14:37:50.466878"
+        },
+        "test_imports_tests_test_config_validator_deep.py": {
+          "status": "PASS",
+          "message": "Test file tests/test_config_validator_deep.py imports pytest",
+          "details": {},
+          "critical": false,
+          "timestamp": "2025-09-16T14:37:50.466884"
+        },
+        "test_functions_tests_test_pipeline_cleanup.py": {
+          "status": "PASS",
+          "message": "Test file tests/test_pipeline_cleanup.py has test functions",
+          "details": {},
+          "critical": false,
+          "timestamp": "2025-09-16T14:37:50.467005"
+        },
+        "test_functions_tests_test_web_api_sources.py": {
+          "status": "PASS",
+          "message": "Test file tests/test_web_api_sources.py has test functions",
+          "details": {},
+          "critical": false,
+          "timestamp": "2025-09-16T14:37:50.467122"
+        },
+        "test_imports_tests_test_web_api_sources.py": {
+          "status": "PASS",
+          "message": "Test file tests/test_web_api_sources.py imports pytest",
+          "details": {},
+          "critical": false,
+          "timestamp": "2025-09-16T14:37:50.467127"
+        },
+        "test_functions_tests_test_fetcher_basic.py": {
+          "status": "PASS",
+          "message": "Test file tests/test_fetcher_basic.py has test functions",
+          "details": {},
+          "critical": false,
+          "timestamp": "2025-09-16T14:37:50.467328"
+        },
+        "test_imports_tests_test_fetcher_basic.py": {
+          "status": "PASS",
+          "message": "Test file tests/test_fetcher_basic.py imports pytest",
+          "details": {},
+          "critical": false,
+          "timestamp": "2025-09-16T14:37:50.467335"
+        },
+        "test_functions_tests_test_vless_parser.py": {
+          "status": "PASS",
+          "message": "Test file tests/test_vless_parser.py has test functions",
+          "details": {},
+          "critical": false,
+          "timestamp": "2025-09-16T14:37:50.467462"
+        },
+        "test_imports_tests_test_vless_parser.py": {
+          "status": "PASS",
+          "message": "Test file tests/test_vless_parser.py imports pytest",
+          "details": {},
+          "critical": false,
+          "timestamp": "2025-09-16T14:37:50.467467"
+        },
+        "test_functions_tests_source_test_source_manager_performance_edges.py": {
+          "status": "PASS",
+          "message": "Test file tests/source/test_source_manager_performance_edges.py has test functions",
+          "details": {},
+          "critical": false,
+          "timestamp": "2025-09-16T14:37:50.467604"
+        },
+        "test_functions_tests_web_test_endpoints_no_merger.py": {
+          "status": "PASS",
+          "message": "Test file tests/web/test_endpoints_no_merger.py has test functions",
+          "details": {},
+          "critical": false,
+          "timestamp": "2025-09-16T14:37:50.467732"
+        },
+        "test_imports_tests_web_test_endpoints_no_merger.py": {
+          "status": "PASS",
+          "message": "Test file tests/web/test_endpoints_no_merger.py imports pytest",
+          "details": {},
+          "critical": false,
+          "timestamp": "2025-09-16T14:37:50.467737"
+        },
+        "test_functions_tests_web_test_endpoints_with_merger.py": {
+          "status": "PASS",
+          "message": "Test file tests/web/test_endpoints_with_merger.py has test functions",
+          "details": {},
+          "critical": false,
+          "timestamp": "2025-09-16T14:37:50.467988"
+        },
+        "test_imports_tests_web_test_endpoints_with_merger.py": {
+          "status": "PASS",
+          "message": "Test file tests/web/test_endpoints_with_merger.py imports pytest",
+          "details": {},
+          "critical": false,
+          "timestamp": "2025-09-16T14:37:50.467996"
+        },
+        "test_functions_tests_web_test_health_and_root.py": {
+          "status": "PASS",
+          "message": "Test file tests/web/test_health_and_root.py has test functions",
+          "details": {},
+          "critical": false,
+          "timestamp": "2025-09-16T14:37:50.468124"
+        },
+        "test_imports_tests_web_test_health_and_root.py": {
+          "status": "PASS",
+          "message": "Test file tests/web/test_health_and_root.py imports pytest",
+          "details": {},
+          "critical": false,
+          "timestamp": "2025-09-16T14:37:50.468129"
+        },
+        "test_functions_tests_web_test_middleware.py": {
+          "status": "PASS",
+          "message": "Test file tests/web/test_middleware.py has test functions",
+          "details": {},
+          "critical": false,
+          "timestamp": "2025-09-16T14:37:50.468253"
+        },
+        "test_imports_tests_web_test_middleware.py": {
+          "status": "PASS",
+          "message": "Test file tests/web/test_middleware.py imports pytest",
+          "details": {},
+          "critical": false,
+          "timestamp": "2025-09-16T14:37:50.468258"
+        },
+        "test_functions_tests_monitoring_test_metrics_service_edges.py": {
+          "status": "PASS",
+          "message": "Test file tests/monitoring/test_metrics_service_edges.py has test functions",
+          "details": {},
+          "critical": false,
+          "timestamp": "2025-09-16T14:37:50.468385"
+        },
+        "test_functions_tests_monitoring_test_metrics_exporter.py": {
+          "status": "PASS",
+          "message": "Test file tests/monitoring/test_metrics_exporter.py has test functions",
+          "details": {},
+          "critical": false,
+          "timestamp": "2025-09-16T14:37:50.468522"
+        },
+        "test_imports_tests_monitoring_test_metrics_exporter.py": {
+          "status": "PASS",
+          "message": "Test file tests/monitoring/test_metrics_exporter.py imports pytest",
+          "details": {},
+          "critical": false,
+          "timestamp": "2025-09-16T14:37:50.468527"
+        },
+        "test_functions_tests_monitoring_test_metrics_collector.py": {
+          "status": "PASS",
+          "message": "Test file tests/monitoring/test_metrics_collector.py has test functions",
+          "details": {},
+          "critical": false,
+          "timestamp": "2025-09-16T14:37:50.468652"
+        },
+        "test_imports_tests_monitoring_test_metrics_collector.py": {
+          "status": "PASS",
+          "message": "Test file tests/monitoring/test_metrics_collector.py imports pytest",
+          "details": {},
+          "critical": false,
+          "timestamp": "2025-09-16T14:37:50.468657"
+        },
+        "test_functions_tests_monitoring_test_metrics_service.py": {
+          "status": "PASS",
+          "message": "Test file tests/monitoring/test_metrics_service.py has test functions",
+          "details": {},
+          "critical": false,
+          "timestamp": "2025-09-16T14:37:50.468821"
+        },
+        "test_imports_tests_monitoring_test_metrics_service.py": {
+          "status": "PASS",
+          "message": "Test file tests/monitoring/test_metrics_service.py imports pytest",
+          "details": {},
+          "critical": false,
+          "timestamp": "2025-09-16T14:37:50.468828"
+        },
+        "test_functions_tests_monitoring_test_metrics_exporter_formatters.py": {
+          "status": "PASS",
+          "message": "Test file tests/monitoring/test_metrics_exporter_formatters.py has test functions",
+          "details": {},
+          "critical": false,
+          "timestamp": "2025-09-16T14:37:50.468977"
+        },
+        "test_functions_tests_monitoring_test_metrics_exporter_edges.py": {
+          "status": "PASS",
+          "message": "Test file tests/monitoring/test_metrics_exporter_edges.py has test functions",
+          "details": {},
+          "critical": false,
+          "timestamp": "2025-09-16T14:37:50.469101"
+        },
+        "test_functions_tests_integration_test_job_management_integration.py": {
+          "status": "PASS",
+          "message": "Test file tests/integration/test_job_management_integration.py has test functions",
+          "details": {},
+          "critical": false,
+          "timestamp": "2025-09-16T14:37:50.469225"
+        },
+        "test_imports_tests_integration_test_job_management_integration.py": {
+          "status": "PASS",
+          "message": "Test file tests/integration/test_job_management_integration.py imports pytest",
+          "details": {},
+          "critical": false,
+          "timestamp": "2025-09-16T14:37:50.469230"
+        },
+        "test_functions_tests_integration_test_core_integration.py": {
+          "status": "PASS",
+          "message": "Test file tests/integration/test_core_integration.py has test functions",
+          "details": {},
+          "critical": false,
+          "timestamp": "2025-09-16T14:37:50.469353"
+        },
+        "test_imports_tests_integration_test_core_integration.py": {
+          "status": "PASS",
+          "message": "Test file tests/integration/test_core_integration.py imports pytest",
+          "details": {},
+          "critical": false,
+          "timestamp": "2025-09-16T14:37:50.469358"
+        },
+        "test_functions_tests_integration_test_security_integration.py": {
+          "status": "PASS",
+          "message": "Test file tests/integration/test_security_integration.py has test functions",
+          "details": {},
+          "critical": false,
+          "timestamp": "2025-09-16T14:37:50.469564"
+        },
+        "test_imports_tests_integration_test_security_integration.py": {
+          "status": "PASS",
+          "message": "Test file tests/integration/test_security_integration.py imports pytest",
+          "details": {},
+          "critical": false,
+          "timestamp": "2025-09-16T14:37:50.469570"
+        },
+        "test_functions_tests_cli_test_cli_commands.py": {
+          "status": "PASS",
+          "message": "Test file tests/cli/test_cli_commands.py has test functions",
+          "details": {},
+          "critical": false,
+          "timestamp": "2025-09-16T14:37:50.469714"
+        },
+        "test_imports_tests_cli_test_cli_commands.py": {
+          "status": "PASS",
+          "message": "Test file tests/cli/test_cli_commands.py imports pytest",
+          "details": {},
+          "critical": false,
+          "timestamp": "2025-09-16T14:37:50.469720"
+        },
+        "test_functions_tests_cli_test_cli_processing.py": {
+          "status": "PASS",
+          "message": "Test file tests/cli/test_cli_processing.py has test functions",
+          "details": {},
+          "critical": false,
+          "timestamp": "2025-09-16T14:37:50.469919"
+        },
+        "test_imports_tests_cli_test_cli_processing.py": {
+          "status": "PASS",
+          "message": "Test file tests/cli/test_cli_processing.py imports pytest",
+          "details": {},
+          "critical": false,
+          "timestamp": "2025-09-16T14:37:50.469925"
+        },
+        "test_functions_tests_cli_test_cli_initialization.py": {
+          "status": "PASS",
+          "message": "Test file tests/cli/test_cli_initialization.py has test functions",
+          "details": {},
+          "critical": false,
+          "timestamp": "2025-09-16T14:37:50.470051"
+        },
+        "test_imports_tests_cli_test_cli_initialization.py": {
+          "status": "PASS",
+          "message": "Test file tests/cli/test_cli_initialization.py imports pytest",
+          "details": {},
+          "critical": false,
+          "timestamp": "2025-09-16T14:37:50.470057"
+        },
+        "test_functions_tests_core_test_merger.py": {
+          "status": "PASS",
+          "message": "Test file tests/core/test_merger.py has test functions",
+          "details": {},
+          "critical": false,
+          "timestamp": "2025-09-16T14:37:50.470181"
+        },
+        "test_imports_tests_core_test_merger.py": {
+          "status": "PASS",
+          "message": "Test file tests/core/test_merger.py imports pytest",
+          "details": {},
+          "critical": false,
+          "timestamp": "2025-09-16T14:37:50.470186"
+        },
+        "test_functions_tests_core_test_output_manager_edges.py": {
+          "status": "PASS",
+          "message": "Test file tests/core/test_output_manager_edges.py has test functions",
+          "details": {},
+          "critical": false,
+          "timestamp": "2025-09-16T14:37:50.470307"
+        },
+        "test_imports_tests_core_test_output_manager_edges.py": {
+          "status": "PASS",
+          "message": "Test file tests/core/test_output_manager_edges.py imports pytest",
+          "details": {},
+          "critical": false,
+          "timestamp": "2025-09-16T14:37:50.470312"
+        },
+        "test_functions_tests_core_test_config_validator_vmess_uuid.py": {
+          "status": "PASS",
+          "message": "Test file tests/core/test_config_validator_vmess_uuid.py has test functions",
+          "details": {},
+          "critical": false,
+          "timestamp": "2025-09-16T14:37:50.470516"
+        },
+        "test_functions_tests_core_test_source_manager.py": {
+          "status": "PASS",
+          "message": "Test file tests/core/test_source_manager.py has test functions",
+          "details": {},
+          "critical": false,
+          "timestamp": "2025-09-16T14:37:50.470663"
+        },
+        "test_imports_tests_core_test_source_manager.py": {
+          "status": "PASS",
+          "message": "Test file tests/core/test_source_manager.py imports pytest",
+          "details": {},
+          "critical": false,
+          "timestamp": "2025-09-16T14:37:50.470669"
+        },
+        "test_functions_tests_core_test_config_processor.py": {
+          "status": "PASS",
+          "message": "Test file tests/core/test_config_processor.py has test functions",
+          "details": {},
+          "critical": false,
+          "timestamp": "2025-09-16T14:37:50.470833"
+        },
+        "test_imports_tests_core_test_config_processor.py": {
+          "status": "PASS",
+          "message": "Test file tests/core/test_config_processor.py imports pytest",
+          "details": {},
+          "critical": false,
+          "timestamp": "2025-09-16T14:37:50.470840"
+        },
+        "test_functions_tests_core_test_output_manager.py": {
+          "status": "PASS",
+          "message": "Test file tests/core/test_output_manager.py has test functions",
+          "details": {},
+          "critical": false,
+          "timestamp": "2025-09-16T14:37:50.470972"
+        },
+        "test_imports_tests_core_test_output_manager.py": {
+          "status": "PASS",
+          "message": "Test file tests/core/test_output_manager.py imports pytest",
+          "details": {},
+          "critical": false,
+          "timestamp": "2025-09-16T14:37:50.470977"
+        },
+        "test_functions_tests_core_test_merger_status_edges.py": {
+          "status": "PASS",
+          "message": "Test file tests/core/test_merger_status_edges.py has test functions",
+          "details": {},
+          "critical": false,
+          "timestamp": "2025-09-16T14:37:50.471099"
+        },
+        "test_functions_tests_core_test_config_validator_edges.py": {
+          "status": "PASS",
+          "message": "Test file tests/core/test_config_validator_edges.py has test functions",
+          "details": {},
+          "critical": false,
+          "timestamp": "2025-09-16T14:37:50.471282"
+        },
+        "test_functions_tests_core_test_vpn_cache_service.py": {
+          "status": "PASS",
+          "message": "Test file tests/core/test_vpn_cache_service.py has test functions",
+          "details": {},
+          "critical": false,
+          "timestamp": "2025-09-16T14:37:50.471423"
+        },
+        "test_imports_tests_core_test_vpn_cache_service.py": {
+          "status": "PASS",
+          "message": "Test file tests/core/test_vpn_cache_service.py imports pytest",
+          "details": {},
+          "critical": false,
+          "timestamp": "2025-09-16T14:37:50.471428"
+        },
+        "test_functions_tests_core_test_merger_health_edges.py": {
+          "status": "PASS",
+          "message": "Test file tests/core/test_merger_health_edges.py has test functions",
+          "details": {},
+          "critical": false,
+          "timestamp": "2025-09-16T14:37:50.471561"
+        },
+        "test_functions_tests_core_test_output_manager_default.py": {
+          "status": "PASS",
+          "message": "Test file tests/core/test_output_manager_default.py has test functions",
+          "details": {},
+          "critical": false,
+          "timestamp": "2025-09-16T14:37:50.471684"
+        },
+        "test_functions_tests_security_test_rate_limiter.py": {
+          "status": "PASS",
+          "message": "Test file tests/security/test_rate_limiter.py has test functions",
+          "details": {},
+          "critical": false,
+          "timestamp": "2025-09-16T14:37:50.471857"
+        },
+        "test_imports_tests_security_test_rate_limiter.py": {
+          "status": "PASS",
+          "message": "Test file tests/security/test_rate_limiter.py imports pytest",
+          "details": {},
+          "critical": false,
+          "timestamp": "2025-09-16T14:37:50.471863"
+        },
+        "test_functions_tests_security_test_blocklist_manager_edges.py": {
+          "status": "PASS",
+          "message": "Test file tests/security/test_blocklist_manager_edges.py has test functions",
+          "details": {},
+          "critical": false,
+          "timestamp": "2025-09-16T14:37:50.472231"
+        },
+        "test_functions_tests_security_test_blocklist_manager.py": {
+          "status": "PASS",
+          "message": "Test file tests/security/test_blocklist_manager.py has test functions",
+          "details": {},
+          "critical": false,
+          "timestamp": "2025-09-16T14:37:50.472363"
+        },
+        "test_imports_tests_security_test_blocklist_manager.py": {
+          "status": "PASS",
+          "message": "Test file tests/security/test_blocklist_manager.py imports pytest",
+          "details": {},
+          "critical": false,
+          "timestamp": "2025-09-16T14:37:50.472368"
+        },
+        "test_functions_tests_security_test_security_validator_edges.py": {
+          "status": "PASS",
+          "message": "Test file tests/security/test_security_validator_edges.py has test functions",
+          "details": {},
+          "critical": false,
+          "timestamp": "2025-09-16T14:37:50.472500"
+        },
+        "test_imports_tests_security_test_security_validator_edges.py": {
+          "status": "PASS",
+          "message": "Test file tests/security/test_security_validator_edges.py imports pytest",
+          "details": {},
+          "critical": false,
+          "timestamp": "2025-09-16T14:37:50.472506"
+        },
+        "test_functions_tests_security_test_pattern_analyzer.py": {
+          "status": "PASS",
+          "message": "Test file tests/security/test_pattern_analyzer.py has test functions",
+          "details": {},
+          "critical": false,
+          "timestamp": "2025-09-16T14:37:50.472723"
+        },
+        "test_imports_tests_security_test_pattern_analyzer.py": {
+          "status": "PASS",
+          "message": "Test file tests/security/test_pattern_analyzer.py imports pytest",
+          "details": {},
+          "critical": false,
+          "timestamp": "2025-09-16T14:37:50.472730"
+        },
+        "test_functions_tests_security_test_threat_analyzer.py": {
+          "status": "PASS",
+          "message": "Test file tests/security/test_threat_analyzer.py has test functions",
+          "details": {},
+          "critical": false,
+          "timestamp": "2025-09-16T14:37:50.472907"
+        },
+        "test_imports_tests_security_test_threat_analyzer.py": {
+          "status": "PASS",
+          "message": "Test file tests/security/test_threat_analyzer.py imports pytest",
+          "details": {},
+          "critical": false,
+          "timestamp": "2025-09-16T14:37:50.472913"
+        },
+        "test_functions_tests_security_test_security_manager_validate_edges.py": {
+          "status": "PASS",
+          "message": "Test file tests/security/test_security_manager_validate_edges.py has test functions",
+          "details": {},
+          "critical": false,
+          "timestamp": "2025-09-16T14:37:50.473037"
+        },
+        "test_functions_tests_security_test_security_validator.py": {
+          "status": "PASS",
+          "message": "Test file tests/security/test_security_validator.py has test functions",
+          "details": {},
+          "critical": false,
+          "timestamp": "2025-09-16T14:37:50.473159"
+        },
+        "test_imports_tests_security_test_security_validator.py": {
+          "status": "PASS",
+          "message": "Test file tests/security/test_security_validator.py imports pytest",
+          "details": {},
+          "critical": false,
+          "timestamp": "2025-09-16T14:37:50.473164"
+        },
+        "test_functions_tests_security_test_security_manager_edges.py": {
+          "status": "PASS",
+          "message": "Test file tests/security/test_security_manager_edges.py has test functions",
+          "details": {},
+          "critical": false,
+          "timestamp": "2025-09-16T14:37:50.473344"
+        },
+        "file_exists_pytest.ini": {
+          "status": "PASS",
+          "message": "Test config: pytest.ini exists",
+          "details": {},
+          "critical": false,
+          "timestamp": "2025-09-16T14:37:50.473444"
+        },
+        "pytest_config_pytest.ini": {
+          "status": "PASS",
+          "message": "Pytest configuration pytest.ini has settings",
+          "details": {},
+          "critical": false,
+          "timestamp": "2025-09-16T14:37:50.473518"
+        },
+        "file_exists_pyproject.toml": {
+          "status": "PASS",
+          "message": "Test config: pyproject.toml exists",
+          "details": {},
+          "critical": false,
+          "timestamp": "2025-09-16T14:37:50.473550"
+        },
+        "pytest_config_pyproject.toml": {
+          "status": "WARN",
+          "message": "Pytest configuration pyproject.toml may be minimal",
+          "details": {},
+          "critical": false,
+          "timestamp": "2025-09-16T14:37:50.473605"
+        },
+        "file_exists_setup.cfg": {
+          "status": "PASS",
+          "message": "Test config: setup.cfg exists",
+          "details": {},
+          "critical": false,
+          "timestamp": "2025-09-16T14:37:50.473635"
+        },
+        "file_exists_conftest.py": {
+          "status": "PASS",
+          "message": "Test fixtures: conftest.py exists",
+          "details": {},
+          "critical": false,
+          "timestamp": "2025-09-16T14:37:50.473706"
+        },
+        "file_exists_tests_conftest.py": {
+          "status": "PASS",
+          "message": "Test fixtures: tests/conftest.py exists",
+          "details": {},
+          "critical": false,
+          "timestamp": "2025-09-16T14:37:50.473732"
+        },
+        "file_exists_README.md": {
+          "status": "PASS",
+          "message": "Documentation: README.md exists",
+          "details": {},
+          "critical": false,
+          "timestamp": "2025-09-16T14:37:50.473764"
+        },
+        "doc_content_README.md": {
+          "status": "PASS",
+          "message": "Documentation README.md has substantial content (591 words)",
+          "details": {},
+          "critical": false,
+          "timestamp": "2025-09-16T14:37:50.474025"
+        },
+        "file_exists_docs_api_index.html": {
+          "status": "PASS",
+          "message": "API docs: docs/api/index.html exists",
+          "details": {},
+          "critical": false,
+          "timestamp": "2025-09-16T14:37:50.480911"
+        },
+        "doc_content_docs_api_index.html": {
+          "status": "PASS",
+          "message": "Documentation docs/api/index.html has substantial content (4670 words)",
+          "details": {},
+          "critical": false,
+          "timestamp": "2025-09-16T14:37:50.480283"
+        },
+        "file_exists_docs_api_endpoints.md": {
+          "status": "PASS",
+          "message": "API docs: docs/api/endpoints.md exists",
+          "details": {},
+          "critical": false,
+          "timestamp": "2025-09-16T14:37:50.483849"
+        },
+        "file_exists_IMPLEMENTATION_GUIDE.md": {
+          "status": "PASS",
+          "message": "Documentation: IMPLEMENTATION_GUIDE.md exists",
+          "details": {},
+          "critical": false,
+          "timestamp": "2025-09-16T14:37:50.480530"
+        },
+        "doc_content_IMPLEMENTATION_GUIDE.md": {
+          "status": "PASS",
+          "message": "Documentation IMPLEMENTATION_GUIDE.md has substantial content (1387 words)",
+          "details": {},
+          "critical": false,
+          "timestamp": "2025-09-16T14:37:50.480846"
+        },
+        "api_doc_content_docs_api_index.html": {
+          "status": "PASS",
+          "message": "API documentation docs/api/index.html contains API-specific content",
+          "details": {},
+          "critical": false,
+          "timestamp": "2025-09-16T14:37:50.483729"
+        }
+      },
+      "summary": {
+        "total_checks": 179,
+        "passed": 178,
+        "failed": 0,
+        "warnings": 1,
+        "critical_errors": 0,
+        "recommendations": []
+      }
+    },
+    "security": {
+      "timestamp": "2025-09-16T14:37:49.151304",
+      "project_root": "/app",
+      "validator_version": "2.0.0",
+      "checks": {
+        "file_exists_src_streamline_vpn_security_manager.py": {
+          "status": "PASS",
+          "message": "Security module: src/streamline_vpn/security/manager.py exists",
+          "details": {},
+          "critical": false,
+          "timestamp": "2025-09-16T14:37:50.483994"
+        },
+        "security_content_src_streamline_vpn_security_manager.py": {
+          "status": "PASS",
+          "message": "Security module src/streamline_vpn/security/manager.py contains security logic",
+          "details": {},
+          "critical": false,
+          "timestamp": "2025-09-16T14:37:50.484225"
+        },
+        "file_exists_src_streamline_vpn_security_validator.py": {
+          "status": "PASS",
+          "message": "Security module: src/streamline_vpn/security/validator.py exists",
+          "details": {},
+          "critical": false,
+          "timestamp": "2025-09-16T14:37:50.484259"
+        },
+        "security_content_src_streamline_vpn_security_validator.py": {
+          "status": "PASS",
+          "message": "Security module src/streamline_vpn/security/validator.py contains security logic",
+          "details": {},
+          "critical": false,
+          "timestamp": "2025-09-16T14:37:50.484347"
+        },
+        "file_exists_src_streamline_vpn_security_threat_analyzer.py": {
+          "status": "PASS",
+          "message": "Security module: src/streamline_vpn/security/threat_analyzer.py exists",
+          "details": {},
+          "critical": false,
+          "timestamp": "2025-09-16T14:37:50.484379"
+        },
+        "security_content_src_streamline_vpn_security_threat_analyzer.py": {
+          "status": "WARN",
+          "message": "Security module src/streamline_vpn/security/threat_analyzer.py may be missing security logic",
+          "details": {},
+          "critical": false,
+          "timestamp": "2025-09-16T14:37:50.484669"
+        },
+        "security_env_vars": {
+          "status": "WARN",
+          "message": "No security environment variables found in .env.example",
+          "details": {},
+          "critical": false,
+          "timestamp": "2025-09-16T14:37:50.484732"
+        },
+        "file_exists_Dockerfile": {
+          "status": "PASS",
+          "message": "Docker file: Dockerfile exists",
+          "details": {},
+          "critical": false,
+          "timestamp": "2025-09-16T14:37:50.484809"
+        },
+        "docker_security_Dockerfile": {
+          "status": "PASS",
+          "message": "Docker file Dockerfile follows security best practices",
+          "details": {},
+          "critical": false,
+          "timestamp": "2025-09-16T14:37:50.484896"
+        },
+        "file_exists_docker-compose.yml": {
+          "status": "PASS",
+          "message": "Docker file: docker-compose.yml exists",
+          "details": {},
+          "critical": false,
+          "timestamp": "2025-09-16T14:37:50.484928"
+        },
+        "docker_security_docker-compose.yml": {
+          "status": "WARN",
+          "message": "Docker file docker-compose.yml may need security improvements",
+          "details": {},
+          "critical": false,
+          "timestamp": "2025-09-16T14:37:50.484990"
+        },
+        "file_exists_.dockerignore": {
+          "status": "PASS",
+          "message": "Docker file: .dockerignore exists",
+          "details": {},
+          "critical": false,
+          "timestamp": "2025-09-16T14:37:50.485020"
+        },
+        "docker_security_.dockerignore": {
+          "status": "WARN",
+          "message": "Docker file .dockerignore may need security improvements",
+          "details": {},
+          "critical": false,
+          "timestamp": "2025-09-16T14:37:50.485083"
+        },
+        "file_exists_config_nginx_nginx.conf": {
+          "status": "PASS",
+          "message": "Production config: config/nginx/nginx.conf exists",
+          "details": {},
+          "critical": false,
+          "timestamp": "2025-09-16T14:37:50.485122"
+        },
+        "prod_config_config_nginx_nginx.conf": {
+          "status": "WARN",
+          "message": "Production config config/nginx/nginx.conf may need more production features",
+          "details": {},
+          "critical": false,
+          "timestamp": "2025-09-16T14:37:50.485187"
+        },
+        "file_exists_docker-compose.prod.yml": {
+          "status": "PASS",
+          "message": "Production config: docker-compose.prod.yml exists",
+          "details": {},
+          "critical": false,
+          "timestamp": "2025-09-16T14:37:50.485216"
+        },
+        "prod_config_docker-compose.prod.yml": {
+          "status": "WARN",
+          "message": "Production config docker-compose.prod.yml may need more production features",
+          "details": {},
+          "critical": false,
+          "timestamp": "2025-09-16T14:37:50.485275"
+        },
+        "file_exists_.env.prod": {
+          "status": "PASS",
+          "message": "Production config: .env.prod exists",
+          "details": {},
+          "critical": false,
+          "timestamp": "2025-09-16T14:37:50.485302"
+        },
+        "logging_implementation": {
+          "status": "PASS",
+          "message": "Found logging in 89 files",
+          "details": {},
+          "critical": false,
+          "timestamp": "2025-09-16T14:37:50.543677"
+        }
+      },
+      "summary": {
+        "total_checks": 19,
+        "passed": 13,
+        "failed": 0,
+        "warnings": 6,
+        "critical_errors": 0,
+        "recommendations": []
+      }
+    },
+    "performance": {
+      "timestamp": "2025-09-16T14:37:49.151341",
+      "project_root": "/app",
+      "validator_version": "2.0.0",
+      "checks": {
+        "file_exists_src_streamline_vpn_caching_l1_cache.py": {
+          "status": "PASS",
+          "message": "Cache module: src/streamline_vpn/caching/l1_cache.py exists",
+          "details": {},
+          "critical": false,
+          "timestamp": "2025-09-16T14:37:50.543951"
+        },
+        "file_exists_src_streamline_vpn_caching_l2_cache.py": {
+          "status": "PASS",
+          "message": "Cache module: src/streamline_vpn/caching/l2_cache.py exists",
+          "details": {},
+          "critical": false,
+          "timestamp": "2025-09-16T14:37:50.544054"
+        },
+        "file_exists_src_streamline_vpn_caching_l3_cache.py": {
+          "status": "PASS",
+          "message": "Cache module: src/streamline_vpn/caching/l3_cache.py exists",
+          "details": {},
+          "critical": false,
+          "timestamp": "2025-09-16T14:37:50.544131"
+        },
+        "caching_implementation": {
+          "status": "PASS",
+          "message": "Caching modules found",
+          "details": {},
+          "critical": false,
+          "timestamp": "2025-09-16T14:37:50.544180"
+        },
+        "async_implementation": {
+          "status": "PASS",
+          "message": "Found async implementation in 126 files",
+          "details": {},
+          "critical": false,
+          "timestamp": "2025-09-16T14:37:50.603755"
+        },
+        "file_exists_src_streamline_vpn_monitoring_metrics_collector.py": {
+          "status": "PASS",
+          "message": "Monitoring module: src/streamline_vpn/monitoring/metrics_collector.py exists",
+          "details": {},
+          "critical": false,
+          "timestamp": "2025-09-16T14:37:50.604032"
+        },
+        "monitoring_metrics_src_streamline_vpn_monitoring_metrics_collector.py": {
+          "status": "PASS",
+          "message": "Monitoring module src/streamline_vpn/monitoring/metrics_collector.py has metrics",
+          "details": {},
+          "critical": false,
+          "timestamp": "2025-09-16T14:37:50.604173"
+        },
+        "monitoring_alerting_src_streamline_vpn_monitoring_metrics_collector.py": {
+          "status": "PASS",
+          "message": "Monitoring module src/streamline_vpn/monitoring/metrics_collector.py has alerting",
+          "details": {},
+          "critical": false,
+          "timestamp": "2025-09-16T14:37:50.604180"
+        },
+        "file_exists_src_streamline_vpn_monitoring_alerting.py": {
+          "status": "PASS",
+          "message": "Monitoring module: src/streamline_vpn/monitoring/alerting.py exists",
+          "details": {},
+          "critical": false,
+          "timestamp": "2025-09-16T14:37:50.604213"
+        },
+        "monitoring_implementation": {
+          "status": "PASS",
+          "message": "Monitoring modules found",
+          "details": {},
+          "critical": false,
+          "timestamp": "2025-09-16T14:37:50.604268"
+        }
+      },
+      "summary": {
+        "total_checks": 10,
+        "passed": 10,
+        "failed": 0,
+        "warnings": 0,
+        "critical_errors": 0,
+        "recommendations": []
+      }
+    }
+  },
+  "summary": {
+    "total_checks": 302,
+    "passed": 290,
+    "failed": 0,
+    "warnings": 12,
+    "critical_errors": 0,
+    "recommendations": [],
+    "success_rate": 96.03,
+    "overall_status": "WARNING"
+  }
+}
