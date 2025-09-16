@@ -49,41 +49,41 @@ class TestCLIFunctionality:
     def test_server_command_help(self):
         """Test server command help"""
         runner = CliRunner()
-        result = runner.invoke(main, ["server", "--help"])
+        result = runner.invoke(main, ["server-group", "--help"])
         assert result.exit_code == 0
-        assert "Server management commands" in result.output
+        assert "Run StreamlineVPN servers" in result.output
     
     def test_web_command_help(self):
         """Test web command help"""
         runner = CliRunner()
-        result = runner.invoke(main, ["server", "web", "--help"])
+        result = runner.invoke(main, ["server-group", "web", "--help"])
         assert result.exit_code == 0
         assert "web" in result.output
     
     def test_sources_command_help(self):
         """Test sources command help"""
         runner = CliRunner()
-        result = runner.invoke(main, ["sources", "--help"])
+        result = runner.invoke(main, ["sources-group", "--help"])
         assert result.exit_code == 0
-        assert "Source management commands" in result.output
+        assert "Manage VPN configuration sources" in result.output
     
     def test_add_command_help(self):
         """Test add command help"""
         runner = CliRunner()
-        result = runner.invoke(main, ["sources", "add", "--help"])
+        result = runner.invoke(main, ["sources-group", "add", "--help"])
         assert result.exit_code == 0
         assert "add" in result.output
     
     def test_health_command_help(self):
         """Test health command help"""
         runner = CliRunner()
-        result = runner.invoke(main, ["health", "--help"])
+        result = runner.invoke(main, ["health-group", "--help"])
         assert result.exit_code == 0
-        assert "Check system health and status" in result.output
+        assert "System health and diagnostics" in result.output
     
     def test_version_command(self):
         """Test version command"""
         runner = CliRunner()
-        result = runner.invoke(main, ["version"])
+        result = runner.invoke(main, ["version", "version"])
         assert result.exit_code == 0
         assert "StreamlineVPN" in result.output

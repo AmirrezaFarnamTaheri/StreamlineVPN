@@ -196,3 +196,4 @@ class SecurityValidator(BaseValidator):
                 "WARN",
                 "No logging implementation found"
             )
+

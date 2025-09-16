@@ -634,3 +634,4 @@ memory-profiler>=0.61.0
 bandit>=1.7.0
 safety>=2.3.0
 '''
+

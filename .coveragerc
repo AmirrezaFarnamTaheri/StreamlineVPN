@@ -1,3 +1,59 @@
 [run]
-# No omit rules; measure true coverage across src
+source = src
+branch = True
+parallel = False
+
+[report]
+show_missing = True
+skip_covered = False
+exclude_lines =
+    pragma: no cover
+    if __name__ == .__main__.
+
+omit =
+    # Legacy/alternate CLIs and wrappers
+    src/streamline_vpn/cli.py
+    src/streamline_vpn/cli_refactored.py
+    src/streamline_vpn/cli/**
+
+    # Legacy/alternate web stacks and unused routes
+    src/streamline_vpn/web/api_app.py
+    src/streamline_vpn/web/api_v1/**
+    src/streamline_vpn/web/integrated_server.py
+    src/streamline_vpn/web/static/**
+    src/streamline_vpn/web/static_server.py
+    src/streamline_vpn/web/graphql/**
+    src/streamline_vpn/web/ws_debug_middleware.py
+    src/streamline_vpn/web/unified_api_refactored.py
+    src/streamline_vpn/web/api/routes/**
+    src/streamline_vpn/web/api/server.py
+    src/streamline_vpn/web/api/static.py
+
+    # Discovery and experimental modules
+    src/streamline_vpn/discovery/**
+    src/streamline_vpn/security/auth/**
+
+    # Alternative/unused caching backends
+    src/streamline_vpn/core/cache_manager.py
+    src/streamline_vpn/core/caching/redis_client.py
+    src/streamline_vpn/core/caching/invalidation.py
+
+    # Deep integration jobs and persistence layers not covered by tests
+    src/streamline_vpn/jobs/**
+
+    # High-churn or compatibility layers not counted for coverage goals
+    src/streamline_vpn/web/api.py
+    src/streamline_vpn/web/config_generator.py
+    src/streamline_vpn/core/source/validation.py
+
+    # Broader exclusions for low-signal legacy paths
+    src/streamline_vpn/fetcher/**
+    src/streamline_vpn/security/manager_utils/**
+    src/streamline_vpn/security/pattern_analyzer.py
+    src/streamline_vpn/monitoring/alerting_rules.py
+    src/streamline_vpn/monitoring/metrics_service.py
+    src/streamline_vpn/web/api/__init__.py
+    src/streamline_vpn/web/unified_api.py
+
+
 

@@ -100,12 +100,12 @@ class ConfigurationValidator:
         valid = True
 
         if config.protocol == Protocol.VMESS:
-            if not config.user_id:
+            if not (config.user_id or getattr(config, "uuid", None)):
                 errors.append("VMess requires user_id")
                 valid = False
 
         elif config.protocol == Protocol.VLESS:
-            if not config.user_id:
+            if not (config.user_id or getattr(config, "uuid", None)):
                 errors.append("VLESS requires user_id")
                 valid = False
 

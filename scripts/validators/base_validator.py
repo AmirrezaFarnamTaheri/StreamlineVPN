@@ -143,3 +143,4 @@ class BaseValidator:
     def get_results(self) -> Dict[str, Any]:
         """Get validation results."""
         return self.validation_results
+

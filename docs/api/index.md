@@ -6,13 +6,15 @@ description: Comprehensive REST API reference for StreamlineVPN
 
 # StreamlineVPN API Documentation
 
+> Shortcuts: [Quick Start](../quick-start.md) · [Configuration Reference](../configuration/index.md) · [Error Codes](error-codes.md)
+
 ## Overview
 
 StreamlineVPN provides a comprehensive REST API for managing VPN configuration aggregation, processing, and retrieval. The API is built with FastAPI and provides both synchronous and asynchronous endpoints.
 
 **Base URL**: `http://localhost:8080/api/v1`  
 **API Version**: v1  
-**API Versioning Strategy**: [Read our versioning strategy](versioning.md)
+**API Versioning Strategy**: [Read our versioning strategy](versioning.md)  
 **Content-Type**: `application/json`
 
 ## Authentication
@@ -35,7 +37,7 @@ Set the `STREAMLINE_API_KEY` environment variable to enable authentication.
 
 ## Health and Status Endpoints
 
-### GET /health
+### GET /api/health
 
 Returns the API health status.
 
@@ -391,7 +393,7 @@ Export configurations in various formats.
   "count": 1547,
   "generated_at": "2025-01-14T10:45:00Z",
   "configurations": [
-    // Configuration objects...
+    
   ]
 }
 ```
@@ -409,81 +411,10 @@ Generate subscription URLs for various clients.
 **Response:**
 ```text
 # For base64=true
-dHJvamFuOi8vcGFzc3dvcmRAZXhhbXBsZS5jb206NDQzP3NuaT1leGFtcGxlLmNvbSMlRTklQTYlOTk=
+...base64 content...
 
 # For base64=false (raw URLs)
-trojan://password@test-server.example:443?sni=test-server.example#%E9%A6%99
-vmess://eyJ2IjoyLCJwcyI6InRlc3QiLCJhZGQiOiJleGFtcGxlLmNvbSJ9
-```
-
-## Testing and Validation
-
-### POST /api/v1/test/configuration
-
-Test a specific configuration for connectivity.
-
-**Request Body:**
-```json
-{
-  "configuration_url": "vmess://eyJ2IjoyLCJwcyI6InRlc3QiLCJhZGQiOiJleGFtcGxlLmNvbSJ9",
-  "timeout": 10,
-  "test_endpoints": ["https://www.google.com", "https://httpbin.org/ip"]
-}
-```
-
-**Response:**
-```json
-{
-  "test_id": "test_123456",
-  "configuration_url": "vmess://...",
-  "status": "completed",
-  "results": {
-    "connectivity": true,
-    "response_time": 1250,
-    "success_rate": 1.0,
-    "endpoints_tested": 2,
-    "endpoints_successful": 2,
-    "ip_address": "203.0.113.1",
-    "location": {
-      "country": "US",
-      "region": "California"
-    }
-  },
-  "tested_at": "2025-01-14T10:50:00Z"
-}
-```
-
-### POST /api/v1/test/source
-
-Test a source URL for accessibility and configuration extraction.
-
-**Request Body:**
-```json
-{
-  "source_url": "https://test-server.example/configs",
-  "timeout": 30,
-  "validate_configs": true
-}
-```
-
-**Response:**
-```json
-{
-  "source_url": "https://test-server.example/configs",
-  "status": "accessible",
-  "response_time": 2.1,
-  "configurations_found": 67,
-  "configurations_valid": 65,
-  "protocols": ["vmess", "vless", "trojan"],
-  "test_results": {
-    "http_status": 200,
-    "content_length": 45678,
-    "content_type": "text/plain",
-    "ssl_valid": true,
-    "parse_errors": 2
-  },
-  "tested_at": "2025-01-14T10:55:00Z"
-}
+...raw urls...
 ```
 
 ## WebSocket Endpoints

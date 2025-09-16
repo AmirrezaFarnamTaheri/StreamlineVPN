@@ -226,3 +226,4 @@ class ConfigValidator(BaseValidator):
                 "WARN",
                 "pyproject.toml may have syntax issues"
             )
+

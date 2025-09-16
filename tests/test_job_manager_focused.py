@@ -5,6 +5,7 @@ Focused tests for JobManager
 import pytest
 import asyncio
 from unittest.mock import AsyncMock, MagicMock, patch
+from typing import Optional
 import sys
 from pathlib import Path
 

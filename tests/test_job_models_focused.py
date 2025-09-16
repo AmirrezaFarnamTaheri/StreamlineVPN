@@ -114,11 +114,11 @@ class TestJobStatus:
     
     def test_job_status_enum_membership(self):
         """Test job status enum membership"""
-        assert "pending" in JobStatus
-        assert "running" in JobStatus
-        assert "completed" in JobStatus
-        assert "failed" in JobStatus
-        assert "cancelled" in JobStatus
+        assert "pending" in [e.value for e in JobStatus]
+        assert "running" in [e.value for e in JobStatus]
+        assert "completed" in [e.value for e in JobStatus]
+        assert "failed" in [e.value for e in JobStatus]
+        assert "cancelled" in [e.value for e in JobStatus]
 
 
 class TestJobType:
@@ -134,8 +134,8 @@ class TestJobType:
     
     def test_job_type_enum_membership(self):
         """Test job type enum membership"""
-        assert "processing" in JobType
-        assert "cleanup" in JobType
-        assert "maintenance" in JobType
-        assert "backup" in JobType
-        assert "sync" in JobType
+        assert "processing" in [e.value for e in JobType]
+        assert "process_configurations" in [e.value for e in JobType]
+        assert "discover_sources" in [e.value for e in JobType]
+        assert "update_sources" in [e.value for e in JobType]
+        assert "clear_cache" in [e.value for e in JobType]

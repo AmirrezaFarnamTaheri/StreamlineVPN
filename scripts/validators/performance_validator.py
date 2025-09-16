@@ -166,3 +166,4 @@ class PerformanceValidator(BaseValidator):
                 "PASS",
                 f"Monitoring module {monitoring_file} has alerting"
             )
+

@@ -198,8 +198,19 @@ def validate_ip_address(ip: str) -> bool:
         r"(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)$"
     )
 
-    # IPv6 pattern (simplified)
-    ipv6_pattern = r"^(?:[0-9a-fA-F]{1,4}:){7}[0-9a-fA-F]{1,4}$"
+    # IPv6 pattern (allow shortened forms with ::)
+    ipv6_pattern = (
+        r"^((?:[0-9A-Fa-f]{1,4}:){7}[0-9A-Fa-f]{1,4}|"
+        r"(?:[0-9A-Fa-f]{1,4}:){1,7}:|"
+        r":(?::[0-9A-Fa-f]{1,4}){1,7}|"
+        r"(?:[0-9A-Fa-f]{1,4}:){1,6}:[0-9A-Fa-f]{1,4}|"
+        r"(?:[0-9A-Fa-f]{1,4}:){1,5}(?::[0-9A-Fa-f]{1,4}){1,2}|"
+        r"(?:[0-9A-Fa-f]{1,4}:){1,4}(?::[0-9A-Fa-f]{1,4}){1,3}|"
+        r"(?:[0-9A-Fa-f]{1,4}:){1,3}(?::[0-9A-Fa-f]{1,4}){1,4}|"
+        r"(?:[0-9A-Fa-f]{1,4}:){1,2}(?::[0-9A-Fa-f]{1,4}){1,5}|"
+        r"[0-9A-Fa-f]{1,4}:(?::[0-9A-Fa-f]{1,4}){1,6}|"
+        r":(?::[0-9A-Fa-f]{1,4}){1,7})$"
+    )
 
     return bool(re.match(ipv4_pattern, ip) or re.match(ipv6_pattern, ip))
 
@@ -232,3 +243,20 @@ def validate_domain(domain: str) -> bool:
 
 def is_valid_domain(domain: str) -> bool:
     return validate_domain(domain)
+
+
+# Simple validation helpers expected by tests
+def validate_required_fields(data: Dict[str, Any], required: list[str]) -> Dict[str, Any]:
+    errors = []
+    for field in required:
+        if field not in data:
+            errors.append(f"Missing required field: {field}")
+    return {"is_valid": len(errors) == 0, "errors": errors}
+
+
+def validate_field_types(data: Dict[str, Any], types: Dict[str, type]) -> Dict[str, Any]:
+    errors = []
+    for field, expected in types.items():
+        if field in data and not isinstance(data[field], expected):
+            errors.append(f"Invalid type for {field}: expected {expected.__name__}")
+    return {"is_valid": len(errors) == 0, "errors": errors}

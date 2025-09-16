@@ -75,19 +75,23 @@ Key config files:
 ## Testing & Coverage
 
 ```bash
+# Run tests
 pytest -q
-# Coverage report
-pytest -q --cov=streamline_vpn --cov-report=term-missing
-```
 
-Per-module coverage gate (thresholds for key modules):
+# Coverage (terminal summary)
+pytest -q --cov=src --cov-report=term-missing
 
-```bash
-pytest -q --cov=streamline_vpn --cov-report=xml:coverage.xml
+# Coverage XML for CI/gates
+pytest -q --cov=src --cov-report=xml:coverage.xml
 python scripts/coverage_gate.py coverage.xml
 ```
 
-CI already runs the gate and will fail on regressions.
+CI runs the coverage gate and will fail on regressions.
+
+### Windows Notes
+
+- Use PowerShell activation when using venv: `venv\Scripts\Activate.ps1`
+- If execution policy prevents activation: `Set-ExecutionPolicy -ExecutionPolicy RemoteSigned -Scope CurrentUser`
 
 ## Docker (Development)
 
@@ -138,7 +142,7 @@ The StreamlineVPN API provides programmatic access to VPN configuration manageme
 - **GET /api/statistics** - Get real-time statistics
 - **GET /api/health** - Health check endpoint
 
-See [API Documentation](docs/api/index.html) for complete details.
+See the docs site for details: `docs/api/index.html`.
 
 ## Security
 
@@ -165,4 +169,4 @@ Common issues and solutions:
 3. **Memory Usage**: Reduce max_concurrent setting
 4. **API Errors**: Check logs in `logs/` directory
 
-For detailed troubleshooting, see [Troubleshooting Guide](docs/troubleshooting.html).
+For detailed troubleshooting, see `docs/troubleshooting.html`.

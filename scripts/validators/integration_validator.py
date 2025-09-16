@@ -169,3 +169,4 @@ class IntegrationValidator(BaseValidator):
                 "WARN",
                 f"Schema file {schema_file} may be incomplete"
             )
+

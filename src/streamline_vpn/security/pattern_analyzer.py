@@ -41,6 +41,44 @@ class PatternAnalyzer:
             r"scp\s+",
             r"rsync\s+",
         ]
+        # Minimal storage for custom patterns expected by tests
+        self.patterns: Dict[str, Dict[str, Any]] = {}
+        self.threshold: float = 0.5
+
+    # Compat API expected by tests
+    def add_pattern(self, name: str, description: str, weight: float = 1.0) -> None:
+        self.patterns[name] = {"description": description, "confidence": float(weight)}
+
+    def remove_pattern(self, name: str) -> None:
+        self.patterns.pop(name, None)
+
+    def get_pattern_count(self) -> int:
+        return len(self.patterns)
+
+    def clear_patterns(self) -> None:
+        self.patterns.clear()
+
+    def analyze_text(self, text: str) -> Dict[str, Any]:
+        details = []
+        score = 0.0
+        # built-in suspicious patterns
+        for pattern in self.suspicious_patterns:
+            if re.search(pattern, text, re.IGNORECASE):
+                details.append(pattern)
+                score += 0.1
+        # custom patterns
+        for name, meta in self.patterns.items():
+            if name and name.lower() in text.lower():
+                details.append(name)
+                score += float(meta.get("confidence", 0.1))
+        risk = min(score, 1.0)
+        return {
+            "matches": len(details),
+            "details": details,
+            "patterns": details,
+            "risk": risk,
+            "is_suspicious": risk >= self.threshold,
+        }
 
     def check_suspicious_patterns(self, config: str) -> List[str]:
         """Check for suspicious patterns in configuration.
@@ -56,6 +94,11 @@ class PatternAnalyzer:
         for pattern in self.suspicious_patterns:
             if re.search(pattern, config, re.IGNORECASE):
                 matched_patterns.append(pattern)
+
+        # Also check custom named patterns by substring match
+        for name in self.patterns.keys():
+            if name and name.lower() in config.lower():
+                matched_patterns.append(name)
 
         return matched_patterns
 

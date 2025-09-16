@@ -48,7 +48,7 @@ class DeploymentManager:
             print("\n✅ All deployment fixes completed successfully!")
             
             return {
-                "status": "success",
+                    "status": "success",
                 "operations_count": len(self.operations_log),
                 "backup_created": self.backup_path is not None,
                 "backup_path": str(self.backup_path) if self.backup_path else None,
@@ -59,7 +59,7 @@ class DeploymentManager:
             print(f"\n❌ Deployment failed: {str(e)}")
             return {
                 "status": "error",
-                "error": str(e),
+                    "error": str(e),
                 "operations_count": len(self.operations_log),
                 "operations": self.operations_log
             }

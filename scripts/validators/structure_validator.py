@@ -119,3 +119,4 @@ class StructureValidator(BaseValidator):
                 "WARN",
                 f"Pytest configuration may be incomplete in {config_file}"
             )
+

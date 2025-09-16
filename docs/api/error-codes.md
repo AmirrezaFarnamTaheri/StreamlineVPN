@@ -2,7 +2,22 @@
 
 ## Overview
 
-This document lists error codes, HTTP status codes, and error handling patterns used in the VPN Subscription Merger API.
+This document lists error codes, HTTP status codes, and error handling patterns used in the StreamlineVPN API.
+
+## Common Errors Matrix
+
+| Error | HTTP | Typical Endpoint(s) | When it happens |
+|-------|------|----------------------|-----------------|
+| `VALIDATION_ERROR` | 400 | `POST /api/v1/pipeline/run`, `POST /api/v1/sources` | Request payload invalid or missing fields |
+| `JOB_NOT_FOUND` | 404 | `GET /api/v1/pipeline/status/{job_id}` | Unknown job ID |
+| `SOURCE_FETCH_FAILED` | 502 | `GET /api/v1/configurations` (internal), pipeline | Upstream fetch failed |
+| `SOURCE_TIMEOUT` | 504 | Pipeline, fetchers | Upstream timeout |
+| `RATE_LIMIT_EXCEEDED` | 429 | Any | Client or upstream rate limit triggered |
+| `ACCESS_DENIED` | 403 | Protected endpoints (if enabled) | Missing permission |
+| `INVALID_API_KEY` | 401 | Any (if auth enabled) | Bad or missing API key |
+| `SERVICE_UNAVAILABLE` | 503 | `GET /api/v1/statistics` (if merger not ready) | Service not initialized |
+
+The sections below provide detailed schemas and examples.
 
 ## HTTP Status Codes
 

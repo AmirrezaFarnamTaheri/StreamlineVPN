@@ -51,12 +51,18 @@ class VPNConfiguration:
         id: Unique configuration identifier
     """
 
-    protocol: Protocol
     server: str
     port: int
-    user_id: Optional[str] = None
+    protocol: Protocol = Protocol.VMESS
+    name: Optional[str] = None
+    # Backward-compatibility aliases
+    user_id: Optional[str] = None  # alias for uuid
+    uuid: Optional[str] = None
+    alter_id: Optional[int] = None
+    security: Optional[str] = None
     password: Optional[str] = None
     encryption: Optional[str] = None
+    flow: Optional[str] = None
     network: str = "tcp"
     path: Optional[str] = None
     host: Optional[str] = None
@@ -75,7 +81,7 @@ class VPNConfiguration:
 
             content = (
                 f"{self.protocol.value}:{self.server}:{self.port}:"
-                f"{self.user_id or ''}:{self.password or ''}"
+                f"{self.user_id or self.uuid or ''}:{self.password or ''}"
             )
             self.id = hashlib.md5(content.encode()).hexdigest()[:8]
 

@@ -10,6 +10,7 @@ import logging.config
 import sys
 from pathlib import Path
 from typing import Optional, Dict, Any
+import functools
 
 
 def setup_logging(
@@ -94,7 +95,25 @@ def get_logger(name: str) -> logging.Logger:
     Returns:
         Logger instance
     """
-    return logging.getLogger(f"streamline_vpn.{name}")
+    logger = logging.getLogger(f"streamline_vpn.{name}")
+    # Prefer propagation so test harness (caplog) can capture at root
+    logger.propagate = True
+    if logger.level == logging.NOTSET:
+        logger.setLevel(logging.INFO)
+    return logger
+
+
+class _SafeStreamHandler(logging.StreamHandler):
+    def emit(self, record):
+        try:
+            super().emit(record)
+        except ValueError:
+            # Stream may be closed during interpreter shutdown; ignore
+            try:
+                msg = self.format(record)
+                sys.__stdout__.write(msg + "\n")
+            except Exception:
+                pass
 
 
 def log_performance(func_name: str, duration: float, **kwargs) -> None:
@@ -126,3 +145,26 @@ def log_error(error: Exception, context: str = "", **kwargs) -> None:
         **kwargs,
     }
     logger.error("Error occurred: %s", error_info, exc_info=True)
+
+
+# Decorators expected by tests
+def log_function_call(func):
+    @functools.wraps(func)
+    def wrapper(*args, **kwargs):
+        logger = get_logger(func.__module__)
+        logger.debug("Calling %s with args=%s kwargs=%s", func.__name__, args, kwargs)
+        result = func(*args, **kwargs)
+        logger.debug("%s returned %r", func.__name__, result)
+        return result
+    return wrapper
+
+
+def log_async_function_call(func):
+    @functools.wraps(func)
+    async def wrapper(*args, **kwargs):
+        logger = get_logger(func.__module__)
+        logger.debug("Calling async %s with args=%s kwargs=%s", func.__name__, args, kwargs)
+        result = await func(*args, **kwargs)
+        logger.debug("%s returned %r", func.__name__, result)
+        return result
+    return wrapper

@@ -18,8 +18,8 @@ description: Get StreamlineVPN running in 5 minutes
 ### 1. Clone the Repository
 
 ```bash
-git clone https://github.com/yourusername/streamlinevpn.git
-cd streamlinevpn
+git clone https://github.com/yourusername/cleanconfigs-submerger-.git
+cd CleanConfigs-SubMerger-
 ```
 
 ### 2. Install Dependencies
@@ -27,7 +27,10 @@ cd streamlinevpn
 ```bash
 # Create virtual environment (recommended)
 python -m venv venv
-source venv/bin/activate  # On Windows: venv\Scripts\activate
+# On Unix/macOS:
+source venv/bin/activate
+# On Windows (PowerShell):
+venv\Scripts\Activate.ps1
 
 # Install requirements
 pip install -r requirements.txt
@@ -35,7 +38,7 @@ pip install -r requirements.txt
 
 ### 3. Configure Sources
 
-The default configuration includes 500+ curated sources. Review and customize:
+The default configuration includes curated sources. Review and customize:
 
 ```bash
 # Edit source configuration
@@ -132,19 +135,25 @@ export STREAMLINE_REDIS__NODES='[]'
 ### Issue: Timeout errors
 **Solution**: Increase timeout and reduce concurrency:
 ```bash
-export VPN_TIMEOUT=60
-export VPN_CONCURRENT_LIMIT=10
+export STREAMLINE_VPN_TIMEOUT=60
+export STREAMLINE_VPN_CONCURRENT_LIMIT=10
 ```
 
 ## Next Steps
 
 1. **Explore the Web Interface**: Open `http://localhost:8000/interactive.html`
 2. **Configure automation**: Set up cron job or systemd service
-3. **Review API docs**: Visit `http://localhost:8080/docs`
+3. **Review API docs**: Visit `http://localhost:8080/docs` or `docs/api/index.html`
 4. **Customize sources**: Add your own VPN configuration sources
 
 ## Support
 
 - 📖 [Full Documentation](index.html)
-- 🐛 [Report Issues](https://github.com/yourusername/streamlinevpn/issues)
-- 💬 [Community Discord](https://discord.gg/streamlinevpn)
+- 🐛 Report Issues: open a GitHub issue on the repository
+- 💬 Community: join your team's preferred chat channel
+
+## Shortcuts
+
+- Configuration Reference: `configuration/index.html`
+- API Error Codes: `api/error-codes.md`
+- Troubleshooting: `troubleshooting.html`

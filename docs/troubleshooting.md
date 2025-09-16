@@ -10,7 +10,7 @@
 - Ensure `config/sources.yaml` exists and has valid YAML syntax
 - Check file permissions: `ls -la config/sources.yaml`
 - Validate YAML syntax: `python -c "import yaml; yaml.safe_load(open('config/sources.yaml'))"`
-- Verify source URLs are accessible: `python streamline_vpn_main.py --validate`
+- Verify source URLs are accessible: `python -m streamline_vpn --config config/sources.yaml --dry-run`
 
 #### Configuration File Not Found
 **Problem**: Error "Config file not found, using fallback sources"
@@ -33,10 +33,9 @@
 #### Missing Dependencies
 **Problem**: `ModuleNotFoundError` for aiohttp, yaml, etc.
 **Solutions**:
-- Install core dependencies: `pip install aiohttp PyYAML tqdm`
-- Install all dependencies: `pip install -r requirements.txt`
+- Install core dependencies: `pip install -r requirements.txt`
 - Check virtual environment activation
-- Verify pip installation: `pip list | grep aiohttp`
+- Verify pip installation: `pip list | findstr aiohttp` (Windows) or `pip list | grep aiohttp` (Unix)
 
 ### Runtime Issues
 
@@ -44,7 +43,7 @@
 **Problem**: Application runs but no output files are created
 **Solutions**:
 - Check output directory permissions: `ls -la output/`
-- Verify sources are accessible via the API pipeline: `POST /api/v1/pipeline/run`
+- Verify pipeline via API: `POST /api/v1/pipeline/run`
 - Check network connectivity to source URLs
 - Review log file: `tail -f streamline_vpn.log`
 
@@ -73,7 +72,7 @@
 - Verify firewall settings
 - Check proxy configuration if using corporate network
 - Test individual sources manually in browser
-- Use `--validate` flag to test source accessibility
+- Run a dry-run to test source accessibility: `python -m streamline_vpn --config config/sources.yaml --dry-run`
 
 #### Timeout Errors
 **Problem**: Requests timing out during source processing
@@ -88,10 +87,10 @@
 #### Slow Processing
 **Problem**: Application takes too long to process sources
 **Solutions**:
-- Increase concurrency: `--concurrent 100`
+- Adjust concurrency: `--concurrent 50`
 - Check network bandwidth and latency
 - Optimize source tier organization
-- Use faster sources in tier_1_premium
+- Prefer faster sources in Tier 1
 - Monitor system resources during execution
 
 #### High Memory Usage
@@ -107,64 +106,32 @@
 #### Test Failures
 **Problem**: Tests fail with various errors
 **Solutions**:
-- Run tests individually: `python -m pytest tests/test_sources.py -v`
-- Check test dependencies: `pip install pytest pytest-asyncio`
+- Run tests individually: `pytest -q tests/test_core.py -v`
+- Check test dependencies: `pip install -r requirements-dev.txt`
 - Verify Python environment: `python --version`
-- Check test configuration: `cat pytest.ini`
+- Check test configuration: `type pytest.ini` (Windows) or `cat pytest.ini`
 
 #### Coverage Issues
 **Problem**: Test coverage below required threshold
 **Solutions**:
-- Run coverage locally: `python -m pytest --cov=streamline_vpn --cov-report=html`
-- Review coverage report: `open htmlcov/index.html`
+- Run coverage locally: `pytest -q --cov=src --cov-report=html`
+- Review coverage report: open `htmlcov/index.html`
 - Add tests for uncovered code paths
 - Check test file organization and imports
 
-## Environment Variables
+## Environment Variables (common)
 
-### Core Configuration
 ```bash
 # Source configuration
-VPN_SOURCES_CONFIG=config/sources.yaml
+STREAMLINE_VPN_CONFIG=config/sources.yaml
 
 # Processing settings
-VPN_CONCURRENT_LIMIT=50
-VPN_TIMEOUT=30
-VPN_MAX_RETRIES=3
+STREAMLINE_VPN_CONCURRENT_LIMIT=50
+STREAMLINE_VPN_TIMEOUT=30
+STREAMLINE_VPN_MAX_RETRIES=3
 
 # Output settings
-VPN_OUTPUT_DIR=output
-VPN_WRITE_BASE64=true
-VPN_WRITE_CSV=true
-VPN_WRITE_JSON=true
-```
-
-### Debug and Testing
-```bash
-# Enable debug logging
-VPN_LOG_LEVEL=DEBUG
-
-# Skip network operations for testing
-SKIP_NETWORK=1
-
-# Enable discovery cache
-ENABLE_DISCOVERY_CACHE=1
-
-# Enable validation cache
-ENABLE_VALIDATION_CACHE=1
-```
-
-### Performance Tuning
-```bash
-# Adjust concurrency
-VPN_CONCURRENT_LIMIT=100
-
-# Increase timeout
-VPN_TIMEOUT=60
-
-# Memory management
-VPN_CHUNK_SIZE=2097152  # 2MB
-VPN_BLOOM_FILTER_SIZE=2000000
+STREAMLINE_VPN_OUTPUT_DIR=output
 ```
 
 ## Debug Commands
@@ -175,14 +142,14 @@ VPN_BLOOM_FILTER_SIZE=2000000
 python --version
 pip list
 
-# Validate configuration
+# Validate configuration structure
 python -c "import yaml; yaml.safe_load(open('config/sources.yaml'))"
 
-# Test imports
-python -c "from streamline_vpn import *; print('✅ All imports successful')"
+# Test module import
+python -c "import streamline_vpn; print('✅ imports OK')"
 
-# Check sources
-python -c "from streamline_vpn import SourceManager; sources = SourceManager(); print(f'Loaded {len(sources.get_all_sources())} sources')"
+# Quick source count (API required for full details)
+python -m streamline_vpn --config config/sources.yaml --dry-run
 ```
 
 ### Network Diagnostics
@@ -190,9 +157,6 @@ python -c "from streamline_vpn import SourceManager; sources = SourceManager(); 
 # Test network connectivity
 ping google.com
 curl -I https://google.com
-
-# Test source accessibility
-python streamline_vpn_main.py --validate
 
 # Check DNS resolution
 nslookup raw.githubusercontent.com
@@ -202,12 +166,6 @@ nslookup raw.githubusercontent.com
 ```bash
 # Monitor system resources
 htop
-iotop
-nethogs
-
-# Check Python performance
-python -m cProfile -o profile.stats streamline_vpn_main.py
-python -c "import pstats; p = pstats.Stats('profile.stats'); p.sort_stats('cumulative').print_stats(20)"
 ```
 
 ## Log Analysis
@@ -223,10 +181,9 @@ ERROR - Error processing source URL: Error message
 ### Debug Logging
 ```bash
 # Enable debug logging
-export VPN_LOG_LEVEL=DEBUG
-
-# Run with verbose output
-python streamline_vpn_main.py --verbose
+set STREAMLINE_VPN_LOG_LEVEL=DEBUG  # Windows
+# or
+export STREAMLINE_VPN_LOG_LEVEL=DEBUG  # Unix
 
 # Monitor log file
 tail -f streamline_vpn.log
@@ -235,18 +192,18 @@ tail -f streamline_vpn.log
 ## Getting Help
 
 ### Self-Diagnosis
-1. **Check logs**: Review `streamline_vpn.log` for error messages
-2. **Validate configuration**: Use `--validate` flag to test sources
-3. **Test imports**: Verify all modules can be imported
-4. **Check dependencies**: Ensure all required packages are installed
-5. **Monitor resources**: Check system CPU, memory, and network usage
+1. Check logs in `logs/`
+2. Validate configuration
+3. Test imports
+4. Check dependencies
+5. Monitor resources
 
 ### Common Solutions
-1. **Restart application**: Clear any cached state
-2. **Check file permissions**: Ensure configuration files are readable
-3. **Verify network**: Test connectivity to external sources
-4. **Reduce concurrency**: Lower concurrent processing limits
-5. **Increase timeouts**: Allow more time for slow sources
+1. Restart application
+2. Check file permissions
+3. Verify network
+4. Reduce concurrency
+5. Increase timeouts
 
 ### When to Seek Help
 - Application crashes consistently
@@ -256,72 +213,11 @@ tail -f streamline_vpn.log
 - Tests fail consistently
 
 ### Support Resources
-- **Project Issues**: Create an issue in the project repository
-- **Documentation**: Review this troubleshooting guide and other docs
-- **Configuration**: Check `docs/configuration/` for setup details
-- **Testing**: Use `scripts/run_tests.py` for comprehensive testing
-
-## Prevention
-
-### Best Practices
-1. **Regular validation**: Run `--validate` regularly to check source health
-2. **Monitor logs**: Review logs for warnings and errors
-3. **Test changes**: Validate configuration changes before production
-4. **Backup configuration**: Keep backup of working configurations
-5. **Version control**: Commit all configuration changes
-
-### Maintenance
-1. **Update sources**: Regularly review and update source URLs
-2. **Monitor performance**: Track processing times and resource usage
-3. **Review logs**: Analyze logs for patterns and issues
-4. **Test regularly**: Run tests to ensure system health
-5. **Update dependencies**: Keep packages up to date
+- Project issues: repository issue tracker
+- Documentation: this troubleshooting guide and other docs pages
+- Configuration: see `docs/configuration/`
 
 ## Deployment Issues
 
-This section covers common issues you might encounter when deploying StreamlineVPN with Docker or Kubernetes.
-
-### Docker
-
-#### Container Fails to Start
-**Problem**: The Docker container exits immediately or is stuck in a restart loop.
-**Solutions**:
-- **Check Logs**: Inspect the container logs for errors: `docker logs <container_name_or_id>`
-- **Configuration Mounts**: Ensure that your `config/sources.yaml` is correctly mounted into the container if you are using a custom one. Verify file permissions.
-- **Port Conflicts**: Make sure the ports you are trying to expose (e.g., 8080, 8000) are not already in use on the host machine. Use `docker-compose ps` to see port mappings.
-- **Environment Variables**: Verify that all required environment variables are set correctly in your `docker-compose.yml` or `.env` file.
-
-#### Network Issues
-**Problem**: The application inside the container cannot connect to external sources, or you cannot connect to the application from the host.
-**Solutions**:
-- **Docker Networks**: Ensure all containers that need to communicate are on the same Docker network. `docker-compose` usually handles this automatically.
-- **Firewall**: Check that your host's firewall is not blocking the ports used by the application.
-- **DNS in Container**: If the container cannot resolve domain names, you might need to configure a specific DNS server for Docker. Edit `/etc/docker/daemon.json`.
-
-### Kubernetes
-
-#### Pod is in `CrashLoopBackOff`
-**Problem**: The pod is restarting continuously.
-**Solutions**:
-- **Check Pod Logs**: Use `kubectl logs <pod_name>` to see the application's error messages. To see logs from a previously crashed container, use `kubectl logs <pod_name> --previous`.
-- **Describe Pod**: Get more details about the pod's state and events: `kubectl describe pod <pod_name>`. This can reveal issues like resource limits being exceeded or problems pulling the image.
-- **Liveness/Readiness Probes**: If liveness or readiness probes are configured, they might be failing. Check their configuration and test the endpoints manually.
-
-#### Pod is `Pending`
-**Problem**: The pod is stuck in the `Pending` state and is not being scheduled on a node.
-**Solutions**:
-- **Describe Pod**: `kubectl describe pod <pod_name>` will often show why the pod is pending. Common reasons include:
-    - **Insufficient Resources**: The cluster doesn't have enough CPU or memory to meet the pod's requests.
-    - **Taints and Tolerations**: The pod may not have the necessary tolerations to be scheduled on available nodes.
-    - **Volume Mounting**: The pod might be waiting for a PersistentVolumeClaim (PVC) to be bound.
-
-#### Service Not Accessible
-**Problem**: You cannot access the application through the Kubernetes Service.
-**Solutions**:
-- **Check Service and Endpoints**: Ensure the Service is correctly configured and has endpoints associated with it: `kubectl describe svc <service_name>`. If the "Endpoints" section is empty, the service's selector is not matching any pods.
-- **Port Mapping**: Verify that the `targetPort` on the Service matches the `containerPort` on the Pod.
-- **Network Policies**: If network policies are in place, they might be blocking traffic. Check for any policies that might apply to your pod's namespace.
-- **Ingress**: If you are using an Ingress controller, check its logs and configuration (`kubectl describe ingress <ingress_name>`) to ensure it's correctly routing traffic to your service.
-
-This troubleshooting guide covers the most common issues and solutions. For additional help, refer to the configuration guide or create an issue in the project repository.
+See deployment guidance in `docs/DEPLOYMENT.md` for container/Kubernetes-specific tips (ports, mounts, readiness probes, and service access).
 

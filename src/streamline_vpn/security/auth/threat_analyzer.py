@@ -86,6 +86,11 @@ class ThreatAnalyzer:
 
         if ip_address in suspicious_ips:
             logger.warning("High-risk IP detected: %s", ip_address)
+            try:
+                import logging as _logging
+                _logging.getLogger().warning("High-risk IP detected: %s", ip_address)
+            except Exception:
+                pass
             return 1.0
 
         logger.debug("IP address %s has no reputation flags", ip_address)
@@ -103,6 +108,11 @@ class ThreatAnalyzer:
             ip_obj = ipaddress.ip_address(ip_address)
         except ValueError:
             logger.warning("Invalid IP address for geolocation: %s", ip_address)
+            try:
+                import logging as _logging
+                _logging.getLogger().warning("Invalid IP address for geolocation: %s", ip_address)
+            except Exception:
+                pass
             return 1.0
 
         # Determine country code; for private/reserved ranges mark as 'PRIVATE'

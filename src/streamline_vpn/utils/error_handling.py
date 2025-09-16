@@ -289,3 +289,22 @@ async def safe_execute_async(
         if log_errors:
             logger.error("Safe async execution failed for %s: %s", func.__name__, e)
         return default_return
+
+
+# Simple helpers expected by tests
+def handle_exception(func: Callable, return_value: Any = None, *args, **kwargs) -> Any:
+    try:
+        return func(*args, **kwargs)
+    except Exception as e:
+        logger.error("Exception handled: %s", e)
+        return return_value
+
+
+async def async_handle_exception(func: Callable, return_value: Any = None, *args, **kwargs) -> Any:
+    try:
+        if asyncio.iscoroutinefunction(func):
+            return await func(*args, **kwargs)
+        return func(*args, **kwargs)
+    except Exception as e:
+        logger.error("Async exception handled: %s", e)
+        return return_value

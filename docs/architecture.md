@@ -1,6 +1,6 @@
 # Architecture Overview
 
-The VPN Subscription Merger follows a modular, event-driven architecture designed for high performance and scalability.
+The StreamlineVPN system follows a modular, event-driven architecture designed for high performance and scalability.
 
 ## System Architecture
 
@@ -26,16 +26,16 @@ flowchart TD
 ### Core Processing Pipeline
 
 - **SourceManager**: Loads sources from `config/sources.yaml` with tiered organization
-- **SourceValidator**: Validates source accessibility and content quality
-- **ConfigProcessor**: Handles protocol parsing, deduplication, and quality scoring
+- **Configuration Validator**: Validates protocols and configuration schema
+- **Processing Engine**: Handles protocol parsing, deduplication, and quality scoring
 - **StreamlineVPNMerger**: Orchestrates the entire processing pipeline
 
 ### Features
 
-- **Discovery**: GitHub + Telegram/paste (env-driven), cached via optional memory/Redis
+- **Discovery**: Optional discovery via curated lists (env-driven), cached via memory/Redis
 - **Fetcher**: Retries, per-host rate limiting, circuit breaker, compression handling
-- **Processor**: Protocol parsing, connection testing, app tests (optional)
-- **Threat Analysis**: Feature-gated security engine with SSE + metrics
+- **Processor**: Protocol parsing, connection testing (optional)
+- **Threat Analysis**: Feature-gated security engine with metrics
 - **Outputs**: Raw, base64, CSV, sing-box, clash + optional report.json
 
 ### Monitoring & Observability

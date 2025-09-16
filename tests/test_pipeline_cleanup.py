@@ -1,6 +1,7 @@
 """Tests for background job cleanup logic."""
 
 from datetime import datetime, timedelta
+from typing import Optional
 from unittest.mock import patch
 
 from streamline_vpn.jobs.pipeline_cleanup import cleanup_processing_jobs

@@ -65,8 +65,8 @@ def test_pipeline_run_and_url_validation(client):
     """Pipeline execution and URL validation endpoints."""
 
     run_resp = client.post("/api/v1/pipeline/run", json={})
-    assert run_resp.status_code == 200
-    assert run_resp.json()["status"] == "completed"
+    assert run_resp.status_code == 202
+    assert run_resp.json()["status"] == "accepted"
 
     val_resp = client.post(
         "/api/v1/sources/validate-urls",
