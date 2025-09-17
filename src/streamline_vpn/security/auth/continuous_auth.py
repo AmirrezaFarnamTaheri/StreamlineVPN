@@ -100,9 +100,7 @@ class ContinuousAuthenticator:
 
         # Check for session termination
         if threat_level in [ThreatLevel.HIGH, ThreatLevel.CRITICAL]:
-            await self._terminate_session(
-                session_id, "High threat level detected"
-            )
+            await self._terminate_session(session_id, "High threat level detected")
 
         return threat_level
 

@@ -31,5 +31,5 @@ class Base64Formatter(BaseFormatter):
         except Exception as e:
             logger.error("Failed to save Base64 configurations: %s", e)
             raise
-        
+
         return path

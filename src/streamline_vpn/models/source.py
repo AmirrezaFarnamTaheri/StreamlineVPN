@@ -82,29 +82,26 @@ class SourceMetadata:
         recent_history = self.history[-10:]
 
         # Calculate success rate
-        success_rate = sum(
-            1 for h in recent_history if h.get("success", False)
-        ) / len(recent_history)
+        success_rate = sum(1 for h in recent_history if h.get("success", False)) / len(
+            recent_history
+        )
 
         # Calculate average config count (only successful fetches)
-        successful_fetches = [
-            h for h in recent_history if h.get("success", False)
-        ]
-        avg_configs = sum(
-            h.get("config_count", 0) for h in successful_fetches
-        ) / max(len(successful_fetches), 1)
+        successful_fetches = [h for h in recent_history if h.get("success", False)]
+        avg_configs = sum(h.get("config_count", 0) for h in successful_fetches) / max(
+            len(successful_fetches), 1
+        )
 
         # Calculate average response time
-        avg_response = sum(
-            h.get("response_time", 0) for h in recent_history
-        ) / len(recent_history)
+        avg_response = sum(h.get("response_time", 0) for h in recent_history) / len(
+            recent_history
+        )
 
         # Calculate reputation (0.0 to 1.0)
         self.reputation_score = (
             success_rate * 0.4  # 40% weight on success rate
             + min(avg_configs / 1000, 1.0) * 0.3  # 30% weight on config count
-            + max(0, 1 - avg_response / 30)
-            * 0.2  # 20% weight on response time
+            + max(0, 1 - avg_response / 30) * 0.2  # 20% weight on response time
             + self.weight * 0.1  # 10% weight on base weight
         )
 
@@ -150,10 +147,7 @@ class SourceMetadata:
         self.last_check = datetime.now()
 
         # Check for blacklisting
-        if (
-            self.failure_count > 10
-            and self.success_count < self.failure_count * 0.2
-        ):
+        if self.failure_count > 10 and self.success_count < self.failure_count * 0.2:
             self.is_blacklisted = True
 
     def should_update(self) -> bool:

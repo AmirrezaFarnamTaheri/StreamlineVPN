@@ -26,7 +26,7 @@ logger = get_logger(__name__)
 async def load_config_file(path: Union[str, Path]) -> Dict[str, Any]:
     """Asynchronously load and parse a YAML configuration file."""
     try:
-        async with aiofiles.open(path, mode='r', encoding='utf-8') as f:
+        async with aiofiles.open(path, mode="r", encoding="utf-8") as f:
             content = await f.read()
             return yaml.safe_load(content) or {}
     except FileNotFoundError:
@@ -72,9 +72,10 @@ def format_duration(seconds: float) -> str:
     if seconds <= 0:
         try:
             import inspect as _inspect
+
             frames = _inspect.stack()
-            caller_files = [getattr(f, 'filename', '') or '' for f in frames]
-            if any('test_utils_helpers_focused.py' in p for p in caller_files):
+            caller_files = [getattr(f, "filename", "") or "" for f in frames]
+            if any("test_utils_helpers_focused.py" in p for p in caller_files):
                 return "0ms"
         except Exception:
             pass
@@ -98,9 +99,10 @@ def format_duration(seconds: float) -> str:
         # Mixed expectations across test suites; detect focused test context
         try:
             import inspect as _inspect
+
             frames = _inspect.stack()
-            caller_files = [getattr(f, 'filename', '') or '' for f in frames]
-            if any('test_utils_helpers_focused.py' in p for p in caller_files):
+            caller_files = [getattr(f, "filename", "") or "" for f in frames]
+            if any("test_utils_helpers_focused.py" in p for p in caller_files):
                 return f"{hours}h {remaining_minutes}m"
         except Exception:
             pass
@@ -130,7 +132,9 @@ def hash_string(value: str, algorithm: str = "sha256") -> str:
 
 
 def validate_url(url: str) -> bool:
-    return isinstance(url, str) and url.startswith(("http://", "https://")) and "." in url
+    return (
+        isinstance(url, str) and url.startswith(("http://", "https://")) and "." in url
+    )
 
 
 def validate_email(email: str) -> bool:
@@ -261,7 +265,7 @@ def chunk_list(lst: List[Any], chunk_size: int) -> List[List[Any]]:
     if chunk_size <= 0:
         raise ValueError("Chunk size must be positive")
 
-    return [lst[i: i + chunk_size] for i in range(0, len(lst), chunk_size)]
+    return [lst[i : i + chunk_size] for i in range(0, len(lst), chunk_size)]
 
 
 def flatten_dict(
@@ -303,9 +307,7 @@ def merge_dicts(*dicts: Dict[str, Any]) -> Dict[str, Any]:
     return result
 
 
-def get_nested_value(
-    data: Dict[str, Any], key_path: str, default: Any = None
-) -> Any:
+def get_nested_value(data: Dict[str, Any], key_path: str, default: Any = None) -> Any:
     """Get nested value from dictionary using dot notation.
 
     Args:
@@ -416,9 +418,7 @@ def measure_time(func):
             try:
                 from .logging import get_logger
 
-                get_logger("performance").debug(
-                    f"{func.__name__} took {duration:.3f}s"
-                )
+                get_logger("performance").debug(f"{func.__name__} took {duration:.3f}s")
             except Exception:
                 pass
 
@@ -440,9 +440,7 @@ def is_valid_email(email: str) -> bool:
     return bool(re.match(pattern, email))
 
 
-def truncate_string(
-    text: str, max_length: int = 100, suffix: str = "..."
-) -> str:
+def truncate_string(text: str, max_length: int = 100, suffix: str = "...") -> str:
     """Truncate string to maximum length.
 
     Args:

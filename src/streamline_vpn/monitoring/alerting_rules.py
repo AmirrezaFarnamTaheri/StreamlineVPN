@@ -29,9 +29,7 @@ class AlertingRules:
                 "duration": "2m",
                 "severity": "warning",
                 "summary": "High VPN latency on {{ $labels.server }}",
-                "description": (
-                    "VPN latency on {{ $labels.server }} is {{ $value }}s"
-                ),
+                "description": ("VPN latency on {{ $labels.server }} is {{ $value }}s"),
             },
             "high_packet_loss": {
                 "condition": "vpn_packet_loss_rate > 0.05",
@@ -39,8 +37,7 @@ class AlertingRules:
                 "severity": "warning",
                 "summary": "High packet loss on {{ $labels.server }}",
                 "description": (
-                    "Packet loss rate on {{ $labels.server }} is "
-                    "{{ $value }}%"
+                    "Packet loss rate on {{ $labels.server }} is " "{{ $value }}%"
                 ),
             },
             "server_cpu_high": {
@@ -48,9 +45,7 @@ class AlertingRules:
                 "duration": "5m",
                 "severity": "warning",
                 "summary": "High CPU usage on {{ $labels.server }}",
-                "description": (
-                    "CPU usage on {{ $labels.server }} is {{ $value }}%"
-                ),
+                "description": ("CPU usage on {{ $labels.server }} is {{ $value }}%"),
             },
             "server_memory_high": {
                 "condition": "vpn_server_memory_usage > 90",
@@ -168,7 +163,9 @@ groups:
             try:
                 value = float(metrics.get(metric, 0))
                 if value > threshold:
-                    alerts.append({"rule": metric, "severity": "warning", "value": value})
+                    alerts.append(
+                        {"rule": metric, "severity": "warning", "value": value}
+                    )
             except Exception:
                 continue
         return {"alerts_triggered": len(alerts), "alerts": alerts}

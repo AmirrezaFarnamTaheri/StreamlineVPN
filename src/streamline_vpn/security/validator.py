@@ -43,6 +43,7 @@ class SecurityValidator:
     def validate_uuid(self, value: str) -> bool:
         try:
             import uuid as _uuid
+
             _uuid.UUID(str(value))
             return True
         except Exception:
@@ -52,8 +53,12 @@ class SecurityValidator:
         """Run security checks and return results with checks_passed field."""
         results = self.validate_configuration(config)
         results["checks_passed"] = results["is_valid"]
-        results["checks_failed"] = not results["is_valid"]  # Added for test compatibility
-        results["overall_score"] = results["security_score"]  # Added for test compatibility
+        results["checks_failed"] = not results[
+            "is_valid"
+        ]  # Added for test compatibility
+        results["overall_score"] = results[
+            "security_score"
+        ]  # Added for test compatibility
         return results
 
     def validate_url(self, url: str) -> bool:
@@ -183,9 +188,7 @@ class SecurityValidator:
             # Validate protocol
             if "protocol" in config:
                 if not self.validate_protocol(config["protocol"]):
-                    results["errors"].append(
-                        f"Unsafe protocol: {config['protocol']}"
-                    )
+                    results["errors"].append(f"Unsafe protocol: {config['protocol']}")
                     results["is_valid"] = False
 
             # Validate encryption
@@ -205,15 +208,11 @@ class SecurityValidator:
             suspicious_fields = ["script", "command", "exec", "eval"]
             for field in suspicious_fields:
                 if field in config:
-                    results["errors"].append(
-                        f"Suspicious field detected: {field}"
-                    )
+                    results["errors"].append(f"Suspicious field detected: {field}")
                     results["is_valid"] = False
 
             # Ensure security score is between 0 and 1
-            results["security_score"] = max(
-                0.0, min(1.0, results["security_score"])
-            )
+            results["security_score"] = max(0.0, min(1.0, results["security_score"]))
 
         except Exception as e:
             results["errors"].append(f"Validation error: {e}")
@@ -289,9 +288,7 @@ class SecurityValidator:
             return False
 
         settings = get_settings()
-        if any(
-            host.endswith(tld) for tld in settings.security.suspicious_tlds
-        ):
+        if any(host.endswith(tld) for tld in settings.security.suspicious_tlds):
             return False
 
         # Best-effort DNS: if resolution fails or times out, treat syntactically
@@ -325,8 +322,6 @@ class SecurityValidator:
                     continue
                 any_public = True
             return any_public
-
-        return True
 
     def _is_valid_server(self, server: str) -> bool:
         """Check if server address is valid.

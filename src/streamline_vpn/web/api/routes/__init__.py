@@ -9,10 +9,9 @@ from .diagnostics import diagnostics_router
 from .websocket import websocket_router
 
 __all__ = [
-    'health_router',
-    'sources_router',
-    'configurations_router', 
-    'diagnostics_router',
-    'websocket_router'
+    "health_router",
+    "sources_router",
+    "configurations_router",
+    "diagnostics_router",
+    "websocket_router",
 ]
-

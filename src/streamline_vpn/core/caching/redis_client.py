@@ -21,9 +21,7 @@ logger = get_logger(__name__)
 class RedisClusterClient:
     """Redis cluster client with connection pooling and failover."""
 
-    def __init__(
-        self, nodes: List[Dict[str, Any]], max_connections: int = 100
-    ):
+    def __init__(self, nodes: List[Dict[str, Any]], max_connections: int = 100):
         """Initialize Redis cluster client.
 
         Args:
@@ -87,9 +85,7 @@ class RedisClusterClient:
             self.stats.misses += 1
             return None
 
-    async def set(
-        self, key: str, value: str, ttl: Optional[int] = None
-    ) -> bool:
+    async def set(self, key: str, value: str, ttl: Optional[int] = None) -> bool:
         """Set value in Redis cluster."""
         try:
             success = await self.client.set(key, value, ex=ttl)

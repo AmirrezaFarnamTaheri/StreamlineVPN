@@ -52,11 +52,11 @@ async def fetch_text(
 
     attempt = 0
     session_loop = get_client_loop(session)
-    use_temp = session_loop is not None and session_loop is not asyncio.get_running_loop()
-
-    temp_session = (
-        aiohttp.ClientSession(proxy=proxy) if use_temp else session
+    use_temp = (
+        session_loop is not None and session_loop is not asyncio.get_running_loop()
     )
+
+    temp_session = aiohttp.ClientSession(proxy=proxy) if use_temp else session
 
     try:
         while attempt < retries:
@@ -198,14 +198,16 @@ class AsyncSourceFetcher:
         session = self._ensure_session()
         try:
             timeout = aiohttp.ClientTimeout(total=10)
-            async with session.head(url, timeout=timeout, allow_redirects=True) as response:
+            async with session.head(
+                url, timeout=timeout, allow_redirects=True
+            ) as response:
                 status = response.status
                 if status == 200:
                     return True
                 if 400 <= status < 500:
                     async with session.get(
                         url,
-                        headers={**CONFIG.headers, 'Range': 'bytes=0-0'},
+                        headers={**CONFIG.headers, "Range": "bytes=0-0"},
                         timeout=timeout,
                         allow_redirects=True,
                     ) as get_resp:
@@ -221,7 +223,9 @@ class AsyncSourceFetcher:
         for attempt in range(CONFIG.max_retries):
             try:
                 timeout = aiohttp.ClientTimeout(total=CONFIG.request_timeout)
-                async with session.get(url, headers=CONFIG.headers, timeout=timeout) as response:
+                async with session.get(
+                    url, headers=CONFIG.headers, timeout=timeout
+                ) as response:
                     if response.status != 200:
                         continue
 
@@ -230,14 +234,21 @@ class AsyncSourceFetcher:
                         return url, []
 
                     try:
-                        if not any(char in content for char in '\n\r') and len(content) > 100:
-                            decoded = base64.b64decode(content).decode("utf-8", "ignore")
+                        if (
+                            not any(char in content for char in "\n\r")
+                            and len(content) > 100
+                        ):
+                            decoded = base64.b64decode(content).decode(
+                                "utf-8", "ignore"
+                            )
                             if decoded.count("://") > content.count("://"):
                                 content = decoded
                     except (binascii.Error, UnicodeDecodeError) as exc:
                         logging.debug("Base64 decode failed: %s", exc)
 
-                    lines = [line.strip() for line in content.splitlines() if line.strip()]
+                    lines = [
+                        line.strip() for line in content.splitlines() if line.strip()
+                    ]
                     config_results: List[ConfigResult] = []
 
                     iterator = (
@@ -265,18 +276,24 @@ class AsyncSourceFetcher:
                             host, port = self.processor.extract_host_port(line)
                             protocol = self.processor.categorize_protocol(line)
 
-                            country = await self.processor.lookup_country(host) if host else None
+                            country = (
+                                await self.processor.lookup_country(host)
+                                if host
+                                else None
+                            )
                             result = ConfigResult(
                                 config=line,
                                 protocol=protocol,
                                 host=host,
                                 port=port,
                                 source_url=url,
-                                country=country
+                                country=country,
                             )
 
                             if CONFIG.enable_url_testing and host and port:
-                                ping_time = await self.processor.test_connection(host, port)
+                                ping_time = await self.processor.test_connection(
+                                    host, port
+                                )
                                 result.ping_time = ping_time
                                 result.is_reachable = ping_time is not None
                                 if self.history_callback:
@@ -305,3 +322,74 @@ class AsyncSourceFetcher:
                 if attempt < CONFIG.max_retries - 1:
                     await asyncio.sleep(min(3, 1.5 + random.random()))
         return url, []
+
+    async def fetch_all_sources(self, merger) -> List[ConfigResult]:
+        """Fetch all configs from available sources."""
+        available_sources = merger.available_sources
+        successful_sources = 0
+        progress = tqdm(total=0, desc="Testing", unit="cfg", leave=False)
+        self.progress = progress
+        merger.current_progress = progress
+
+        try:
+            # Process sources with semaphore
+            semaphore = asyncio.Semaphore(CONFIG.concurrent_limit)
+
+            async def process_single_source(url: str) -> Tuple[str, List[ConfigResult]]:
+                async with semaphore:
+                    return await self.fetch_source(url)
+
+            # Create tasks
+            tasks = [
+                asyncio.create_task(process_single_source(url))
+                for url in available_sources
+            ]
+
+            completed = 0
+            for coro in asyncio.as_completed(tasks):
+                url, results = await coro
+                completed += 1
+                if results:
+                    progress.total += len(results)
+                    progress.refresh()
+                    progress.set_postfix(
+                        processed=progress.n,
+                        remaining=progress.total - progress.n,
+                        refresh=False,
+                    )
+
+                # Append directly to the instance-level list
+                merger.all_results.extend(results)
+                if results:
+                    successful_sources += 1
+                    reachable = sum(1 for r in results if r.is_reachable)
+                    status = f"✓ {len(results):,} configs ({reachable} reachable)"
+                else:
+                    status = "✗ No configs"
+
+                domain = urlparse(url).netloc or url[:50] + "..."
+                print(
+                    f"  [{completed:03d}/{len(available_sources)}] {status} - {domain}"
+                )
+
+                await merger.batch_processor.maybe_save_batch()
+
+                if merger.stop_fetching:
+                    break
+
+            if merger.stop_fetching:
+                for t in tasks:
+                    t.cancel()
+
+            print(
+                f"\n   📈 Sources with configs: {successful_sources}/{len(available_sources)}"
+            )
+
+        finally:
+            self.progress = None
+            merger.current_progress = None
+            progress.close()
+            await self.close()
+
+        # Return the accumulated list for backward compatibility
+        return merger.all_results

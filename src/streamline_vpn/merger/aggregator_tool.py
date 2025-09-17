@@ -30,7 +30,6 @@ import io
 from contextlib import redirect_stdout
 
 
-
 import aiohttp
 from aiohttp import ClientSession
 from .source_fetcher import fetch_text
@@ -59,6 +58,7 @@ CHANNELS_FILE = Path("channels.txt")
 HTTP_RE = re.compile(r"https?://\S+", re.IGNORECASE)
 
 # Safety limit for base64 decoding to avoid huge payloads (imported from utils)
+
 
 def extract_subscription_urls(text: str) -> Set[str]:
     """Return all HTTP(S) URLs in the text block.
@@ -253,7 +253,7 @@ class Aggregator:
         with channels_path.open() as f:
             channels = [
                 (
-                    line.strip()[len(prefix):]
+                    line.strip()[len(prefix) :]
                     if line.strip().startswith(prefix)
                     else line.strip()
                 )
@@ -296,7 +296,9 @@ class Aggregator:
                                             proxy=choose_proxy(cfg),
                                         )
                                         if text2:
-                                            configs.update(parse_configs_from_text(text2))
+                                            configs.update(
+                                                parse_configs_from_text(text2)
+                                            )
                             success = True
                             break
                         except (errors.RPCError, OSError) as e:
@@ -332,9 +334,7 @@ class Aggregator:
         return configs
 
     @staticmethod
-    def output_files(
-        configs: List[str], out_dir: Path, cfg: Settings
-    ) -> List[Path]:
+    def output_files(configs: List[str], out_dir: Path, cfg: Settings) -> List[Path]:
         out_dir.mkdir(parents=True, exist_ok=True)
         written: List[Path] = []
 
@@ -376,9 +376,7 @@ class Aggregator:
             written.append(merged_singbox)
 
         proxies: List[Dict[str, Any]] = []
-        need_proxies = (
-            cfg.write_clash or cfg.surge_file or cfg.qx_file or cfg.xyz_file
-        )
+        need_proxies = cfg.write_clash or cfg.surge_file or cfg.qx_file or cfg.xyz_file
         if need_proxies:
             for idx, link in enumerate(configs):
                 proxy = config_to_clash_proxy(link, idx)
@@ -517,9 +515,7 @@ class Aggregator:
         )
         return configs
 
-    async def _scrape_telegram(
-        self, channels_file: Path, last_hours: int
-    ) -> Set[str]:
+    async def _scrape_telegram(self, channels_file: Path, last_hours: int) -> Set[str]:
         return await self.scrape_telegram_configs(channels_file, last_hours)
 
     def _write_outputs(
@@ -534,18 +530,10 @@ class Aggregator:
         logging.info("Final configs count: %d", self.stats["written_configs"])
         return Aggregator.output_files(final, out_dir, cfg)
 
+
 def output_files(configs: List[str], out_dir: Path, cfg: Settings) -> List[Path]:
     """Convenience wrapper around Aggregator.output_files."""
     return Aggregator.output_files(configs, out_dir, cfg)
-
-
-
-
-
-
-
-
-
 
 
 def deduplicate_and_filter(
@@ -585,8 +573,6 @@ def deduplicate_and_filter(
         final.append(link)
     logging.info("Final configs count: %d", len(final))
     return final
-
-
 
 
 async def run_pipeline(
@@ -685,7 +671,9 @@ def setup_logging(log_dir: Path) -> None:
     )
 
 
-def build_parser(parser: argparse.ArgumentParser | None = None) -> argparse.ArgumentParser:
+def build_parser(
+    parser: argparse.ArgumentParser | None = None,
+) -> argparse.ArgumentParser:
     """Return an argument parser configured for the aggregator tool."""
     if parser is None:
         parser = argparse.ArgumentParser(
@@ -873,11 +861,11 @@ def main(args: argparse.Namespace | None = None) -> None:
         if args.upload_gist:
             token = cfg.github_token or os.environ.get("GITHUB_TOKEN")
             if not token:
-                print("GitHub token not provided. Set github_token in config or GITHUB_TOKEN env var")
-            else:
-                links = asyncio.run(
-                    output_writer.upload_files_to_gist(files, token)
+                print(
+                    "GitHub token not provided. Set github_token in config or GITHUB_TOKEN env var"
                 )
+            else:
+                links = asyncio.run(output_writer.upload_files_to_gist(files, token))
                 path = output_writer.write_upload_links(links, out_dir)
                 print(f"Uploaded files. Links saved to {path}")
 

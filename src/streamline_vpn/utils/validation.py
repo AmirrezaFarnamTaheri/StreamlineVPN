@@ -246,7 +246,9 @@ def is_valid_domain(domain: str) -> bool:
 
 
 # Simple validation helpers expected by tests
-def validate_required_fields(data: Dict[str, Any], required: list[str]) -> Dict[str, Any]:
+def validate_required_fields(
+    data: Dict[str, Any], required: list[str]
+) -> Dict[str, Any]:
     errors = []
     for field in required:
         if field not in data:
@@ -254,7 +256,9 @@ def validate_required_fields(data: Dict[str, Any], required: list[str]) -> Dict[
     return {"is_valid": len(errors) == 0, "errors": errors}
 
 
-def validate_field_types(data: Dict[str, Any], types: Dict[str, type]) -> Dict[str, Any]:
+def validate_field_types(
+    data: Dict[str, Any], types: Dict[str, type]
+) -> Dict[str, Any]:
     errors = []
     for field, expected in types.items():
         if field in data and not isinstance(data[field], expected):

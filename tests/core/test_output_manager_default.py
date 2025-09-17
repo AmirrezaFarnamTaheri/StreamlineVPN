@@ -20,5 +20,3 @@ def test_output_manager_defaults_return_true(tmp_path):
     # No formats passed -> defaults path should return True
     res = _run(om.save_configurations([{"name": "x"}], output_dir=str(tmp_path)))
     assert res is True
-
-

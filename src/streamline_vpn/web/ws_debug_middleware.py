@@ -33,7 +33,10 @@ class WSLogMiddleware:
         scheme = scope.get("scheme")
         headers = {}
         try:
-            headers = {k.decode("latin-1"): v.decode("latin-1") for k, v in scope.get("headers", [])}
+            headers = {
+                k.decode("latin-1"): v.decode("latin-1")
+                for k, v in scope.get("headers", [])
+            }
         except Exception:
             pass
 
@@ -61,18 +64,32 @@ class WSLogMiddleware:
             line2 = None
             if mtype == "websocket.accept":
                 line2 = f"[WS] Accepted path={path} subprotocol={message.get('subprotocol')}"
-                logger.debug("[WS] Accepted path=%s subprotocol=%s", path, message.get("subprotocol"))
+                logger.debug(
+                    "[WS] Accepted path=%s subprotocol=%s",
+                    path,
+                    message.get("subprotocol"),
+                )
             elif mtype == "websocket.close":
                 line2 = f"[WS] Closed path={path} code={message.get('code')}"
-                logger.debug("[WS] Closed (pre-accept or app-close) path=%s code=%s", path, message.get("code"))
+                logger.debug(
+                    "[WS] Closed (pre-accept or app-close) path=%s code=%s",
+                    path,
+                    message.get("code"),
+                )
             elif mtype == "websocket.http.response.start":
                 line2 = f"[WS] HTTP response start path={path} status={message.get('status')}"
-                logger.debug("[WS] HTTP response start during handshake path=%s status=%s", path, message.get("status"))
+                logger.debug(
+                    "[WS] HTTP response start during handshake path=%s status=%s",
+                    path,
+                    message.get("status"),
+                )
             if line2:
                 try:
                     root = Path(__file__).resolve().parents[3]
                     (root / "logs").mkdir(parents=True, exist_ok=True)
-                    with open(root / "logs" / "ws_scopes.log", "a", encoding="utf-8") as f:
+                    with open(
+                        root / "logs" / "ws_scopes.log", "a", encoding="utf-8"
+                    ) as f:
                         f.write(line2 + "\n")
                 except Exception:
                     pass

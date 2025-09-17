@@ -59,6 +59,7 @@ class IntegratedWebServer:
         # Include GraphQL routes (if available)
         try:
             from .graphql import create_graphql_app
+
             graphql_app = create_graphql_app()
             app.mount("/graphql", graphql_app)
         except ImportError:
@@ -74,11 +75,10 @@ class IntegratedWebServer:
 
     async def start(self):
         """Start the integrated server."""
-        logger.info(
-            "Starting Integrated Web Server on %s:%d", self.host, self.port
-        )
+        logger.info("Starting Integrated Web Server on %s:%d", self.host, self.port)
         try:
             import uvicorn
+
             logger.info("Starting server with uvicorn")
             uvicorn.run(self.app, host=self.host, port=self.port, log_level="info")
         except ImportError:

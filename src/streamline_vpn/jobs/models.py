@@ -150,7 +150,9 @@ class Job:
         self.id = id or str(uuid.uuid4())
         self.name = name
         self.type = resolved_type
-        self.status = status if isinstance(status, JobStatus) else JobStatus(str(status))
+        self.status = (
+            status if isinstance(status, JobStatus) else JobStatus(str(status))
+        )
         self.description = description
         self.priority = int(priority)
         self.parameters = parameters or {}
@@ -246,12 +248,8 @@ class Job:
             "result": self.result,
             "error": self.error,
             "created_at": self.created_at.isoformat(),
-            "updated_at": (
-                self.updated_at.isoformat() if self.updated_at else None
-            ),
-            "started_at": (
-                self.started_at.isoformat() if self.started_at else None
-            ),
+            "updated_at": (self.updated_at.isoformat() if self.updated_at else None),
+            "started_at": (self.started_at.isoformat() if self.started_at else None),
             "completed_at": (
                 self.completed_at.isoformat() if self.completed_at else None
             ),
@@ -325,9 +323,7 @@ class Job:
 
     def __str__(self) -> str:
         """String representation."""
-        return (
-            f"Job({self.id[:8]}...): {self.type.value} - {self.status.value}"
-        )
+        return f"Job({self.id[:8]}...): {self.type.value} - {self.status.value}"
 
     def __repr__(self) -> str:
         """Detailed representation."""

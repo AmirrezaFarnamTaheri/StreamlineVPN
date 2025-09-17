@@ -96,10 +96,7 @@ class RateLimiter:
 
         # Clean burst requests (1 second window)
         burst_cutoff = now - 1.0
-        while (
-            self.burst_requests[key]
-            and self.burst_requests[key][0] < burst_cutoff
-        ):
+        while self.burst_requests[key] and self.burst_requests[key][0] < burst_cutoff:
             self.burst_requests[key].popleft()
 
     def get_stats(self, key: str) -> Dict[str, int]:
@@ -119,12 +116,8 @@ class RateLimiter:
             "current_burst": len(self.burst_requests[key]),
             "max_requests": self.max_requests,
             "max_burst": self.burst_limit,
-            "remaining_requests": max(
-                0, self.max_requests - len(self.requests[key])
-            ),
-            "remaining_burst": max(
-                0, self.burst_limit - len(self.burst_requests[key])
-            ),
+            "remaining_requests": max(0, self.max_requests - len(self.requests[key])),
+            "remaining_burst": max(0, self.burst_limit - len(self.burst_requests[key])),
         }
 
     def reset(self, key: Optional[str] = None) -> None:
@@ -166,9 +159,7 @@ class AdaptiveRateLimiter(RateLimiter):
         self.response_time_threshold = response_time_threshold
         self.response_times: Dict[str, deque] = defaultdict(deque)
 
-    async def record_response_time(
-        self, key: str, response_time: float
-    ) -> None:
+    async def record_response_time(self, key: str, response_time: float) -> None:
         """Record response time for adaptation.
 
         Args:
@@ -181,10 +172,7 @@ class AdaptiveRateLimiter(RateLimiter):
 
             # Keep only recent response times
             cutoff = now - self.time_window
-            while (
-                self.response_times[key]
-                and self.response_times[key][0][0] < cutoff
-            ):
+            while self.response_times[key] and self.response_times[key][0][0] < cutoff:
                 self.response_times[key].popleft()
 
             # Adapt rate limit based on response times
@@ -206,15 +194,9 @@ class AdaptiveRateLimiter(RateLimiter):
         # Adjust rate limit based on response time
         if avg_response_time > self.response_time_threshold:
             # Slow response, reduce rate limit
-            self.max_requests = max(
-                self.min_requests, int(self.max_requests * 0.8)
-            )
-            logger.debug(
-                f"Reduced rate limit to {self.max_requests} for key {key}"
-            )
+            self.max_requests = max(self.min_requests, int(self.max_requests * 0.8))
+            logger.debug(f"Reduced rate limit to {self.max_requests} for key {key}")
         else:
             # Fast response, increase rate limit
             self.max_requests = min(100, int(self.max_requests * 1.1))
-            logger.debug(
-                f"Increased rate limit to {self.max_requests} for key {key}"
-            )
+            logger.debug(f"Increased rate limit to {self.max_requests} for key {key}")

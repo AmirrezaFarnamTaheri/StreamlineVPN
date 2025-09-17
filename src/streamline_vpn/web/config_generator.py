@@ -102,9 +102,7 @@ class VPNConfigGenerator:
                 files = list(output_dir.glob(pattern))
 
                 if not files:
-                    raise HTTPException(
-                        status_code=404, detail="File not found"
-                    )
+                    raise HTTPException(status_code=404, detail="File not found")
 
                 return FileResponse(
                     path=files[0],
@@ -135,20 +133,14 @@ class VPNConfigGenerator:
 
     async def start(self):
         """Start the configuration generator."""
-        logger.info(
-            f"Starting VPN Config Generator on {self.host}:{self.port}"
-        )
+        logger.info(f"Starting VPN Config Generator on {self.host}:{self.port}")
         try:
             import uvicorn
 
-            uvicorn.run(
-                self.app, host=self.host, port=self.port, log_level="info"
-            )
+            uvicorn.run(self.app, host=self.host, port=self.port, log_level="info")
         except ImportError:
             logger.warning("uvicorn not available, server not started")
-            logger.info(
-                "Install uvicorn to run the server: pip install uvicorn"
-            )
+            logger.info("Install uvicorn to run the server: pip install uvicorn")
 
     async def stop(self):
         """Stop the configuration generator."""

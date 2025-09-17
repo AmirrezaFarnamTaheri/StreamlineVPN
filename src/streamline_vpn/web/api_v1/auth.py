@@ -52,9 +52,7 @@ class AuthenticationService:
             last_login=datetime.now(),
         )
 
-    async def authenticate_user(
-        self, username: str, password: str
-    ) -> Optional[User]:
+    async def authenticate_user(self, username: str, password: str) -> Optional[User]:
         """Authenticate user with credentials.
 
         Args:
@@ -70,15 +68,15 @@ class AuthenticationService:
         demo_users = {
             "admin": {
                 "password_hash": bcrypt.hashpw(
-                    "admin123".encode('utf-8'), bcrypt.gensalt()
-                ).decode('utf-8'),
+                    "admin123".encode("utf-8"), bcrypt.gensalt()
+                ).decode("utf-8"),
                 "email": "admin@streamlinevpn.com",
                 "tier": UserTier.ENTERPRISE,
             },
             "user": {
                 "password_hash": bcrypt.hashpw(
-                    "user123".encode('utf-8'), bcrypt.gensalt()
-                ).decode('utf-8'),
+                    "user123".encode("utf-8"), bcrypt.gensalt()
+                ).decode("utf-8"),
                 "email": "user@streamlinevpn.com",
                 "tier": UserTier.PREMIUM,
             },
@@ -86,8 +84,8 @@ class AuthenticationService:
 
         if username in demo_users:
             user_data = demo_users[username]
-            stored_hash = user_data["password_hash"].encode('utf-8')
-            if bcrypt.checkpw(password.encode('utf-8'), stored_hash):
+            stored_hash = user_data["password_hash"].encode("utf-8")
+            if bcrypt.checkpw(password.encode("utf-8"), stored_hash):
                 return User(
                     id=f"user_{username}",
                     username=username,
@@ -169,9 +167,7 @@ class AuthenticationService:
             New access token if valid, None otherwise
         """
         try:
-            payload = jwt.decode(
-                refresh_token, self.secret_key, algorithms=["HS256"]
-            )
+            payload = jwt.decode(refresh_token, self.secret_key, algorithms=["HS256"])
             user_id = payload.get("sub")
 
             if user_id in self.users:

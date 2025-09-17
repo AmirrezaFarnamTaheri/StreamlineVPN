@@ -52,8 +52,13 @@ class L3DatabaseCache:
         def _get() -> Optional[str]:
             with sqlite3.connect(self.db_path) as conn:
                 # delete expired rows first (best-effort)
-                conn.execute("DELETE FROM cache WHERE expires_at IS NOT NULL AND expires_at < ?", (now,))
-                cur = conn.execute("SELECT value, expires_at FROM cache WHERE key = ?", (key,))
+                conn.execute(
+                    "DELETE FROM cache WHERE expires_at IS NOT NULL AND expires_at < ?",
+                    (now,),
+                )
+                cur = conn.execute(
+                    "SELECT value, expires_at FROM cache WHERE key = ?", (key,)
+                )
                 row = cur.fetchone()
                 if not row:
                     return None
@@ -97,4 +102,3 @@ class L3DatabaseCache:
                 conn.commit()
 
         await asyncio.to_thread(_clear)
-

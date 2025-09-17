@@ -96,9 +96,7 @@ def get_tracked_sessions() -> List[aiohttp.ClientSession]:
         return []
 
 
-def make_session(
-    max_concurrent: int, timeout_seconds: int
-) -> aiohttp.ClientSession:
+def make_session(max_concurrent: int, timeout_seconds: int) -> aiohttp.ClientSession:
     # Backwards-compatible factory that now draws from SessionManager
     # Ignores per-call limits in favor of centralized pooling.
     # For legacy callers, still create a dedicated session if needed.
@@ -129,6 +127,7 @@ async def execute_request(
     get_domain=None,
 ) -> str:
     from ..utils.logging import get_logger
+
     logger = get_logger(__name__)
 
     last_exc: Optional[BaseException] = None
@@ -155,9 +154,7 @@ async def execute_request(
                     domain = get_domain(url)
                     rl = rate_limiters.get(domain)
                     if rl is not None:
-                        await rl.record_response_time(
-                            domain, time.time() - start
-                        )
+                        await rl.record_response_time(domain, time.time() - start)
                 return content
         except Exception as e:
             logger.error("Attempt %d failed for %s: %s", attempt + 1, url, e)

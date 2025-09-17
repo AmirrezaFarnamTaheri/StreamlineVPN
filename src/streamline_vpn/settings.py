@@ -18,6 +18,7 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 
 class FetcherSettings(BaseSettings):
     """Settings for the FetcherService."""
+
     max_concurrent: int = 50
     timeout_seconds: int = 30
     retry_attempts: int = 3
@@ -33,6 +34,7 @@ class FetcherSettings(BaseSettings):
 
 class SecuritySettings(BaseSettings):
     """Settings for the SecurityManager."""
+
     suspicious_tlds: List[str] = [".tk", ".ml", ".ga", ".cf", ".pw"]
     safe_protocols: List[str] = [
         "http",
@@ -97,6 +99,7 @@ class SecuritySettings(BaseSettings):
 
 class RedisSettings(BaseSettings):
     """Settings for the Redis client."""
+
     nodes: List[Dict[str, str]] = [{"host": "redis", "port": "6379"}]
 
     model_config = SettingsConfigDict(env_prefix="STREAMLINE_REDIS_")
@@ -104,7 +107,10 @@ class RedisSettings(BaseSettings):
 
 class Settings(BaseSettings):
     """Global application settings."""
-    secret_key: str = "CHANGE_THIS_IN_PRODUCTION_USE_ENVIRONMENT_VARIABLE"  # WARNING: Change in production!
+
+    secret_key: str = (
+        "CHANGE_THIS_IN_PRODUCTION_USE_ENVIRONMENT_VARIABLE"  # WARNING: Change in production!
+    )
     fetcher: FetcherSettings = Field(default_factory=FetcherSettings)
     security: SecuritySettings = Field(default_factory=SecuritySettings)
     redis: RedisSettings = Field(default_factory=RedisSettings)
@@ -120,9 +126,21 @@ class Settings(BaseSettings):
     ]
 
     # CORS settings
-    allowed_origins: List[str] = Field(default=["http://localhost:3000", "http://localhost:8000", "http://localhost:8080"], alias="ALLOWED_ORIGINS")  # WARNING: Restrict in production!
-    allowed_methods: List[str] = Field(default=["GET", "POST", "PUT", "DELETE", "OPTIONS"], alias="ALLOWED_METHODS")
-    allowed_headers: List[str] = Field(default=["Content-Type", "Authorization", "X-Requested-With"], alias="ALLOWED_HEADERS")
+    allowed_origins: List[str] = Field(
+        default=[
+            "http://localhost:3000",
+            "http://localhost:8000",
+            "http://localhost:8080",
+        ],
+        alias="ALLOWED_ORIGINS",
+    )  # WARNING: Restrict in production!
+    allowed_methods: List[str] = Field(
+        default=["GET", "POST", "PUT", "DELETE", "OPTIONS"], alias="ALLOWED_METHODS"
+    )
+    allowed_headers: List[str] = Field(
+        default=["Content-Type", "Authorization", "X-Requested-With"],
+        alias="ALLOWED_HEADERS",
+    )
     allow_credentials: bool = Field(default=True, alias="ALLOW_CREDENTIALS")
 
     model_config = SettingsConfigDict(
@@ -130,7 +148,9 @@ class Settings(BaseSettings):
     )
 
     # Accept comma-separated strings for list env vars for convenience
-    @field_validator("allowed_origins", "allowed_methods", "allowed_headers", mode="before")
+    @field_validator(
+        "allowed_origins", "allowed_methods", "allowed_headers", mode="before"
+    )
     @classmethod
     def _parse_comma_separated(cls, v):  # type: ignore[override]
         if isinstance(v, str):

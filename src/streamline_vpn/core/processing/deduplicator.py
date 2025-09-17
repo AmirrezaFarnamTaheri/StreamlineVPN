@@ -229,9 +229,7 @@ class ConfigurationDeduplicator:
             stats["strategies"][strategy] = {
                 "unique_count": len(unique_configs),
                 "duplicate_groups": len(duplicates),
-                "duplicate_count": sum(
-                    len(group) - 1 for group in duplicates.values()
-                ),
+                "duplicate_count": sum(len(group) - 1 for group in duplicates.values()),
             }
 
         return stats

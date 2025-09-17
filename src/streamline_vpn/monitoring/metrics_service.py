@@ -144,7 +144,10 @@ class MetricsService:
         return False
 
     def health_check(self) -> Dict[str, Any]:
-        return {"running": self.is_running, "interval": self.collector.collection_interval}
+        return {
+            "running": self.is_running,
+            "interval": self.collector.collection_interval,
+        }
 
     def get_metrics_summary(self) -> Dict[str, Any]:
         """Get metrics summary for monitoring dashboard."""
@@ -190,7 +193,9 @@ class MetricsService:
         """Get metrics summary."""
         return self.collector.get_metrics_summary()
 
-    async def export_to_multiple_destinations(self, formats: List[str], destinations: List[str]) -> bool:
+    async def export_to_multiple_destinations(
+        self, formats: List[str], destinations: List[str]
+    ) -> bool:
         """Export to multiple destinations."""
         return True
 
@@ -218,7 +223,7 @@ class MetricsService:
             "status": "healthy",
             "collector_running": self.collector.is_running,
             "exporter_running": self.exporter.is_running,
-            "service_running": self.is_running
+            "service_running": self.is_running,
         }
 
     async def get_performance_metrics(self) -> Dict[str, Any]:
@@ -238,7 +243,9 @@ class MetricsService:
                 return False
         return True
 
-    async def metrics_aggregation(self, metrics: List[Dict[str, Any]]) -> Dict[str, Any]:
+    async def metrics_aggregation(
+        self, metrics: List[Dict[str, Any]]
+    ) -> Dict[str, Any]:
         """Aggregate metrics."""
         return self.aggregate_metrics(metrics)
 
@@ -249,7 +256,9 @@ class MetricsService:
         keys = set().union(*(m.keys() for m in metrics))
         result: Dict[str, Any] = {}
         for key in keys:
-            values = [m[key] for m in metrics if key in m and isinstance(m[key], (int, float))]
+            values = [
+                m[key] for m in metrics if key in m and isinstance(m[key], (int, float))
+            ]
             if not values:
                 continue
             result[f"{key}_avg"] = sum(values) / len(values)
@@ -260,11 +269,27 @@ class MetricsService:
     def __getattribute__(self, name: str):
         attr = object.__getattribute__(self, name)
         # Async unwrapping for async methods
-        if name in {"get_current_metrics", "get_historical_metrics", "export_metrics", "get_metrics_summary", "export_to_multiple_destinations", "schedule_export", "cancel_scheduled_export", "health_check", "get_performance_metrics", "error_handling", "metrics_aggregation", "collect_and_export", "aggregate_metrics"}:
+        if name in {
+            "get_current_metrics",
+            "get_historical_metrics",
+            "export_metrics",
+            "get_metrics_summary",
+            "export_to_multiple_destinations",
+            "schedule_export",
+            "cancel_scheduled_export",
+            "health_check",
+            "get_performance_metrics",
+            "error_handling",
+            "metrics_aggregation",
+            "collect_and_export",
+            "aggregate_metrics",
+        }:
             try:
                 from unittest.mock import AsyncMock, MagicMock  # type: ignore
                 import inspect
+
                 if isinstance(attr, (MagicMock, AsyncMock)) or callable(attr):
+
                     async def _wrapper(*args, **kwargs):
                         value = attr(*args, **kwargs)
                         # Iteratively resolve awaitables and mock return_values
@@ -285,6 +310,7 @@ class MetricsService:
                                     continue
                             break
                         return value
+
                     return _wrapper
             except Exception:
                 pass

@@ -10,12 +10,12 @@ from pathlib import Path
 
 def setup_static_files(app: FastAPI) -> None:
     """Setup static file serving for the FastAPI application."""
-    
+
     # Serve static files
     static_path = Path(__file__).parent.parent / "static"
     if static_path.exists():
         app.mount("/static", StaticFiles(directory=str(static_path)), name="static")
-    
+
     # Serve API documentation
     @app.get("/api", response_class=HTMLResponse)
     async def serve_api_base():
@@ -99,7 +99,7 @@ def setup_static_files(app: FastAPI) -> None:
         </body>
         </html>
         """
-    
+
     # Root endpoint
     @app.get("/", response_class=HTMLResponse)
     async def root():
@@ -156,4 +156,3 @@ def setup_static_files(app: FastAPI) -> None:
         </body>
         </html>
         """
-

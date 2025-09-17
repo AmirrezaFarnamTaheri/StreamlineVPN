@@ -68,7 +68,7 @@ class Shadowsocks2022Parser:
             parse_time = time.perf_counter() - start_time
             self._update_performance_stats(parse_time)
 
-            logger.debug("SS2022 config parsed in %.2fms", parse_time*1000)
+            logger.debug("SS2022 config parsed in %.2fms", parse_time * 1000)
             return config
 
         except Exception as e:
@@ -123,8 +123,7 @@ class Shadowsocks2022Parser:
         self.performance_stats["parse_count"] += 1
         self.performance_stats["total_time"] += parse_time
         self.performance_stats["avg_time"] = (
-            self.performance_stats["total_time"]
-            / self.performance_stats["parse_count"]
+            self.performance_stats["total_time"] / self.performance_stats["parse_count"]
         )
 
     def get_performance_stats(self) -> Dict[str, Any]:

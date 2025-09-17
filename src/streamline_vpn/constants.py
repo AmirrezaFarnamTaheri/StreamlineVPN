@@ -13,9 +13,7 @@ SERVER_RECOMMENDATION_TTL = 300  # 5 minutes
 # Redis configuration
 DEFAULT_REDIS_HOST = "localhost"
 DEFAULT_REDIS_PORT = "6379"
-DEFAULT_REDIS_NODES = [
-    {"host": DEFAULT_REDIS_HOST, "port": DEFAULT_REDIS_PORT}
-]
+DEFAULT_REDIS_NODES = [{"host": DEFAULT_REDIS_HOST, "port": DEFAULT_REDIS_PORT}]
 
 # Time intervals (in seconds)
 DEFAULT_UPDATE_INTERVAL = 86400  # 24 hours

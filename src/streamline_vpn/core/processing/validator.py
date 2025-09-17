@@ -66,10 +66,7 @@ class ConfigurationValidator:
         valid = True
 
         # Validate protocol
-        if (
-            not config.protocol
-            or config.protocol.value not in self.valid_protocols
-        ):
+        if not config.protocol or config.protocol.value not in self.valid_protocols:
             errors.append(f"Invalid protocol: {config.protocol}")
             valid = False
 
@@ -115,9 +112,7 @@ class ConfigurationValidator:
             Protocol.SHADOWSOCKSR,
         ]:
             if not config.password:
-                errors.append(
-                    f"{config.protocol.value} requires password"
-                )
+                errors.append(f"{config.protocol.value} requires password")
                 valid = False
 
         return valid
@@ -133,25 +128,16 @@ class ConfigurationValidator:
 
         # Check minimum quality score
         min_quality = rules.get("min_quality_score", 0)
-        if (
-            config.quality_score is not None
-            and config.quality_score < min_quality
-        ):
+        if config.quality_score is not None and config.quality_score < min_quality:
             errors.append(
-                f"Quality score {config.quality_score} "
-                f"below minimum {min_quality}"
+                f"Quality score {config.quality_score} " f"below minimum {min_quality}"
             )
             valid = False
 
         # Check allowed protocols
         allowed_protocols = rules.get("allowed_protocols", [])
-        if (
-            allowed_protocols
-            and config.protocol.value not in allowed_protocols
-        ):
-            errors.append(
-                f"Protocol {config.protocol.value} not in allowed list"
-            )
+        if allowed_protocols and config.protocol.value not in allowed_protocols:
+            errors.append(f"Protocol {config.protocol.value} not in allowed list")
             valid = False
 
         # Check server whitelist/blacklist
@@ -235,8 +221,7 @@ class ConfigurationValidator:
             True if valid
         """
         return (
-            isinstance(port, int)
-            and self.port_range[0] <= port <= self.port_range[1]
+            isinstance(port, int) and self.port_range[0] <= port <= self.port_range[1]
         )
 
     def validate_configurations(
@@ -253,7 +238,7 @@ class ConfigurationValidator:
                 valid_configs.append(config)
             else:
                 logger.debug(
-                    "Invalid configuration %s: %s", config.id, ', '.join(errors)
+                    "Invalid configuration %s: %s", config.id, ", ".join(errors)
                 )
 
         logger.info(

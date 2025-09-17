@@ -71,17 +71,13 @@ class IdentityProvider:
         # Demo users
         demo_users = {
             "admin": {
-                "password_hash": hashlib.sha256(
-                    "admin123".encode()
-                ).hexdigest(),
+                "password_hash": hashlib.sha256("admin123".encode()).hexdigest(),
                 "email": "admin@streamlinevpn.com",
                 "groups": ["administrators"],
                 "roles": ["admin", "user"],
             },
             "user": {
-                "password_hash": hashlib.sha256(
-                    "user123".encode()
-                ).hexdigest(),
+                "password_hash": hashlib.sha256("user123".encode()).hexdigest(),
                 "email": "user@streamlinevpn.com",
                 "groups": ["users"],
                 "roles": ["user"],

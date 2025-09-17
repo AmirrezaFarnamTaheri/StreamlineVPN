@@ -52,9 +52,7 @@ class APIServer:
         # Schedule the pipeline to run every 12 hours
         # self.app.add_event_handler("startup", self.start_scheduler)
 
-        logger.info(
-            "API server initialized with %d Redis nodes", len(redis_nodes)
-        )
+        logger.info("API server initialized with %d Redis nodes", len(redis_nodes))
         if redis_nodes:
             addresses = ", ".join(f"{n['host']}:{n['port']}" for n in redis_nodes)
             logger.debug("Redis nodes configured: %s", addresses)
@@ -64,6 +62,7 @@ class APIServer:
         Starts the background scheduler.
         """
         from ...scheduler import setup_scheduler
+
         setup_scheduler()
 
     def _setup_middleware(self) -> None:
@@ -76,7 +75,7 @@ class APIServer:
 
     def _setup_exception_handlers(self) -> None:
         """Setup global exception handlers for comprehensive error handling."""
-        
+
         @self.app.exception_handler(HTTPException)
         async def http_exception_handler(request: Request, exc: HTTPException):
             """Handle HTTP exceptions with proper logging."""
@@ -86,12 +85,14 @@ class APIServer:
                 content={
                     "error": exc.detail,
                     "status_code": exc.status_code,
-                    "path": str(request.url.path)
-                }
+                    "path": str(request.url.path),
+                },
             )
 
         @self.app.exception_handler(RequestValidationError)
-        async def validation_exception_handler(request: Request, exc: RequestValidationError):
+        async def validation_exception_handler(
+            request: Request, exc: RequestValidationError
+        ):
             """Handle validation errors with detailed information."""
             logger.warning("Validation error: %s - %s", exc.errors(), request.url)
             return JSONResponse(
@@ -99,8 +100,8 @@ class APIServer:
                 content={
                     "error": "Validation failed",
                     "details": exc.errors(),
-                    "path": str(request.url.path)
-                }
+                    "path": str(request.url.path),
+                },
             )
 
         @self.app.exception_handler(Exception)
@@ -112,8 +113,8 @@ class APIServer:
                 content={
                     "error": "Internal server error",
                     "message": "An unexpected error occurred. Please try again later.",
-                    "path": str(request.url.path)
-                }
+                    "path": str(request.url.path),
+                },
             )
 
     def run(self, host: str = "0.0.0.0", port: int = 8080) -> None:
@@ -126,13 +127,13 @@ class APIServer:
         try:
             logger.info("Starting API server on %s:%d", host, port)
             uvicorn.run(
-                self.app, 
-                host=host, 
+                self.app,
+                host=host,
                 port=port,
                 log_level="info",
                 access_log=True,
                 server_header=False,
-                date_header=False
+                date_header=False,
             )
         except Exception as e:
             logger.error("Failed to start API server: %s", e, exc_info=True)

@@ -24,10 +24,8 @@ class RawFormatter(BaseFormatter):
         self, configs: List[VPNConfiguration], base_filename: str
     ) -> Path:
         """Save configurations as plain text."""
-        file_path = (
-            self.output_dir / f"{base_filename}{self.get_file_extension()}"
-        )
-        
+        file_path = self.output_dir / f"{base_filename}{self.get_file_extension()}"
+
         try:
             with open(file_path, "w", encoding="utf-8") as f:
                 for config in configs:
@@ -35,5 +33,5 @@ class RawFormatter(BaseFormatter):
         except Exception as e:
             logger.error("Failed to save raw configurations: %s", e)
             raise
-        
+
         return file_path

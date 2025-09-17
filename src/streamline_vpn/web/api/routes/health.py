@@ -12,6 +12,7 @@ class HealthRoutes:
     def _get_merger():
         try:
             from ...unified_api import get_merger  # type: ignore
+
             return get_merger()
         except Exception:
             return None
@@ -24,7 +25,7 @@ async def health_check():
         "status": "healthy",
         "service": "StreamlineVPN",
         "version": "1.0.0",
-        "timestamp": "2024-01-01T00:00:00Z"
+        "timestamp": "2024-01-01T00:00:00Z",
     }
 
 
@@ -35,13 +36,13 @@ async def detailed_health_check():
         # Check core components
         from ...core.source.manager import SourceManager
         from ...core.merger import StreamlineVPNMerger
-        
+
         source_manager = SourceManager()
         merger = StreamlineVPNMerger()
-        
+
         # Get basic stats
         sources = source_manager.get_all_sources()
-        
+
         return {
             "status": "healthy",
             "service": "StreamlineVPN",
@@ -49,13 +50,10 @@ async def detailed_health_check():
             "components": {
                 "source_manager": "healthy",
                 "merger": "healthy",
-                "api": "healthy"
+                "api": "healthy",
             },
-            "statistics": {
-                "sources_count": len(sources),
-                "uptime": "unknown"
-            },
-            "timestamp": "2024-01-01T00:00:00Z"
+            "statistics": {"sources_count": len(sources), "uptime": "unknown"},
+            "timestamp": "2024-01-01T00:00:00Z",
         }
     except Exception as e:
         return {
@@ -63,5 +61,5 @@ async def detailed_health_check():
             "service": "StreamlineVPN",
             "version": "1.0.0",
             "error": str(e),
-            "timestamp": "2024-01-01T00:00:00Z"
+            "timestamp": "2024-01-01T00:00:00Z",
         }

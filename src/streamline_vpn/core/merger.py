@@ -44,7 +44,9 @@ class StreamlineVPNMerger:
         # Core components
         # Instantiate a minimal SourceManager so tests can patch its methods without calling initialize
         try:
-            self.source_manager: Optional[SourceManager] = SourceManager(config_path=self.config_path)
+            self.source_manager: Optional[SourceManager] = SourceManager(
+                config_path=self.config_path
+            )
         except Exception:
             self.source_manager = None
         self.config_processor: Optional[ConfigurationProcessor] = None
@@ -55,9 +57,9 @@ class StreamlineVPNMerger:
         self.merger_processor: Optional[MergerProcessor] = None
 
         # Configuration
-        self.max_concurrent = kwargs.get('max_concurrent', 50)
-        self.timeout = kwargs.get('timeout', 30)
-        self.retry_count = kwargs.get('retry_count', 3)
+        self.max_concurrent = kwargs.get("max_concurrent", 50)
+        self.timeout = kwargs.get("timeout", 30)
+        self.retry_count = kwargs.get("retry_count", 3)
 
         # State tracking
         self.last_run_time: Optional[datetime] = None
@@ -76,16 +78,16 @@ class StreamlineVPNMerger:
 
         try:
             logger.info("🔧 Initializing StreamlineVPN Merger components...")
-            
+
             # Load configuration
             await self._load_configuration()
-            
+
             # Initialize core components
             await self._initialize_components()
-            
+
             # Validate setup
             await self._validate_setup()
-            
+
             self.initialized = True
             logger.info("✅ StreamlineVPN Merger initialization complete")
             return True
@@ -98,22 +100,28 @@ class StreamlineVPNMerger:
         """Load and validate configuration from file."""
         try:
             if not self.config_path.exists():
-                raise FileNotFoundError(f"Configuration file not found: {self.config_path}")
+                raise FileNotFoundError(
+                    f"Configuration file not found: {self.config_path}"
+                )
 
             self.config = await load_config_file(self.config_path)
 
             # Validate configuration structure
-            if 'sources' not in self.config:
+            if "sources" not in self.config:
                 # Provide empty sources for focused/core tests expecting initialization to succeed
-                self.config['sources'] = {}
+                self.config["sources"] = {}
 
             # Apply configuration overrides
-            processing_config = self.config.get('processing', {})
-            self.max_concurrent = processing_config.get('max_concurrent', self.max_concurrent)
-            self.timeout = processing_config.get('timeout', self.timeout)
-            self.retry_count = processing_config.get('retry_count', self.retry_count)
+            processing_config = self.config.get("processing", {})
+            self.max_concurrent = processing_config.get(
+                "max_concurrent", self.max_concurrent
+            )
+            self.timeout = processing_config.get("timeout", self.timeout)
+            self.retry_count = processing_config.get("retry_count", self.retry_count)
 
-            logger.info(f"Configuration loaded: {len(self.config.get('sources', {}))} source tiers")
+            logger.info(
+                f"Configuration loaded: {len(self.config.get('sources', {}))} source tiers"
+            )
 
         except Exception as e:
             logger.error(f"Failed to load configuration: {e}")
@@ -122,6 +130,7 @@ class StreamlineVPNMerger:
     async def _initialize_components(self) -> None:
         """Initialize all core components."""
         from ..settings import get_settings
+
         settings = get_settings()
         try:
             # Initialize cache service first (others may depend on it)
@@ -136,7 +145,7 @@ class StreamlineVPNMerger:
             self.source_manager = SourceManager(
                 config_path=self.config_path,
                 security_manager=self.security_manager,
-                fetcher_service=self.fetcher_service
+                fetcher_service=self.fetcher_service,
             )
 
             # Initialize configuration processor
@@ -157,12 +166,12 @@ class StreamlineVPNMerger:
     async def _validate_setup(self) -> None:
         """Validate that all components are properly initialized."""
         required_components = [
-            ('source_manager', self.source_manager),
-            ('config_processor', self.config_processor),
-            ('output_manager', self.output_manager),
-            ('cache_service', self.cache_service),
-            ('security_manager', self.security_manager),
-            ('merger_processor', self.merger_processor)
+            ("source_manager", self.source_manager),
+            ("config_processor", self.config_processor),
+            ("output_manager", self.output_manager),
+            ("cache_service", self.cache_service),
+            ("security_manager", self.security_manager),
+            ("merger_processor", self.merger_processor),
         ]
 
         for name, component in required_components:
@@ -175,7 +184,7 @@ class StreamlineVPNMerger:
         self,
         output_dir: str = "output",
         formats: Optional[List[str]] = None,
-        force_refresh: bool = False
+        force_refresh: bool = False,
     ) -> Dict[str, Any]:
         """
         Process all configured sources and generate outputs.
@@ -197,22 +206,24 @@ class StreamlineVPNMerger:
         try:
             # Initialize result tracking
             results = {
-                'success': False,
-                'start_time': start_time.isoformat(),
-                'total_sources': 0,
-                'total_configurations': 0,
-                'success_rate': 0.0,
-                'processing_time': 0.0,
-                'formats_generated': [],
-                'errors': [],
-                'warnings': []
+                "success": False,
+                "start_time": start_time.isoformat(),
+                "total_sources": 0,
+                "total_configurations": 0,
+                "success_rate": 0.0,
+                "processing_time": 0.0,
+                "formats_generated": [],
+                "errors": [],
+                "warnings": [],
             }
 
             # Step 1: Process all sources
             logger.info("📡 Step 1: Processing all configured sources...")
             # Call through SourceManager.fetch_all_sources if available so tests can patch it
             source_results = None
-            if self.source_manager and hasattr(self.source_manager, "fetch_all_sources"):
+            if self.source_manager and hasattr(
+                self.source_manager, "fetch_all_sources"
+            ):
                 # Call with no positional arguments; some tests patch signature without params
                 result = self.source_manager.fetch_all_sources()
                 # Only use if it returns a mapping (as in focused tests); otherwise fall back
@@ -223,19 +234,21 @@ class StreamlineVPNMerger:
             if not isinstance(source_results, dict):
                 source_results = await self._process_all_sources(force_refresh)
 
-            results.update({
-                'total_sources': source_results.get('total_sources', 0),
-                'successful_sources': source_results.get('successful_sources', 0),
-                'failed_sources': source_results.get('failed_sources', 0)
-            })
+            results.update(
+                {
+                    "total_sources": source_results.get("total_sources", 0),
+                    "successful_sources": source_results.get("successful_sources", 0),
+                    "failed_sources": source_results.get("failed_sources", 0),
+                }
+            )
 
             # Step 2: Parse and validate configurations
             logger.info("🔍 Step 2: Parsing and validating configurations...")
-            all_configs = source_results.get('configurations', [])
+            all_configs = source_results.get("configurations", [])
 
             if not all_configs:
                 logger.warning("No configurations retrieved from sources")
-                results['warnings'].append("No configurations found in any source")
+                results["warnings"].append("No configurations found in any source")
 
             # Step 3: Apply security validation and filtering
             logger.info("🔒 Step 3: Applying security validation...")
@@ -243,37 +256,42 @@ class StreamlineVPNMerger:
 
             # Step 4: Deduplicate configurations
             logger.info("🔄 Step 4: Deduplicating configurations...")
-            unique_configs = await self.merger_processor.deduplicate_configurations(validated_configs)
+            unique_configs = await self.merger_processor.deduplicate_configurations(
+                validated_configs
+            )
 
-            results['total_configurations'] = len(unique_configs)
+            results["total_configurations"] = len(unique_configs)
 
             # Step 5: Apply ML and geographic enhancements (if available)
             logger.info("🤖 Step 5: Applying AI enhancements...")
-            enhanced_configs = await self.merger_processor.apply_enhancements(unique_configs)
+            enhanced_configs = await self.merger_processor.apply_enhancements(
+                unique_configs
+            )
 
             self.configurations = enhanced_configs
 
             # Step 6: Generate outputs
             logger.info("📄 Step 6: Generating output files...")
             output_results = await self._generate_outputs(
-                enhanced_configs,
-                output_dir,
-                formats
+                enhanced_configs, output_dir, formats
             )
 
-            results['formats_generated'] = formats if output_results else []
+            results["formats_generated"] = formats if output_results else []
 
             # Calculate final statistics
             end_time = datetime.now()
             processing_time = (end_time - start_time).total_seconds()
 
-            results.update({
-                'success': True,
-                'end_time': end_time.isoformat(),
-                'processing_time': processing_time,
-                'success_rate': source_results.get('success_rate', 0.0),
-                'configurations_per_second': len(unique_configs) / max(processing_time, 1)
-            })
+            results.update(
+                {
+                    "success": True,
+                    "end_time": end_time.isoformat(),
+                    "processing_time": processing_time,
+                    "success_rate": source_results.get("success_rate", 0.0),
+                    "configurations_per_second": len(unique_configs)
+                    / max(processing_time, 1),
+                }
+            )
 
             # Update internal statistics
             self.last_run_time = end_time
@@ -294,12 +312,14 @@ class StreamlineVPNMerger:
             error_msg = f"Processing failed after {processing_time:.2f}s: {str(e)}"
             logger.error(error_msg, exc_info=True)
 
-            results.update({
-                'success': False,
-                'end_time': end_time.isoformat(),
-                'processing_time': processing_time,
-                'error': str(e)
-            })
+            results.update(
+                {
+                    "success": False,
+                    "end_time": end_time.isoformat(),
+                    "processing_time": processing_time,
+                    "error": str(e),
+                }
+            )
 
             return results
 
@@ -308,25 +328,35 @@ class StreamlineVPNMerger:
         try:
             # Get all sources from configuration
             all_sources = []
-            sources_config = self.config.get('sources', {})
-            
+            sources_config = self.config.get("sources", {})
+
             # Debug: Check if sources_config is a list instead of dict
             if isinstance(sources_config, list):
-                logger.error(f"Sources config is a list instead of dict: {sources_config}")
+                logger.error(
+                    f"Sources config is a list instead of dict: {sources_config}"
+                )
                 # Convert list to dict format if needed
                 sources_config = {"default": {"urls": sources_config}}
 
             for tier_name, tier_sources in sources_config.items():
                 for source in tier_sources.get("urls", []):
                     source_info = {
-                        'tier': tier_name,
-                        'url': source if isinstance(source, str) else source.get('url'),
-                        'weight': 1.0 if isinstance(source, str) else source.get('weight', 1.0),
-                        'protocols': None if isinstance(source, str) else source.get('protocols')
+                        "tier": tier_name,
+                        "url": source if isinstance(source, str) else source.get("url"),
+                        "weight": (
+                            1.0
+                            if isinstance(source, str)
+                            else source.get("weight", 1.0)
+                        ),
+                        "protocols": (
+                            None if isinstance(source, str) else source.get("protocols")
+                        ),
                     }
                     all_sources.append(source_info)
 
-            logger.info(f"Processing {len(all_sources)} sources across {len(sources_config)} tiers")
+            logger.info(
+                f"Processing {len(all_sources)} sources across {len(sources_config)} tiers"
+            )
 
             # Process sources using the merger processor
             (
@@ -336,9 +366,7 @@ class StreamlineVPNMerger:
 
             # Calculate statistics
             failed_sources = len(all_sources) - successful_sources
-            success_rate = (
-                successful_sources / len(all_sources) if all_sources else 0
-            )
+            success_rate = successful_sources / len(all_sources) if all_sources else 0
 
             return {
                 "total_sources": len(all_sources),
@@ -370,7 +398,13 @@ class StreamlineVPNMerger:
         """Validate a single configuration dict via processor/validator."""
         try:
             cfg_type = (config or {}).get("type") or (config or {}).get("protocol")
-            if not cfg_type or str(cfg_type).lower() not in {"vmess", "vless", "trojan", "shadowsocks", "ssr"}:
+            if not cfg_type or str(cfg_type).lower() not in {
+                "vmess",
+                "vless",
+                "trojan",
+                "shadowsocks",
+                "ssr",
+            }:
                 return {"is_valid": False, "errors": ["Invalid type"]}
             return {"is_valid": True, "errors": []}
         except Exception as e:
@@ -390,51 +424,67 @@ class StreamlineVPNMerger:
     def add_source(self, source: Dict[str, Any]) -> Dict[str, Any]:
         if self.source_manager and hasattr(self.source_manager, "add_source"):
             try:
-                res = self.source_manager.add_source(source)  # may be async in real impl
+                res = self.source_manager.add_source(
+                    source
+                )  # may be async in real impl
                 return {"success": True}
             except Exception as e:
                 return {"success": False, "error": str(e)}
         return {"success": False, "error": "source_manager unavailable"}
 
-    async def _apply_security_validation(self, configs: List[VPNConfiguration]) -> List[VPNConfiguration]:
+    async def _apply_security_validation(
+        self, configs: List[VPNConfiguration]
+    ) -> List[VPNConfiguration]:
         """Apply security validation to all configurations."""
         if not self.security_manager:
-            logger.warning("Security manager not available, skipping security validation")
+            logger.warning(
+                "Security manager not available, skipping security validation"
+            )
             return configs
 
         validated_configs = []
         security_rejections = 0
-        
+
         for config in configs:
             try:
                 # Convert config to string representation for analysis
-                config_str = str(config)  # This would need proper serialization in real implementation
+                config_str = str(
+                    config
+                )  # This would need proper serialization in real implementation
 
-                security_result = self.security_manager.analyze_configuration(config_str)
+                security_result = self.security_manager.analyze_configuration(
+                    config_str
+                )
 
-                if security_result.get('is_safe', False):
+                if security_result.get("is_safe", False):
                     # Add security score to config metadata
-                    if hasattr(config, 'metadata'):
-                        config.metadata['security_score'] = security_result.get('score', 0)
+                    if hasattr(config, "metadata"):
+                        config.metadata["security_score"] = security_result.get(
+                            "score", 0
+                        )
 
                     validated_configs.append(config)
                 else:
                     security_rejections += 1
-                    logger.debug(f"Configuration rejected for security: {security_result.get('reason', 'Unknown')}")
+                    logger.debug(
+                        f"Configuration rejected for security: {security_result.get('reason', 'Unknown')}"
+                    )
 
             except Exception as e:
                 logger.error(f"Security validation error: {e}")
                 # On error, err on the side of caution
                 security_rejections += 1
-        
-        logger.info(f"Security validation complete: {len(validated_configs)} approved, {security_rejections} rejected")
+
+        logger.info(
+            f"Security validation complete: {len(validated_configs)} approved, {security_rejections} rejected"
+        )
         return validated_configs
 
     async def _generate_outputs(
         self,
         configs: List[VPNConfiguration],
         output_dir: str,
-        formats: Optional[List[str]] = None
+        formats: Optional[List[str]] = None,
     ) -> Dict[str, Any]:
         """Generate output files in specified formats."""
         if not self.output_manager:
@@ -442,16 +492,16 @@ class StreamlineVPNMerger:
 
         # Use default formats if none specified
         if formats is None:
-            formats = self.config.get('output', {}).get('formats', ['json', 'clash', 'singbox'])
-        
+            formats = self.config.get("output", {}).get(
+                "formats", ["json", "clash", "singbox"]
+            )
+
         logger.info(f"Generating {len(formats)} output format(s): {formats}")
-        
+
         results = await self.output_manager.save_configurations(
-            configs=configs,
-            output_dir=output_dir,
-            formats=formats
+            configs=configs, output_dir=output_dir, formats=formats
         )
-        
+
         return results
 
     # Backwards-compatible stubs for integration tests
@@ -462,40 +512,47 @@ class StreamlineVPNMerger:
     async def process_sources_wrapper(self, *args, **kwargs) -> Any:
         result = self.process_sources(*args, **kwargs)
         import inspect as _inspect
+
         return await result if _inspect.isawaitable(result) else result
 
     def _update_statistics(self, results: Dict[str, Any]) -> None:
         """Update internal statistics based on processing results."""
-        self.statistics.update({
-            'last_updated': datetime.now().isoformat(),
-            'total_sources': results.get('total_sources', 0),
-            'total_configurations': results.get('total_configurations', 0),
-            'success_rate': results.get('success_rate', 0.0),
-            'average_processing_time': results.get('processing_time', 0.0),
-            'formats_supported': results.get('formats_generated', []),
-            'last_run_success': results.get('success', False)
-        })
-        
+        self.statistics.update(
+            {
+                "last_updated": datetime.now().isoformat(),
+                "total_sources": results.get("total_sources", 0),
+                "total_configurations": results.get("total_configurations", 0),
+                "success_rate": results.get("success_rate", 0.0),
+                "average_processing_time": results.get("processing_time", 0.0),
+                "formats_supported": results.get("formats_generated", []),
+                "last_run_success": results.get("success", False),
+            }
+        )
+
         # Add cache statistics if available
         if self.cache_service:
             cache_stats = self.cache_service.get_statistics()
-            self.statistics.update({
-                'cache_hit_rate': cache_stats.get('hit_rate', 0.0),
-                'cache_size': cache_stats.get('size', 0),
-                'cache_memory_usage': cache_stats.get('memory_usage', 0)
-            })
+            self.statistics.update(
+                {
+                    "cache_hit_rate": cache_stats.get("hit_rate", 0.0),
+                    "cache_size": cache_stats.get("size", 0),
+                    "cache_memory_usage": cache_stats.get("memory_usage", 0),
+                }
+            )
 
     async def get_statistics(self) -> Dict[str, Any]:
         """Get current merger statistics."""
         stats = self.statistics.copy()
-        
+
         # Add real-time component statistics
         if self.cache_service:
             cache_stats = self.cache_service.get_statistics()
-            stats.update({
-                'cache_hit_rate': cache_stats.get('hit_rate', 0.0),
-                'cache_entries': cache_stats.get('entries', 0)
-            })
+            stats.update(
+                {
+                    "cache_hit_rate": cache_stats.get("hit_rate", 0.0),
+                    "cache_entries": cache_stats.get("entries", 0),
+                }
+            )
 
         if self.source_manager:
             source_stats = self.source_manager.get_source_statistics()
@@ -511,40 +568,47 @@ class StreamlineVPNMerger:
         """Return a concise status dictionary expected by tests."""
         source_count = 0
         try:
-            if self.source_manager and hasattr(self.source_manager, 'list_sources'):
+            if self.source_manager and hasattr(self.source_manager, "list_sources"):
                 sources = self.source_manager.list_sources()
-                source_count = len(sources) if isinstance(sources, list) else int(sources or 0)
+                source_count = (
+                    len(sources) if isinstance(sources, list) else int(sources or 0)
+                )
         except Exception:
             source_count = 0
         return {
-            'initialized': self.initialized,
-            'is_processing': self.is_processing,
-            'total_configurations': len(self.configurations),
-            'config_count': len(self.configurations),
-            'source_count': source_count,
-            'last_run_time': self.last_run_time.isoformat() if self.last_run_time else None,
+            "initialized": self.initialized,
+            "is_processing": self.is_processing,
+            "total_configurations": len(self.configurations),
+            "config_count": len(self.configurations),
+            "source_count": source_count,
+            "last_run_time": (
+                self.last_run_time.isoformat() if self.last_run_time else None
+            ),
         }
 
     def health_check(self) -> Dict[str, Any]:
         """Lightweight health check summary used by focused tests."""
         status = self.get_status()
-        return {"status": "healthy" if status["initialized"] else "degraded", "components": status}
+        return {
+            "status": "healthy" if status["initialized"] else "degraded",
+            "components": status,
+        }
 
     async def shutdown(self) -> None:
         """Gracefully shutdown all components."""
         logger.info("🔄 Shutting down StreamlineVPN Merger...")
-        
+
         components = [
-            ('output_manager', self.output_manager),
-            ('config_processor', self.config_processor),
-            ('source_manager', self.source_manager),
-            ('security_manager', self.security_manager),
-            ('fetcher_service', self.fetcher_service),
-            ('cache_service', self.cache_service)
+            ("output_manager", self.output_manager),
+            ("config_processor", self.config_processor),
+            ("source_manager", self.source_manager),
+            ("security_manager", self.security_manager),
+            ("fetcher_service", self.fetcher_service),
+            ("cache_service", self.cache_service),
         ]
 
         for name, component in components:
-            if component and hasattr(component, 'shutdown'):
+            if component and hasattr(component, "shutdown"):
                 try:
                     await component.shutdown()
                     logger.debug(f"{name} shutdown complete")
@@ -562,19 +626,27 @@ class StreamlineVPNMerger:
                 await self.initialize()
             # Gather sources
             sources = []
-            if self.source_manager and hasattr(self.source_manager, 'get_all_sources'):
+            if self.source_manager and hasattr(self.source_manager, "get_all_sources"):
                 get_sources = self.source_manager.get_all_sources()
-                sources = await get_sources if asyncio.iscoroutine(get_sources) else get_sources
+                sources = (
+                    await get_sources
+                    if asyncio.iscoroutine(get_sources)
+                    else get_sources
+                )
 
             # Process configs
             processed = []
-            if self.config_processor and hasattr(self.config_processor, 'process_configurations'):
+            if self.config_processor and hasattr(
+                self.config_processor, "process_configurations"
+            ):
                 processed = self.config_processor.process_configurations(sources)  # type: ignore[arg-type]
                 if asyncio.iscoroutine(processed):
                     processed = await processed
 
             # Save configs
-            if self.output_manager and hasattr(self.output_manager, 'save_configurations'):
+            if self.output_manager and hasattr(
+                self.output_manager, "save_configurations"
+            ):
                 save_result = self.output_manager.save_configurations(configs=processed, output_dir="output", formats=["json"])  # type: ignore[arg-type]
                 if asyncio.iscoroutine(save_result):
                     save_result = await save_result
@@ -608,7 +680,9 @@ class StreamlineVPNMerger:
             try:
                 from unittest.mock import AsyncMock, MagicMock  # type: ignore
                 import inspect
+
                 if isinstance(attr, (AsyncMock, MagicMock)) or callable(attr):
+
                     async def _wrapper(*args, **kwargs):
                         value = attr(*args, **kwargs)
                         # Repeatedly await until we get a final concrete value
@@ -634,6 +708,7 @@ class StreamlineVPNMerger:
                                     return value
                             break
                         return value
+
                     return _wrapper
             except Exception:
                 pass

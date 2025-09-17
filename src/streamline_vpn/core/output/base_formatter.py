@@ -21,7 +21,7 @@ class BaseFormatter(ABC):
 
     def __init__(self, output_dir: Path):
         """Initialize formatter.
-        
+
         Args:
             output_dir: Output directory path
         """
@@ -30,10 +30,10 @@ class BaseFormatter(ABC):
 
     def format_configurations(self, configs: List[VPNConfiguration]) -> str:
         """Format configurations to string.
-        
+
         Args:
             configs: List of VPN configurations
-            
+
         Returns:
             Formatted string
         """
@@ -43,33 +43,31 @@ class BaseFormatter(ABC):
     @abstractmethod
     def get_file_extension(self) -> str:
         """Get file extension for this format.
-        
+
         Returns:
             File extension (e.g., '.json', '.yaml')
         """
         pass
 
     def save_configurations(
-        self, 
-        configs: List[VPNConfiguration], 
-        filename: str
+        self, configs: List[VPNConfiguration], filename: str
     ) -> Path:
         """Save configurations to file.
-        
+
         Args:
             configs: List of VPN configurations
             filename: Output filename (without extension)
-            
+
         Returns:
             Path to saved file
         """
         content = self.format_configurations(configs)
         file_path = self.output_dir / f"{filename}{self.get_file_extension()}"
-        
+
         try:
-            with open(file_path, 'w', encoding='utf-8') as f:
+            with open(file_path, "w", encoding="utf-8") as f:
                 f.write(content)
-            
+
             logger.info("Saved %d configurations to %s", len(configs), file_path)
             return file_path
         except Exception as e:
@@ -78,10 +76,10 @@ class BaseFormatter(ABC):
 
     def _config_to_dict(self, config: VPNConfiguration) -> Dict[str, Any]:
         """Convert VPN configuration to dictionary.
-        
+
         Args:
             config: VPN configuration
-            
+
         Returns:
             Configuration dictionary
         """
@@ -99,16 +97,20 @@ class BaseFormatter(ABC):
             "tls": getattr(config, "tls", False),
             "quality_score": getattr(config, "quality_score", 0.0),
             "source_url": getattr(config, "source_url", None),
-            "created_at": (config.created_at.isoformat() if getattr(config, "created_at", None) else None),
+            "created_at": (
+                config.created_at.isoformat()
+                if getattr(config, "created_at", None)
+                else None
+            ),
             "metadata": getattr(config, "metadata", {}),
         }
-    
+
     def _safe_config_to_dict(self, config: VPNConfiguration) -> Dict[str, Any]:
         """Safely convert VPN configuration to dictionary with error handling.
-        
+
         Args:
             config: VPN configuration
-            
+
         Returns:
             Configuration dictionary
         """
@@ -121,5 +123,5 @@ class BaseFormatter(ABC):
                 "protocol": "unknown",
                 "server": "unknown",
                 "port": 0,
-                "error": str(e)
+                "error": str(e),
             }

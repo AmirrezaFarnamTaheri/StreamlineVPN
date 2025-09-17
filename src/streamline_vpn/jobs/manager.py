@@ -81,9 +81,7 @@ class JobManager:
         Returns:
             Created job instance
         """
-        job = Job(
-            type=job_type, parameters=parameters or {}, metadata=metadata or {}
-        )
+        job = Job(type=job_type, parameters=parameters or {}, metadata=metadata or {})
 
         self.persistence.save_job(job)
         logger.info("Created job %s of type %s", job.id, job_type.value)
@@ -101,7 +99,9 @@ class JobManager:
         return job
 
     # Simple sync wrapper used by some tests to add a job
-    def add_job(self, job_type: JobType, parameters: Optional[Dict[str, Any]] = None) -> Job:
+    def add_job(
+        self, job_type: JobType, parameters: Optional[Dict[str, Any]] = None
+    ) -> Job:
         job = Job(type=job_type, parameters=parameters or {})
         self.persistence.save_job(job)
         return job
@@ -295,23 +295,30 @@ class JobManager:
     def __getattribute__(self, name: str):
         attr = object.__getattribute__(self, name)
         if name == "create_job":
+
             async def _always_impl(*args, **kwargs):
-                return await object.__getattribute__(self, "_create_job_impl")(*args, **kwargs)
+                return await object.__getattribute__(self, "_create_job_impl")(
+                    *args, **kwargs
+                )
+
             return _always_impl
         if name == "get_job":
             real_attr = attr
             try:
                 from unittest.mock import AsyncMock, MagicMock  # type: ignore
                 import inspect
+
                 def _dispatcher(*args, **kwargs):
                     value = real_attr(*args, **kwargs)
                     try:
                         import asyncio as _asyncio
+
                         _asyncio.get_running_loop()
                         loop_running = True
                     except RuntimeError:
                         loop_running = False
                     if loop_running:
+
                         async def _aw(v=value):
                             x = v
                             for _ in range(5):
@@ -331,6 +338,7 @@ class JobManager:
                                         continue
                                 break
                             return x
+
                         return _aw()
                     # sync path for focused tests
                     for _ in range(5):
@@ -341,21 +349,36 @@ class JobManager:
                                 continue
                         break
                     return value
+
                 return _dispatcher
             except Exception:
                 return attr
         if name == "update_job_status":
+
             async def _always_upd(*args, **kwargs):
-                return await object.__getattribute__(self, "_update_job_status_impl")(*args, **kwargs)
+                return await object.__getattribute__(self, "_update_job_status_impl")(
+                    *args, **kwargs
+                )
+
             return _always_upd
-        if name in {"execute_job", "update_job_status", "get_jobs_by_status", "get_jobs_by_type", "cleanup_completed_jobs", "get_job_statistics"}:
+        if name in {
+            "execute_job",
+            "update_job_status",
+            "get_jobs_by_status",
+            "get_jobs_by_type",
+            "cleanup_completed_jobs",
+            "get_job_statistics",
+        }:
             try:
                 from unittest.mock import AsyncMock, MagicMock  # type: ignore
                 import inspect
+
                 if isinstance(attr, (AsyncMock, MagicMock)) or callable(attr):
+
                     async def _wrapper(*args, **kwargs):
                         value = attr(*args, **kwargs)
                         import types
+
                         # Iteratively resolve AsyncMock/MagicMock/awaitables to concrete values
                         for _ in range(5):
                             # Await awaitables
@@ -376,6 +399,7 @@ class JobManager:
                                     continue
                             break
                         return value
+
                     return _wrapper
             except Exception:
                 pass
@@ -385,16 +409,19 @@ class JobManager:
             try:
                 from unittest.mock import AsyncMock, MagicMock  # type: ignore
                 import inspect
+
                 def _dispatcher(*args, **kwargs):
                     # Determine sync vs async context
                     try:
                         import asyncio as _asyncio
+
                         _asyncio.get_running_loop()
                         loop_running = True
                     except RuntimeError:
                         loop_running = False
                     value = real_attr(*args, **kwargs)
                     if loop_running:
+
                         async def _awaitable(v=value):
                             x = v
                             for _ in range(5):
@@ -414,6 +441,7 @@ class JobManager:
                                         continue
                                 break
                             return x
+
                         return _awaitable()
                     else:
                         for _ in range(5):
@@ -424,6 +452,7 @@ class JobManager:
                                     continue
                             break
                         return value
+
                 return _dispatcher
             except Exception:
                 pass

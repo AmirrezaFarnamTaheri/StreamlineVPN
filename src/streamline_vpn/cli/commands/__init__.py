@@ -10,11 +10,10 @@ from .health import health_group
 from .version import version_group
 
 __all__ = [
-    'process_group',
-    'validate_group', 
-    'server_group',
-    'sources_group',
-    'health_group',
-    'version_group'
+    "process_group",
+    "validate_group",
+    "server_group",
+    "sources_group",
+    "health_group",
+    "version_group",
 ]
-

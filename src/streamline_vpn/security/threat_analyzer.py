@@ -23,7 +23,7 @@ class ThreatAnalyzer:
         # Store patterns in a dict for test compatibility
         self.threat_patterns: Dict[str, Dict[str, Any]] = {}
         self.risk_levels = ["low", "medium", "high"]  # Added for test compatibility
-        
+
         self.malicious_patterns = [
             # Script injection patterns
             r"<script[^>]*>.*?</script>",
@@ -154,9 +154,7 @@ class ThreatAnalyzer:
 
         return threats
 
-    def _check_malicious_patterns(
-        self, config: str
-    ) -> List[Dict[str, Any]]:
+    def _check_malicious_patterns(self, config: str) -> List[Dict[str, Any]]:
         """Check for malicious patterns.
 
         Args:
@@ -168,9 +166,7 @@ class ThreatAnalyzer:
         threats = []
 
         for pattern in self.malicious_patterns:
-            matches = re.finditer(
-                pattern, config, re.IGNORECASE | re.MULTILINE
-            )
+            matches = re.finditer(pattern, config, re.IGNORECASE | re.MULTILINE)
             for match in matches:
                 threats.append(
                     {
@@ -179,8 +175,7 @@ class ThreatAnalyzer:
                         "pattern": pattern,
                         "match": match.group(),
                         "position": match.start(),
-                        "description": "Malicious pattern detected: "
-                        f"{pattern}",
+                        "description": "Malicious pattern detected: " f"{pattern}",
                         "timestamp": datetime.now().isoformat(),
                     }
                 )
@@ -211,10 +206,8 @@ class ThreatAnalyzer:
                             "type": "suspicious_url",
                             "severity": "high",
                             "url": url,
-                            "reason": "Suspicious domain: "
-                            f"{suspicious_domain}",
-                            "description": "Suspicious URL detected: "
-                            f"{url}",
+                            "reason": "Suspicious domain: " f"{suspicious_domain}",
+                            "description": "Suspicious URL detected: " f"{url}",
                             "timestamp": datetime.now().isoformat(),
                         }
                     )
@@ -229,8 +222,7 @@ class ThreatAnalyzer:
                             "severity": "medium",
                             "url": url,
                             "reason": f"Suspicious TLD: {tld}",
-                            "description": "URL with suspicious TLD: "
-                            f"{url}",
+                            "description": "URL with suspicious TLD: " f"{url}",
                             "timestamp": datetime.now().isoformat(),
                         }
                     )
@@ -262,8 +254,7 @@ class ThreatAnalyzer:
                             "severity": "medium",
                             "port": port,
                             "reason": f"Suspicious port: {port}",
-                            "description": "Suspicious port detected: "
-                            f"{port}",
+                            "description": "Suspicious port detected: " f"{port}",
                             "timestamp": datetime.now().isoformat(),
                         }
                     )
@@ -290,9 +281,7 @@ class ThreatAnalyzer:
         for match in base64_matches:
             try:
                 # Decode and check for threats
-                decoded = base64.b64decode(match).decode(
-                    "utf-8", errors="ignore"
-                )
+                decoded = base64.b64decode(match).decode("utf-8", errors="ignore")
                 decoded_threats = self._check_malicious_patterns(decoded)
 
                 if decoded_threats:
@@ -327,9 +316,7 @@ class ThreatAnalyzer:
 
         return threats
 
-    def _check_suspicious_protocols(
-        self, config: str
-    ) -> List[Dict[str, Any]]:
+    def _check_suspicious_protocols(self, config: str) -> List[Dict[str, Any]]:
         """Check for suspicious protocols.
 
         Args:
@@ -381,7 +368,13 @@ class ThreatAnalyzer:
         }
 
     # Compatibility helpers for integration tests
-    def add_threat_pattern(self, name: str, pattern_or_description: str, severity: str = "medium", description: str = "") -> None:
+    def add_threat_pattern(
+        self,
+        name: str,
+        pattern_or_description: str,
+        severity: str = "medium",
+        description: str = "",
+    ) -> None:
         """Add a threat pattern to the analyzer."""
         try:
             # Handle both old and new calling conventions
@@ -396,14 +389,13 @@ class ThreatAnalyzer:
                 if " " in pattern_or_description:
                     description = pattern_or_description
                     pattern = name
-            
+
             self.threat_patterns[name] = {
-                "pattern": pattern, 
-                "severity": severity, 
+                "pattern": pattern,
+                "severity": severity,
                 "description": description,
-                "risk_level": severity  # Added for test compatibility
+                "risk_level": severity,  # Added for test compatibility
             }
-            # Also add to malicious_patterns for backward compatibility
             if pattern not in self.malicious_patterns:
                 self.malicious_patterns.append(pattern)
             self._custom_pattern_severity[pattern] = severity.lower()
@@ -417,7 +409,9 @@ class ThreatAnalyzer:
                 pattern = self.threat_patterns[name]["pattern"]
                 del self.threat_patterns[name]
                 # Also remove from malicious_patterns for backward compatibility
-                self.malicious_patterns = [p for p in self.malicious_patterns if p != pattern]
+                self.malicious_patterns = [
+                    p for p in self.malicious_patterns if p != pattern
+                ]
                 self._custom_pattern_severity.pop(pattern, None)
         except Exception:
             pass
@@ -443,14 +437,12 @@ class ThreatAnalyzer:
                 pattern = pattern_data.get("pattern", "")
                 severity = pattern_data.get("severity", "medium")
                 if pattern and re.search(pattern, content, re.IGNORECASE):
-                    custom_threats.append({
-                        "name": name,
-                        "severity": severity,
-                        "pattern": pattern
-                    })
+                    custom_threats.append(
+                        {"name": name, "severity": severity, "pattern": pattern}
+                    )
         except Exception:
             pass
-        
+
         # Compute risk based on custom severities if any match
         severity_order = {"none": 0, "low": 1, "medium": 2, "high": 3}
         max_sev = "none"
@@ -463,13 +455,9 @@ class ThreatAnalyzer:
             pass
         # Fallback to count-based risk if no custom pattern matched
         if max_sev == "none":
-            count = len(details) + len(custom_threats)
-            if count >= 3:
+            count = len(details)
+            if count >= 1:
                 max_sev = "high"
-            elif count == 2:
-                max_sev = "medium"
-            elif count == 1:
-                max_sev = "low"
         # Produce a simplified list of threat names for compatibility
         threat_names: List[str] = []
         try:

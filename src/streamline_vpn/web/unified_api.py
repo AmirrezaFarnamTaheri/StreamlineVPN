@@ -12,7 +12,16 @@ from datetime import datetime
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 
-from fastapi import FastAPI, HTTPException, Request, status, WebSocket, WebSocketDisconnect, UploadFile, File
+from fastapi import (
+    FastAPI,
+    HTTPException,
+    Request,
+    status,
+    WebSocket,
+    WebSocketDisconnect,
+    UploadFile,
+    File,
+)
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from fastapi.staticfiles import StaticFiles
@@ -30,7 +39,7 @@ class UnifiedAPIServer:
         self.app = FastAPI(
             title="StreamlineVPN API",
             description="Unified API for StreamlineVPN configuration management",
-            version="2.0.0"
+            version="2.0.0",
         )
         self.merger: Optional[StreamlineVPNMerger] = None
         self.jobs: List[Dict[str, Any]] = []
@@ -78,13 +87,14 @@ class UnifiedAPIServer:
         # Try JSON first, fall back to comma-separated
         try:
             import json
+
             return json.loads(value)
         except (json.JSONDecodeError, TypeError):
             return [item.strip() for item in value.split(",") if item.strip()]
 
     def _setup_exception_handlers(self) -> None:
         """Setup global exception handlers."""
-        
+
         @self.app.exception_handler(HTTPException)
         async def http_exception_handler(
             request: Request, exc: HTTPException
@@ -96,7 +106,7 @@ class UnifiedAPIServer:
                 request.url.path,
                 request.client.host if request.client else "unknown",
                 exc.status_code,
-                exc.detail
+                exc.detail,
             )
             return JSONResponse(
                 status_code=exc.status_code,
@@ -107,7 +117,7 @@ class UnifiedAPIServer:
                     "method": request.method,
                     "timestamp": datetime.now().isoformat(),
                     "detail": exc.detail,
-                    "request_id": getattr(request.state, 'request_id', None),
+                    "request_id": getattr(request.state, "request_id", None),
                 },
             )
 
@@ -117,12 +127,12 @@ class UnifiedAPIServer:
         ) -> JSONResponse:
             """Handle general exceptions with logging."""
             logger.error(
-                "Unhandled exception on %s %s - Client: %s - Exception: %s", 
-                request.method, 
+                "Unhandled exception on %s %s - Client: %s - Exception: %s",
+                request.method,
                 request.url.path,
                 request.client.host if request.client else "unknown",
                 exc,
-                exc_info=True
+                exc_info=True,
             )
             return JSONResponse(
                 status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
@@ -132,7 +142,7 @@ class UnifiedAPIServer:
                     "path": request.url.path,
                     "method": request.method,
                     "timestamp": datetime.now().isoformat(),
-                    "request_id": getattr(request.state, 'request_id', None),
+                    "request_id": getattr(request.state, "request_id", None),
                 },
             )
 
@@ -146,13 +156,17 @@ class UnifiedAPIServer:
 
         try:
             # Serve the entire docs folder under /static
-            self.app.mount("/static", StaticFiles(directory=str(docs_path)), name="static")
+            self.app.mount(
+                "/static", StaticFiles(directory=str(docs_path)), name="static"
+            )
             logger.info("Mounted static files from %s", docs_path)
 
             # Also expose /assets for absolute references
             assets_dir = docs_path / "assets"
             if assets_dir.exists():
-                self.app.mount("/assets", StaticFiles(directory=str(assets_dir)), name="assets")
+                self.app.mount(
+                    "/assets", StaticFiles(directory=str(assets_dir)), name="assets"
+                )
                 logger.info("Mounted assets from %s", assets_dir)
 
         except Exception as e:
@@ -169,7 +183,7 @@ class UnifiedAPIServer:
                 "status": "healthy",
                 "timestamp": datetime.now().isoformat(),
                 "version": "2.0.0",
-                "service": "streamline-vpn-api"
+                "service": "streamline-vpn-api",
             }
 
         # API base configuration for frontend
@@ -190,6 +204,7 @@ console.log('StreamlineVPN API Base:', window.__API_BASE__);
             """.strip()
 
             from fastapi.responses import Response
+
             return Response(
                 content=js_content,
                 media_type="application/javascript",
@@ -213,8 +228,8 @@ console.log('StreamlineVPN API Base:', window.__API_BASE__);
                     "health": "/health",
                     "docs": "/docs",
                     "api_base": "/api-base.js",
-                    "static": "/static/"
-                }
+                    "static": "/static/",
+                },
             }
 
         @self.app.get("/api/v1/sources")
@@ -240,7 +255,9 @@ console.log('StreamlineVPN API Base:', window.__API_BASE__);
             await self.merger.process_all()
             configs = [cfg.to_dict() for cfg in getattr(self.merger, "results", [])]
             total = len(configs)
-            logger.info("Returning %d/%d configurations", min(limit, total - offset), total)
+            logger.info(
+                "Returning %d/%d configurations", min(limit, total - offset), total
+            )
             return {
                 "configurations": configs[offset : offset + limit],
                 "total": total,
@@ -261,15 +278,19 @@ console.log('StreamlineVPN API Base:', window.__API_BASE__);
             if isinstance(req_formats, list):
                 invalid = [f for f in req_formats if f not in allowed_formats]
                 if invalid:
-                    raise HTTPException(status_code=400, detail=f"Unsupported formats: {', '.join(invalid)}")
+                    raise HTTPException(
+                        status_code=400,
+                        detail=f"Unsupported formats: {', '.join(invalid)}",
+                    )
 
             job_id = f"job_{uuid.uuid4().hex[:12]}"
             logger.info("Pipeline executed via API job %s", job_id)
 
             # Start processing asynchronously
             import asyncio
+
             asyncio.create_task(self._process_pipeline_async(job_id, request))
-            
+
             job_record = {
                 "job_id": job_id,
                 "status": "accepted",
@@ -284,8 +305,8 @@ console.log('StreamlineVPN API Base:', window.__API_BASE__);
                 pass
 
             from fastapi import Response
-            return JSONResponse(status_code=202, content=job_record)
 
+            return JSONResponse(status_code=202, content=job_record)
 
         @self.app.get("/api/statistics")
         async def get_statistics():
@@ -294,6 +315,7 @@ console.log('StreamlineVPN API Base:', window.__API_BASE__);
                 # If route-level merger is patched in tests, use it (return 200)
                 try:
                     from .api.routes.diagnostics import PerformanceRoutes  # type: ignore
+
                     route_merger = PerformanceRoutes._get_merger()
                 except Exception:
                     route_merger = None
@@ -308,7 +330,9 @@ console.log('StreamlineVPN API Base:', window.__API_BASE__);
                         pass
                 # 404 when intentionally not initialized, 503 when expected but unavailable
                 if not self.initialize_merger:
-                    raise HTTPException(status_code=404, detail="Merger not initialized")
+                    raise HTTPException(
+                        status_code=404, detail="Merger not initialized"
+                    )
                 raise HTTPException(status_code=503, detail="Merger not initialized")
 
             # Merger may expose sync or async method
@@ -324,6 +348,7 @@ console.log('StreamlineVPN API Base:', window.__API_BASE__);
             if not self.merger:
                 try:
                     from .api.routes.diagnostics import PerformanceRoutes  # type: ignore
+
                     route_merger = PerformanceRoutes._get_merger()
                 except Exception:
                     route_merger = None
@@ -337,7 +362,9 @@ console.log('StreamlineVPN API Base:', window.__API_BASE__);
                     except Exception:
                         pass
                 if not self.initialize_merger:
-                    raise HTTPException(status_code=404, detail="Merger not initialized")
+                    raise HTTPException(
+                        status_code=404, detail="Merger not initialized"
+                    )
                 raise HTTPException(status_code=503, detail="Merger not initialized")
             return await self.merger.get_statistics()
 
@@ -362,16 +389,21 @@ console.log('StreamlineVPN API Base:', window.__API_BASE__);
                 raise HTTPException(status_code=503, detail="Merger not initialized")
 
             if not self.merger.output_manager:
-                raise HTTPException(status_code=503, detail="Output manager not initialized")
+                raise HTTPException(
+                    status_code=503, detail="Output manager not initialized"
+                )
 
             if format not in self.merger.output_manager.formatters:
-                raise HTTPException(status_code=400, detail=f"Format '{format}' not supported")
+                raise HTTPException(
+                    status_code=400, detail=f"Format '{format}' not supported"
+                )
 
             configs = self.merger.get_configurations()
             formatter = self.merger.output_manager.formatters[format]
             content = formatter.format(configs)
 
             from fastapi.responses import Response
+
             return Response(content=content, media_type=formatter.media_type)
 
         # Back-compat export path used by landing page
@@ -380,15 +412,22 @@ console.log('StreamlineVPN API Base:', window.__API_BASE__);
             if not self.merger:
                 raise HTTPException(status_code=503, detail="Merger not initialized")
             if not self.merger.output_manager:
-                raise HTTPException(status_code=503, detail="Output manager not initialized")
+                raise HTTPException(
+                    status_code=503, detail="Output manager not initialized"
+                )
             configs = self.merger.get_configurations()
             try:
                 import orjson as _orjson  # type: ignore
+
                 payload = _orjson.dumps(configs).decode("utf-8")
             except Exception:
                 import json as _json
-                payload = _json.dumps([getattr(c, "to_dict", lambda: c)() for c in configs])
+
+                payload = _json.dumps(
+                    [getattr(c, "to_dict", lambda: c)() for c in configs]
+                )
             from fastapi.responses import Response
+
             return Response(content=payload, media_type="application/json")
 
         # Cache clear endpoint used by landing page and tools
@@ -408,7 +447,9 @@ console.log('StreamlineVPN API Base:', window.__API_BASE__);
                 return {"status": "ok", "message": "Cache cleared"}
             except Exception as e:
                 logger.error("Failed to clear cache: %s", e)
-                raise HTTPException(status_code=500, detail=f"Failed to clear cache: {e}")
+                raise HTTPException(
+                    status_code=500, detail=f"Failed to clear cache: {e}"
+                )
 
         # Minimal upload endpoint for demo/testing uploads
         @self.app.post("/api/upload")
@@ -441,10 +482,9 @@ console.log('StreamlineVPN API Base:', window.__API_BASE__);
             for url in urls:
                 try:
                     parsed = urlparse(url)
-                    is_valid = (
-                        all([parsed.scheme, parsed.netloc])
-                        and parsed.scheme in ["http", "https"]
-                    )
+                    is_valid = all(
+                        [parsed.scheme, parsed.netloc]
+                    ) and parsed.scheme in ["http", "https"]
                 except Exception:
                     is_valid = False
                 if not is_valid:
@@ -486,8 +526,8 @@ console.log('StreamlineVPN API Base:', window.__API_BASE__);
                 du = _disk_usage(".")
                 info.update(
                     {
-                        "disk_total_gb": round(du.total / (1024 ** 3), 2),
-                        "disk_free_gb": round(du.free / (1024 ** 3), 2),
+                        "disk_total_gb": round(du.total / (1024**3), 2),
+                        "disk_free_gb": round(du.free / (1024**3), 2),
                     }
                 )
             except Exception:
@@ -529,7 +569,9 @@ console.log('StreamlineVPN API Base:', window.__API_BASE__);
                 if self.merger:
                     mstats = await self.merger.get_statistics()
                     stats["cache_hit_rate"] = mstats.get("cache_hit_rate", 0)
-                    stats["total_configurations"] = mstats.get("total_configurations", 0)
+                    stats["total_configurations"] = mstats.get(
+                        "total_configurations", 0
+                    )
             except Exception:
                 pass
 
@@ -550,6 +592,7 @@ console.log('StreamlineVPN API Base:', window.__API_BASE__);
             latencies: List[float] = []
             try:
                 import socket as _socket
+
                 # DNS check
                 try:
                     _socket.gethostbyname("localhost")
@@ -581,15 +624,23 @@ console.log('StreamlineVPN API Base:', window.__API_BASE__);
             }
 
             try:
-                if self.merger and hasattr(self.merger, "cache_service") and self.merger.cache_service:
+                if (
+                    self.merger
+                    and hasattr(self.merger, "cache_service")
+                    and self.merger.cache_service
+                ):
                     stats = self.merger.cache_service.get_statistics()
                     report["total_entries"] = stats.get("entries")
                     report["hit_rate"] = int(stats.get("hit_rate", 0) * 100)
                     report["cache_size"] = stats.get("size")
                     report["l1_status"] = "ok"
                     # If redis present, assume l2 ok; otherwise mark as disabled
-                    report["l2_status"] = "ok" if stats.get("l2_enabled", False) else "disabled"
-                    report["l3_status"] = "ok" if stats.get("l3_enabled", False) else "disabled"
+                    report["l2_status"] = (
+                        "ok" if stats.get("l2_enabled", False) else "disabled"
+                    )
+                    report["l3_status"] = (
+                        "ok" if stats.get("l3_enabled", False) else "disabled"
+                    )
                 else:
                     report["issues"].append("Cache service not initialized")
             except Exception as e:
@@ -601,7 +652,9 @@ console.log('StreamlineVPN API Base:', window.__API_BASE__);
         async def websocket_endpoint(websocket: WebSocket):
             await websocket.accept()
             client_id = str(uuid.uuid4())
-            await websocket.send_json({"type": "connection", "status": "connected", "client_id": client_id})
+            await websocket.send_json(
+                {"type": "connection", "status": "connected", "client_id": client_id}
+            )
             try:
                 while True:
                     data = await websocket.receive_json()
@@ -656,13 +709,13 @@ console.log('StreamlineVPN API Base:', window.__API_BASE__);
                 "result": {k: v for k, v in result.items() if k != "details"},
                 "timestamp": datetime.now().isoformat(),
             }
-            
+
             # Update the job in the jobs list
             for i, job in enumerate(self.jobs):
                 if job.get("job_id") == job_id:
                     self.jobs[i] = job_record
                     break
-                    
+
         except Exception as e:
             logger.error("Pipeline processing failed for job %s: %s", job_id, e)
             job_record = {
@@ -671,7 +724,7 @@ console.log('StreamlineVPN API Base:', window.__API_BASE__);
                 "error": str(e),
                 "timestamp": datetime.now().isoformat(),
             }
-            
+
             # Update the job in the jobs list
             for i, job in enumerate(self.jobs):
                 if job.get("job_id") == job_id:

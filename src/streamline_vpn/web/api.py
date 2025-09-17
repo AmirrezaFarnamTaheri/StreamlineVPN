@@ -44,17 +44,27 @@ def create_app() -> FastAPI:
         if formats is not None:
             # Reject if any format is not known
             known = {"json", "clash", "singbox", "raw", "csv", "base64"}
-            if not isinstance(formats, list) or not all(isinstance(f, str) for f in formats):
+            if not isinstance(formats, list) or not all(
+                isinstance(f, str) for f in formats
+            ):
                 raise HTTPException(status_code=400, detail="Invalid formats")
             if any(f not in known for f in formats):
-                raise HTTPException(status_code=400, detail=f"Unsupported formats: {formats}")
-        return JSONResponse(status_code=202, content={"status": "accepted", "job_id": "test"})
+                raise HTTPException(
+                    status_code=400, detail=f"Unsupported formats: {formats}"
+                )
+        return JSONResponse(
+            status_code=202, content={"status": "accepted", "job_id": "test"}
+        )
 
     # Remove any existing pipeline run route to avoid conflicts
     try:
         app.router.routes = [
-            r for r in app.router.routes
-            if not (getattr(r, 'path', None) == "/api/v1/pipeline/run" and "POST" in getattr(r, 'methods', set()))
+            r
+            for r in app.router.routes
+            if not (
+                getattr(r, "path", None) == "/api/v1/pipeline/run"
+                and "POST" in getattr(r, "methods", set())
+            )
         ]
     except Exception:
         pass
@@ -64,9 +74,13 @@ def create_app() -> FastAPI:
     async def run_pipeline(payload: dict):
         formats = payload.get("formats")
         if formats is not None:
-            if not isinstance(formats, list) or not all(isinstance(f, str) for f in formats):
+            if not isinstance(formats, list) or not all(
+                isinstance(f, str) for f in formats
+            ):
                 raise HTTPException(status_code=400, detail="Invalid formats")
-        return JSONResponse(status_code=202, content={"status": "accepted", "job_id": "test"})
+        return JSONResponse(
+            status_code=202, content={"status": "accepted", "job_id": "test"}
+        )
 
     return app
 
@@ -74,6 +88,7 @@ def create_app() -> FastAPI:
 async def get_merger():
     # Not used by our app; tests override this dependency
     return None
+
 
 """
 FastAPI Web API
@@ -190,9 +205,7 @@ async def _lifespan(app: FastAPI):
             service_healthy = True
             logger.info("API server initialized successfully")
         except Exception:
-            logger.exception(
-                "Failed to initialize merger", extra={"stage": "startup"}
-            )
+            logger.exception("Failed to initialize merger", extra={"stage": "startup"})
             service_healthy = False
             merger = None
 
@@ -273,18 +286,12 @@ def create_app() -> FastAPI:
         return JSONResponse(status_code=400, content={"detail": detail})
 
     @app.exception_handler(HTTPException)
-    async def http_exception_handler(
-        request, exc: HTTPException
-    ) -> JSONResponse:
+    async def http_exception_handler(request, exc: HTTPException) -> JSONResponse:
         """Uniform HTTPException payload shape."""
-        return JSONResponse(
-            status_code=exc.status_code, content={"detail": exc.detail}
-        )
+        return JSONResponse(status_code=exc.status_code, content={"detail": exc.detail})
 
     @app.exception_handler(Exception)
-    async def general_exception_handler(
-        request, exc: Exception
-    ) -> JSONResponse:
+    async def general_exception_handler(request, exc: Exception) -> JSONResponse:
         """Catch-all to avoid leaking stack traces to clients."""
         logger.error("Unhandled exception: %s", exc, exc_info=True)
         return JSONResponse(
@@ -566,14 +573,9 @@ def create_app() -> FastAPI:
         """Get Prometheus metrics."""
         try:
             # This would integrate with Prometheus client
-            return {
-                "message": "Metrics endpoint - integrate with "
-                "Prometheus client"
-            }
+            return {"message": "Metrics endpoint - integrate with " "Prometheus client"}
         except Exception:
-            logger.exception(
-                "Failed to fetch metrics", extra={"endpoint": "/metrics"}
-            )
+            logger.exception("Failed to fetch metrics", extra={"endpoint": "/metrics"})
             raise HTTPException(
                 status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
                 detail="Internal server error",
@@ -587,9 +589,7 @@ def create_app() -> FastAPI:
             return {
                 "fetcher": settings.fetcher.model_dump(),
                 "security": settings.security.model_dump(),
-                "supported_protocol_prefixes": (
-                    settings.supported_protocol_prefixes
-                ),
+                "supported_protocol_prefixes": (settings.supported_protocol_prefixes),
             }
         except Exception:
             logger.exception(
@@ -637,9 +637,7 @@ def create_app() -> FastAPI:
                 "message": "Runtime configuration reloaded",
                 "fetcher": settings.fetcher.model_dump(),
                 "security": settings.security.model_dump(),
-                "supported_protocol_prefixes": (
-                    settings.supported_protocol_prefixes
-                ),
+                "supported_protocol_prefixes": (settings.supported_protocol_prefixes),
             }
         except Exception:
             logger.exception(
@@ -690,9 +688,7 @@ def create_app() -> FastAPI:
                 else:
                     raise HTTPException(
                         status_code=status.HTTP_404_NOT_FOUND,
-                        detail=(
-                            f"Configuration file not found: {request.config_path}"
-                        ),
+                        detail=(f"Configuration file not found: {request.config_path}"),
                     )
 
             Path(request.output_dir).mkdir(parents=True, exist_ok=True)
@@ -709,33 +705,23 @@ def create_app() -> FastAPI:
                 global merger
                 try:
                     update_job_progress(job_id, 10, "Initializing merger...")
-                    local_merger = StreamlineVPNMerger(
-                        config_path=str(config_file)
-                    )
+                    local_merger = StreamlineVPNMerger(config_path=str(config_file))
                     await local_merger.initialize()
-                    update_job_progress(
-                        job_id, 50, "Processing configurations..."
-                    )
+                    update_job_progress(job_id, 50, "Processing configurations...")
                     formats = [fmt.value for fmt in request.formats]
                     result = await local_merger.process_all(
                         output_dir=request.output_dir, formats=formats
                     )
                     merger = local_merger
                     processing_jobs[job_id]["status"] = "completed"
-                    update_job_progress(
-                        job_id, 100, "Pipeline completed successfully"
-                    )
+                    update_job_progress(job_id, 100, "Pipeline completed successfully")
                     processing_jobs[job_id]["result"] = result
-                    processing_jobs[job_id][
-                        "completed_at"
-                    ] = datetime.now().isoformat()
+                    processing_jobs[job_id]["completed_at"] = datetime.now().isoformat()
                 except Exception as exc:  # pragma: no cover - logging path
                     logger.exception("Pipeline job %s failed", job_id)
                     processing_jobs[job_id]["status"] = "failed"
                     processing_jobs[job_id]["error"] = str(exc)
-                    processing_jobs[job_id][
-                        "completed_at"
-                    ] = datetime.now().isoformat()
+                    processing_jobs[job_id]["completed_at"] = datetime.now().isoformat()
                     update_job_progress(job_id, 100, str(exc))
 
             background_tasks.add_task(process_async)
@@ -789,9 +775,7 @@ def create_app() -> FastAPI:
         if protocol:
             configs = [c for c in configs if c.protocol.value == protocol]
         if location:
-            configs = [
-                c for c in configs if c.metadata.get("location") == location
-            ]
+            configs = [c for c in configs if c.metadata.get("location") == location]
         if min_quality > 0:
             configs = [c for c in configs if c.quality_score >= min_quality]
         total = len(configs)
@@ -818,9 +802,7 @@ def create_app() -> FastAPI:
                 enabled = getattr(src, "enabled", True)
                 last_check = getattr(src, "last_check", None)
                 last_update = (
-                    last_check.isoformat()
-                    if isinstance(last_check, datetime)
-                    else None
+                    last_check.isoformat() if isinstance(last_check, datetime) else None
                 )
                 source_infos.append(
                     {

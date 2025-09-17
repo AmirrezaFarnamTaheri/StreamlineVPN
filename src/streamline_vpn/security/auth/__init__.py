@@ -33,6 +33,7 @@ def initialize_zero_trust():
     global _zero_trust_instance
     if _zero_trust_instance is None:
         from .zero_trust import ZeroTrustVPN
+
         _zero_trust_instance = ZeroTrustVPN()
     return _zero_trust_instance
 

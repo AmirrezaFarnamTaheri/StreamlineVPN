@@ -63,9 +63,7 @@ class ThreatAnalyzer:
         risk_score += time_risk * self.risk_factors["time_patterns"]
 
         # Behavioral anomalies risk
-        behavior_risk = await self._assess_behavioral_anomalies(
-            user_identity.user_id
-        )
+        behavior_risk = await self._assess_behavioral_anomalies(user_identity.user_id)
         risk_score += behavior_risk * self.risk_factors["behavioral_anomalies"]
 
         # Determine threat level
@@ -88,6 +86,7 @@ class ThreatAnalyzer:
             logger.warning("High-risk IP detected: %s", ip_address)
             try:
                 import logging as _logging
+
                 _logging.getLogger().warning("High-risk IP detected: %s", ip_address)
             except Exception:
                 pass
@@ -110,7 +109,10 @@ class ThreatAnalyzer:
             logger.warning("Invalid IP address for geolocation: %s", ip_address)
             try:
                 import logging as _logging
-                _logging.getLogger().warning("Invalid IP address for geolocation: %s", ip_address)
+
+                _logging.getLogger().warning(
+                    "Invalid IP address for geolocation: %s", ip_address
+                )
             except Exception:
                 pass
             return 1.0

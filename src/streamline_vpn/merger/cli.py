@@ -11,7 +11,9 @@ def main(argv: list[str] | None = None) -> None:
     print_public_source_warning()
     argv = list(sys.argv[1:] if argv is None else argv)
 
-    parser = argparse.ArgumentParser(prog="massconfigmerger", description="Unified interface for Mass Config Merger")
+    parser = argparse.ArgumentParser(
+        prog="massconfigmerger", description="Unified interface for Mass Config Merger"
+    )
     subparsers = parser.add_subparsers(dest="command", required=True)
 
     fetch_p = subparsers.add_parser("fetch", help="run the aggregation pipeline")

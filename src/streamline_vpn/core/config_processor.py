@@ -48,6 +48,7 @@ class ConfigurationProcessor:
             # Provide a simple flag and a minimal merger mock surface
             self.is_initialized = True
             if self.merger is None:
+
                 class _MergerShim:
                     async def process_source(self, *args, **kwargs):
                         return {"success": True}
@@ -73,10 +74,11 @@ class ConfigurationProcessor:
         try:
             from pathlib import Path
             import yaml
+
             cfg_path = Path(path)
             if not cfg_path.exists():
                 return None
-            with open(cfg_path, 'r', encoding='utf-8') as f:
+            with open(cfg_path, "r", encoding="utf-8") as f:
                 data = yaml.safe_load(f) or {}
             return data if isinstance(data, dict) else None
         except Exception:
@@ -95,7 +97,9 @@ class ConfigurationProcessor:
         total_configs = 0
         for r in results:
             try:
-                total_configs += int(r.get("config_count", 0) if isinstance(r, dict) else 0)
+                total_configs += int(
+                    r.get("config_count", 0) if isinstance(r, dict) else 0
+                )
             except Exception:
                 pass
         return {
@@ -131,7 +135,9 @@ class ConfigurationProcessor:
         self.reset_processor()
         return True
 
-    async def process_configurations(self, configs: List[Dict[str, Any]] | str) -> List[Dict[str, Any]]:
+    async def process_configurations(
+        self, configs: List[Dict[str, Any]] | str
+    ) -> List[Dict[str, Any]]:
         """Process already-parsed configs list or raw content string."""
         self.is_processing = True
         try:
@@ -206,14 +212,12 @@ class ConfigurationProcessor:
                 config = config_data
             else:
                 config = self._dict_to_config(config_data)
-            is_valid, errors = self.validator.validate_configuration(
-                config, rules
-            )
+            is_valid, errors = self.validator.validate_configuration(config, rules)
 
             if is_valid:
                 self._stats["validated"] += 1
             else:
-                logger.debug("Invalid configuration: %s", ', '.join(errors))
+                logger.debug("Invalid configuration: %s", ", ".join(errors))
 
             return is_valid
 
@@ -244,9 +248,7 @@ class ConfigurationProcessor:
     def deduplicate_configurations(
         self, configs: List[VPNConfiguration], strategy: str = "exact"
     ) -> List[VPNConfiguration]:
-        unique = self.deduplicator.deduplicate_configurations(
-            configs, strategy
-        )
+        unique = self.deduplicator.deduplicate_configurations(configs, strategy)
         self._stats["deduplicated"] += max(0, len(configs) - len(unique))
         return unique
 
@@ -267,9 +269,7 @@ class ConfigurationProcessor:
         return hashlib.md5(content.encode()).hexdigest()[:8]
 
     # Backwards-compatibility: single-line async parse API expected by tests
-    async def parse_config(
-        self, config_line: str
-    ) -> Optional[VPNConfiguration]:
+    async def parse_config(self, config_line: str) -> Optional[VPNConfiguration]:
         """Parse a single configuration line to a VPNConfiguration or None.
 
         The test suite expects this to be an async method returning None for
@@ -410,7 +410,9 @@ class ConfigurationProcessor:
                 try:
                     created_at = datetime.fromisoformat(config_data["created_at"])
                 except (ValueError, TypeError):
-                    logger.warning("Invalid created_at format: %s", config_data.get('created_at'))
+                    logger.warning(
+                        "Invalid created_at format: %s", config_data.get("created_at")
+                    )
 
             return VPNConfiguration(
                 id=config_data.get("id", ""),

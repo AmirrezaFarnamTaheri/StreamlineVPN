@@ -9,6 +9,7 @@ from datetime import datetime, timedelta
 from typing import Dict, List, Optional
 
 from ...utils.logging import get_logger
+
 # Import moved to avoid circular dependencies
 # from .models import DeviceInfo, AuthResult, PolicyAction, ThreatLevel
 # from .identity_provider import IdentityProvider
@@ -31,7 +32,7 @@ class ZeroTrustVPN:
         from .policy_engine import PolicyEngine
         from .continuous_auth import ContinuousAuthenticator
         from .threat_analyzer import ThreatAnalyzer
-        
+
         self.identity_provider = IdentityProvider()
         self.device_validator = DeviceValidator()
         self.policy_engine = PolicyEngine()
@@ -94,10 +95,12 @@ class ZeroTrustVPN:
         # Step 8: Set session expiration
         expires_at = datetime.now() + timedelta(hours=8)
         from .models import ThreatLevel
+
         if threat_level in [ThreatLevel.HIGH, ThreatLevel.CRITICAL]:
             expires_at = datetime.now() + timedelta(hours=1)
 
         from .models import AuthResult
+
         return AuthResult(
             user_id=user_identity.user_id,
             session_id=session_id,
@@ -110,12 +113,10 @@ class ZeroTrustVPN:
             in [ThreatLevel.MEDIUM, ThreatLevel.HIGH, ThreatLevel.CRITICAL],
         )
 
-    def _determine_final_action(
-        self, policy_evaluations: List
-    ):
+    def _determine_final_action(self, policy_evaluations: List):
         """Determine final action from policy evaluations."""
         from .models import PolicyAction
-        
+
         # Prioritize DENY and QUARANTINE actions
         for evaluation in policy_evaluations:
             if evaluation.action in [
@@ -137,14 +138,12 @@ class ZeroTrustVPN:
     ) -> List[str]:
         """Generate permissions based on user, device, and threat level."""
         from .models import ThreatLevel
-        
+
         permissions = ["vpn_connect"]
 
         # Add role-based permissions
         if "admin" in user_identity.roles:
-            permissions.extend(
-                ["admin_access", "user_management", "server_management"]
-            )
+            permissions.extend(["admin_access", "user_management", "server_management"])
 
         if "user" in user_identity.roles:
             permissions.extend(["server_list", "connection_history"])
@@ -152,9 +151,7 @@ class ZeroTrustVPN:
         # Restrict permissions based on device posture
         if device_posture.status.value == "non_compliant":
             permissions = [
-                p
-                for p in permissions
-                if p not in ["admin_access", "user_management"]
+                p for p in permissions if p not in ["admin_access", "user_management"]
             ]
 
         # Restrict permissions based on threat level

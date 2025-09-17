@@ -18,9 +18,12 @@ def _run(coro):
 def test_validator_vmess_accepts_uuid(tmp_path):
     v = ConfigurationValidator()
     _run(v.initialize())
-    cfg = {"protocol": "vmess", "host": "example.com", "port": 443, "uuid": "123e4567-e89b-12d3-a456-426614174000"}
+    cfg = {
+        "protocol": "vmess",
+        "host": "example.com",
+        "port": 443,
+        "uuid": "123e4567-e89b-12d3-a456-426614174000",
+    }
     res = v.validate_config(cfg)
     assert isinstance(res, dict)
     assert "is_valid" in res
-
-
