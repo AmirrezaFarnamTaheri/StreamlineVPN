@@ -19,4 +19,3 @@ def create_app() -> FastAPI:
 
 # Uvicorn entrypoint (e.g., `uvicorn streamline_vpn.web.api_app:app`)
 app = create_app()
-

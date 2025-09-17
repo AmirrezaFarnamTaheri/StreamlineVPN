@@ -17,7 +17,9 @@ from .utils import print_public_source_warning
 from .config import load_config
 
 
-async def _test_config(proc: EnhancedConfigProcessor, cfg: str) -> Tuple[str, Optional[float]]:
+async def _test_config(
+    proc: EnhancedConfigProcessor, cfg: str
+) -> Tuple[str, Optional[float]]:
     host, port = proc.extract_host_port(cfg)
     if host and port:
         ping = await proc.test_connection(host, port)
@@ -45,7 +47,7 @@ def load_configs(path: Path) -> List[str]:
     """Load raw or base64-encoded configuration strings from ``path``."""
 
     text = path.read_text(encoding="utf-8").strip()
-    if text and '://' not in text.splitlines()[0]:
+    if text and "://" not in text.splitlines()[0]:
         try:
             decoded_bytes = base64.b64decode(text)
             text = decoded_bytes.decode("utf-8")
@@ -71,12 +73,16 @@ def filter_configs(configs: List[str]) -> List[str]:
     return filtered
 
 
-def save_results(results: List[Tuple[str, Optional[float]]], sort: bool, top_n: int) -> None:
+def save_results(
+    results: List[Tuple[str, Optional[float]]], sort: bool, top_n: int
+) -> None:
     output_dir = Path(CONFIG.output_dir)
     output_dir.mkdir(exist_ok=True)
 
     if sort:
-        results.sort(key=lambda x: (x[1] is None, x[1] if x[1] is not None else float('inf')))
+        results.sort(
+            key=lambda x: (x[1] is None, x[1] if x[1] is not None else float("inf"))
+        )
 
     if top_n > 0:
         results = results[:top_n]
@@ -87,29 +93,47 @@ def save_results(results: List[Tuple[str, Optional[float]]], sort: bool, top_n: 
 
     if CONFIG.write_base64:
         base64_path = output_dir / "vpn_retested_base64.txt"
-        base64_path.write_text(base64.b64encode("\n".join(configs).encode()).decode(), encoding="utf-8")
+        base64_path.write_text(
+            base64.b64encode("\n".join(configs).encode()).decode(), encoding="utf-8"
+        )
 
     if CONFIG.write_csv:
         csv_path = output_dir / "vpn_retested_detailed.csv"
-        with open(csv_path, 'w', newline='', encoding='utf-8') as f:
+        with open(csv_path, "w", newline="", encoding="utf-8") as f:
             writer = csv.writer(f)
             writer.writerow(["Config", "Ping_MS"])
             for cfg, ping in results:
-                writer.writerow([cfg, round(ping * 1000, 2) if ping is not None else ""])
+                writer.writerow(
+                    [cfg, round(ping * 1000, 2) if ping is not None else ""]
+                )
 
     print(f"\n✔ Retested files saved in {output_dir}/")
 
 
-def build_parser(parser: argparse.ArgumentParser | None = None) -> argparse.ArgumentParser:
+def build_parser(
+    parser: argparse.ArgumentParser | None = None,
+) -> argparse.ArgumentParser:
     """Return an argument parser configured for the retester."""
     if parser is None:
-        parser = argparse.ArgumentParser(description="Retest and sort an existing VPN subscription list")
+        parser = argparse.ArgumentParser(
+            description="Retest and sort an existing VPN subscription list"
+        )
 
-    parser.add_argument("input", help="Path to existing raw or base64 subscription file")
-    parser.add_argument("--top-n", type=int, default=0, help="Keep only the N fastest configs")
-    parser.add_argument("--no-sort", action="store_true", help="Skip sorting by latency")
-    parser.add_argument("--concurrent-limit", type=int, default=CONFIG.concurrent_limit,
-                        help="Number of concurrent tests")
+    parser.add_argument(
+        "input", help="Path to existing raw or base64 subscription file"
+    )
+    parser.add_argument(
+        "--top-n", type=int, default=0, help="Keep only the N fastest configs"
+    )
+    parser.add_argument(
+        "--no-sort", action="store_true", help="Skip sorting by latency"
+    )
+    parser.add_argument(
+        "--concurrent-limit",
+        type=int,
+        default=CONFIG.concurrent_limit,
+        help="Number of concurrent tests",
+    )
     parser.add_argument(
         "--connect-timeout",
         type=float,
@@ -128,16 +152,31 @@ def build_parser(parser: argparse.ArgumentParser | None = None) -> argparse.Argu
         default=None,
         help="Path to proxy history JSON file",
     )
-    parser.add_argument("--include-protocols", type=str, default=None,
-                        help="Comma-separated protocols to include")
-    parser.add_argument("--exclude-protocols", type=str, default=None,
-                        help="Comma-separated protocols to exclude (default: OTHER)")
-    parser.add_argument("--output-dir", type=str, default=CONFIG.output_dir,
-                        help="Directory to save output files")
-    parser.add_argument("--no-base64", action="store_true", help="Do not save base64 file")
+    parser.add_argument(
+        "--include-protocols",
+        type=str,
+        default=None,
+        help="Comma-separated protocols to include",
+    )
+    parser.add_argument(
+        "--exclude-protocols",
+        type=str,
+        default=None,
+        help="Comma-separated protocols to exclude (default: OTHER)",
+    )
+    parser.add_argument(
+        "--output-dir",
+        type=str,
+        default=CONFIG.output_dir,
+        help="Directory to save output files",
+    )
+    parser.add_argument(
+        "--no-base64", action="store_true", help="Do not save base64 file"
+    )
     parser.add_argument("--no-csv", action="store_true", help="Do not save CSV report")
 
     return parser
+
 
 def main(args: argparse.Namespace | None = None) -> None:
     print_public_source_warning()
@@ -154,14 +193,16 @@ def main(args: argparse.Namespace | None = None) -> None:
     CONFIG.connect_timeout = max(0.1, args.connect_timeout)
     CONFIG.max_ping_ms = args.max_ping
     if args.include_protocols:
-        CONFIG.include_protocols = {p.strip().upper() for p in args.include_protocols.split(',') if p.strip()}
+        CONFIG.include_protocols = {
+            p.strip().upper() for p in args.include_protocols.split(",") if p.strip()
+        }
     if args.exclude_protocols is None:
         CONFIG.exclude_protocols = {"OTHER"}
     elif args.exclude_protocols.strip() == "":
         CONFIG.exclude_protocols = None
     else:
         CONFIG.exclude_protocols = {
-            p.strip().upper() for p in args.exclude_protocols.split(',') if p.strip()
+            p.strip().upper() for p in args.exclude_protocols.split(",") if p.strip()
         }
     CONFIG.output_dir = str(Path(args.output_dir).expanduser())
     if args.history_file is not None:
@@ -173,7 +214,11 @@ def main(args: argparse.Namespace | None = None) -> None:
     configs = filter_configs(configs)
     results = asyncio.run(retest_configs(configs))
     if CONFIG.max_ping_ms is not None:
-        results = [(c, p) for c, p in results if p is not None and p * 1000 <= CONFIG.max_ping_ms]
+        results = [
+            (c, p)
+            for c, p in results
+            if p is not None and p * 1000 <= CONFIG.max_ping_ms
+        ]
     save_results(results, not args.no_sort, args.top_n)
 
 

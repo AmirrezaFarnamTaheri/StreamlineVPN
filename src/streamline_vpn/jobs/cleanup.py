@@ -31,7 +31,7 @@ class JobCleanupService:
             Statistics about the cleanup process.
         """
         logger.info("Starting job cleanup - File: %s", self.jobs_file)
-        
+
         if not self.jobs_file.exists():
             logger.info("Jobs file does not exist, no cleanup needed")
             return {"cleaned": 0, "fixed": 0, "removed": 0}
@@ -44,12 +44,16 @@ class JobCleanupService:
 
             jobs = data.get("jobs", [])
             logger.info("Found %d jobs to process", len(jobs))
-            
+
             now = datetime.now()
             cutoff_date = now - timedelta(days=self.max_job_age_days)
             stale_cutoff = now - timedelta(hours=self.stale_timeout_hours)
-            
-            logger.debug("Cleanup thresholds - Max age: %s, Stale timeout: %s", cutoff_date, stale_cutoff)
+
+            logger.debug(
+                "Cleanup thresholds - Max age: %s, Stale timeout: %s",
+                cutoff_date,
+                stale_cutoff,
+            )
 
             cleaned_jobs = []
 
@@ -84,9 +88,7 @@ class JobCleanupService:
                     if started_at < stale_cutoff:
                         job["status"] = "failed"
                         job["finished_at"] = now.isoformat()
-                        job["error"] = (
-                            "Job terminated on cleanup due to staleness"
-                        )
+                        job["error"] = "Job terminated on cleanup due to staleness"
                         stats["fixed"] += 1
                     elif created_at < stale_cutoff:
                         job["status"] = "cancelled"
@@ -102,9 +104,7 @@ class JobCleanupService:
                 stats["cleaned"] += 1
 
             if len(cleaned_jobs) > self.max_jobs_to_keep:
-                cleaned_jobs.sort(
-                    key=lambda j: j.get("created_at", ""), reverse=True
-                )
+                cleaned_jobs.sort(key=lambda j: j.get("created_at", ""), reverse=True)
                 removed_count = len(cleaned_jobs) - self.max_jobs_to_keep
                 cleaned_jobs = cleaned_jobs[: self.max_jobs_to_keep]
                 stats["removed"] += removed_count

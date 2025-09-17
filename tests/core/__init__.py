@@ -1,4 +1,3 @@
 """
 Core component test modules.
 """
-

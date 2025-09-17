@@ -12,6 +12,7 @@ from urllib.parse import urlparse
 
 from .circuit_breaker import CircuitBreaker, CircuitBreakerOpenException
 from .rate_limiter import AdaptiveRateLimiter
+
 # Import moved to avoid circular dependencies
 # from .policies import ensure_policies, apply_rate_limit, call_with_breaker
 from ..utils.logging import get_logger
@@ -54,9 +55,7 @@ class FetcherService:
         self.retry_attempts = (
             retry_attempts if retry_attempts is not None else s.retry_attempts
         )
-        self.retry_delay = (
-            retry_delay if retry_delay is not None else s.retry_delay
-        )
+        self.retry_delay = retry_delay if retry_delay is not None else s.retry_delay
 
         # Circuit breakers per domain
         self.circuit_breakers: Dict[str, CircuitBreaker] = {}
@@ -136,7 +135,7 @@ class FetcherService:
 
         # Ensure per-domain policies
         from .policies import ensure_policies, apply_rate_limit, call_with_breaker
-        
+
         circuit_breaker, rate_limiter = ensure_policies(
             domain, self.circuit_breakers, self.rate_limiters
         )
@@ -192,9 +191,7 @@ class FetcherService:
         """
         tasks = []
         for url in urls:
-            task = asyncio.create_task(
-                self._fetch_with_semaphore(url, method, headers)
-            )
+            task = asyncio.create_task(self._fetch_with_semaphore(url, method, headers))
             tasks.append((url, task))
 
         results = {}

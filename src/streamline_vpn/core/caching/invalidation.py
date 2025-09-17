@@ -31,9 +31,7 @@ class CacheInvalidationService:
             ],
             "performance_degradation": ["server_perf:*", "quality_pred:*"],
             "configuration_change": ["config:*", "server_rec:*"],
-            "security_incident": [
-                "*"
-            ],  # Invalidate all caches for security incidents
+            "security_incident": ["*"],  # Invalidate all caches for security incidents
         }
         self.invalidation_stats = {
             "total_invalidations": 0,
@@ -82,9 +80,7 @@ class CacheInvalidationService:
         self.invalidation_stats["total_invalidations"] += 1
         self.invalidation_stats["keys_invalidated"] += total_invalidated
 
-        logger.info(
-            f"Invalidated {total_invalidated} keys for event {event_type}"
-        )
+        logger.info(f"Invalidated {total_invalidated} keys for event {event_type}")
         return total_invalidated
 
     async def _invalidate_redis_pattern(

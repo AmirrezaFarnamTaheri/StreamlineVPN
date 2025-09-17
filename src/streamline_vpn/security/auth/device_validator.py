@@ -37,9 +37,7 @@ class DeviceValidator:
         }
         self.device_postures: Dict[str, DevicePosture] = {}
 
-    async def check_posture(
-        self, device_info: DeviceInfo
-    ) -> DevicePosture:
+    async def check_posture(self, device_info: DeviceInfo) -> DevicePosture:
         """Check device posture compliance.
 
         Args:
@@ -57,34 +55,24 @@ class DeviceValidator:
         compliance_score += os_compliance["score"]
         if not os_compliance["compliant"]:
             risk_factors.append(f"Outdated OS: {device_info.os_version}")
-            recommendations.append(
-                "Update operating system to latest version"
-            )
+            recommendations.append("Update operating system to latest version")
 
         # Check browser version compliance
-        browser_compliance = await self._check_browser_compliance(
-            device_info
-        )
+        browser_compliance = await self._check_browser_compliance(device_info)
         compliance_score += browser_compliance["score"]
         if not browser_compliance["compliant"]:
-            risk_factors.append(
-                f"Outdated browser: {device_info.browser_version}"
-            )
+            risk_factors.append(f"Outdated browser: {device_info.browser_version}")
             recommendations.append("Update browser to latest version")
 
         # Check security features
-        security_compliance = await self._check_security_features(
-            device_info
-        )
+        security_compliance = await self._check_security_features(device_info)
         compliance_score += security_compliance["score"]
         if not security_compliance["compliant"]:
             risk_factors.extend(security_compliance["risk_factors"])
             recommendations.extend(security_compliance["recommendations"])
 
         # Check for suspicious characteristics
-        suspicious_factors = (
-            await self._check_suspicious_characteristics(device_info)
-        )
+        suspicious_factors = await self._check_suspicious_characteristics(device_info)
         compliance_score -= suspicious_factors["penalty"]
         risk_factors.extend(suspicious_factors["factors"])
 
@@ -114,9 +102,7 @@ class DeviceValidator:
 
         return posture
 
-    async def _check_os_compliance(
-        self, device_info: DeviceInfo
-    ) -> Dict[str, Any]:
+    async def _check_os_compliance(self, device_info: DeviceInfo) -> Dict[str, Any]:
         """Check OS version compliance."""
         # Simplified OS version checking
         device_os = device_info.device_type.lower()
@@ -142,18 +128,14 @@ class DeviceValidator:
         else:
             return {"compliant": False, "score": 0.0}
 
-    async def _check_security_features(
-        self, device_info: DeviceInfo
-    ) -> Dict[str, Any]:
+    async def _check_security_features(self, device_info: DeviceInfo) -> Dict[str, Any]:
         """Check security features compliance."""
         score = 0.2
         risk_factors = []
         recommendations = []
 
         # Check for blocked plugins
-        blocked_plugins = self.compliance_rules["security_features"][
-            "blocked_plugins"
-        ]
+        blocked_plugins = self.compliance_rules["security_features"]["blocked_plugins"]
         found_blocked = [
             plugin
             for plugin in device_info.plugins
@@ -162,12 +144,8 @@ class DeviceValidator:
 
         if found_blocked:
             score -= 0.1
-            risk_factors.append(
-                f"Blocked plugins detected: {', '.join(found_blocked)}"
-            )
-            recommendations.append(
-                "Remove or disable blocked browser plugins"
-            )
+            risk_factors.append(f"Blocked plugins detected: {', '.join(found_blocked)}")
+            recommendations.append("Remove or disable blocked browser plugins")
 
         # Check for required certificates
         required_certs = self.compliance_rules["security_features"][
@@ -175,19 +153,14 @@ class DeviceValidator:
         ]
         if required_certs:
             missing_certs = [
-                cert
-                for cert in required_certs
-                if cert not in device_info.certificates
+                cert for cert in required_certs if cert not in device_info.certificates
             ]
             if missing_certs:
                 score -= 0.1
                 risk_factors.append(
-                    "Missing required certificates: "
-                    f"{', '.join(missing_certs)}"
+                    "Missing required certificates: " f"{', '.join(missing_certs)}"
                 )
-                recommendations.append(
-                    "Install required security certificates"
-                )
+                recommendations.append("Install required security certificates")
 
         return {
             "compliant": score >= 0.1,

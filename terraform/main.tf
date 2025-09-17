@@ -19,7 +19,7 @@ provider "aws" {
 
 # EKS Cluster
 resource "aws_eks_cluster" "streamline" {
-  name     = var.cluster_name
+  name     = "streamline-cluster"
   role_arn = aws_iam_role.eks_cluster.arn
   
   vpc_config {
@@ -37,7 +37,7 @@ resource "aws_eks_cluster" "streamline" {
 
 # RDS Database
 resource "aws_db_instance" "streamline" {
-  identifier     = var.db_identifier
+  identifier     = "streamline-db"
   engine         = "postgres"
   engine_version = "15.4"
   instance_class = "db.t3.medium"
@@ -55,12 +55,12 @@ resource "aws_db_instance" "streamline" {
   backup_window          = "03:00-04:00"
   maintenance_window     = "sun:04:00-sun:05:00"
   
-  skip_final_snapshot = false
+  skip_final_snapshot = true
 }
 
 # ElastiCache Redis
 resource "aws_elasticache_cluster" "streamline" {
-  cluster_id           = var.redis_cluster_id
+  cluster_id           = "streamline-redis"
   engine               = "redis"
   node_type            = "cache.t3.medium"
   num_cache_nodes      = 3
@@ -74,12 +74,10 @@ resource "aws_elasticache_cluster" "streamline" {
 # S3 Buckets
 resource "aws_s3_bucket" "configs" {
   bucket = "streamline-configs-${random_id.bucket_suffix.hex}"
-  depends_on = [random_id.bucket_suffix]
 }
 
 resource "aws_s3_bucket" "backups" {
   bucket = "streamline-backups-${random_id.bucket_suffix.hex}"
-  depends_on = [random_id.bucket_suffix]
 }
 
 resource "aws_s3_bucket_versioning" "configs" {

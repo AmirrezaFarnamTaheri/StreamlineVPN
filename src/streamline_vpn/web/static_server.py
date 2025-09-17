@@ -75,13 +75,15 @@ class StaticControlServer:
 
         # Descriptive error handlers
         @app.exception_handler(RequestValidationError)
-        async def validation_exception_handler(request: Request, exc: RequestValidationError):
+        async def validation_exception_handler(
+            request: Request, exc: RequestValidationError
+        ):
             logger.warning(
-                "Request validation failed: %s %s - Client: %s - Errors: %s", 
-                request.method, 
-                request.url.path, 
+                "Request validation failed: %s %s - Client: %s - Errors: %s",
+                request.method,
+                request.url.path,
                 request.client.host if request.client else "unknown",
-                exc.errors()
+                exc.errors(),
             )
             return JSONResponse(
                 status_code=422,
@@ -92,19 +94,19 @@ class StaticControlServer:
                     "method": request.method,
                     "timestamp": datetime.now().isoformat(),
                     "details": exc.errors(),
-                    "request_id": getattr(request.state, 'request_id', None),
+                    "request_id": getattr(request.state, "request_id", None),
                 },
             )
 
         @app.exception_handler(HTTPException)
         async def http_exception_handler(request: Request, exc: HTTPException):
             logger.info(
-                "HTTP error %s on %s %s - Client: %s - Detail: %s", 
-                exc.status_code, 
-                request.method, 
+                "HTTP error %s on %s %s - Client: %s - Detail: %s",
+                exc.status_code,
+                request.method,
                 request.url.path,
                 request.client.host if request.client else "unknown",
-                exc.detail
+                exc.detail,
             )
             return JSONResponse(
                 status_code=exc.status_code,
@@ -115,19 +117,19 @@ class StaticControlServer:
                     "method": request.method,
                     "timestamp": datetime.now().isoformat(),
                     "detail": exc.detail,
-                    "request_id": getattr(request.state, 'request_id', None),
+                    "request_id": getattr(request.state, "request_id", None),
                 },
             )
 
         @app.exception_handler(Exception)
         async def general_exception_handler(request: Request, exc: Exception):
             logger.error(
-                "Unhandled exception on %s %s - Client: %s - Exception: %s", 
-                request.method, 
+                "Unhandled exception on %s %s - Client: %s - Exception: %s",
+                request.method,
                 request.url.path,
                 request.client.host if request.client else "unknown",
                 exc,
-                exc_info=True
+                exc_info=True,
             )
             return JSONResponse(
                 status_code=500,
@@ -137,7 +139,7 @@ class StaticControlServer:
                     "path": request.url.path,
                     "method": request.method,
                     "timestamp": datetime.now().isoformat(),
-                    "request_id": getattr(request.state, 'request_id', None),
+                    "request_id": getattr(request.state, "request_id", None),
                 },
             )
 
@@ -145,72 +147,81 @@ class StaticControlServer:
         async def startup_event() -> None:
             """Initialize backend connection and start auto-update."""
             logger.info(
-                "Starting static control server - API Base: %s - Static Dir: %s - Update Interval: %s", 
-                self.api_base, 
-                self.static_dir, 
-                self.update_interval
+                "Starting static control server - API Base: %s - Static Dir: %s - Update Interval: %s",
+                self.api_base,
+                self.static_dir,
+                self.update_interval,
             )
-            
+
             # Initialize backend client with proper configuration
             timeout = aiohttp.ClientTimeout(total=30.0)
             connector = aiohttp.TCPConnector(limit=10, limit_per_host=5)
             self.backend_client = aiohttp.ClientSession(
-                timeout=timeout,
-                connector=connector
+                timeout=timeout, connector=connector
             )
-            logger.info("Backend HTTP client initialized with timeout=30s, connection_limit=10")
-            
+            logger.info(
+                "Backend HTTP client initialized with timeout=30s, connection_limit=10"
+            )
+
             # Wait a moment for API server to be fully ready
             await asyncio.sleep(2)
-            
+
             # Try to connect to API with retries
             max_retries = 3
             connection_successful = False
-            
+
             for attempt in range(max_retries):
                 try:
                     logger.info(
-                        "Attempting to connect to API at %s (attempt %d/%d)", 
-                        self.api_base, 
-                        attempt + 1, 
-                        max_retries
+                        "Attempting to connect to API at %s (attempt %d/%d)",
+                        self.api_base,
+                        attempt + 1,
+                        max_retries,
                     )
-                    async with self.backend_client.get(f"{self.api_base}/health") as resp:
+                    async with self.backend_client.get(
+                        f"{self.api_base}/health"
+                    ) as resp:
                         if resp.status == 200:
-                            logger.info("Backend connection successful - API is healthy")
+                            logger.info(
+                                "Backend connection successful - API is healthy"
+                            )
                             connection_successful = True
                             break
                         else:
                             logger.warning(
-                                "Backend health check failed with status %s - Response: %s", 
+                                "Backend health check failed with status %s - Response: %s",
                                 resp.status,
-                                await resp.text() if resp.content_length else "No content"
+                                (
+                                    await resp.text()
+                                    if resp.content_length
+                                    else "No content"
+                                ),
                             )
                             if attempt < max_retries - 1:
                                 await asyncio.sleep(2)
                 except aiohttp.ClientError as exc:
                     logger.warning(
-                        "Backend connection failed (attempt %d/%d) - Client Error: %s", 
-                        attempt + 1, 
-                        max_retries, 
-                        exc
+                        "Backend connection failed (attempt %d/%d) - Client Error: %s",
+                        attempt + 1,
+                        max_retries,
+                        exc,
                     )
                     if attempt < max_retries - 1:
                         await asyncio.sleep(2)
                 except Exception as exc:  # pragma: no cover
                     logger.warning(
-                        "Backend connection failed (attempt %d/%d) - Unexpected Error: %s", 
-                        attempt + 1, 
-                        max_retries, 
-                        exc
+                        "Backend connection failed (attempt %d/%d) - Unexpected Error: %s",
+                        attempt + 1,
+                        max_retries,
+                        exc,
                     )
                     if attempt < max_retries - 1:
                         await asyncio.sleep(2)
-            
+
             if not connection_successful:
                 logger.error(
-                    "Failed to connect to backend after %d attempts - API may not be available", 
-                    max_retries
+                    "Failed to connect to backend after %d attempts - API may not be available",
+                    max_retries,
                 )
 
             self.update_task = asyncio.create_task(self._auto_update_loop())
@@ -223,38 +234,42 @@ class StaticControlServer:
             backend = "unknown"
             try:
                 if self.backend_client:
-                    async with self.backend_client.get(f"{self.api_base}/health") as resp:
-                        backend = "healthy" if resp.status == 200 else f"http_{resp.status}"
+                    async with self.backend_client.get(
+                        f"{self.api_base}/health"
+                    ) as resp:
+                        backend = (
+                            "healthy" if resp.status == 200 else f"http_{resp.status}"
+                        )
                 else:
                     backend = "client_uninitialized"
             except Exception:
                 backend = "unreachable"
-            return JSONResponse({
-                "status": status,
-                "service": "streamline-web",
-                "backend": backend,
-                "api_base": self.api_base,
-            })
+            return JSONResponse(
+                {
+                    "status": status,
+                    "service": "streamline-web",
+                    "backend": backend,
+                    "api_base": self.api_base,
+                }
+            )
 
         @app.on_event("shutdown")
         async def shutdown_event() -> None:
             """Clean shutdown."""
             logger.info("Shutting down static control server...")
-            
+
             # Cancel update task gracefully
             if self.update_task:
                 logger.info("Cancelling auto-update task...")
                 self.update_task.cancel()
                 try:
-                    await asyncio.wait_for(
-                        asyncio.shield(self.update_task), timeout=2
-                    )
+                    await asyncio.wait_for(asyncio.shield(self.update_task), timeout=2)
                     logger.info("Auto-update task cancelled successfully")
                 except (asyncio.TimeoutError, asyncio.CancelledError):
                     logger.warning("Auto-update task cancellation timed out")
                 except Exception as exc:
                     logger.error("Error cancelling auto-update task: %s", exc)
-            
+
             # Close backend client
             if self.backend_client:
                 logger.info("Closing backend HTTP client...")
@@ -263,25 +278,22 @@ class StaticControlServer:
                     logger.info("Backend HTTP client closed successfully")
                 except Exception as exc:
                     logger.error("Error closing backend HTTP client: %s", exc)
-            
+
             logger.info("Static control server shutdown complete")
 
         @app.get("/api/status")
         async def get_status() -> JSONResponse:
             if not self.backend_client:
                 return JSONResponse(
-                    status_code=503,
-                    content={"error": "Backend client not initialized"}
+                    status_code=503, content={"error": "Backend client not initialized"}
                 )
-            
+
             # Backend statistics
             async with self.backend_client.get(
                 f"{self.api_base}/api/v1/statistics"
             ) as stats_response:
                 stats = (
-                    await stats_response.json()
-                    if stats_response.status == 200
-                    else {}
+                    await stats_response.json() if stats_response.status == 200 else {}
                 )
             # Backend health
             health_status = "unknown"
@@ -297,19 +309,14 @@ class StaticControlServer:
             return JSONResponse(
                 {
                     "status": "online",
-                    "backend_status": (
-                        "connected" if stats else "disconnected"
-                    ),
+                    "backend_status": ("connected" if stats else "disconnected"),
                     "backend_health": health_status,
                     "last_update": self.cached_data.get("last_update"),
                     "next_update": (
-                        datetime.now()
-                        + timedelta(seconds=self.update_interval)
+                        datetime.now() + timedelta(seconds=self.update_interval)
                     ).isoformat(),
                     "statistics": stats,
-                    "cached_configs": len(
-                        self.cached_data.get("configurations", [])
-                    ),
+                    "cached_configs": len(self.cached_data.get("configurations", [])),
                     "auto_update_enabled": self.update_task is not None,
                 }
             )
@@ -323,12 +330,12 @@ class StaticControlServer:
                     content={
                         "success": True,
                         "total": len(configs),
-                        "configurations": configs[:100]  # Limit for performance
+                        "configurations": configs[:100],  # Limit for performance
                     },
                     headers={
                         "Content-Type": "application/json",
-                        "Cache-Control": "max-age=30"
-                    }
+                        "Cache-Control": "max-age=30",
+                    },
                 )
             except Exception as e:
                 logger.error("Error getting configurations: %s", e)
@@ -338,7 +345,7 @@ class StaticControlServer:
                         "error": str(e),
                         "hint": "Try refreshing the cache via /api/refresh and check backend availability.",
                     },
-                    status_code=500
+                    status_code=500,
                 )
 
         @app.get("/api/statistics")
@@ -350,9 +357,7 @@ class StaticControlServer:
             background_tasks: BackgroundTasks,
         ) -> JSONResponse:
             background_tasks.add_task(self._perform_update)
-            return JSONResponse(
-                {"message": "Processing started", "status": "running"}
-            )
+            return JSONResponse({"message": "Processing started", "status": "running"})
 
         @app.post("/api/refresh")
         async def force_refresh() -> JSONResponse:
@@ -361,9 +366,7 @@ class StaticControlServer:
                 {
                     "message": "Data refreshed",
                     "last_update": (
-                        self.last_update.isoformat()
-                        if self.last_update
-                        else None
+                        self.last_update.isoformat() if self.last_update else None
                     ),
                 }
             )
@@ -402,8 +405,7 @@ class StaticControlServer:
                     media_type="application/json",
                     headers={
                         "Content-Disposition": (
-                            "attachment; filename="
-                            f"vpn_configs_{timestamp}.json"
+                            "attachment; filename=" f"vpn_configs_{timestamp}.json"
                         ),
                     },
                 )
@@ -437,16 +439,18 @@ class StaticControlServer:
             """Proxy unknown API requests to the backend service."""
             if not self.backend_client:
                 logger.error("Proxy request failed - Backend client not initialized")
-                raise HTTPException(status_code=503, detail="Backend client not initialized")
-            
+                raise HTTPException(
+                    status_code=503, detail="Backend client not initialized"
+                )
+
             try:
                 backend_url = f"{self.api_base}/api/{path}"
                 logger.info(
-                    "Proxying %s request to %s - Client: %s - Query: %s", 
-                    request.method, 
+                    "Proxying %s request to %s - Client: %s - Query: %s",
+                    request.method,
                     backend_url,
                     request.client.host if request.client else "unknown",
-                    dict(request.query_params) if request.query_params else {}
+                    dict(request.query_params) if request.query_params else {},
                 )
                 body = (
                     await request.body()
@@ -497,10 +501,10 @@ class StaticControlServer:
                     }
                     content = await response.read()
                     logger.debug(
-                        "Proxy response received - Status: %s - Content-Length: %d - Content-Type: %s", 
-                        response.status, 
+                        "Proxy response received - Status: %s - Content-Length: %d - Content-Type: %s",
+                        response.status,
                         len(content),
-                        response.headers.get("content-type", "unknown")
+                        response.headers.get("content-type", "unknown"),
                     )
                     return Response(
                         content=content,
@@ -510,26 +514,24 @@ class StaticControlServer:
                     )
             except aiohttp.ClientError as exc:  # pragma: no cover - network
                 logger.error(
-                    "Proxy request failed - Client Error: %s - URL: %s - Method: %s", 
-                    exc, 
-                    backend_url, 
-                    request.method
+                    "Proxy request failed - Client Error: %s - URL: %s - Method: %s",
+                    exc,
+                    backend_url,
+                    request.method,
                 )
                 raise HTTPException(
-                    status_code=503, 
-                    detail=f"Backend service unavailable: {str(exc)}"
+                    status_code=503, detail=f"Backend service unavailable: {str(exc)}"
                 )
             except Exception as exc:  # pragma: no cover
                 logger.error(
-                    "Unexpected proxy error: %s - URL: %s - Method: %s", 
-                    exc, 
-                    backend_url, 
+                    "Unexpected proxy error: %s - URL: %s - Method: %s",
+                    exc,
+                    backend_url,
                     request.method,
-                    exc_info=True
+                    exc_info=True,
                 )
                 raise HTTPException(
-                    status_code=500, 
-                    detail=f"Internal proxy error: {str(exc)}"
+                    status_code=500, detail=f"Internal proxy error: {str(exc)}"
                 )
 
         app.mount(
@@ -543,23 +545,25 @@ class StaticControlServer:
         """Perform actual update from sources with proper error handling."""
         try:
             logger.info("Starting auto-update cycle...")
-            
+
             if not self.backend_client:
                 logger.warning("Backend client not initialized, skipping update")
                 return
-            
+
             # Check if backend is available
             try:
                 async with self.backend_client.get(
                     f"{self.api_base}/health"
                 ) as health_response:
                     if health_response.status != 200:
-                        logger.warning("Backend health check failed: %s", health_response.status)
+                        logger.warning(
+                            "Backend health check failed: %s", health_response.status
+                        )
                         return
             except Exception as e:
                 logger.error("Backend not available for auto-update: %s", e)
                 return
-            
+
             # Trigger pipeline run
             logger.info("Triggering pipeline run...")
             async with self.backend_client.post(
@@ -567,27 +571,27 @@ class StaticControlServer:
                 json={
                     "config_path": "config/sources.yaml",
                     "output_dir": "output",
-                    "formats": ["json", "clash", "singbox", "base64", "raw", "csv"]
-                }
+                    "formats": ["json", "clash", "singbox", "base64", "raw", "csv"],
+                },
             ) as response:
                 if response.status not in (200, 202):
                     logger.error("Failed to start pipeline: %s", response.status)
                     return
-            
+
                 result = await response.json()
                 job_id = result.get("job_id")
-            
+
             if not job_id:
                 logger.error("No job ID returned from pipeline run")
                 return
-            
+
             logger.info("Pipeline job started: %s", job_id)
-            
+
             # Poll for completion with exponential backoff
             max_attempts = 120  # 10 minutes max
             attempt = 0
             base_delay = 2  # Start with 2 seconds
-            
+
             while attempt < max_attempts:
                 attempt += 1
                 try:
@@ -596,7 +600,9 @@ class StaticControlServer:
                     ) as status_resp:
                         if status_resp.status == 200:
                             status_data = await status_resp.json()
-                            state = status_data.get("status") or status_data.get("state")
+                            state = status_data.get("status") or status_data.get(
+                                "state"
+                            )
                             if state in {"completed", "failed"}:
                                 logger.info("Pipeline finished with state: %s", state)
                                 # On success, refresh cached data immediately
@@ -604,13 +610,21 @@ class StaticControlServer:
                                     try:
                                         await self._refresh_cached_data()
                                         self.last_update = datetime.now()
-                                        self.cached_data["last_update"] = self.last_update.isoformat()
-                                        logger.info("Refreshed cache after pipeline completion")
+                                        self.cached_data["last_update"] = (
+                                            self.last_update.isoformat()
+                                        )
+                                        logger.info(
+                                            "Refreshed cache after pipeline completion"
+                                        )
                                     except Exception as e:
-                                        logger.warning("Cache refresh after pipeline failed: %s", e)
+                                        logger.warning(
+                                            "Cache refresh after pipeline failed: %s", e
+                                        )
                                 break
                         else:
-                            logger.warning("Status check returned %s", status_resp.status)
+                            logger.warning(
+                                "Status check returned %s", status_resp.status
+                            )
                 except Exception as e:
                     logger.warning("Status check error: %s", e)
                 # backoff
@@ -635,7 +649,7 @@ class StaticControlServer:
         if not self.backend_client:
             logger.warning("Backend client not initialized, skipping cache refresh")
             return
-            
+
         try:
             # Fetch configurations
             async with self.backend_client.get(
@@ -644,8 +658,11 @@ class StaticControlServer:
                 if configs_response.status == 200:
                     data = await configs_response.json()
                     self.cached_data["configurations"] = data.get("configurations", [])
-                    logger.info("Cached %d configurations", len(self.cached_data['configurations']))
-            
+                    logger.info(
+                        "Cached %d configurations",
+                        len(self.cached_data["configurations"]),
+                    )
+
             # Fetch statistics
             async with self.backend_client.get(
                 f"{self.api_base}/api/v1/statistics"
@@ -653,7 +670,7 @@ class StaticControlServer:
                 if stats_response.status == 200:
                     self.cached_data["statistics"] = await stats_response.json()
                     logger.info("Updated statistics cache")
-            
+
             # Fetch sources
             async with self.backend_client.get(
                 f"{self.api_base}/api/v1/sources"
@@ -661,8 +678,8 @@ class StaticControlServer:
                 if sources_response.status == 200:
                     data = await sources_response.json()
                     self.cached_data["sources"] = data.get("sources", [])
-                    logger.info("Cached %d sources", len(self.cached_data['sources']))
-                
+                    logger.info("Cached %d sources", len(self.cached_data["sources"]))
+
         except Exception as e:
             logger.error("Error refreshing cached data: %s", e, exc_info=True)
 

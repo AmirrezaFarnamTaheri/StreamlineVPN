@@ -26,13 +26,14 @@ def get_merger(app=None):
     """
     global _merger
     try:
-        if app and hasattr(app, 'state') and hasattr(app.state, 'merger'):
+        if app and hasattr(app, "state") and hasattr(app.state, "merger"):
             return app.state.merger
     except Exception:
         pass
     return _merger
 
-__all__ = ['create_app', 'UnifiedAPIServer', 'get_merger', 'StreamlineVPNMerger']
+
+__all__ = ["create_app", "UnifiedAPIServer", "get_merger", "StreamlineVPNMerger"]
 
 
 def create_app() -> FastAPI:
@@ -54,8 +55,12 @@ def create_app() -> FastAPI:
     # Remove any existing pipeline run route to avoid conflicts
     try:
         app.router.routes = [
-            r for r in app.router.routes
-            if not (getattr(r, 'path', None) == "/api/v1/pipeline/run" and "POST" in getattr(r, 'methods', set()))
+            r
+            for r in app.router.routes
+            if not (
+                getattr(r, "path", None) == "/api/v1/pipeline/run"
+                and "POST" in getattr(r, "methods", set())
+            )
         ]
     except Exception:
         pass
@@ -67,11 +72,17 @@ def create_app() -> FastAPI:
         formats = payload.get("formats")
         if formats is not None:
             known = {"json", "clash", "singbox", "raw", "csv", "base64"}
-            if not isinstance(formats, list) or not all(isinstance(f, str) for f in formats):
+            if not isinstance(formats, list) or not all(
+                isinstance(f, str) for f in formats
+            ):
                 raise HTTPException(status_code=400, detail="Invalid formats")
             if any(f not in known for f in formats):
-                raise HTTPException(status_code=400, detail=f"Unsupported formats: {formats}")
-        return JSONResponse(status_code=202, content={"status": "accepted", "job_id": "test"})
+                raise HTTPException(
+                    status_code=400, detail=f"Unsupported formats: {formats}"
+                )
+        return JSONResponse(
+            status_code=202, content={"status": "accepted", "job_id": "test"}
+        )
 
     @app.post("/api/v1/sources")
     async def add_source(payload: dict, merger=Depends(get_merger)):
@@ -83,7 +94,9 @@ def create_app() -> FastAPI:
         try:
             add_method = getattr(merger.source_manager, "add_source", None)
             if add_method is None:
-                raise HTTPException(status_code=503, detail="Source manager unsupported")
+                raise HTTPException(
+                    status_code=503, detail="Source manager unsupported"
+                )
             result = add_method(url)
             if hasattr(result, "__await__"):
                 await result
@@ -103,8 +116,12 @@ def create_app() -> FastAPI:
     # Replace unified route for /api/v1/statistics to honor dependency override in tests
     try:
         app.router.routes = [
-            r for r in app.router.routes
-            if not (getattr(r, 'path', None) == "/api/v1/statistics" and "GET" in getattr(r, 'methods', set()))
+            r
+            for r in app.router.routes
+            if not (
+                getattr(r, "path", None) == "/api/v1/statistics"
+                and "GET" in getattr(r, "methods", set())
+            )
         ]
     except Exception:
         pass
@@ -118,8 +135,12 @@ def create_app() -> FastAPI:
     # Override /health to reflect degraded state if merger initialization failed
     try:
         app.router.routes = [
-            r for r in app.router.routes
-            if not (getattr(r, 'path', None) == "/health" and "GET" in getattr(r, 'methods', set()))
+            r
+            for r in app.router.routes
+            if not (
+                getattr(r, "path", None) == "/health"
+                and "GET" in getattr(r, "methods", set())
+            )
         ]
     except Exception:
         pass
@@ -131,8 +152,12 @@ def create_app() -> FastAPI:
     # Remove any existing configurations route to avoid conflicts
     try:
         app.router.routes = [
-            r for r in app.router.routes
-            if not (getattr(r, 'path', None) == "/api/v1/configurations" and "GET" in getattr(r, 'methods', set()))
+            r
+            for r in app.router.routes
+            if not (
+                getattr(r, "path", None) == "/api/v1/configurations"
+                and "GET" in getattr(r, "methods", set())
+            )
         ]
     except Exception:
         pass
@@ -153,6 +178,7 @@ def create_app() -> FastAPI:
         configs = []
         if merger and hasattr(merger, "get_configurations"):
             configs = merger.get_configurations()
+
         # Configs may be model objects with attributes or plain dicts
         def get_protocol(c) -> str:
             val = getattr(c, "protocol", None)
@@ -168,19 +194,26 @@ def create_app() -> FastAPI:
         if protocol:
             configs = [c for c in configs if get_protocol(c) == protocol]
         if location:
+
             def get_location(c):
-                meta = getattr(c, "metadata", None) or (c.get("metadata") if isinstance(c, dict) else {})
+                meta = getattr(c, "metadata", None) or (
+                    c.get("metadata") if isinstance(c, dict) else {}
+                )
                 return meta.get("location") if isinstance(meta, dict) else None
+
             configs = [c for c in configs if get_location(c) == location]
         if min_quality > 0:
+
             def get_quality(c):
                 qs = getattr(c, "quality_score", None)
                 if qs is None and isinstance(c, dict):
                     qs = c.get("quality_score")
                 return qs or 0
+
             configs = [c for c in configs if get_quality(c) >= min_quality]
         total = len(configs)
-        sliced = configs[offset: offset + limit]
+        sliced = configs[offset : offset + limit]
+
         def to_dict(c):
             if hasattr(c, "to_dict"):
                 return c.to_dict()
@@ -197,7 +230,12 @@ def create_app() -> FastAPI:
                 d = dict(d)
                 d["protocol"] = d["protocol"].value
             return d
-        return {"total": total, "limit": limit, "offset": offset, "configurations": [to_dict(c) for c in sliced]}
+
+        return {
+            "total": total,
+            "limit": limit,
+            "offset": offset,
+            "configurations": [to_dict(c) for c in sliced],
+        }
 
     return app
-

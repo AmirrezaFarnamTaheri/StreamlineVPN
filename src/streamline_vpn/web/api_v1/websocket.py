@@ -48,9 +48,7 @@ class WebSocketManager:
             del self.connections[user_id]
             logger.info("WebSocket disconnected for user %s", user_id)
 
-    async def send_message(
-        self, user_id: str, message: WebSocketMessage
-    ) -> bool:
+    async def send_message(self, user_id: str, message: WebSocketMessage) -> bool:
         """Send message to specific user.
 
         Args:
@@ -66,9 +64,7 @@ class WebSocketManager:
                 await websocket.send_text(message.json())
                 return True
             except Exception as e:
-                logger.error(
-                    f"Failed to send WebSocket message to user {user_id}: {e}"
-                )
+                logger.error(f"Failed to send WebSocket message to user {user_id}: {e}")
                 # Remove broken connection
                 await self.disconnect(user_id)
                 return False
@@ -91,9 +87,7 @@ class WebSocketManager:
         )
         return await self.send_message(user_id, message)
 
-    async def send_connection_update(
-        self, user_id: str, connection_data: Dict
-    ) -> bool:
+    async def send_connection_update(self, user_id: str, connection_data: Dict) -> bool:
         """Send connection update to user.
 
         Args:
@@ -134,7 +128,11 @@ class WebSocketManager:
         for user_id in failed_connections:
             await self.disconnect(user_id)
 
-        logger.info("Broadcast completed: %d successful, %d failed", successful_sends, len(failed_connections))
+        logger.info(
+            "Broadcast completed: %d successful, %d failed",
+            successful_sends,
+            len(failed_connections),
+        )
         return successful_sends
 
     async def broadcast(self, message: str) -> int:

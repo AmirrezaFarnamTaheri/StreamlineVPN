@@ -14,8 +14,6 @@ from . import context as cli_context
 from .commands import process, validate, server, sources, health, version
 
 
-
-
 def _help_callback(ctx: Context, param: click.Option, value: bool) -> None:
     if not value:
         return
@@ -24,18 +22,36 @@ def _help_callback(ctx: Context, param: click.Option, value: bool) -> None:
     click.echo(ctx.get_help())
     ctx.exit()
 
+
 @click.group()
 @click.version_option(version="1.0.0", prog_name="StreamlineVPN")
-@click.option('--verbose', '-v', is_flag=True, help='Enable verbose logging')
-@click.option('--config', '-c', type=click.Path(exists=True), help='Configuration file path')
-@click.option('--output', '-o', type=click.Path(), help='Output directory path')
-@click.option('--dry-run', is_flag=True, help='Show what would be done without making changes')
-@click.option('--help', is_flag=True, help='Show this message and exit', is_eager=True, expose_value=False, callback=_help_callback)
+@click.option("--verbose", "-v", is_flag=True, help="Enable verbose logging")
+@click.option(
+    "--config", "-c", type=click.Path(exists=True), help="Configuration file path"
+)
+@click.option("--output", "-o", type=click.Path(), help="Output directory path")
+@click.option(
+    "--dry-run", is_flag=True, help="Show what would be done without making changes"
+)
+@click.option(
+    "--help",
+    is_flag=True,
+    help="Show this message and exit",
+    is_eager=True,
+    expose_value=False,
+    callback=_help_callback,
+)
 @click.pass_context
-def main(ctx: Context, verbose: bool, config: Optional[Path], output: Optional[Path], dry_run: bool):
+def main(
+    ctx: Context,
+    verbose: bool,
+    config: Optional[Path],
+    output: Optional[Path],
+    dry_run: bool,
+):
     """
     StreamlineVPN - Advanced VPN Configuration Manager
-    
+
     A comprehensive tool for managing, merging, and optimizing VPN configurations
     from multiple sources with advanced filtering, deduplication, and validation.
     """
@@ -77,6 +93,5 @@ main.add_command(health.health_group)
 main.add_command(version.version_group)
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     main()
-

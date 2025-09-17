@@ -21,13 +21,12 @@ class TestCLIContextInitialization:
 
     def test_setup_logging_default(self):
         ctx = CLIContext()
-        with patch('streamline_vpn.cli.context.logging.basicConfig') as mock_basic:
+        with patch("streamline_vpn.cli.context.logging.basicConfig") as mock_basic:
             ctx.setup_logging()
             mock_basic.assert_called_once()
 
     def test_setup_logging_verbose(self):
         ctx = CLIContext()
-        with patch('streamline_vpn.cli.context.logging.basicConfig') as mock_basic:
+        with patch("streamline_vpn.cli.context.logging.basicConfig") as mock_basic:
             ctx.setup_logging(verbose=True)
             mock_basic.assert_called_once()
-

@@ -25,10 +25,8 @@ class JSONFormatter(BaseFormatter):
         self, configs: List[VPNConfiguration], base_filename: str
     ) -> Path:
         """Serialize configurations to a JSON file."""
-        file_path = (
-            self.output_dir / f"{base_filename}{self.get_file_extension()}"
-        )
-        
+        file_path = self.output_dir / f"{base_filename}{self.get_file_extension()}"
+
         try:
             with open(file_path, "w", encoding="utf-8") as f:
                 data = [self._safe_config_to_dict(cfg) for cfg in configs]
@@ -36,5 +34,5 @@ class JSONFormatter(BaseFormatter):
         except Exception as e:
             logger.error("Failed to save JSON configurations: %s", e)
             raise
-        
+
         return file_path

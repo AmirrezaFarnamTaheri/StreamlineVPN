@@ -10,7 +10,7 @@ from pathlib import Path
 from typing import Any, Dict, List
 import yaml
 
-from .clash_utils import config_to_clash_proxy
+from .clash_utils import config_to_clash_proxy, results_to_clash_yaml
 from .result_processor import CONFIG, ConfigResult
 
 EXCLUDE_REGEXES: List[re.Pattern] = []
@@ -34,6 +34,7 @@ def build_html_report(results: List[ConfigResult]) -> str:
     footer = "</table></body></html>"
     return header + "".join(rows) + footer
 
+
 async def generate_comprehensive_outputs(
     merger: Any,
     results: List[ConfigResult],
@@ -49,43 +50,57 @@ async def generate_comprehensive_outputs(
         configs = [result.config for result in results]
 
         raw_file = output_dir / f"{prefix}vpn_subscription_raw.txt"
-        tmp_raw = raw_file.with_suffix('.tmp')
+        tmp_raw = raw_file.with_suffix(".tmp")
         tmp_raw.write_text("\n".join(configs), encoding="utf-8")
         tmp_raw.replace(raw_file)
 
         base64_file = output_dir / f"{prefix}vpn_subscription_base64.txt"
         if CONFIG.write_base64:
-            base64_content = base64.b64encode("\n".join(configs).encode("utf-8")).decode("utf-8")
-            tmp_base64 = base64_file.with_suffix('.tmp')
+            base64_content = base64.b64encode(
+                "\n".join(configs).encode("utf-8")
+            ).decode("utf-8")
+            tmp_base64 = base64_file.with_suffix(".tmp")
             tmp_base64.write_text(base64_content, encoding="utf-8")
             tmp_base64.replace(base64_file)
 
         csv_file = output_dir / f"{prefix}vpn_detailed.csv"
         if CONFIG.write_csv:
-            tmp_csv = csv_file.with_suffix('.tmp')
-            with open(tmp_csv, 'w', newline='', encoding='utf-8') as f:
+            tmp_csv = csv_file.with_suffix(".tmp")
+            with open(tmp_csv, "w", newline="", encoding="utf-8") as f:
                 writer = csv.writer(f)
-                writer.writerow([
-                    'config', 'protocol', 'host', 'port',
-                    'ping_ms', 'reachable', 'source_url', 'country'
-                ])
+                writer.writerow(
+                    [
+                        "config",
+                        "protocol",
+                        "host",
+                        "port",
+                        "ping_ms",
+                        "reachable",
+                        "source_url",
+                        "country",
+                    ]
+                )
                 for result in results:
-                    ping_ms = round(result.ping_time * 1000, 2) if result.ping_time else None
-                    writer.writerow([
-                        result.config,
-                        result.protocol,
-                        result.host,
-                        result.port,
-                        ping_ms,
-                        result.is_reachable,
-                        result.source_url,
-                        result.country,
-                    ])
+                    ping_ms = (
+                        round(result.ping_time * 1000, 2) if result.ping_time else None
+                    )
+                    writer.writerow(
+                        [
+                            result.config,
+                            result.protocol,
+                            result.host,
+                            result.port,
+                            ping_ms,
+                            result.is_reachable,
+                            result.source_url,
+                            result.country,
+                        ]
+                    )
             tmp_csv.replace(csv_file)
 
         if CONFIG.write_html:
             html_file = output_dir / f"{prefix}vpn_report.html"
-            tmp_html = html_file.with_suffix('.tmp')
+            tmp_html = html_file.with_suffix(".tmp")
             tmp_html.write_text(build_html_report(results), encoding="utf-8")
             tmp_html.replace(html_file)
 
@@ -99,19 +114,25 @@ async def generate_comprehensive_outputs(
                 "sorting_enabled": CONFIG.enable_sorting,
             },
             "statistics": stats,
-            "source_categories": {
-                "total_unique_sources": len(merger.sources)
-            },
+            "source_categories": {"total_unique_sources": len(merger.sources)},
             "output_files": {
                 "raw": str(raw_file),
                 **({"base64": str(base64_file)} if CONFIG.write_base64 else {}),
                 **({"detailed_csv": str(csv_file)} if CONFIG.write_csv else {}),
                 "json_report": str(report_file),
-                **({"html_report": str(output_dir / f"{prefix}vpn_report.html")} if CONFIG.write_html else {}),
+                **(
+                    {"html_report": str(output_dir / f"{prefix}vpn_report.html")}
+                    if CONFIG.write_html
+                    else {}
+                ),
                 "singbox": str(output_dir / f"{prefix}vpn_singbox.json"),
                 "clash": str(output_dir / f"{prefix}clash.yaml"),
                 **(
-                    {"clash_proxies": str(output_dir / f"{prefix}vpn_clash_proxies.yaml")}
+                    {
+                        "clash_proxies": str(
+                            output_dir / f"{prefix}vpn_clash_proxies.yaml"
+                        )
+                    }
                     if CONFIG.write_clash_proxies
                     else {}
                 ),
@@ -123,14 +144,23 @@ async def generate_comprehensive_outputs(
                 "clash_yaml": "Load clash.yaml in Clash Meta or Stash",
                 "clash_proxies_yaml": "Import vpn_clash_proxies.yaml as a simple provider",
                 "supported_clients": [
-                    "V2rayNG", "V2rayN", "Hiddify Next", "Shadowrocket",
-                    "NekoBox", "Clash Meta", "Sing-Box", "Streisand", "Karing"
-                ]
-            }
+                    "V2rayNG",
+                    "V2rayN",
+                    "Hiddify Next",
+                    "Shadowrocket",
+                    "NekoBox",
+                    "Clash Meta",
+                    "Sing-Box",
+                    "Streisand",
+                    "Karing",
+                ],
+            },
         }
 
-        tmp_report = report_file.with_suffix('.tmp')
-        tmp_report.write_text(json.dumps(report, indent=2, ensure_ascii=False), encoding="utf-8")
+        tmp_report = report_file.with_suffix(".tmp")
+        tmp_report.write_text(
+            json.dumps(report, indent=2, ensure_ascii=False), encoding="utf-8"
+        )
         tmp_report.replace(report_file)
 
         outbounds = []
@@ -141,7 +171,7 @@ async def generate_comprehensive_outputs(
                 "tag": tag,
                 "server": r.host or "",
                 "server_port": r.port,
-                "raw": r.config
+                "raw": r.config,
             }
             ob.update(merger._parse_extra_params(r.config))
             if r.country:
@@ -149,14 +179,17 @@ async def generate_comprehensive_outputs(
             outbounds.append(ob)
 
         singbox_file = output_dir / f"{prefix}vpn_singbox.json"
-        tmp_singbox = singbox_file.with_suffix('.tmp')
-        tmp_singbox.write_text(json.dumps({"outbounds": outbounds}, indent=2, ensure_ascii=False), encoding="utf-8")
+        tmp_singbox = singbox_file.with_suffix(".tmp")
+        tmp_singbox.write_text(
+            json.dumps({"outbounds": outbounds}, indent=2, ensure_ascii=False),
+            encoding="utf-8",
+        )
         tmp_singbox.replace(singbox_file)
 
         if CONFIG.write_clash:
-            clash_yaml = merger._results_to_clash_yaml(results)
+            clash_yaml = results_to_clash_yaml(results)
             clash_file = output_dir / f"{prefix}clash.yaml"
-            tmp_clash = clash_file.with_suffix('.tmp')
+            tmp_clash = clash_file.with_suffix(".tmp")
             tmp_clash.write_text(clash_yaml, encoding="utf-8")
             tmp_clash.replace(clash_file)
 
@@ -174,29 +207,37 @@ async def generate_comprehensive_outputs(
                     proxies.append(proxy)
 
         if CONFIG.write_clash_proxies:
-            proxy_yaml = yaml.safe_dump({"proxies": proxies}, allow_unicode=True, sort_keys=False) if proxies else ""
+            proxy_yaml = (
+                yaml.safe_dump(
+                    {"proxies": proxies}, allow_unicode=True, sort_keys=False
+                )
+                if proxies
+                else ""
+            )
             proxies_file = output_dir / f"{prefix}vpn_clash_proxies.yaml"
-            tmp_proxies = proxies_file.with_suffix('.tmp')
+            tmp_proxies = proxies_file.with_suffix(".tmp")
             tmp_proxies.write_text(proxy_yaml, encoding="utf-8")
             tmp_proxies.replace(proxies_file)
 
         if CONFIG.surge_file:
             from .advanced_converters import generate_surge_conf
+
             surge_content = generate_surge_conf(proxies)
             surge_file = Path(CONFIG.surge_file)
             if not surge_file.is_absolute():
                 surge_file = output_dir / surge_file
-            tmp_surge = surge_file.with_suffix('.tmp')
+            tmp_surge = surge_file.with_suffix(".tmp")
             tmp_surge.write_text(surge_content, encoding="utf-8")
             tmp_surge.replace(surge_file)
 
         if CONFIG.qx_file:
             from .advanced_converters import generate_qx_conf
+
             qx_content = generate_qx_conf(proxies)
             qx_file = Path(CONFIG.qx_file)
             if not qx_file.is_absolute():
                 qx_file = output_dir / qx_file
-            tmp_qx = qx_file.with_suffix('.tmp')
+            tmp_qx = qx_file.with_suffix(".tmp")
             tmp_qx.write_text(qx_content, encoding="utf-8")
             tmp_qx.replace(qx_file)
 
@@ -207,11 +248,14 @@ async def generate_comprehensive_outputs(
             xyz_file = Path(CONFIG.xyz_file)
             if not xyz_file.is_absolute():
                 xyz_file = output_dir / xyz_file
-            tmp_xyz = xyz_file.with_suffix('.tmp')
+            tmp_xyz = xyz_file.with_suffix(".tmp")
             tmp_xyz.write_text("\n".join(xyz_lines), encoding="utf-8")
             tmp_xyz.replace(xyz_file)
 
-async def upload_files_to_gist(paths: List[Path], token: str, *, base_url: str = "https://api.github.com") -> Dict[str, str]:
+
+async def upload_files_to_gist(
+    paths: List[Path], token: str, *, base_url: str = "https://api.github.com"
+) -> Dict[str, str]:
     """Upload files as separate private gists and return name->raw_url mapping."""
     import aiohttp
 

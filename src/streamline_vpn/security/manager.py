@@ -30,20 +30,25 @@ class SecurityManager:
         # Lazy imports to avoid circular dependencies
         if threat_analyzer is None:
             from .threat_analyzer import ThreatAnalyzer
+
             threat_analyzer = ThreatAnalyzer()
         if validator is None:
             from .validator import SecurityValidator
+
             validator = SecurityValidator()
         if pattern_analyzer is None:
             from .pattern_analyzer import PatternAnalyzer
+
             pattern_analyzer = PatternAnalyzer()
         if rate_limiter is None:
             from .rate_limiter import RateLimiter
+
             rate_limiter = RateLimiter()
         if blocklist_manager is None:
             from .blocklist_manager import BlocklistManager
+
             blocklist_manager = BlocklistManager()
-            
+
         self.threat_analyzer = threat_analyzer
         self.validator = validator
         self.pattern_analyzer = pattern_analyzer
@@ -65,7 +70,10 @@ class SecurityManager:
 
     def check_rate_limit(self, key: str) -> Dict[str, Any]:
         allowed = not self.rate_limiter.check_rate_limit(key)
-        return {"is_allowed": allowed, "remaining": self.rate_limiter.get_remaining_requests(key)}
+        return {
+            "is_allowed": allowed,
+            "remaining": self.rate_limiter.get_remaining_requests(key),
+        }
 
     def validate_configuration(self, config: Any) -> Dict[str, Any]:
         return {"is_valid": True, "issues": []}
@@ -74,7 +82,11 @@ class SecurityManager:
         return {"threats_found": 0, "threats": []}
 
     def get_security_status(self) -> Dict[str, Any]:
-        return {"status": "healthy", "threats_blocked": 0, "rate_limits_active": len(self.rate_limiter.rate_limits)}
+        return {
+            "status": "healthy",
+            "threats_blocked": 0,
+            "rate_limits_active": len(self.rate_limiter.rate_limits),
+        }
 
     def shutdown(self) -> None:
         return None
@@ -103,8 +115,8 @@ class SecurityManager:
             threats = self.threat_analyzer.analyze(config)
 
             # Pattern matching
-            suspicious_patterns = (
-                self.pattern_analyzer.check_suspicious_patterns(config)
+            suspicious_patterns = self.pattern_analyzer.check_suspicious_patterns(
+                config
             )
 
             # URL validation
@@ -233,9 +245,7 @@ class SecurityManager:
 
         return {
             **blocklist_stats,
-            "suspicious_patterns": len(
-                self.pattern_analyzer.suspicious_patterns
-            ),
+            "suspicious_patterns": len(self.pattern_analyzer.suspicious_patterns),
             **rate_limit_stats,
         }
 
@@ -278,13 +288,26 @@ class SecurityManager:
         try:
             return {
                 "blocked_ips": len(getattr(self.blocklist_manager, "blocked_ips", {})),
-                "blocked_domains": len(getattr(self.blocklist_manager, "blocked_domains", {})),
+                "blocked_domains": len(
+                    getattr(self.blocklist_manager, "blocked_domains", {})
+                ),
                 "rate_limit_keys": len(getattr(self.rate_limiter, "rate_limits", {})),
-                "patterns": len(getattr(self.pattern_analyzer, "patterns", getattr(self.pattern_analyzer, "suspicious_patterns", []))),
+                "patterns": len(
+                    getattr(
+                        self.pattern_analyzer,
+                        "patterns",
+                        getattr(self.pattern_analyzer, "suspicious_patterns", []),
+                    )
+                ),
                 "timestamp": datetime.now().isoformat(),
             }
         except Exception:
-            return {"blocked_ips": 0, "blocked_domains": 0, "rate_limit_keys": 0, "patterns": 0}
+            return {
+                "blocked_ips": 0,
+                "blocked_domains": 0,
+                "rate_limit_keys": 0,
+                "patterns": 0,
+            }
 
     # Alerting surface expected by integration tests
     async def send_security_alert(self, message: str, severity: str = "info") -> bool:
@@ -294,7 +317,9 @@ class SecurityManager:
         except Exception:
             return True
 
-    async def handle_security_incident(self, incident_type: str, context: Dict[str, Any]) -> bool:
+    async def handle_security_incident(
+        self, incident_type: str, context: Dict[str, Any]
+    ) -> bool:
         try:
             logger.error("Handling security incident %s: %s", incident_type, context)
             return True
@@ -310,23 +335,35 @@ class SecurityManager:
             "threat_events": 0,
         }
 
-    async def enforce_security_policy(self, policy_name: str, context: Dict[str, Any]) -> bool:
+    async def enforce_security_policy(
+        self, policy_name: str, context: Dict[str, Any]
+    ) -> bool:
         return True
 
-    async def comprehensive_security_check(self, ip: str, user_agent: str, content: str) -> Dict[str, Any]:
+    async def comprehensive_security_check(
+        self, ip: str, user_agent: str, content: str
+    ) -> Dict[str, Any]:
         try:
             blocked = self.blocklist_manager.is_ip_blocked(ip)
             rate_limited = self.rate_limiter.check_rate_limit(ip)
             analysis = self.analyze_configuration(content)
             return {
-                "is_safe": analysis.get("is_safe", True) and not blocked and not rate_limited,
+                "is_safe": analysis.get("is_safe", True)
+                and not blocked
+                and not rate_limited,
                 "risk_score": analysis.get("risk_score", 0.0),
                 "blocked": blocked,
                 "rate_limited": rate_limited,
                 "threats_detected": analysis.get("threats", []),
             }
         except Exception:
-            return {"is_safe": True, "risk_score": 0.0, "blocked": False, "rate_limited": False, "threats_detected": []}
+            return {
+                "is_safe": True,
+                "risk_score": 0.0,
+                "blocked": False,
+                "rate_limited": False,
+                "threats_detected": [],
+            }
 
     async def get_performance_metrics(self) -> Dict[str, Any]:
         return {
@@ -357,14 +394,18 @@ class SecurityManager:
             return True
 
     # Class-level method so tests can patch SecurityManager.validate_request
-    async def validate_request_async(self, *args: Any, **kwargs: Any) -> bool:  # pragma: no cover
+    async def validate_request_async(
+        self, *args: Any, **kwargs: Any
+    ) -> bool:  # pragma: no cover
         return await self._validate_request_impl(*args, **kwargs)
 
     # Class-level method so tests can patch SecurityManager.validate_configuration
     async def validate_configuration_async(self, config: Any) -> bool:
         try:
             # Delegate to SecurityValidator if available; otherwise allow
-            if hasattr(self, "validator") and hasattr(self.validator, "run_security_checks"):
+            if hasattr(self, "validator") and hasattr(
+                self.validator, "run_security_checks"
+            ):
                 result = self.validator.run_security_checks(str(config))
                 return bool(result.get("is_safe", True))
         except Exception:
@@ -376,11 +417,21 @@ class SecurityManager:
 
     def __getattribute__(self, name: str):
         attr = object.__getattribute__(self, name)
-        if name in {"get_security_metrics", "send_security_alert", "handle_security_incident", "audit_security_logs", "enforce_security_policy", "comprehensive_security_check", "get_performance_metrics"}:
+        if name in {
+            "get_security_metrics",
+            "send_security_alert",
+            "handle_security_incident",
+            "audit_security_logs",
+            "enforce_security_policy",
+            "comprehensive_security_check",
+            "get_performance_metrics",
+        }:
             try:
                 from unittest.mock import AsyncMock, MagicMock  # type: ignore
                 import inspect
+
                 if isinstance(attr, (AsyncMock, MagicMock)) or callable(attr):
+
                     async def _wrapper(*args, **kwargs):
                         value = attr(*args, **kwargs)
                         # Iteratively resolve AsyncMock/MagicMock/awaitables
@@ -401,6 +452,7 @@ class SecurityManager:
                                     continue
                             break
                         return value
+
                     return _wrapper
             except Exception:
                 pass
@@ -410,6 +462,7 @@ class SecurityManager:
             try:
                 from unittest.mock import AsyncMock, MagicMock  # type: ignore
                 import inspect
+
                 async def _awrapper(*args, **kwargs):
                     value = real_attr(*args, **kwargs)
                     for _ in range(5):
@@ -429,10 +482,12 @@ class SecurityManager:
                                 continue
                         break
                     return value
+
                 # Return async wrapper for awaits, but also provide sync path if called directly
                 def _dispatcher(*args, **kwargs):
                     try:
                         import asyncio as _asyncio
+
                         _asyncio.get_running_loop()
                         loop_running = True
                     except RuntimeError:
@@ -449,6 +504,7 @@ class SecurityManager:
                                 continue
                         break
                     return value
+
                 return _dispatcher
             except Exception:
                 return real_attr

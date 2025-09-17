@@ -80,9 +80,7 @@ class VPNCacheService:
                         )
                         return parsed_value
                     except json.JSONDecodeError:
-                        logger.warning(
-                            f"Failed to parse Redis value for key {key}"
-                        )
+                        logger.warning(f"Failed to parse Redis value for key {key}")
 
                 self._reset_circuit_breaker()
 
@@ -167,9 +165,7 @@ class VPNCacheService:
             if not self._is_circuit_breaker_open():
                 try:
                     json_value = json.dumps(value)
-                    success = await self.redis_client.set(
-                        key, json_value, ttl=ttl
-                    )
+                    success = await self.redis_client.set(key, json_value, ttl=ttl)
                     if success:
                         self._reset_circuit_breaker()
                     else:
@@ -204,9 +200,7 @@ class VPNCacheService:
                     await self.redis_client.delete(key)
                     self._reset_circuit_breaker()
                 except Exception as e:
-                    logger.error(
-                        f"Redis cache delete error for key {key}: {e}"
-                    )
+                    logger.error(f"Redis cache delete error for key {key}: {e}")
                     self._record_circuit_breaker_failure()
 
             # Delete from L3 database cache
@@ -304,7 +298,9 @@ class VPNCacheService:
         return {
             "is_initialized": bool(getattr(self, "is_initialized", False)),
             "l1_size": stats.get("l1_cache", {}).get("size", 0),
-            "l1_status": "ok" if stats.get("l1_cache", {}).get("size", 0) >= 0 else "unknown",
+            "l1_status": (
+                "ok" if stats.get("l1_cache", {}).get("size", 0) >= 0 else "unknown"
+            ),
             "l2_status": "ok" if isinstance(self.redis_client, object) else "unknown",
             "l3_status": "ok" if hasattr(self, "l3_cache") else "unknown",
             "hit_rate": stats.get("l2_redis", {}).get("hit_rate", 0.0),

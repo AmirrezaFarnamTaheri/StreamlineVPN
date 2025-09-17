@@ -16,14 +16,21 @@ logger = get_logger(__name__)
 class RateLimiter:
     """Rate limiter for security management."""
 
-    def __init__(self, max_requests_per_minute: int = 60, max_requests: int = None, window_seconds: int = 60):
+    def __init__(
+        self,
+        max_requests_per_minute: int = 60,
+        max_requests: int = None,
+        window_seconds: int = 60,
+    ):
         """Initialize rate limiter.
 
         Args:
             max_requests_per_minute: Maximum requests per minute
         """
         self.max_requests_per_minute = max_requests_per_minute
-        self.max_requests = max_requests if max_requests is not None else max_requests_per_minute
+        self.max_requests = (
+            max_requests if max_requests is not None else max_requests_per_minute
+        )
         self.window_seconds = window_seconds
         self.rate_limits: Dict[str, List[datetime]] = {}
         self.requests: Dict[str, List[datetime]] = self.rate_limits

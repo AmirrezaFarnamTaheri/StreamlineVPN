@@ -110,9 +110,7 @@ class DiscoveryManager:
 
                 for query in self.github_search_queries:
                     try:
-                        search_url = (
-                            f"{self.github_api_url}/search/repositories"
-                        )
+                        search_url = f"{self.github_api_url}/search/repositories"
                         params = {
                             "q": query,
                             "sort": "updated",
@@ -128,27 +126,19 @@ class DiscoveryManager:
                             if response.status == 200:
                                 data = await response.json()
                                 for repo in data.get("items", []):
-                                    repo_sources = (
-                                        await self._scan_repository(
-                                            session,
-                                            repo["full_name"],
-                                            headers,
-                                        )
+                                    repo_sources = await self._scan_repository(
+                                        session,
+                                        repo["full_name"],
+                                        headers,
                                     )
                                     sources.extend(repo_sources)
                             elif response.status == 403:
-                                logger.warning(
-                                    "GitHub API rate limit reached"
-                                )
+                                logger.warning("GitHub API rate limit reached")
                                 break
                     except asyncio.TimeoutError:
-                        logger.warning(
-                            f"GitHub search timeout for query: {query}"
-                        )
+                        logger.warning(f"GitHub search timeout for query: {query}")
                     except Exception as exc:  # pragma: no cover
-                        logger.error(
-                            f"GitHub search error for query {query}: {exc}"
-                        )
+                        logger.error(f"GitHub search error for query {query}: {exc}")
 
                 known_repos = [
                     "mahdibland/V2RayAggregator",
@@ -159,9 +149,7 @@ class DiscoveryManager:
                 ]
 
                 for repo in known_repos:
-                    repo_sources = await self._scan_repository(
-                        session, repo, headers
-                    )
+                    repo_sources = await self._scan_repository(session, repo, headers)
                     sources.extend(repo_sources)
 
             logger.info("Discovered %d GitHub sources", len(sources))
@@ -181,9 +169,7 @@ class DiscoveryManager:
         sources: List[str] = []
 
         try:
-            contents_url = (
-                f"{self.github_api_url}/repos/{repo_name}/contents"
-            )
+            contents_url = f"{self.github_api_url}/repos/{repo_name}/contents"
             async with session.get(
                 contents_url,
                 headers=headers,
@@ -206,9 +192,7 @@ class DiscoveryManager:
                                     session, raw_url
                                 ):
                                     sources.append(raw_url)
-                                    logger.debug(
-                                        "Found subscription file: %s", raw_url
-                                    )
+                                    logger.debug("Found subscription file: %s", raw_url)
                         elif item["type"] == "dir" and item["name"] in [
                             "sub",
                             "subscription",
@@ -219,7 +203,9 @@ class DiscoveryManager:
                             )
                             sources.extend(dir_sources)
         except Exception as exc:  # pragma: no cover - network errors
-            logger.debug("Error scanning repository %s: %s", repo_name, exc, exc_info=True)
+            logger.debug(
+                "Error scanning repository %s: %s", repo_name, exc, exc_info=True
+            )
 
         return sources
 
@@ -235,9 +221,7 @@ class DiscoveryManager:
         sources: List[str] = []
 
         try:
-            dir_url = (
-                f"{self.github_api_url}/repos/{repo_name}/contents/{path}"
-            )
+            dir_url = f"{self.github_api_url}/repos/{repo_name}/contents/{path}"
             async with session.get(
                 dir_url,
                 headers=headers,
@@ -253,9 +237,7 @@ class DiscoveryManager:
                                 f"https://raw.githubusercontent.com/"
                                 f"{repo_name}/main/{item['path']}"
                             )
-                            if await self._validate_source_content(
-                                session, raw_url
-                            ):
+                            if await self._validate_source_content(session, raw_url):
                                 sources.append(raw_url)
         except Exception as exc:  # pragma: no cover - network errors
             logger.debug("Error scanning directory %s: %s", path, exc, exc_info=True)
@@ -301,9 +283,7 @@ class DiscoveryManager:
                                             session, url
                                         ):
                                             sources.append(url)
-                                            logger.debug(
-                                                "Found GitLab source: %s", url
-                                            )
+                                            logger.debug("Found GitLab source: %s", url)
         except Exception as exc:  # pragma: no cover - network errors
             logger.error("GitLab discovery failed: %s", exc, exc_info=True)
 
@@ -345,13 +325,9 @@ class DiscoveryManager:
                                         f"{repo['full_name']}/raw/master/"
                                         f"{pattern}"
                                     )
-                                    if await self._validate_source_exists(
-                                        session, url
-                                    ):
+                                    if await self._validate_source_exists(session, url):
                                         sources.append(url)
-                                        logger.debug(
-                                            "Found Gitee source: %s", url
-                                        )
+                                        logger.debug("Found Gitee source: %s", url)
         except Exception as exc:  # pragma: no cover - network errors
             logger.error("Gitee discovery failed: %s", exc, exc_info=True)
 
@@ -422,18 +398,13 @@ class DiscoveryManager:
                         r"ssr://",
                         r"hysteria://",
                     ]
-                    return any(
-                        re.search(pattern, content)
-                        for pattern in vpn_patterns
-                    )
+                    return any(re.search(pattern, content) for pattern in vpn_patterns)
         except Exception:  # pragma: no cover - network errors
             pass
 
         return False
 
-    async def _check_github_rate_limit(
-        self, session: aiohttp.ClientSession
-    ) -> bool:
+    async def _check_github_rate_limit(self, session: aiohttp.ClientSession) -> bool:
         """Check GitHub API rate limit."""
 
         try:

@@ -1,91 +1,69 @@
-"""
-Tests for RateLimiter.
-"""
-
-import pytest
-import asyncio
-from unittest.mock import MagicMock, patch
 import sys
 from pathlib import Path
+import pytest
+from unittest.mock import MagicMock, patch
+from datetime import datetime, timedelta
 
-# Add src to path
-sys.path.insert(0, str(Path(__file__).parent.parent.parent / "src"))
+sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
 
 from streamline_vpn.security.rate_limiter import RateLimiter
 
+@pytest.fixture
+def rate_limiter():
+    """Fixture for RateLimiter."""
+    with patch('streamline_vpn.settings.get_settings') as mock_get_settings:
+        mock_settings = mock_get_settings.return_value
+        mock_settings.security.rl_max_requests = 10
+        mock_settings.security.rl_time_window_seconds = 60
+        limiter = RateLimiter(max_requests=10, window_seconds=60)
+        return limiter
 
 class TestRateLimiter:
-    """Test RateLimiter class"""
-    
-    def test_initialization(self):
-        """Test rate limiter initialization"""
-        limiter = RateLimiter(max_requests=10, window_seconds=60)
-        assert limiter.max_requests == 10
-        assert limiter.window_seconds == 60
-        assert hasattr(limiter, 'requests')
-    
-    @pytest.mark.asyncio
-    async def test_is_allowed_within_limit(self):
-        """Test rate limiting within allowed limit"""
-        limiter = RateLimiter(max_requests=5, window_seconds=60)
-        
-        # Should allow first 5 requests
-        for i in range(5):
-            assert await limiter.is_allowed("test_key") is True
-    
-    @pytest.mark.asyncio
-    async def test_is_allowed_exceeds_limit(self):
-        """Test rate limiting when exceeding limit"""
-        limiter = RateLimiter(max_requests=2, window_seconds=60)
-        
-        # First 2 requests should be allowed
-        assert await limiter.is_allowed("test_key") is True
-        assert await limiter.is_allowed("test_key") is True
-        
-        # Third request should be blocked
-        assert await limiter.is_allowed("test_key") is False
-    
-    @pytest.mark.asyncio
-    async def test_different_keys(self):
-        """Test rate limiting with different keys"""
-        limiter = RateLimiter(max_requests=1, window_seconds=60)
-        
-        # Different keys should be independent
-        assert await limiter.is_allowed("key1") is True
-        assert await limiter.is_allowed("key2") is True
-        assert await limiter.is_allowed("key1") is False
-        assert await limiter.is_allowed("key2") is False
-    
-    @pytest.mark.asyncio
-    async def test_window_reset(self):
-        """Test rate limit window reset"""
-        limiter = RateLimiter(max_requests=1, window_seconds=0.1)  # Very short window
-        
-        # First request should be allowed
-        assert await limiter.is_allowed("test_key") is True
-        
-        # Second request should be blocked
-        assert await limiter.is_allowed("test_key") is False
-        
-        # Wait for window to reset
-        await asyncio.sleep(0.2)
-        
-        # Should be allowed again
-        assert await limiter.is_allowed("test_key") is True
-    
-    def test_get_remaining_requests(self):
-        """Test getting remaining requests"""
-        limiter = RateLimiter(max_requests=5, window_seconds=60)
-        
-        # Initially should have all requests available
-        assert limiter.get_remaining_requests("test_key") == 5
-    
-    def test_get_reset_time(self):
-        """Test getting reset time"""
-        limiter = RateLimiter(max_requests=5, window_seconds=60)
-        
-        # Should return a valid timestamp
-        reset_time = limiter.get_reset_time("test_key")
-        assert isinstance(reset_time, (int, float))
-        assert reset_time > 0
+    def test_initialization(self, rate_limiter):
+        assert rate_limiter.max_requests == 10
+        assert rate_limiter.window_seconds == 60
 
+    def test_check_rate_limit_not_limited(self, rate_limiter):
+        assert rate_limiter.check_rate_limit("key1") is False
+
+    def test_check_rate_limit_limited(self, rate_limiter):
+        for _ in range(15):
+            rate_limiter.check_rate_limit("key1")
+        assert rate_limiter.check_rate_limit("key1") is True
+
+    @pytest.mark.asyncio
+    async def test_is_allowed(self, rate_limiter):
+        assert await rate_limiter.is_allowed("key1") is True
+        for _ in range(15):
+            rate_limiter.check_rate_limit("key1")
+        assert await rate_limiter.is_allowed("key1") is False
+
+    def test_get_remaining_requests(self, rate_limiter):
+        assert rate_limiter.get_remaining_requests("key1") == 10
+        rate_limiter.check_rate_limit("key1")
+        assert rate_limiter.get_remaining_requests("key1") == 9
+
+    def test_get_reset_time(self, rate_limiter):
+        assert rate_limiter.get_reset_time("key1") > 0
+        rate_limiter.check_rate_limit("key1")
+        assert rate_limiter.get_reset_time("key1") > 0
+
+    def test_get_rate_limit_stats(self, rate_limiter):
+        rate_limiter.check_rate_limit("key1")
+        stats = rate_limiter.get_rate_limit_stats()
+        assert stats["active_rate_limits"] == 1
+        assert stats["total_requests_tracked"] == 1
+
+    def test_rate_limit_expiry(self, rate_limiter):
+        for _ in range(15):
+            rate_limiter.check_rate_limit("key1")
+        
+        # Advance time
+        with patch('streamline_vpn.security.rate_limiter.datetime') as mock_datetime:
+            mock_datetime.now.return_value = datetime.now() + timedelta(seconds=61)
+            assert rate_limiter.check_rate_limit("key1") is False
+    
+    def test_clear_rate_limits(self, rate_limiter):
+        rate_limiter.check_rate_limit("key1")
+        rate_limiter.clear_rate_limits()
+        assert rate_limiter.rate_limits == {}

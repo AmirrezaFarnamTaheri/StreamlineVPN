@@ -157,9 +157,7 @@ class PatternAnalyzer:
 
             # Check for suspicious TLDs
             suspicious_tlds = [".tk", ".ml", ".ga", ".cf"]
-            has_suspicious_tld = any(
-                domain.endswith(tld) for tld in suspicious_tlds
-            )
+            has_suspicious_tld = any(domain.endswith(tld) for tld in suspicious_tlds)
 
             # Check for IP addresses
             is_ip = re.match(r"^\d+\.\d+\.\d+\.\d+$", domain)

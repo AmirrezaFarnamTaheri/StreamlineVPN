@@ -154,6 +154,7 @@ class Settings(BaseSettings):
     ):
         return env_settings, init_settings, dotenv_settings, file_secret_settings
 
+
 def load_config(path: Path | None = None, *, defaults: dict | None = None) -> Settings:
     """Load configuration from ``path`` or the repository root."""
 

@@ -203,7 +203,7 @@ class Query:
                 continue
             filtered_configs.append(cfg)
 
-        paginated = filtered_configs[offset:offset + limit]
+        paginated = filtered_configs[offset : offset + limit]
 
         return [
             VPNConfiguration(
@@ -221,9 +221,7 @@ class Query:
                 quality_score=cfg.quality_score,
                 source_url=cfg.source_url,
                 created_at=cfg.created_at.isoformat(),
-                raw_config=(
-                    cfg.metadata.get("raw_config") if cfg.metadata else None
-                ),
+                raw_config=(cfg.metadata.get("raw_config") if cfg.metadata else None),
             )
             for cfg in paginated
         ]
@@ -245,10 +243,7 @@ class Query:
         for url, source in merger.source_manager.sources.items():
             if tier and source.tier.value != tier:
                 continue
-            if (
-                blacklisted is not None
-                and source.is_blacklisted != blacklisted
-            ):
+            if blacklisted is not None and source.is_blacklisted != blacklisted:
                 continue
 
             sources.append(
@@ -325,17 +320,13 @@ class Query:
                 status=job.status.value,
                 progress=job.progress / 100.0,
                 created_at=job.created_at.isoformat(),
-                started_at=(
-                    job.started_at.isoformat() if job.started_at else None
-                ),
+                started_at=(job.started_at.isoformat() if job.started_at else None),
                 completed_at=(
                     job.completed_at.isoformat() if job.completed_at else None
                 ),
                 result=json.dumps(job.result) if job.result else None,
                 error=job.error,
-                parameters=(
-                    json.dumps(job.parameters) if job.parameters else None
-                ),
+                parameters=(json.dumps(job.parameters) if job.parameters else None),
             )
             for job in jobs
         ]
@@ -356,9 +347,7 @@ class Query:
             progress=job.progress / 100.0,
             created_at=job.created_at.isoformat(),
             started_at=job.started_at.isoformat() if job.started_at else None,
-            completed_at=(
-                job.completed_at.isoformat() if job.completed_at else None
-            ),
+            completed_at=(job.completed_at.isoformat() if job.completed_at else None),
             result=json.dumps(job.result) if job.result else None,
             error=job.error,
             parameters=json.dumps(job.parameters) if job.parameters else None,
@@ -416,12 +405,8 @@ class Mutation:
                         invalid_configs=stats.get("invalid_configs", 0),
                         success_rate=stats.get("success_rate", 0.0),
                         avg_response_time=stats.get("avg_response_time", 0.0),
-                        total_processing_time=stats.get(
-                            "total_processing_time", 0.0
-                        ),
-                        deduplication_rate=stats.get(
-                            "deduplication_rate", 0.0
-                        ),
+                        total_processing_time=stats.get("total_processing_time", 0.0),
+                        deduplication_rate=stats.get("deduplication_rate", 0.0),
                         quality_distribution={},
                     ),
                     output_files=results.get("output_files", []),
@@ -508,9 +493,7 @@ class Mutation:
             return ProcessingResult(
                 success=success,
                 message=(
-                    "Job cancelled successfully"
-                    if success
-                    else "Failed to cancel job"
+                    "Job cancelled successfully" if success else "Failed to cancel job"
                 ),
                 job_id=job_id,
             )
@@ -529,9 +512,7 @@ class Mutation:
         try:
             merger = await context.get_merger()
             await merger.clear_cache()
-            return ProcessingResult(
-                success=True, message="Cache cleared successfully"
-            )
+            return ProcessingResult(success=True, message="Cache cleared successfully")
 
         except Exception as e:
             logger.error("Failed to clear cache: %s", e)

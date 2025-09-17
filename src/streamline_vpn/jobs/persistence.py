@@ -55,15 +55,10 @@ class JobPersistence:
             )
 
             # Create indexes
+            cursor.execute("CREATE INDEX IF NOT EXISTS idx_jobs_status ON jobs(status)")
+            cursor.execute("CREATE INDEX IF NOT EXISTS idx_jobs_type ON jobs(type)")
             cursor.execute(
-                "CREATE INDEX IF NOT EXISTS idx_jobs_status ON jobs(status)"
-            )
-            cursor.execute(
-                "CREATE INDEX IF NOT EXISTS idx_jobs_type ON jobs(type)"
-            )
-            cursor.execute(
-                "CREATE INDEX IF NOT EXISTS idx_jobs_created_at "
-                "ON jobs(created_at)"
+                "CREATE INDEX IF NOT EXISTS idx_jobs_created_at " "ON jobs(created_at)"
             )
 
             conn.commit()
@@ -107,8 +102,12 @@ class JobPersistence:
 
     def __getattribute__(self, name: str):
         if name == "save_job":
+
             async def _always_save(*args, **kwargs):
-                return await object.__getattribute__(self, "_save_job_impl")(*args, **kwargs)
+                return await object.__getattribute__(self, "_save_job_impl")(
+                    *args, **kwargs
+                )
+
             return _always_save
         return object.__getattribute__(self, name)
 
@@ -320,9 +319,7 @@ class JobPersistence:
             "error": row[5],
             "created_at": datetime.fromisoformat(row[6]),
             "started_at": datetime.fromisoformat(row[7]) if row[7] else None,
-            "completed_at": (
-                datetime.fromisoformat(row[8]) if row[8] else None
-            ),
+            "completed_at": (datetime.fromisoformat(row[8]) if row[8] else None),
             "progress": row[9],
             "metadata": json.loads(row[10]) if row[10] else {},
         }

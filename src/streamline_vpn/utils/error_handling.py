@@ -17,11 +17,13 @@ logger = get_logger(__name__)
 
 class CircuitBreakerError(Exception):
     """Raised when circuit breaker is open."""
+
     pass
 
 
 class RetryExhaustedError(Exception):
     """Raised when all retry attempts are exhausted."""
+
     pass
 
 
@@ -44,16 +46,18 @@ class CircuitBreaker:
         self.failure_threshold = failure_threshold
         self.recovery_timeout = recovery_timeout
         self.expected_exception = expected_exception
-        
+
         self.failure_count = 0
         self.last_failure_time: Optional[float] = None
         self.state = "CLOSED"  # CLOSED, OPEN, HALF_OPEN
 
     def __call__(self, func: Callable) -> Callable:
         """Decorator for circuit breaker."""
+
         @functools.wraps(func)
         async def wrapper(*args, **kwargs):
             return await self._call_async(func, *args, **kwargs)
+
         return wrapper
 
     async def _call_async(self, func: Callable, *args, **kwargs) -> Any:
@@ -70,22 +74,24 @@ class CircuitBreaker:
                 result = await func(*args, **kwargs)
             else:
                 result = func(*args, **kwargs)
-            
+
             if self.state == "HALF_OPEN":
                 self.state = "CLOSED"
                 self.failure_count = 0
                 logger.info("Circuit breaker reset to CLOSED")
-            
+
             return result
 
         except self.expected_exception as e:
             self.failure_count += 1
             self.last_failure_time = time.time()
-            
+
             if self.failure_count >= self.failure_threshold:
                 self.state = "OPEN"
-                logger.warning("Circuit breaker opened after %d failures", self.failure_count)
-            
+                logger.warning(
+                    "Circuit breaker opened after %d failures", self.failure_count
+                )
+
             raise
 
 
@@ -107,39 +113,52 @@ def retry_with_backoff(
         jitter: Add random jitter to prevent thundering herd
         exceptions: Tuple of exceptions to catch and retry
     """
+
     def decorator(func: Callable) -> Callable:
         @functools.wraps(func)
         async def wrapper(*args, **kwargs):
             last_exception = None
-            
+
             for attempt in range(max_attempts):
                 try:
                     if asyncio.iscoroutinefunction(func):
                         return await func(*args, **kwargs)
                     else:
                         return func(*args, **kwargs)
-                        
+
                 except exceptions as e:
                     last_exception = e
-                    
+
                     if attempt == max_attempts - 1:
-                        logger.error("All %d attempts failed for %s", max_attempts, func.__name__)
-                        raise RetryExhaustedError(f"All {max_attempts} attempts failed") from e
-                    
+                        logger.error(
+                            "All %d attempts failed for %s", max_attempts, func.__name__
+                        )
+                        raise RetryExhaustedError(
+                            f"All {max_attempts} attempts failed"
+                        ) from e
+
                     # Calculate delay with exponential backoff
-                    delay = min(base_delay * (exponential_base ** attempt), max_delay)
-                    
+                    delay = min(base_delay * (exponential_base**attempt), max_delay)
+
                     if jitter:
                         import random
-                        delay *= (0.5 + random.random() * 0.5)  # Add ±25% jitter
-                    
-                    logger.warning("Attempt %d failed for %s: %s. Retrying in %.2fs", attempt + 1, func.__name__, e, delay)
+
+                        delay *= 0.5 + random.random() * 0.5  # Add ±25% jitter
+
+                    logger.warning(
+                        "Attempt %d failed for %s: %s. Retrying in %.2fs",
+                        attempt + 1,
+                        func.__name__,
+                        e,
+                        delay,
+                    )
                     await asyncio.sleep(delay)
-            
+
             # This should never be reached, but just in case
             raise RetryExhaustedError("Unexpected retry exhaustion") from last_exception
-            
+
         return wrapper
+
     return decorator
 
 
@@ -149,15 +168,22 @@ def timeout_handler(timeout_seconds: float = 30.0):
     Args:
         timeout_seconds: Timeout in seconds
     """
+
     def decorator(func: Callable) -> Callable:
         @functools.wraps(func)
         async def wrapper(*args, **kwargs):
             try:
-                return await asyncio.wait_for(func(*args, **kwargs), timeout=timeout_seconds)
+                return await asyncio.wait_for(
+                    func(*args, **kwargs), timeout=timeout_seconds
+                )
             except asyncio.TimeoutError:
-                logger.error("Function %s timed out after %ds", func.__name__, timeout_seconds)
+                logger.error(
+                    "Function %s timed out after %ds", func.__name__, timeout_seconds
+                )
                 raise
+
         return wrapper
+
     return decorator
 
 
@@ -170,7 +196,7 @@ class ErrorRecovery:
         fallback_func: Callable,
         exceptions: tuple = (Exception,),
         *args,
-        **kwargs
+        **kwargs,
     ) -> Any:
         """Execute primary function with fallback on failure.
 
@@ -206,7 +232,7 @@ class ErrorRecovery:
         default_value: Any,
         exceptions: tuple = (Exception,),
         *args,
-        **kwargs
+        **kwargs,
     ) -> Any:
         """Execute function with default value on failure.
 
@@ -236,7 +262,7 @@ def safe_execute(
     exceptions: tuple = (Exception,),
     log_errors: bool = True,
     *args,
-    **kwargs
+    **kwargs,
 ) -> Any:
     """Safely execute function with error handling.
 
@@ -265,7 +291,7 @@ async def safe_execute_async(
     exceptions: tuple = (Exception,),
     log_errors: bool = True,
     *args,
-    **kwargs
+    **kwargs,
 ) -> Any:
     """Safely execute async function with error handling.
 
@@ -300,7 +326,9 @@ def handle_exception(func: Callable, return_value: Any = None, *args, **kwargs) 
         return return_value
 
 
-async def async_handle_exception(func: Callable, return_value: Any = None, *args, **kwargs) -> Any:
+async def async_handle_exception(
+    func: Callable, return_value: Any = None, *args, **kwargs
+) -> Any:
     try:
         if asyncio.iscoroutinefunction(func):
             return await func(*args, **kwargs)

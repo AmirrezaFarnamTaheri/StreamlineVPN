@@ -54,18 +54,15 @@ class MetricsExporter:
 
                     # Export count and sum
                     output.append(
-                        f"{metric_name}_count{{{label_str}}} "
-                        f"{value_data['count']}"
+                        f"{metric_name}_count{{{label_str}}} " f"{value_data['count']}"
                     )
                     output.append(
-                        f"{metric_name}_sum{{{label_str}}} "
-                        f"{value_data['sum']}"
+                        f"{metric_name}_sum{{{label_str}}} " f"{value_data['sum']}"
                     )
                 else:
                     # Export simple metric
                     output.append(
-                        f"{metric_name}{{{label_str}}} "
-                        f"{value_data['value']}"
+                        f"{metric_name}{{{label_str}}} " f"{value_data['value']}"
                     )
 
             output.append("")  # Empty line between metrics
@@ -126,12 +123,14 @@ class MetricsExporter:
     def export_to_json(self, metrics: Dict[str, Any]) -> str:
         """Export metrics to JSON format."""
         import json
+
         return json.dumps(metrics, indent=2)
 
     def export_to_csv(self, metrics: Dict[str, Any]) -> str:
         """Export metrics to CSV format."""
         import csv
         import io
+
         output = io.StringIO()
         writer = csv.writer(output)
         writer.writerow(["metric", "value"])
@@ -142,17 +141,20 @@ class MetricsExporter:
     def export_to_yaml(self, metrics: Dict[str, Any]) -> str:
         """Export metrics to YAML format."""
         import yaml
+
         return yaml.dump(metrics, default_flow_style=False)
 
     async def export_to_file(self, metrics: Dict[str, Any], filepath: str) -> bool:
         """Export metrics to file."""
         try:
-            with open(filepath, 'w') as f:
+            with open(filepath, "w") as f:
                 if self.export_format == "json":
                     import json
+
                     json.dump(metrics, f, indent=2)
                 elif self.export_format == "yaml":
                     import yaml
+
                     yaml.dump(metrics, f, default_flow_style=False)
                 else:
                     f.write(str(metrics))
@@ -164,13 +166,16 @@ class MetricsExporter:
         """Export metrics to HTTP endpoint."""
         try:
             import aiohttp
+
             async with aiohttp.ClientSession() as session:
                 async with session.post(url, json=metrics) as response:
                     return response.status == 200
         except Exception:
             return False
 
-    async def export_to_database(self, metrics: Dict[str, Any], connection_string: str) -> bool:
+    async def export_to_database(
+        self, metrics: Dict[str, Any], connection_string: str
+    ) -> bool:
         """Export metrics to database."""
         try:
             # Placeholder for database export
@@ -192,15 +197,18 @@ class MetricsExporter:
         self.export_interval = interval
         self.is_running = True
         self.is_exporting = True
-    
+
     def stop_scheduled_export(self) -> None:
         self.is_exporting = False
         self.is_running = False
 
-    def export_compressed(self, metrics: Dict[str, Any], algorithm: str = "gzip") -> bytes:
+    def export_compressed(
+        self, metrics: Dict[str, Any], algorithm: str = "gzip"
+    ) -> bytes:
         """Export compressed metrics."""
         import gzip
         import json
+
         return gzip.compress(json.dumps(metrics).encode())
 
     def export_encrypted(self, metrics: Dict[str, Any], key: str) -> bytes:
@@ -211,11 +219,17 @@ class MetricsExporter:
 
     def add_export_metadata(self, key: str, value: Any) -> None:
         """Add metadata to exports."""
-        if not hasattr(self, 'export_metadata'):
+        if not hasattr(self, "export_metadata"):
             self.export_metadata = {}
         self.export_metadata[key] = value
 
-    def filter_metrics(self, metrics: Dict[str, Any], filters: List[str] = None, include: List[str] = None, exclude: List[str] = None) -> Dict[str, Any]:
+    def filter_metrics(
+        self,
+        metrics: Dict[str, Any],
+        filters: List[str] = None,
+        include: List[str] = None,
+        exclude: List[str] = None,
+    ) -> Dict[str, Any]:
         """Filter metrics based on provided filters or include/exclude lists."""
         if filters is None:
             filters = []
@@ -225,7 +239,9 @@ class MetricsExporter:
         if filters:
             result = {k: v for k, v in result.items() if any(f in k for f in filters)}
         if exclude:
-            result = {k: v for k, v in result.items() if all(e not in k for e in exclude)}
+            result = {
+                k: v for k, v in result.items() if all(e not in k for e in exclude)
+            }
         if not filters and not include and not exclude:
             return metrics
         return result
@@ -233,10 +249,17 @@ class MetricsExporter:
     def __getattribute__(self, name: str):
         attr = object.__getattribute__(self, name)
         # Wrap sync-returning methods with a sync un-wrapper so patched MagicMock returns plain value
-        if name in {"export_to_prometheus", "export_to_json", "export_to_csv", "export_to_yaml"}:
+        if name in {
+            "export_to_prometheus",
+            "export_to_json",
+            "export_to_csv",
+            "export_to_yaml",
+        }:
             try:
                 from unittest.mock import AsyncMock, MagicMock  # type: ignore
+
                 if isinstance(attr, (MagicMock, AsyncMock)) or callable(attr):
+
                     def _wrapper(*args, **kwargs):
                         value = attr(*args, **kwargs)
                         # Unwrap MagicMock/AsyncMock synchronously by reading return_value
@@ -248,22 +271,35 @@ class MetricsExporter:
                                     continue
                             break
                         # Ensure provided metrics keys appear in prometheus output
-                        if name == "export_to_prometheus" and isinstance(value, str) and args:
+                        if (
+                            name == "export_to_prometheus"
+                            and isinstance(value, str)
+                            and args
+                        ):
                             maybe_metrics = args[0]
                             if isinstance(maybe_metrics, dict):
                                 for k, v in maybe_metrics.items():
                                     if k not in value:
                                         value += f"\n{k} {v}"
                         return value
+
                     return _wrapper
             except Exception:
                 pass
         # Wrap async methods with an async un-wrapper so patched MagicMock->AsyncMock resolves to final value
-        if name in {"export_metrics", "export_to_file", "export_to_http", "export_to_database", "export_batch"}:
+        if name in {
+            "export_metrics",
+            "export_to_file",
+            "export_to_http",
+            "export_to_database",
+            "export_batch",
+        }:
             try:
                 from unittest.mock import AsyncMock, MagicMock  # type: ignore
                 import inspect
+
                 if isinstance(attr, (MagicMock, AsyncMock)) or callable(attr):
+
                     async def _awrapper(*args, **kwargs):
                         value = attr(*args, **kwargs)
                         for _ in range(5):
@@ -283,6 +319,7 @@ class MetricsExporter:
                                     continue
                             break
                         return value
+
                     return _awrapper
             except Exception:
                 pass

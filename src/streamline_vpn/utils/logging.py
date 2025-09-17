@@ -156,6 +156,7 @@ def log_function_call(func):
         result = func(*args, **kwargs)
         logger.debug("%s returned %r", func.__name__, result)
         return result
+
     return wrapper
 
 
@@ -163,8 +164,11 @@ def log_async_function_call(func):
     @functools.wraps(func)
     async def wrapper(*args, **kwargs):
         logger = get_logger(func.__module__)
-        logger.debug("Calling async %s with args=%s kwargs=%s", func.__name__, args, kwargs)
+        logger.debug(
+            "Calling async %s with args=%s kwargs=%s", func.__name__, args, kwargs
+        )
         result = await func(*args, **kwargs)
         logger.debug("%s returned %r", func.__name__, result)
         return result
+
     return wrapper

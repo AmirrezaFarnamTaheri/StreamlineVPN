@@ -71,9 +71,7 @@ class CircuitBreaker:
             if self.state == CircuitState.OPEN:
                 if self._should_attempt_reset():
                     self.state = CircuitState.HALF_OPEN
-                    logger.info(
-                        f"Circuit breaker {self.name} moved to HALF_OPEN"
-                    )
+                    logger.info(f"Circuit breaker {self.name} moved to HALF_OPEN")
                 else:
                     raise CircuitBreakerOpenException(
                         f"Circuit breaker {self.name} is OPEN"

@@ -92,6 +92,7 @@ class BlocklistManager:
     def is_pattern_blocked(self, text: str) -> bool:
         """Check if any blocked pattern matches the given text."""
         import fnmatch
+
         for pattern in self.blocked_patterns.keys():
             if fnmatch.fnmatch(text, pattern):
                 return True
@@ -110,7 +111,11 @@ class BlocklistManager:
         }
 
     def get_blocked_count(self) -> int:
-        return len(self.blocked_ips) + len(self.blocked_domains) + len(self.blocked_patterns)
+        return (
+            len(self.blocked_ips)
+            + len(self.blocked_domains)
+            + len(self.blocked_patterns)
+        )
 
     def clear_blocklists(self) -> None:
         """Clear all blocklists."""

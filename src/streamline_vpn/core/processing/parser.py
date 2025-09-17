@@ -9,6 +9,7 @@ from typing import Optional
 
 from ...models.configuration import VPNConfiguration
 from ...utils.logging import get_logger
+
 # Note: Parser imports moved to avoid circular dependencies
 # Individual parsers are imported dynamically when needed
 
@@ -28,9 +29,7 @@ class ConfigurationParser:
             "ssr": r"ssr://([A-Za-z0-9+/=]+)",
         }
 
-    def parse_configuration(
-        self, config_string: str
-    ) -> Optional[VPNConfiguration]:
+    def parse_configuration(self, config_string: str) -> Optional[VPNConfiguration]:
         """Parse a single configuration string.
 
         Args:
@@ -71,18 +70,23 @@ class ConfigurationParser:
         """
         if protocol_name == "vmess":
             from .parsers.vmess import parse_vmess as _parse_vmess
+
             return _parse_vmess(config_string)
         elif protocol_name == "vless":
             from .parsers.vless import parse_vless as _parse_vless
+
             return _parse_vless(config_string)
         elif protocol_name == "trojan":
             from .parsers.trojan import parse_trojan as _parse_trojan
+
             return _parse_trojan(config_string)
         elif protocol_name == "ss":
             from .parsers.shadowsocks import parse_ss as _parse_ss
+
             return _parse_ss(config_string)
         elif protocol_name == "ssr":
             from .parsers.shadowsocksr import parse_ssr as _parse_ssr
+
             return _parse_ssr(config_string)
 
         return None
@@ -90,20 +94,25 @@ class ConfigurationParser:
     # Protocol-specific parse methods now delegated to parsers package
     def _parse_vmess(self, config_string: str) -> Optional[VPNConfiguration]:
         from .parsers.vmess import parse_vmess as _parse_vmess
+
         return _parse_vmess(config_string)
 
     def _parse_vless(self, config_string: str) -> Optional[VPNConfiguration]:
         from .parsers.vless import parse_vless as _parse_vless
+
         return _parse_vless(config_string)
 
     def _parse_trojan(self, config_string: str) -> Optional[VPNConfiguration]:
         from .parsers.trojan import parse_trojan as _parse_trojan
+
         return _parse_trojan(config_string)
 
     def _parse_ss(self, config_string: str) -> Optional[VPNConfiguration]:
         from .parsers.shadowsocks import parse_ss as _parse_ss
+
         return _parse_ss(config_string)
 
     def _parse_ssr(self, config_string: str) -> Optional[VPNConfiguration]:
         from .parsers.shadowsocksr import parse_ssr as _parse_ssr
+
         return _parse_ssr(config_string)

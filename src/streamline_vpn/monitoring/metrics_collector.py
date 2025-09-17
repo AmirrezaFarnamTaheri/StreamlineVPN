@@ -84,7 +84,11 @@ class MetricsCollector:
         """Collect a minimal set of metrics (stub for integration tests)."""
         now = time.time()
         # Example: increment a heartbeat counter
-        self._update_counter("ml_predictions_total", {"model_type": "heartbeat", "prediction_grade": "ok"}, 1)
+        self._update_counter(
+            "ml_predictions_total",
+            {"model_type": "heartbeat", "prediction_grade": "ok"},
+            1,
+        )
         # Provide numeric values used in tests
         snapshot = {
             "timestamp": now,
@@ -97,11 +101,19 @@ class MetricsCollector:
 
     def __getattribute__(self, name: str):
         attr = object.__getattribute__(self, name)
-        if name in {"collect_metrics", "initialize", "collect_system_metrics", "collect_application_metrics", "collect_business_metrics"}:
+        if name in {
+            "collect_metrics",
+            "initialize",
+            "collect_system_metrics",
+            "collect_application_metrics",
+            "collect_business_metrics",
+        }:
             try:
                 from unittest.mock import AsyncMock, MagicMock  # type: ignore
                 import inspect
+
                 if isinstance(attr, (MagicMock, AsyncMock)) or callable(attr):
+
                     async def _wrapper(*args, **kwargs):
                         value = attr(*args, **kwargs)
                         # Iteratively resolve awaitables and mock return_values
@@ -122,6 +134,7 @@ class MetricsCollector:
                                     continue
                             break
                         return value
+
                     return _wrapper
             except Exception:
                 pass
@@ -133,7 +146,13 @@ class MetricsCollector:
         except Exception:
             pass
 
-    def add_metric(self, name: str, value: Any, labels: Dict[str, str] | None = None, metric_type: MetricType | None = None) -> None:
+    def add_metric(
+        self,
+        name: str,
+        value: Any,
+        labels: Dict[str, str] | None = None,
+        metric_type: MetricType | None = None,
+    ) -> None:
         # Basic validation expected by tests
         if not isinstance(name, str) or name.strip() == "":
             raise ValueError("Metric name must be a non-empty string")
@@ -149,14 +168,23 @@ class MetricsCollector:
         # Use a generic gauge bucket
         if name not in self.metrics:
             mtype = metric_type or MetricType.GAUGE
-            self.metrics[name] = {"type": mtype, "help": name, "labels": list(labels.keys()), "values": {}}
+            self.metrics[name] = {
+                "type": mtype,
+                "help": name,
+                "labels": list(labels.keys()),
+                "values": {},
+            }
         label_key = self._create_label_key(labels)
         # Ensure multiple samples are preserved instead of overwritten
         values_dict = self.metrics[name]["values"]
         unique_key = label_key
         if unique_key in values_dict:
             unique_key = f"{label_key}#{len(values_dict)}"
-        values_dict[unique_key] = {"labels": labels, "value": value, "timestamp": time.time()}
+        values_dict[unique_key] = {
+            "labels": labels,
+            "value": value,
+            "timestamp": time.time(),
+        }
 
     def get_metric(self, name: str) -> Any:
         metric = self.metrics.get(name)
@@ -341,9 +369,7 @@ class MetricsCollector:
             "values": {},
         }
 
-    def update_connection_metrics(
-        self, server_metrics: VPNServerMetrics
-    ) -> None:
+    def update_connection_metrics(self, server_metrics: VPNServerMetrics) -> None:
         """Update VPN connection metrics.
 
         Args:
@@ -439,9 +465,7 @@ class MetricsCollector:
         self._update_counter("ml_predictions_total", prediction_labels, 1)
         self._update_gauge("ml_prediction_accuracy", accuracy_labels, accuracy)
 
-    def update_error_metrics(
-        self, error_type: str, server: str, severity: str
-    ) -> None:
+    def update_error_metrics(self, error_type: str, server: str, severity: str) -> None:
         """Update error metrics.
 
         Args:
@@ -457,9 +481,7 @@ class MetricsCollector:
 
         self._update_counter("vpn_errors_total", labels, 1)
 
-    def update_alert_metrics(
-        self, alert_type: str, severity: str, count: int
-    ) -> None:
+    def update_alert_metrics(self, alert_type: str, severity: str, count: int) -> None:
         """Update alert metrics.
 
         Args:
@@ -502,9 +524,7 @@ class MetricsCollector:
             }
 
         self.metrics[metric_name]["values"][label_key]["value"] += increment
-        self.metrics[metric_name]["values"][label_key][
-            "timestamp"
-        ] = time.time()
+        self.metrics[metric_name]["values"][label_key]["timestamp"] = time.time()
 
     def _update_histogram(
         self, metric_name: str, labels: Dict[str, str], value: float
@@ -579,9 +599,7 @@ class MetricsCollector:
         current_time = time.time()
         for metric_name, metric_data in self.metrics.items():
             for label_key, value_data in metric_data["values"].items():
-                if (
-                    current_time - value_data["timestamp"] < 300
-                ):  # Last 5 minutes
+                if current_time - value_data["timestamp"] < 300:  # Last 5 minutes
                     summary["recent_updates"].append(
                         {
                             "metric": metric_name,

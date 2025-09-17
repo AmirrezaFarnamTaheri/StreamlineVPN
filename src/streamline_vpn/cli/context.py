@@ -30,11 +30,11 @@ class CLIContext:
 
         logging.basicConfig(
             level=level,
-            format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
+            format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
             handlers=[
                 logging.StreamHandler(),
-                logging.FileHandler('streamline_vpn.log')
-            ]
+                logging.FileHandler("streamline_vpn.log"),
+            ],
         )
 
     async def process_configurations(
@@ -50,19 +50,27 @@ class CLIContext:
             merger = StreamlineVPNMerger()
 
             sources_result = source_manager.get_all_sources()
-            sources = await sources_result if inspect.isawaitable(sources_result) else sources_result
+            sources = (
+                await sources_result
+                if inspect.isawaitable(sources_result)
+                else sources_result
+            )
             if not sources:
                 click.echo("❌ No sources found. Add sources first.")
                 return False
 
             process_result = merger.process_sources(
                 sources=sources,
-                formats=formats.split(','),
+                formats=formats.split(","),
                 max_concurrent=max_concurrent,
                 timeout=timeout,
                 force_refresh=force_refresh,
             )
-            results = await process_result if inspect.isawaitable(process_result) else process_result
+            results = (
+                await process_result
+                if inspect.isawaitable(process_result)
+                else process_result
+            )
 
             click.echo(f"✅ Processed {len(results)} configurations")
             return True
@@ -70,5 +78,3 @@ class CLIContext:
         except Exception as e:
             click.echo(f"❌ Error processing configurations: {e}")
             return False
-
-

@@ -104,7 +104,7 @@ class VLESSParser:
             parse_time = time.perf_counter() - start_time
             self._update_performance_stats(parse_time)
 
-            logger.debug("VLESS config parsed in %.2fms", parse_time*1000)
+            logger.debug("VLESS config parsed in %.2fms", parse_time * 1000)
             return config
 
         except Exception as e:  # pragma: no cover - defensive logging

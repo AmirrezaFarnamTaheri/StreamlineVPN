@@ -26,5 +26,3 @@ def test_merger_status_contains_expected_keys(tmp_path):
     assert "initialized" in status
     assert "config_count" in status or "formats_generated" in status
     assert isinstance(status.get("initialized"), bool)
-
-

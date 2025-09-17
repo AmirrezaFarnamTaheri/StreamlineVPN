@@ -498,3 +498,20 @@ def build_clash_config(proxies: List[Dict[str, Any]]) -> str:
         allow_unicode=True,
         sort_keys=False,
     )
+
+
+def results_to_clash_yaml(results: List) -> str:
+    """Convert results list to Clash YAML string."""
+    proxies = []
+    for idx, r in enumerate(results):
+        proxy = config_to_clash_proxy(r.config, idx, r.protocol)
+        if not proxy:
+            continue
+        latency = f"{int(r.ping_time * 1000)}ms" if r.ping_time is not None else "?"
+        domain = urlparse(r.source_url).hostname or "src"
+        cc = r.country or "??"
+        emoji = flag_emoji(r.country)
+        proxy["name"] = f"{emoji} {cc} - {domain} - {latency}"
+        proxies.append(proxy)
+
+    return build_clash_config(proxies)

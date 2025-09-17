@@ -23,5 +23,3 @@ def test_merger_health_check_minimal(tmp_path):
     status = merger.health_check()
     assert isinstance(status, dict)
     assert "status" in status or "healthy" in str(status).lower()
-
-

@@ -20,9 +20,7 @@ logger = logging.getLogger(__name__)
 
 
 @click.command()
-@click.option(
-    "--config", default="config/sources.yaml", help="Path to sources config"
-)
+@click.option("--config", default="config/sources.yaml", help="Path to sources config")
 @click.option("--output", default="output", help="Output directory")
 @click.option(
     "--format",
@@ -37,9 +35,7 @@ def cli(config: str, output: str, formats: Optional[tuple[str, ...]] = None):
     return asyncio.run(main(config, output, formats_list))
 
 
-async def main(
-    config: str, output: str, formats: Optional[List[str]] = None
-) -> int:
+async def main(config: str, output: str, formats: Optional[List[str]] = None) -> int:
     """Main entry point for StreamlineVPN.
 
     Returns:
@@ -60,9 +56,7 @@ async def main(
         logger.info("Starting StreamlineVPN processing...")
         await merger.process_all(output_dir=output, formats=formats)
 
-        logger.info(
-            f"Processing completed successfully. Results saved to {output}"
-        )
+        logger.info(f"Processing completed successfully. Results saved to {output}")
         return 0
 
     except KeyboardInterrupt:

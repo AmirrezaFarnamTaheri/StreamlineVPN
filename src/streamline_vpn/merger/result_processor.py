@@ -59,7 +59,9 @@ class EnhancedConfigProcessor:
                     decoded = base64.b64decode(padded).decode("utf-8", "ignore")
                     data = json.loads(decoded)
                     canonical_json = json.dumps(data, sort_keys=True)
-                    payload = base64.b64encode(canonical_json.encode()).decode().rstrip("=")
+                    payload = (
+                        base64.b64encode(canonical_json.encode()).decode().rstrip("=")
+                    )
                     parsed = parsed._replace(netloc=payload, path="")
                 except (binascii.Error, UnicodeDecodeError, json.JSONDecodeError):
                     pass
@@ -80,7 +82,12 @@ class EnhancedConfigProcessor:
                     host = data.get("add") or data.get("host")
                     port = data.get("port")
                     return host, int(port) if port else None
-                except (binascii.Error, UnicodeDecodeError, json.JSONDecodeError, ValueError) as exc:
+                except (
+                    binascii.Error,
+                    UnicodeDecodeError,
+                    json.JSONDecodeError,
+                    ValueError,
+                ) as exc:
                     logging.debug("extract_host_port vmess failed: %s", exc)
 
             if config.startswith("ssr://"):
@@ -130,7 +137,12 @@ class EnhancedConfigProcessor:
                     data = json.loads(decoded)
                     json.dumps(data, sort_keys=True)
                     identifier = data.get("id") or data.get("uuid") or data.get("user")
-            except (binascii.Error, UnicodeDecodeError, json.JSONDecodeError, ValueError) as exc:
+            except (
+                binascii.Error,
+                UnicodeDecodeError,
+                json.JSONDecodeError,
+                ValueError,
+            ) as exc:
                 logging.debug("semantic_hash vmess failed: %s", exc)
         elif scheme == "trojan":
             try:

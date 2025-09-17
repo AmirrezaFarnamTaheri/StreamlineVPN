@@ -27,21 +27,3 @@ variable "availability_zones" {
   type        = list(string)
   default     = ["us-west-2a", "us-west-2b", "us-west-2c"]
 }
-
-variable "cluster_name" {
-  description = "EKS cluster name"
-  type        = string
-  default     = "streamline-cluster"
-}
-
-variable "db_identifier" {
-  description = "RDS instance identifier"
-  type        = string
-  default     = "streamline-db"
-}
-
-variable "redis_cluster_id" {
-  description = "ElastiCache cluster ID"
-  type        = string
-  default     = "streamline-redis"
-}

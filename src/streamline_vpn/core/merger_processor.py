@@ -44,9 +44,7 @@ class MergerProcessor:
         tasks = [self._process_single_source(source) for source in sources]
 
         # Execute tasks concurrently
-        results = await run_concurrently(
-            tasks, limit=self.merger.max_concurrent
-        )
+        results = await run_concurrently(tasks, limit=self.merger.max_concurrent)
 
         # Flatten results and count successes
         all_configs: List[VPNConfiguration] = []
@@ -83,9 +81,7 @@ class MergerProcessor:
 
         try:
             # Fetch from source URL
-            fetch_result = await self.merger.source_manager.fetch_source(
-                source_url
-            )
+            fetch_result = await self.merger.source_manager.fetch_source(source_url)
             if not fetch_result or not fetch_result.success:
                 logger.warning(
                     "Failed to fetch or no content from source %s", source_url
@@ -142,9 +138,7 @@ class MergerProcessor:
             return parsed_configs, True
 
         except Exception as e:
-            logger.error(
-                f"Error processing source {source_url}: {e}", exc_info=True
-            )
+            logger.error(f"Error processing source {source_url}: {e}", exc_info=True)
             try:
                 await self.merger.source_manager.update_source_performance(
                     source_url=source_url,
@@ -173,13 +167,11 @@ class MergerProcessor:
         """
         logger.info("Deduplicating %d configurations", len(configs))
 
-        unique_configs = (
-            self.merger.config_processor.deduplicate_configurations(configs)
+        unique_configs = self.merger.config_processor.deduplicate_configurations(
+            configs
         )
 
-        logger.info(
-            f"Deduplicated to {len(unique_configs)} unique configurations"
-        )
+        logger.info(f"Deduplicated to {len(unique_configs)} unique configurations")
         return unique_configs
 
     async def apply_enhancements(
@@ -198,9 +190,7 @@ class MergerProcessor:
         # Apply ML quality prediction if available
         if hasattr(self.merger, "ml_predictor") and self.merger.ml_predictor:
             try:
-                configs = await self.merger.ml_predictor.predict_and_sort(
-                    configs
-                )
+                configs = await self.merger.ml_predictor.predict_and_sort(configs)
                 logger.info("Applied ML quality prediction")
             except Exception as e:
                 logger.warning("ML prediction failed: %s", e)
@@ -208,10 +198,8 @@ class MergerProcessor:
         # Apply geographic optimization if available
         if hasattr(self.merger, "geo_optimizer") and self.merger.geo_optimizer:
             try:
-                configs = (
-                    await self.merger.geo_optimizer.optimize_configurations(
-                        configs
-                    )
+                configs = await self.merger.geo_optimizer.optimize_configurations(
+                    configs
                 )
                 logger.info("Applied geographic optimization")
             except Exception as e:

@@ -100,9 +100,7 @@ class PolicyEngine:
         evaluations = []
 
         # Sort policies by priority
-        sorted_policies = sorted(
-            self.policies.values(), key=lambda x: x.priority
-        )
+        sorted_policies = sorted(self.policies.values(), key=lambda x: x.priority)
 
         for policy in sorted_policies:
             if not policy.enabled:
@@ -134,10 +132,7 @@ class PolicyEngine:
 
         # Check user roles
         if "user_roles" in conditions:
-            if any(
-                role in user_identity.roles
-                for role in conditions["user_roles"]
-            ):
+            if any(role in user_identity.roles for role in conditions["user_roles"]):
                 matched_conditions += 1
 
         # Check device status
@@ -152,17 +147,14 @@ class PolicyEngine:
 
         # Calculate confidence
         confidence = (
-            matched_conditions / total_conditions
-            if total_conditions > 0
-            else 0.0
+            matched_conditions / total_conditions if total_conditions > 0 else 0.0
         )
 
         # Determine action
         if confidence >= 0.8:
             action = policy.action
             reason = (
-                f"Policy '{policy.name}' matched with "
-                f"{confidence:.1%} confidence"
+                f"Policy '{policy.name}' matched with " f"{confidence:.1%} confidence"
             )
         else:
             action = PolicyAction.DENY
