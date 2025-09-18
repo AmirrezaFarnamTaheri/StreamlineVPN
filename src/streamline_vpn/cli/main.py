@@ -85,12 +85,12 @@ def main(
 
 
 # Add all command groups
-main.add_command(process.process_group)
+main.add_command(process)
 main.add_command(validate.validate_group)
 main.add_command(server.server_group)
 main.add_command(sources.sources_group)
-main.add_command(health.health_group)
-main.add_command(version.version_group)
+main.add_command(health)
+main.add_command(version)
 
 
 if __name__ == "__main__":

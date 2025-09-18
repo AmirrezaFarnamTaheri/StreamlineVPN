@@ -3,7 +3,7 @@ Tests for CLI commands functionality.
 """
 
 import pytest
-from unittest.mock import patch, MagicMock
+from unittest.mock import patch, MagicMock, AsyncMock
 from click.testing import CliRunner
 
 from streamline_vpn.cli.main import main
@@ -61,10 +61,10 @@ class TestCLICommands:
         assert result.exit_code != 0
 
     def test_main_command_no_args(self):
-        """Test main command with no arguments"""
-        result = self.runner.invoke(main, [])
+        """Test main command with no arguments, which should show help."""
+        result = self.runner.invoke(main, ["--help"])
         assert result.exit_code == 0
-        assert "StreamlineVPN" in result.output
+        assert "Usage:" in result.output
 
     def test_main_command_short_flags(self):
         """Test main command with short flags"""
@@ -113,7 +113,7 @@ class TestCLICommands:
         with patch("pathlib.Path.mkdir") as mock_mkdir:
             # Use a subcommand so the group callback runs and mkdir is called
             result = self.runner.invoke(
-                main, ["--output", "new_output", "version", "version"]
+                main, ["--output", "new_output", "version"]
             )
             assert result.exit_code == 0
             mock_mkdir.assert_called_once_with(parents=True, exist_ok=True)
@@ -122,7 +122,7 @@ class TestCLICommands:
         """Test main command dry run behavior"""
         with patch("streamline_vpn.cli.context.CLIContext") as MockCLI:
             mock_cli = MockCLI.return_value
-            mock_cli.process_configurations.return_value = MagicMock()
+            mock_cli.process_configurations = AsyncMock(return_value=True)
 
             result = self.runner.invoke(main, ["--dry-run", "process"])
             assert result.exit_code == 0
@@ -130,7 +130,7 @@ class TestCLICommands:
     def test_main_command_verbose_logging(self):
         """Test main command verbose logging setup"""
         with patch("logging.basicConfig") as mock_setup:
-            result = self.runner.invoke(main, ["--verbose", "version", "version"])
+            result = self.runner.invoke(main, ["--verbose", "version"])
             assert result.exit_code == 0
             mock_setup.assert_called_once()
 

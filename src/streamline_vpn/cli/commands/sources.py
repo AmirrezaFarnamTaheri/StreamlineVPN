@@ -10,14 +10,14 @@ from click import Context
 from ..context import CLIContext
 
 
-@click.group()
+@click.group(name="sources")
 def sources_group():
     """Manage VPN configuration sources."""
     pass
 
 
-@sources_group.command()
-def sources():
+@sources_group.command(name="show")
+def show_sources():
     """Show information about configured sources."""
     click.echo("📋 VPN Configuration Sources")
     click.echo("=" * 40)

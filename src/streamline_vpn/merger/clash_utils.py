@@ -68,18 +68,25 @@ def config_to_clash_proxy(
                 net = data.get("net") or data.get("type")
                 if net in ("ws", "grpc"):
                     proxy["network"] = net
-                if data.get("host"):
-                    proxy["host"] = data.get("host")
-                if data.get("path"):
-                    proxy["path"] = data.get("path")
+                    if net == "ws":
+                        ws_opts = proxy.setdefault("ws-opts", {})
+                        if data.get("path"):
+                            ws_opts["path"] = data.get("path")
+                        if data.get("host"):
+                            ws_opts.setdefault("headers", {})["Host"] = data.get("host")
+
                 if data.get("ws-headers"):
                     try:
-                        proxy["ws-headers"] = json.loads(data["ws-headers"])
+                        headers = json.loads(data["ws-headers"])
                     except (json.JSONDecodeError, TypeError):
-                        proxy["ws-headers"] = data["ws-headers"]
-                ws_opts = data.get("ws-opts")
-                if ws_opts and isinstance(ws_opts, dict) and ws_opts.get("headers"):
-                    proxy["ws-headers"] = ws_opts.get("headers")
+                        headers = data["ws-headers"]
+                    if isinstance(headers, dict):
+                        proxy.setdefault("ws-opts", {}).setdefault("headers", {}).update(headers)
+
+                ws_opts_data = data.get("ws-opts")
+                if ws_opts_data and isinstance(ws_opts_data, dict) and ws_opts_data.get("headers"):
+                     proxy.setdefault("ws-opts", {}).setdefault("headers", {}).update(ws_opts_data.get("headers"))
+
                 if data.get("serviceName"):
                     proxy["serviceName"] = data.get("serviceName")
                 if data.get("sni"):
@@ -278,6 +285,24 @@ def config_to_clash_proxy(
             return proxy
         elif scheme in ("ss", "shadowsocks"):
             p = urlparse(config)
+            # Handle format: ss://<base64(method:password)>@<host>:<port>#<name>
+            if p.username and not p.password and p.hostname and p.port:
+                try:
+                    # The username is the base64 encoded part
+                    decoded_user = base64.b64decode(p.username + '===').decode()
+                    method, password = decoded_user.split(":", 1)
+                    return {
+                        "name": p.fragment or name,
+                        "type": "ss",
+                        "server": p.hostname,
+                        "port": p.port,
+                        "cipher": method,
+                        "password": password,
+                    }
+                except (binascii.Error, UnicodeDecodeError, ValueError):
+                    pass  # Fall through if parsing fails
+
+            # Fallback for other potential ss formats
             if p.username and p.password and p.hostname and p.port:
                 method = p.username
                 password = p.password
@@ -285,13 +310,17 @@ def config_to_clash_proxy(
                 port = p.port
             else:
                 base = config.split("://", 1)[1].split("#", 1)[0]
-                padded = base + "=" * (-len(base) % 4)
-                decoded = base64.b64decode(padded).decode()
-                before_at, host_port = decoded.split("@")
-                method, password = before_at.split(":")
-                server_str, port_str = host_port.split(":")
-                server = server_str
-                port = int(port_str)
+                # This block is likely incorrect for most ss formats but kept as a fallback
+                try:
+                    padded = base + "=" * (-len(base) % 4)
+                    decoded = base64.b64decode(padded).decode()
+                    before_at, host_port = decoded.split("@")
+                    method, password = before_at.split(":")
+                    server_str, port_str = host_port.split(":")
+                    server = server_str
+                    port = int(port_str)
+                except Exception:
+                    return None # Explicitly return None on parsing failure
             return {
                 "name": p.fragment or name,
                 "type": "ss",

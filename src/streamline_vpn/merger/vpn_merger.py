@@ -73,6 +73,7 @@ from .deduplicator import Deduplicator
 from .sorter import Sorter
 from .analyzer import Analyzer
 from .batch_processor import BatchProcessor
+from .source_tester import SourceTester
 
 try:
     import aiohttp
@@ -144,6 +145,17 @@ class UltimateVPNMerger:
             include_regexes or [],
             exclude_regexes or [],
         )
+        # Store proxy history in configurable location
+        hist_path = Path(CONFIG.history_file)
+        if not hist_path.is_absolute():
+            hist_path = Path(CONFIG.output_dir) / hist_path
+        self.history_path = hist_path
+        self.history_path.parent.mkdir(parents=True, exist_ok=True)
+        try:
+            self.proxy_history = json.loads(self.history_path.read_text())
+        except (OSError, json.JSONDecodeError):
+            self.proxy_history = {}
+
         self.sorter = Sorter(self.processor, self.proxy_history)
         self.analyzer = Analyzer()
         self.batch_processor = BatchProcessor(self)
@@ -162,16 +174,6 @@ class UltimateVPNMerger:
         self.current_progress: Optional[tqdm] = None
         self._file_lock = asyncio.Lock()
         self._history_lock = asyncio.Lock()
-        # Store proxy history in configurable location
-        hist_path = Path(CONFIG.history_file)
-        if not hist_path.is_absolute():
-            hist_path = Path(CONFIG.output_dir) / hist_path
-        self.history_path = hist_path
-        self.history_path.parent.mkdir(parents=True, exist_ok=True)
-        try:
-            self.proxy_history = json.loads(self.history_path.read_text())
-        except (OSError, json.JSONDecodeError):
-            self.proxy_history = {}
 
     async def _update_history(
         self,

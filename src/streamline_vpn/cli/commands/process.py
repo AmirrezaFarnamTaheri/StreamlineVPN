@@ -11,13 +11,7 @@ from click import Context
 from ..context import CLIContext
 
 
-@click.group(name="process")
-def process_group():
-    """Process VPN configurations from sources."""
-    pass
-
-
-@process_group.command()
+@click.command(name="process")
 @click.option("--formats", default="all", help="Output formats (comma-separated)")
 @click.option(
     "--max-concurrent", default=5, help="Maximum concurrent source processing"

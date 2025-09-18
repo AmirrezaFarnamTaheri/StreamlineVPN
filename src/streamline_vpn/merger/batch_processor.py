@@ -1,4 +1,4 @@
-from .config import CONFIG
+from .result_processor import CONFIG
 
 
 class BatchProcessor:

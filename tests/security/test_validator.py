@@ -43,7 +43,14 @@ class TestSecurityValidator:
         assert validator.validate_domain("localhost") is True
 
     def test_validate_domain_suspicious_tld(self, validator):
-        assert validator.validate_domain("example.badtld") is False
+        from streamline_vpn.settings import Settings, SecuritySettings
+
+        custom_security_settings = SecuritySettings(suspicious_tlds=[".badtld"])
+        custom_settings = Settings(security=custom_security_settings)
+
+        with patch('streamline_vpn.security.validator.get_settings', return_value=custom_settings):
+            validator.__init__() # Re-initialize with patched settings
+            assert validator.validate_domain("example.badtld") is False
 
     def test_validate_domain_invalid(self, validator):
         assert validator.validate_domain("invalid-domain") is False
