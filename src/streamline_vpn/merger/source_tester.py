@@ -9,7 +9,7 @@ from tqdm import tqdm
 from .source_fetcher import fetch_text, parse_first_configs
 from .result_processor import EnhancedConfigProcessor
 from .utils import choose_proxy
-from .config import CONFIG
+from .result_processor import CONFIG
 
 
 class SourceTester:

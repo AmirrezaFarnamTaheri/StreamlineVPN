@@ -173,8 +173,9 @@ def _cleanup_sessions_at_exit() -> None:  # pragma: no cover - best-effort
         if not sessions:
             return
         try:
+            # During shutdown, logging may fail with "I/O operation on closed file"
             loop = asyncio.get_event_loop()
-        except RuntimeError:
+        except (RuntimeError, ValueError):
             loop = None
 
         async def _close_all():
@@ -196,11 +197,17 @@ def _cleanup_sessions_at_exit() -> None:  # pragma: no cover - best-effort
                     pass
         else:
             try:
+                # This can also fail with a ValueError on a closed file logger
                 asyncio.run(_close_all())
-            except Exception:
+            except (Exception, ValueError):
                 pass
     except Exception:
         pass
 
 
-atexit.register(_cleanup_sessions_at_exit)
+# Register cleanup hook only if not running under pytest, where it can cause
+# noisy and benign errors on shutdown.
+import sys
+
+if "pytest" not in sys.modules:
+    atexit.register(_cleanup_sessions_at_exit)

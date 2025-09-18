@@ -76,7 +76,7 @@ class TestThreatAnalyzer:
         assert "suspicious_ports" in stats
 
     def test_add_threat_pattern(self, threat_analyzer):
-        threat_analyzer.add_threat_pattern("test_pattern", "test", "high")
+        threat_analyzer.add_threat_pattern("test_pattern", "test", "high", "A test pattern")
         assert "test_pattern" in threat_analyzer.threat_patterns
         assert "test" in threat_analyzer.malicious_patterns
 

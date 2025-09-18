@@ -11,14 +11,14 @@ from click import Context
 from ..context import CLIContext
 
 
-@click.group()
+@click.group(name="server")
 def server_group():
     """Run StreamlineVPN servers."""
     pass
 
 
-@server_group.command()
-def server():
+@server_group.command(name="all")
+def all_servers():
     """Run unified server (API + Web)."""
     click.echo("🚀 Starting unified StreamlineVPN server...")
 

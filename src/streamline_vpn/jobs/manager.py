@@ -83,7 +83,7 @@ class JobManager:
         """
         job = Job(type=job_type, parameters=parameters or {}, metadata=metadata or {})
 
-        self.persistence.save_job(job)
+        await self.persistence.save_job(job)
         logger.info("Created job %s of type %s", job.id, job_type.value)
 
         return job

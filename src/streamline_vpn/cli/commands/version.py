@@ -8,13 +8,7 @@ from click import Context
 from ..context import CLIContext
 
 
-@click.group(name="version")
-def version_group():
-    """Version and system information."""
-    pass
-
-
-@version_group.command()
+@click.command(name="version")
 def version():
     """Show version information."""
     try:

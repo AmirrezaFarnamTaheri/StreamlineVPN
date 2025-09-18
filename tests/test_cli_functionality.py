@@ -49,41 +49,41 @@ class TestCLIFunctionality:
     def test_server_command_help(self):
         """Test server command help"""
         runner = CliRunner()
-        result = runner.invoke(main, ["server-group", "--help"])
+        result = runner.invoke(main, ["server", "--help"])
         assert result.exit_code == 0
         assert "Run StreamlineVPN servers" in result.output
     
     def test_web_command_help(self):
         """Test web command help"""
         runner = CliRunner()
-        result = runner.invoke(main, ["server-group", "web", "--help"])
+        result = runner.invoke(main, ["server", "web", "--help"])
         assert result.exit_code == 0
         assert "web" in result.output
     
     def test_sources_command_help(self):
         """Test sources command help"""
         runner = CliRunner()
-        result = runner.invoke(main, ["sources-group", "--help"])
+        result = runner.invoke(main, ["sources", "--help"])
         assert result.exit_code == 0
         assert "Manage VPN configuration sources" in result.output
     
     def test_add_command_help(self):
         """Test add command help"""
         runner = CliRunner()
-        result = runner.invoke(main, ["sources-group", "add", "--help"])
+        result = runner.invoke(main, ["sources", "add", "--help"])
         assert result.exit_code == 0
         assert "add" in result.output
     
     def test_health_command_help(self):
         """Test health command help"""
         runner = CliRunner()
-        result = runner.invoke(main, ["health-group", "--help"])
+        result = runner.invoke(main, ["health", "--help"])
         assert result.exit_code == 0
-        assert "System health and diagnostics" in result.output
+        assert "Check system health" in result.output
     
     def test_version_command(self):
         """Test version command"""
         runner = CliRunner()
-        result = runner.invoke(main, ["version", "version"])
+        result = runner.invoke(main, ["version"])
         assert result.exit_code == 0
         assert "StreamlineVPN" in result.output

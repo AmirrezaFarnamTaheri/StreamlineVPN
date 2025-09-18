@@ -11,13 +11,7 @@ from click import Context
 from ..context import CLIContext
 
 
-@click.group()
-def health_group():
-    """System health and diagnostics."""
-    pass
-
-
-@health_group.command()
+@click.command(name="health")
 @click.option("--check-api", is_flag=True, help="Check API server health")
 @click.option("--check-sources", is_flag=True, help="Check source connectivity")
 @click.option("--check-cache", is_flag=True, help="Check cache status")
