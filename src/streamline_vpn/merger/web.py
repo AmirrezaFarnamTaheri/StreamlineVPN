@@ -9,7 +9,8 @@ from pathlib import Path
 from flask import Flask, render_template_string, send_file
 
 from .config import load_config
-from .aggregator_tool import run_pipeline, SOURCES_FILE, CHANNELS_FILE
+from .pipeline import run_pipeline
+from .constants import SOURCES_FILE, CHANNELS_FILE
 from .vpn_merger import detect_and_run
 from .result_processor import CONFIG
 
