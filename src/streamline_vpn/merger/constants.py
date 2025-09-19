@@ -2,6 +2,8 @@ from pathlib import Path
 import re
 
 SOURCES_FILE = Path("sources.txt")
+CONFIG_FILE = Path("config.yaml")
+CHANNELS_FILE = Path("channels.txt")
 
 # Regular expressions shared across modules
 PROTOCOL_RE = re.compile(

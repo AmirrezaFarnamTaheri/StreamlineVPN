@@ -150,9 +150,9 @@ async def telegram_bot_mode(
 
         out_dir, files = await run_pipeline_func(
             cfg,
-            None,
             sources_file,
             channels_file,
+            None,
             last_hours,
         )
 

@@ -26,9 +26,9 @@ class AggregationPipeline:
 
     async def run(
         self,
-        protocols: List[str] | None = None,
         sources_file: Path,
         channels_file: Path,
+        protocols: List[str] | None = None,
         last_hours: int = 24,
         *,
         failure_threshold: int = 3,
@@ -98,9 +98,9 @@ class AggregationPipeline:
 
 async def run_pipeline(
     cfg: Settings,
-    protocols: List[str] | None = None,
     sources_file: Path,
     channels_file: Path,
+    protocols: List[str] | None = None,
     last_hours: int = 24,
     *,
     failure_threshold: int = 3,
@@ -109,9 +109,9 @@ async def run_pipeline(
     """Run the aggregation pipeline and return output directory and files."""
     pipeline = AggregationPipeline(cfg)
     return await pipeline.run(
-        protocols,
         sources_file,
         channels_file,
+        protocols,
         last_hours,
         failure_threshold=failure_threshold,
         prune=prune,
