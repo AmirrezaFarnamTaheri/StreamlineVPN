@@ -215,9 +215,9 @@ def main(args: argparse.Namespace | None = None) -> None:
         out_dir, files = asyncio.run(
             run_pipeline(
                 cfg,
-                protocols,
                 Path(args.sources),
                 Path(args.channels),
+                protocols,
                 args.hours,
                 failure_threshold=args.failure_threshold,
                 prune=not args.no_prune,

@@ -91,6 +91,11 @@ async def fetch_text(
     return None
 
 
+def extract_subscription_urls(text: str) -> List[str]:
+    """Extract all subscription URLs from a given text."""
+    return PROTOCOL_RE.findall(text)
+
+
 def parse_first_configs(text: str, limit: int = 5) -> List[str]:
     """Extract up to ``limit`` configuration links from ``text``."""
     configs: List[str] = []
