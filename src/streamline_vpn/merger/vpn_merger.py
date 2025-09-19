@@ -587,3 +587,95 @@ async def run_in_jupyter(sources_file: Optional[Union[str, Path]] = None):
     """Direct execution for Jupyter notebooks and async environments."""
     print("🔄 Running in Jupyter/async environment")
     await main_async(sources_file)
+
+
+def build_parser(parser: argparse.ArgumentParser | None = None) -> argparse.ArgumentParser:
+    """Return an argument parser configured for the vpn merger."""
+    if parser is None:
+        parser = argparse.ArgumentParser(
+            description="Merges and tests VPN subscriptions from various sources."
+        )
+
+    parser.add_argument(
+        "--sources",
+        type=str,
+        default=None,
+        help="Path to the sources file (e.g., sources.txt)",
+    )
+    parser.add_argument(
+        "--output-dir",
+        type=str,
+        default=CONFIG.output_dir,
+        help="Directory to save output files",
+    )
+    parser.add_argument(
+        "--top-n",
+        type=int,
+        default=CONFIG.top_n,
+        help="Keep only the N fastest configs (0 for all)",
+    )
+    parser.add_argument(
+        "--max-ping",
+        type=int,
+        default=CONFIG.max_ping_ms,
+        help="Discard configs slower than this ping in ms (0 disables)",
+    )
+    parser.add_argument(
+        "--no-sort", action="store_true", help="Disable smart sorting by performance"
+    )
+    parser.add_argument(
+        "--no-test", action="store_true", help="Disable URL availability testing"
+    )
+    parser.add_argument(
+        "--include-protocols",
+        type=str,
+        default=None,
+        help="Comma-separated protocols to include (e.g., 'VMESS,TROJAN')",
+    )
+    parser.add_argument(
+        "--exclude-protocols",
+        type=str,
+        default=None,
+        help="Comma-separated protocols to exclude",
+    )
+    return parser
+
+
+def main(args: argparse.Namespace | None = None) -> None:
+    """Main entry point for the VPN merger script."""
+    if args is None:
+        args = build_parser().parse_args()
+
+    # Load base configuration
+    try:
+        load_config()
+    except ValueError as e:
+        print(f"Error loading config: {e}", file=sys.stderr)
+        sys.exit(1)
+
+    # Override config with command-line arguments
+    if args.sources:
+        # This one is not a direct CONFIG override, it's passed to UltimateVPNMerger
+        sources_file = Path(args.sources)
+    else:
+        sources_file = None
+
+    CONFIG.output_dir = args.output_dir
+    CONFIG.top_n = args.top_n
+    if args.max_ping is not None:
+        CONFIG.max_ping_ms = args.max_ping
+    if args.no_sort:
+        CONFIG.enable_sorting = False
+    if args.no_test:
+        CONFIG.enable_url_testing = False
+    if args.include_protocols:
+        CONFIG.include_protocols = {p.strip().upper() for p in args.include_protocols.split(",")}
+    if args.exclude_protocols:
+        CONFIG.exclude_protocols = {p.strip().upper() for p in args.exclude_protocols.split(",")}
+
+    # The main logic is async, so we use detect_and_run
+    detect_and_run(sources_file=sources_file)
+
+
+if __name__ == "__main__":
+    main()
