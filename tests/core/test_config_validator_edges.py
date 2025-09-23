@@ -17,13 +17,13 @@ def _run(coro):
 
 def test_config_validator_protocol_specific_minimal():
     v = ConfigurationValidator()
-    _run(v.initialize())
     vmess = {
+        "sources": {"premium": ["https://example.com/premium.txt"]},
         "type": "vmess",
         "host": "example.com",
         "port": 443,
         "uuid": "123e4567-e89b-12d3-a456-426614174000",
     }
     res = v.validate_config(vmess)
-    assert isinstance(res, dict)
-    assert "is_valid" in res
+    assert isinstance(res, list)
+    assert len(res) == 0
