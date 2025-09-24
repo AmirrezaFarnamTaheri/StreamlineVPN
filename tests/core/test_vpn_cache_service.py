@@ -46,7 +46,7 @@ class TestVPNCacheService:
     @pytest.mark.asyncio
     async def test_get_configuration(self):
         """Test getting configuration from cache"""
-        service = VPNCacheService()
+        service = VPNCacheService(redis_nodes=[{"host": "localhost", "port": "6379"}])
         await service.initialize()
 
         # Mock the cache layers
@@ -67,7 +67,7 @@ class TestVPNCacheService:
     @pytest.mark.asyncio
     async def test_set_configuration(self):
         """Test setting configuration in cache"""
-        service = VPNCacheService()
+        service = VPNCacheService(redis_nodes=[{"host": "localhost", "port": "6379"}])
         await service.initialize()
 
         config = {"name": "test_config", "type": "vmess"}
@@ -90,7 +90,7 @@ class TestVPNCacheService:
     @pytest.mark.asyncio
     async def test_invalidate_configuration(self):
         """Test invalidating configuration from cache"""
-        service = VPNCacheService()
+        service = VPNCacheService(redis_nodes=[{"host": "localhost", "port": "6379"}])
         await service.initialize()
 
         # Mock the cache layers

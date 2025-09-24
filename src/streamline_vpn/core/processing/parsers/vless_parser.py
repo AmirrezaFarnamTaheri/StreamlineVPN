@@ -77,7 +77,7 @@ class VLESSParser:
                 protocol=Protocol.VLESS,
                 server=host,
                 port=port_int,
-                user_id=uuid,
+                uuid=uuid,
                 network=params.get("type", "tcp"),
                 host=params.get("host", host),
                 path=params.get("path", ""),

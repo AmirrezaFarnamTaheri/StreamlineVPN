@@ -43,20 +43,24 @@ class CacheInvalidationService:
         self,
         event_type: str,
         context: Optional[str] = None,
-        redis_client: Optional[RedisClusterClient] = None,
+        l2_cache: Optional[Any] = None,
     ) -> int:
         """Invalidate cache entries based on event type and context.
 
         Args:
             event_type: Type of event triggering invalidation
             context: Optional context for targeted invalidation
-            redis_client: Redis client for L2 cache invalidation
+            l2_cache: L2 cache client for invalidation
 
         Returns:
             Number of keys invalidated
         """
         if event_type not in self.invalidation_patterns:
             logger.warning(f"Unknown invalidation event type: {event_type}")
+            return 0
+
+        if not isinstance(l2_cache, RedisClusterClient):
+            logger.warning("Pattern-based invalidation is only supported for Redis.")
             return 0
 
         patterns = self.invalidation_patterns[event_type]
@@ -69,11 +73,10 @@ class CacheInvalidationService:
             )
 
             # Invalidate L2 Redis cache
-            if redis_client:
-                invalidated = await self._invalidate_redis_pattern(
-                    redis_client, specific_pattern
-                )
-                total_invalidated += invalidated
+            invalidated = await self._invalidate_redis_pattern(
+                l2_cache, specific_pattern
+            )
+            total_invalidated += invalidated
 
             self.invalidation_stats["pattern_invalidations"] += 1
 

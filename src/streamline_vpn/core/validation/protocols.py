@@ -18,6 +18,12 @@ class ProtocolValidator:
             self._validate_shadowsocks(config, errors)
         elif protocol == Protocol.SHADOWSOCKSR:
             self._validate_shadowsocksr(config, errors)
+        elif protocol == Protocol.HTTP:
+            self._validate_http(config, errors)
+        elif protocol == Protocol.SOCKS5:
+            self._validate_socks5(config, errors)
+        elif protocol == Protocol.TUIC:
+            self._validate_tuic(config, errors)
         return errors
 
     def _validate_vmess(self, config: Dict[str, Any], errors: List[str]):
@@ -41,13 +47,33 @@ class ProtocolValidator:
                 errors.append(f"Trojan config missing required field: {field}")
 
     def _validate_shadowsocks(self, config: Dict[str, Any], errors: List[str]):
-        required_fields = ["server", "port", "password", "method"]
+        required_fields = ["server", "port", "password", "encryption"]
         for field in required_fields:
             if field not in config:
                 errors.append(f"Shadowsocks config missing required field: {field}")
 
     def _validate_shadowsocksr(self, config: Dict[str, Any], errors: List[str]):
-        required_fields = ["server", "port", "password", "method", "protocol", "obfs"]
+        required_fields = ["server", "port", "password", "encryption", "network"]
+        for field in required_fields:
+            if field not in config or not config[field]:
+                errors.append(f"ShadowsocksR config missing required field: {field}")
+        if "metadata" not in config or "obfs" not in config["metadata"]:
+            errors.append("ShadowsocksR config missing required field: obfs")
+
+    def _validate_http(self, config: Dict[str, Any], errors: List[str]):
+        required_fields = ["server", "port"]
         for field in required_fields:
             if field not in config:
-                errors.append(f"ShadowsocksR config missing required field: {field}")
+                errors.append(f"HTTP config missing required field: {field}")
+
+    def _validate_socks5(self, config: Dict[str, Any], errors: List[str]):
+        required_fields = ["server", "port"]
+        for field in required_fields:
+            if field not in config:
+                errors.append(f"SOCKS5 config missing required field: {field}")
+
+    def _validate_tuic(self, config: Dict[str, Any], errors: List[str]):
+        required_fields = ["server", "port", "uuid", "password"]
+        for field in required_fields:
+            if field not in config:
+                errors.append(f"TUIC config missing required field: {field}")

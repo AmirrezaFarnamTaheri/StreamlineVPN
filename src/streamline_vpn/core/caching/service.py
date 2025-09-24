@@ -18,6 +18,7 @@ from ...constants import (
 )
 from .l1_cache import L1ApplicationCache
 from .redis_client import RedisClusterClient
+from .memcached_client import MemcachedClient
 from .l3_sqlite import L3DatabaseCache
 from .invalidation import CacheInvalidationService
 
@@ -30,6 +31,7 @@ class VPNCacheService:
     def __init__(
         self,
         redis_nodes: Optional[List[Dict[str, str]]] = None,
+        memcached_servers: Optional[List[str]] = None,
         l1_cache_size: int = DEFAULT_L1_CACHE_SIZE,
         l3_db_path: Optional[str] = None,
     ):
@@ -37,12 +39,20 @@ class VPNCacheService:
 
         Args:
             redis_nodes: Redis cluster node configurations
+            memcached_servers: Memcached server addresses
             l1_cache_size: L1 cache size
         """
         self.l1_cache = L1ApplicationCache(max_size=l1_cache_size)
-        self.redis_client = RedisClusterClient(redis_nodes or [])
-        # Backwards-compatible attribute for tests
-        self.l2_cache = self.redis_client
+        self.l2_cache = None
+        if redis_nodes:
+            self.redis_client = RedisClusterClient(redis_nodes)
+            self.l2_cache = self.redis_client
+        elif memcached_servers:
+            self.memcached_client = MemcachedClient(memcached_servers)
+            self.l2_cache = self.memcached_client
+        else:
+            self.redis_client = RedisClusterClient([])
+
         self.invalidation_service = CacheInvalidationService()
         # L3 SQLite fallback (optional)
         self.l3_cache = L3DatabaseCache(l3_db_path or "vpn_configs.db")
@@ -66,26 +76,26 @@ class VPNCacheService:
         if value is not None:
             return value
 
-        # Try L2 Redis cache
-        if not self._is_circuit_breaker_open():
+        # Try L2 cache
+        if self.l2_cache and not self._is_circuit_breaker_open():
             try:
-                redis_value = await self.redis_client.get(key)
-                if redis_value is not None:
+                l2_value = await self.l2_cache.get(key)
+                if l2_value is not None:
                     # Parse JSON value
                     try:
-                        parsed_value = json.loads(redis_value)
+                        parsed_value = json.loads(l2_value)
                         # Store in L1 cache for faster access
                         await self.l1_cache.set(
                             key, parsed_value, ttl=DEFAULT_CACHE_TTL
                         )
                         return parsed_value
                     except json.JSONDecodeError:
-                        logger.warning(f"Failed to parse Redis value for key {key}")
+                        logger.warning(f"Failed to parse L2 cache value for key {key}")
 
                 self._reset_circuit_breaker()
 
             except Exception as e:
-                logger.error("Redis cache error for key %s: %s", key, e)
+                logger.error("L2 cache error for key %s: %s", key, e)
                 self._record_circuit_breaker_failure()
 
         # L3 database fallback
@@ -161,18 +171,18 @@ class VPNCacheService:
             # Set in L1 cache
             await self.l1_cache.set(key, value, ttl=ttl, tags=tags)
 
-            # Set in L2 Redis cache
-            if not self._is_circuit_breaker_open():
+            # Set in L2 cache
+            if self.l2_cache and not self._is_circuit_breaker_open():
                 try:
                     json_value = json.dumps(value)
-                    success = await self.redis_client.set(key, json_value, ttl=ttl)
+                    success = await self.l2_cache.set(key, json_value, ttl=ttl)
                     if success:
                         self._reset_circuit_breaker()
                     else:
                         self._record_circuit_breaker_failure()
 
                 except Exception as e:
-                    logger.error("Redis cache set error for key %s: %s", key, e)
+                    logger.error("L2 cache set error for key %s: %s", key, e)
                     self._record_circuit_breaker_failure()
 
             # Set in L3 database cache regardless of CB state
@@ -194,13 +204,13 @@ class VPNCacheService:
             # Delete from L1 cache
             await self.l1_cache.delete(key)
 
-            # Delete from L2 Redis cache
-            if not self._is_circuit_breaker_open():
+            # Delete from L2 cache
+            if self.l2_cache and not self._is_circuit_breaker_open():
                 try:
-                    await self.redis_client.delete(key)
+                    await self.l2_cache.delete(key)
                     self._reset_circuit_breaker()
                 except Exception as e:
-                    logger.error(f"Redis cache delete error for key {key}: {e}")
+                    logger.error(f"L2 cache delete error for key {key}: {e}")
                     self._record_circuit_breaker_failure()
 
             # Delete from L3 database cache
@@ -243,7 +253,7 @@ class VPNCacheService:
         return await self.invalidation_service.invalidate_cache_pattern(
             event_type="user_preference_change",
             context=user_id,
-            redis_client=self.redis_client,
+            l2_cache=self.l2_cache,
         )
 
     async def invalidate_server_cache(self, server_id: str) -> int:
@@ -251,7 +261,7 @@ class VPNCacheService:
         return await self.invalidation_service.invalidate_cache_pattern(
             event_type="server_update",
             context=server_id,
-            redis_client=self.redis_client,
+            l2_cache=self.l2_cache,
         )
 
     def _is_circuit_breaker_open(self) -> bool:
@@ -277,9 +287,13 @@ class VPNCacheService:
 
     def get_cache_stats(self) -> Dict[str, Any]:
         """Get comprehensive cache statistics."""
+        l2_stats = {}
+        if self.l2_cache:
+            l2_stats = self.l2_cache.get_stats()
+
         return {
             "l1_cache": self.l1_cache.get_stats(),
-            "l2_redis": self.redis_client.get_stats(),
+            "l2_cache": l2_stats,
             "invalidation": self.invalidation_service.get_invalidation_stats(),
             "circuit_breaker": {
                 "failures": self.circuit_breaker_failures,

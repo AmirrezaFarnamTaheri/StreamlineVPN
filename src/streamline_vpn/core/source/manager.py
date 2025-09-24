@@ -27,6 +27,7 @@ class SourceManager:
         config_path: Optional[str] = None,
         security_manager: Optional[SecurityManager] = None,
         fetcher_service: Optional[FetcherService] = None,
+        cache_service: Optional[Any] = None,
     ):
         """Initialize source manager."""
         # Use default config if not provided
@@ -42,6 +43,7 @@ class SourceManager:
         self.validation = SourceValidation()
         self.security_manager = security_manager
         self.fetcher_service = fetcher_service or FetcherService()
+        self.cache_service = cache_service
         # Focused tests expect attribute named 'fetcher'
         self.fetcher = self.fetcher_service
 
@@ -168,6 +170,8 @@ class SourceManager:
                 "tier"
             )
             self.persistence.save_sources(self.get_all_sources())
+            if self.cache_service:
+                asyncio.create_task(self.cache_service.invalidate_cache_pattern("configuration_change"))
         except Exception:
             pass
 
@@ -264,6 +268,8 @@ class SourceManager:
                 del self.sources[to_delete]
         # Persist change as list
         self.persistence.save_sources(self.get_all_sources())
+        if self.cache_service:
+            asyncio.create_task(self.cache_service.invalidate_cache_pattern("configuration_change"))
         return len(self.sources) != before
 
     async def get_active_sources(self, max_sources: int = 100) -> List[str]:

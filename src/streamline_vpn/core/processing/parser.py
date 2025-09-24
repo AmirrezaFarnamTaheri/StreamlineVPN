@@ -9,6 +9,7 @@ from typing import Optional
 
 from ...models.configuration import VPNConfiguration
 from ...utils.logging import get_logger
+from ..validation.protocols import ProtocolValidator
 
 # Note: Parser imports moved to avoid circular dependencies
 # Individual parsers are imported dynamically when needed
@@ -21,12 +22,16 @@ class ConfigurationParser:
 
     def __init__(self):
         """Initialize parser."""
+        self.protocol_validator = ProtocolValidator()
         self.protocol_patterns = {
             "vmess": r"vmess://([A-Za-z0-9+/=]+)",
             "vless": r"vless://",
             "trojan": r"trojan://",
             "ss": r"ss://([A-Za-z0-9+/=]+)",
             "ssr": r"ssr://([A-Za-z0-9+/=]+)",
+            "http": r"http://",
+            "socks5": r"socks5://",
+            "tuic": r"tuic://",
         }
 
     def parse_configuration(self, config_string: str) -> Optional[VPNConfiguration]:
@@ -47,6 +52,10 @@ class ConfigurationParser:
             try:
                 config = self._parse_protocol(config_string, protocol_name)
                 if config:
+                    errors = self.protocol_validator.validate(config.to_dict(), config.protocol)
+                    if errors:
+                        logger.warning("Invalid configuration for protocol %s: %s", config.protocol, errors)
+                        return None
                     return config
             except Exception as e:
                 logger.debug("Failed to parse %s: %s", protocol_name, e)
@@ -88,6 +97,18 @@ class ConfigurationParser:
             from .parsers.shadowsocksr import parse_ssr as _parse_ssr
 
             return _parse_ssr(config_string)
+        elif protocol_name == "http":
+            from .parsers.http import parse_http as _parse_http
+
+            return _parse_http(config_string)
+        elif protocol_name == "socks5":
+            from .parsers.socks5 import parse_socks5 as _parse_socks5
+
+            return _parse_socks5(config_string)
+        elif protocol_name == "tuic":
+            from .parsers.tuic import parse_tuic as _parse_tuic
+
+            return _parse_tuic(config_string)
 
         return None
 

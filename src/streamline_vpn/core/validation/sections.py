@@ -9,6 +9,9 @@ SUPPORTED_PROTOCOLS = {
     "shadowsocksr",
     "ss",
     "ssr",
+    "http",
+    "socks5",
+    "tuic",
 }
 
 class SectionValidator:

@@ -92,7 +92,7 @@ async def test_cache_set_get_delete_with_l3_fallback(tmp_path, monkeypatch):
 async def test_circuit_breaker_opens_and_recovers(tmp_path, monkeypatch):
     monkeypatch.setattr(cache_service_module, "RedisClusterClient", FakeRedisClient)
     db_path = tmp_path / "cache2.db"
-    svc = cache_service_module.VPNCacheService(redis_nodes=[], l1_cache_size=1, l3_db_path=str(db_path))
+    svc = cache_service_module.VPNCacheService(redis_nodes=[{"host": "localhost", "port": "6379"}], l1_cache_size=1, l3_db_path=str(db_path))
 
     # Trip CB by repeated failures
     svc.redis_client.fail = True
@@ -109,7 +109,7 @@ async def test_circuit_breaker_opens_and_recovers(tmp_path, monkeypatch):
 
     # Cache stats endpoint
     stats = svc.get_cache_stats()
-    assert "l1_cache" in stats and "l2_redis" in stats and "circuit_breaker" in stats
+    assert "l1_cache" in stats and "l2_cache" in stats and "circuit_breaker" in stats
 
 
 @pytest.mark.asyncio
@@ -148,7 +148,7 @@ async def test_cache_set_and_delete_error_branches(tmp_path, monkeypatch):
     assert await svc.delete("k2") is False
 
     # Invalidation calls
-    async def _fake_inval(event_type, context, redis_client):
+    async def _fake_inval(event_type, context, l2_cache):
         return 7
     svc.invalidation_service.invalidate_cache_pattern = _fake_inval  # type: ignore
     assert await svc.invalidate_user_cache("u1") == 7
