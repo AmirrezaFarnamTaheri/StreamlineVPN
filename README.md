@@ -1,10 +1,28 @@
 # StreamlineVPN – VPN Configuration Aggregator
 
 [![Version](https://img.shields.io/badge/version-2.0.0-blue.svg)](./src/streamline_vpn/__init__.py)
+[![Build Status](https://img.shields.io/github/actions/workflow/status/your-repo/ci.yml?branch=main)](https://github.com/your-repo/streamline-vpn/actions/workflows/ci.yml)
+[![Coverage](https://img.shields.io/badge/coverage-64%25-yellow.svg)](https://your-repo.github.io/streamline-vpn/coverage/)
 [![License](https://img.shields.io/badge/License-GPLv3-blue.svg)](./LICENSE)
 [![Python](https://img.shields.io/badge/python-3.8+-blue.svg)](https://python.org)
+[![Docker Hub](https://img.shields.io/docker/pulls/streamlinevpn/app.svg)](https://hub.docker.com/r/streamlinevpn/app)
 
 StreamlineVPN aggregates, validates, and exports VPN configurations from multiple sources. It provides a FastAPI backend, a lightweight static control center, and a multi-level cache to keep things fast and reliable.
+
+## Table of Contents
+
+- [Features](#features)
+- [Requirements](#requirements)
+- [Quick Start](#quick-start)
+- [Docker](#docker)
+- [Configuration](#configuration)
+- [Testing & Coverage](#testing--coverage)
+- [Architecture](#architecture-high-level)
+- [API Documentation](#api-documentation)
+- [Security](#security)
+- [Performance](#performance)
+- [Troubleshooting](#troubleshooting)
+- [License](#license)
 
 ## Features
 
@@ -20,22 +38,21 @@ StreamlineVPN aggregates, validates, and exports VPN configurations from multipl
 - Python 3.8+
 - Redis 6.0+ (optional, for L2 cache)
 
-## Installation
+## Quick Start
+
+### Installation
 
 ```bash
 pip install -r requirements.txt
 ```
 
-## Usage
+### Run a single processing job
 
-### One-off Processing
-
-To run a single processing job from the command line:
 ```bash
 python -m streamline_vpn --config config/sources.yaml --output output
 ```
 
-### API Server
+### Run the API Server
 
 The unified server includes the FastAPI backend and serves the static control panel.
 
@@ -46,6 +63,34 @@ python run_unified.py
 
 # Or run uvicorn directly for more options
 uvicorn streamline_vpn.web.unified_api:create_unified_app --host 0.0.0.0 --port 8080 --reload
+```
+
+## Docker
+
+### Run with Docker Compose
+
+Two workflows are available:
+
+- Standard:
+
+```bash
+docker-compose up -d
+```
+
+- With hot reload and live-mounted code:
+
+```bash
+docker-compose -f docker-compose.yml -f docker-compose.dev.yml up -d
+```
+
+The dev override runs Uvicorn with `--reload` and mounts `src/`, `config/`, and `docs/` for quick iteration.
+
+### Use Pre-built Images from Docker Hub
+
+You can use the pre-built Docker images from Docker Hub to run the application in a container.
+
+```bash
+docker run -d -p 8080:8080 --name streamline-vpn streamlinevpn/app:latest
 ```
 
 ## Configuration
@@ -93,24 +138,6 @@ CI runs the coverage gate and will fail on regressions.
 - Use PowerShell activation when using venv: `venv\Scripts\Activate.ps1`
 - If execution policy prevents activation: `Set-ExecutionPolicy -ExecutionPolicy RemoteSigned -Scope CurrentUser`
 
-## Docker (Development)
-
-Two workflows are available:
-
-- Standard:
-
-```bash
-docker-compose up -d
-```
-
-- With hot reload and live-mounted code:
-
-```bash
-docker-compose -f docker-compose.yml -f docker-compose.dev.yml up -d
-```
-
-The dev override runs Uvicorn with `--reload` and mounts `src/`, `config/`, and `docs/` for quick iteration.
-
 ## Architecture (high level)
 
 ```
@@ -134,7 +161,8 @@ GPL-3.0 – see [LICENSE](./LICENSE).
 
 ## API Documentation
 
-The StreamlineVPN API provides programmatic access to VPN configuration management:
+The StreamlineVPN API provides programmatic access to VPN configuration management.
+You can access the interactive Swagger UI at `/docs` when the API server is running.
 
 - **GET /api/v1/sources** - List configured sources
 - **GET /api/v1/configurations** - Retrieve processed configurations

@@ -1,9 +1,8 @@
 name: Production Deployment
 
 on:
-  push:
-    branches: [main]
-  workflow_dispatch:
+  release:
+    types: [published]
 
 jobs:
   test:
@@ -53,7 +52,7 @@ jobs:
           push: true
           tags: |
             streamlinevpn/app:latest
-            streamlinevpn/app:${{ github.sha }}
+            streamlinevpn/app:${{ github.ref_name }}
           cache-from: type=registry,ref=streamlinevpn/app:buildcache
           cache-to: type=registry,ref=streamlinevpn/app:buildcache,mode=max
           
@@ -71,7 +70,7 @@ jobs:
             kubernetes/service.yaml
             kubernetes/ingress.yaml
           images: |
-            streamlinevpn/app:${{ github.sha }}
+            streamlinevpn/app:${{ github.ref_name }}
             
       - name: Verify deployment
         run: |

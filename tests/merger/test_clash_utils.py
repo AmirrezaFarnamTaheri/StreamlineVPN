@@ -87,4 +87,62 @@ class TestConfigToClashProxy:
         assert proxy["ws-opts"]["path"] == "/path"
         assert proxy["ws-opts"]["headers"]["Host"] == "sub.domain.com"
 
-# More tests for other protocols will be added.
+    def test_vless_simple(self):
+        """Test a simple VLESS link."""
+        config_link = "vless://uuid@1.2.3.4:443?encryption=none&security=tls&type=ws&host=sub.domain.com&path=%2Fpath#Test-VLESS"
+        proxy = config_to_clash_proxy(config_link)
+
+        assert proxy is not None
+        assert proxy["name"] == "Test-VLESS"
+        assert proxy["type"] == "vless"
+        assert proxy["server"] == "1.2.3.4"
+        assert proxy["port"] == 443
+        assert proxy["uuid"] == "uuid"
+        assert proxy["tls"] is True
+        assert proxy["network"] == "ws"
+        assert proxy["path"] == "/path"
+        assert proxy["host"] == "sub.domain.com"
+
+    def test_trojan_simple(self):
+        """Test a simple Trojan link."""
+        config_link = "trojan://password@1.2.3.4:443?sni=sub.domain.com#Test-Trojan"
+        proxy = config_to_clash_proxy(config_link)
+
+        assert proxy is not None
+        assert proxy["name"] == "Test-Trojan"
+        assert proxy["type"] == "trojan"
+        assert proxy["server"] == "1.2.3.4"
+        assert proxy["port"] == 443
+        assert proxy["password"] == "password"
+        assert proxy["sni"] == "sub.domain.com"
+
+    def test_ssr_simple(self):
+        """Test a simple SSR link."""
+        # ssr://host:port:proto:method:obfs:pwd_b64/?obfsparam=obfsparam_b64&protoparam=protoparam_b64&remarks=remarks_b64
+        config_link = "ssr://MS4yLjMuNDo4ODg4OmF1dGhfYWVzMTI4X3NoYTE6YWVzLTI1Ni1jZmI6dGxzMS4yX3RpY2tldF9hdXRoOnBhc3N3b3JkLz9vYmZzcGFyYW09b2Jmc3BhcmFtX2I2NCZwcm90b3BhcmFtPXByb3RvcGFyYW1fYjY0JnJlbWFya3M9VGVzdC1TU1I="
+        proxy = config_to_clash_proxy(config_link)
+
+        assert proxy is not None
+        assert proxy["name"] == "Test-SSR"
+        assert proxy["type"] == "ssr"
+        assert proxy["server"] == "1.2.3.4"
+        assert proxy["port"] == 8888
+        assert proxy["protocol"] == "auth_aes128_sha1"
+        assert proxy["cipher"] == "aes-256-cfb"
+        assert proxy["obfs"] == "tls1.2_ticket_auth"
+        assert proxy["password"] == "password"
+        assert proxy["obfs-param"] == "obfsparam_b64"
+        assert proxy["protocol-param"] == "protoparam_b64"
+
+    def test_hysteria2_simple(self):
+        """Test a simple Hysteria2 link."""
+        config_link = "hysteria2://password@1.2.3.4:443?sni=sub.domain.com#Test-Hysteria2"
+        proxy = config_to_clash_proxy(config_link)
+
+        assert proxy is not None
+        assert proxy["name"] == "Test-Hysteria2"
+        assert proxy["type"] == "hysteria2"
+        assert proxy["server"] == "1.2.3.4"
+        assert proxy["port"] == 443
+        assert proxy["password"] == "password"
+        assert proxy["sni"] == "sub.domain.com"

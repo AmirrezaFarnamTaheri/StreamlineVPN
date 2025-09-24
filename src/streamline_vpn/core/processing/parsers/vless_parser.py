@@ -77,7 +77,7 @@ class VLESSParser:
                 protocol=Protocol.VLESS,
                 server=host,
                 port=port_int,
-                uuid=uuid,
+                user_id=uuid,
                 network=params.get("type", "tcp"),
                 host=params.get("host", host),
                 path=params.get("path", ""),
@@ -96,8 +96,8 @@ class VLESSParser:
                 },
             )
 
-            # Preserve original UUID for compatibility
-            config.uuid = uuid
+            # Preserve original user_id for compatibility
+            config.user_id = uuid
             config.security = security
 
             # Update performance stats

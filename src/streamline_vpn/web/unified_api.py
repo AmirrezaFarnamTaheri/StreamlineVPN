@@ -28,7 +28,6 @@ from fastapi.staticfiles import StaticFiles
 from contextlib import asynccontextmanager
 
 from ..core.merger import StreamlineVPNMerger
-from .api.routes.webhooks import webhooks_router, webhooks
 
 logger = logging.getLogger(__name__)
 
@@ -668,8 +667,6 @@ console.log('StreamlineVPN API Base:', window.__API_BASE__);
             except Exception as e:
                 logger.error("WebSocket error: %s", e)
 
-        self.app.include_router(webhooks_router, prefix="/api/v1")
-
     def _setup_lifecycle(self) -> None:
         """Setup application lifespan to replace deprecated on_event."""
 
@@ -718,16 +715,6 @@ console.log('StreamlineVPN API Base:', window.__API_BASE__);
                 if job.get("job_id") == job_id:
                     self.jobs[i] = job_record
                     break
-
-            # Trigger webhooks
-            for webhook in webhooks:
-                if webhook.event == "pipeline_finished":
-                    try:
-                        import httpx
-                        async with httpx.AsyncClient() as client:
-                            await client.post(webhook.url, json=job_record)
-                    except Exception as e:
-                        logger.error(f"Failed to send webhook to {webhook.url}: {e}")
 
         except Exception as e:
             logger.error("Pipeline processing failed for job %s: %s", job_id, e)
