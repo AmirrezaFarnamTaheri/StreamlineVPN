@@ -1,87 +1,94 @@
 # API Overview
 
-The VPN Subscription Merger provides a comprehensive REST API for accessing merged VPN configurations and system metrics.
+The StreamlineVPN API provides a comprehensive REST API for accessing merged VPN configurations and system metrics.
 
-## REST API (v1)
+## Endpoints
 
-### Subscription Endpoints
+### Configurations
 
-- `GET /api/v1/sub/raw` - Raw subscription data
-- `GET /api/v1/sub/base64` - Base64 encoded subscription
-- `GET /api/v1/sub/singbox` - Sing-box format configuration
-- `GET /api/v1/sub/clash` - Clash format configuration
-- `GET /api/v1/sub/report` - Detailed JSON report with metadata
+- **GET /api/v1/configurations**
+  - **Description**: Retrieve processed and merged VPN configurations.
+  - **Query Parameters**:
+    - `limit` (int, optional): The maximum number of configurations to return. Default is 100.
+    - `offset` (int, optional): The number of configurations to skip. Default is 0.
+  - **Response**: A JSON object containing a list of configurations and pagination details.
 
-### Health & Status
+- **GET /api/export/{format}**
+  - **Description**: Export configurations in a specific format.
+  - **Path Parameters**:
+    - `format` (string, required): The output format. Supported formats: `json`, `clash`, `singbox`, `base64`.
+  - **Response**: The configurations in the specified format.
 
-- `GET /api/v1/health` - System health check
-- `GET /api/v1/ready` - Readiness probe
-- `GET /api/v1/status` - System status and statistics
+### Sources
 
-### Configuration
+- **GET /api/v1/sources**
+  - **Description**: List configured source URLs.
+  - **Response**: A JSON object containing a list of source URLs.
 
-- `GET /api/v1/config/sources` - List configured sources
-- `GET /api/v1/config/status` - Configuration validation status
+- **POST /api/v1/sources/validate-urls**
+  - **Description**: Validate a list of URLs.
+  - **Request Body**: A JSON object with a list of URLs.
+    ```json
+    {
+      "urls": ["http://example.com/sub1", "http://example.com/sub2"]
+    }
+    ```
+  - **Response**: A JSON object with the validation results.
 
-## REST API (v2)
+### Pipeline
 
-### Enhanced Endpoints
+- **POST /api/v1/pipeline/run**
+  - **Description**: Trigger the VPN configuration processing pipeline.
+  - **Request Body**: An optional JSON object with a list of output formats.
+    ```json
+    {
+      "formats": ["clash", "singbox"]
+    }
+    ```
+  - **Response**: A JSON object with the job ID and status.
 
-- `GET /api/v2/nodes` - Paginated node listing with filtering
-- `GET /api/v2/health` - Enhanced health information
-- `GET /api/v2/metrics` - Detailed performance metrics
+### System
 
-### Query Parameters
+- **GET /health**
+  - **Description**: Health check endpoint.
+  - **Response**: A JSON object with the system status.
 
-- `cursor`: Pagination cursor
-- `limit`: Number of results (max 1000)
-- `protocol`: Filter by protocol (vmess, vless, trojan, etc.)
-- `reachable`: Filter by reachability status
-- `host_re`: Host regex filter
-- `risk`: Risk level filter
-- `anonymize`: Anonymize sensitive data
+- **GET /api/statistics**
+  - **Description**: Get processing statistics.
+  - **Response**: A JSON object with detailed statistics.
 
-## Metrics & Monitoring
+- **GET /api/jobs**
+  - **Description**: Get recent pipeline jobs.
+  - **Response**: A JSON object with a list of recent jobs.
 
-### Prometheus Metrics
+- **POST /api/v1/cache/clear**
+  - **Description**: Clear the cache.
+  - **Response**: A JSON object with the status of the operation.
 
-- Available on `--metrics-port` (default 8001)
-- Endpoint: `/metrics`
-- Includes custom metrics for:
-  - Source processing statistics
-  - Configuration quality metrics
-  - Performance timing data
-  - Error rates and success rates
+### Webhooks
 
-### OpenTelemetry
+- **POST /api/v1/webhooks**
+  - **Description**: Create a new webhook.
+  - **Request Body**: A JSON object with the webhook URL and event.
+    ```json
+    {
+      "url": "http://example.com/webhook",
+      "event": "pipeline_finished"
+    }
+    ```
+  - **Response**: A JSON object with a confirmation message.
 
-- Distributed tracing support (optional)
-- Span correlation across components
-- Performance profiling capabilities
+- **GET /api/v1/webhooks**
+  - **Description**: Get all configured webhooks.
+  - **Response**: A JSON object with a list of webhooks.
 
-## Authentication
+- **DELETE /api/v1/webhooks**
+  - **Description**: Delete a webhook.
+  - **Query Parameters**:
+    - `url` (string, required): The URL of the webhook to delete.
+    - `event` (string, required): The event of the webhook to delete.
+  - **Response**: A JSON object with a confirmation message.
 
-### API Token Authentication
+## Interactive Documentation
 
-```bash
-curl -H "X-API-Token: your-token" https://api.example.com/api/v1/sub/raw
-```
-
-### Multi-tenant Support
-
-```bash
-curl -H "X-Tenant: tenant-id" https://api.example.com/api/v1/sub/raw
-```
-
-## Rate Limiting
-
-- Default: 100 requests per minute per IP
-- Configurable via environment variables
-- Rate limit headers included in responses
-
-## Error Handling
-
-- Standard HTTP status codes
-- JSON error responses with details
-- Correlation IDs for debugging
-- Structured error logging
+You can access the interactive Swagger UI at `/docs` when the API server is running.

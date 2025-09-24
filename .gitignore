@@ -221,3 +221,7 @@ coverage/
 dev/
 development/
 experimental/
+
+# Node
+node_modules/
+src/streamline_vpn/web/ui/streamline-vpn-ui/node_modules/

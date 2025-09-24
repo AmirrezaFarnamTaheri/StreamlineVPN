@@ -25,6 +25,9 @@ class ConfigurationDeduplicator:
             "server_port": self._deduplicate_server_port,
             "server_protocol": self._deduplicate_server_protocol,
             "content_hash": self._deduplicate_content_hash,
+            "server": self._deduplicate_server,
+            "user_id": self._deduplicate_user_id,
+            "name": self._deduplicate_name,
         }
 
     def deduplicate_configurations(
@@ -132,6 +135,51 @@ class ConfigurationDeduplicator:
 
         return unique_configs
 
+    def _deduplicate_server(
+        self, configs: List[VPNConfiguration]
+    ) -> List[VPNConfiguration]:
+        """Deduplicate by server address."""
+        seen = set()
+        unique_configs = []
+
+        for config in configs:
+            key = config.server
+            if key not in seen:
+                seen.add(key)
+                unique_configs.append(config)
+
+        return unique_configs
+
+    def _deduplicate_user_id(
+        self, configs: List[VPNConfiguration]
+    ) -> List[VPNConfiguration]:
+        """Deduplicate by user ID."""
+        seen = set()
+        unique_configs = []
+
+        for config in configs:
+            key = config.user_id or config.uuid
+            if key and key not in seen:
+                seen.add(key)
+                unique_configs.append(config)
+
+        return unique_configs
+
+    def _deduplicate_name(
+        self, configs: List[VPNConfiguration]
+    ) -> List[VPNConfiguration]:
+        """Deduplicate by configuration name."""
+        seen = set()
+        unique_configs = []
+
+        for config in configs:
+            key = config.name
+            if key and key not in seen:
+                seen.add(key)
+                unique_configs.append(config)
+
+        return unique_configs
+
     def _get_exact_key(self, config: VPNConfiguration) -> Tuple:
         """Get exact match key for configuration without exposing secrets."""
         cred_material = f"{config.user_id or ''}:{config.password or ''}"
@@ -201,10 +249,17 @@ class ConfigurationDeduplicator:
                 key = f"{config.server}:{config.protocol.value}"
             elif strategy == "content_hash":
                 key = self._get_content_hash(config)
+            elif strategy == "server":
+                key = config.server
+            elif strategy == "user_id":
+                key = config.user_id or config.uuid
+            elif strategy == "name":
+                key = config.name
             else:
                 key = str(self._get_exact_key(config))
 
-            groups[key].append(config)
+            if key:
+                groups[key].append(config)
 
         # Return only groups with duplicates
         return {k: v for k, v in groups.items() if len(v) > 1}

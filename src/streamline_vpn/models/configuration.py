@@ -23,6 +23,8 @@ class Protocol(Enum):
     HYSTERIA = "hysteria"
     HYSTERIA2 = "hysteria2"
     TUIC = "tuic"
+    SOCKS5 = "socks5"
+    HTTP = "http"
 
 
 # Alias for backward compatibility
@@ -108,6 +110,7 @@ class VPNConfiguration:
             "server": self.server,
             "port": self.port,
             "user_id": self.user_id,
+            "uuid": self.uuid,
             "password": self.password,
             "encryption": self.encryption,
             "network": self.network,

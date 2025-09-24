@@ -21,13 +21,24 @@ class ConfigurationRoutes:
             return None
 
 
-@configurations_router.get("/configurations")
+@configurations_router.get(
+    "/configurations",
+    summary="Get Processed Configurations",
+    description="Retrieve a list of processed and validated VPN configurations.",
+    response_description="A list of VPN configurations with metadata.",
+)
 async def get_configurations(
     limit: int = Query(100, ge=1, le=1000),
     offset: int = Query(0, ge=0),
     format: Optional[str] = Query(None, description="Filter by format"),
 ):
-    """Get processed configurations."""
+    """
+    Get processed configurations.
+
+    - **limit**: The maximum number of configurations to return.
+    - **offset**: The number of configurations to skip.
+    - **format**: The format to filter by (e.g., `json`, `clash`).
+    """
     try:
         from ...core.merger import StreamlineVPNMerger
 
@@ -49,9 +60,21 @@ async def get_configurations(
         )
 
 
-@configurations_router.post("/configurations/process")
+@configurations_router.post(
+    "/configurations/process",
+    summary="Run Processing Pipeline",
+    description="Trigger the VPN configuration processing pipeline.",
+    response_description="A confirmation that the pipeline has been started.",
+)
 async def run_pipeline(request: Dict[str, Any]):
-    """Run the processing pipeline."""
+    """
+    Run the processing pipeline.
+
+    - **formats**: A list of output formats to generate (e.g., `["json", "clash"]`).
+    - **max_concurrent**: The maximum number of concurrent requests.
+    - **timeout**: The timeout for each request in seconds.
+    - **force_refresh**: Whether to force a refresh of the sources.
+    """
     try:
         from ...core.merger import StreamlineVPNMerger
         from ...core.source_manager import SourceManager
@@ -82,7 +105,12 @@ async def run_pipeline(request: Dict[str, Any]):
         raise HTTPException(status_code=500, detail=f"Pipeline failed: {str(e)}")
 
 
-@configurations_router.get("/configurations/statistics")
+@configurations_router.get(
+    "/configurations/statistics",
+    summary="Get Processing Statistics",
+    description="Retrieve statistics about the configuration processing.",
+    response_description="A dictionary of processing statistics.",
+)
 async def get_statistics():
     """Get processing statistics."""
     try:
@@ -98,11 +126,20 @@ async def get_statistics():
         )
 
 
-@configurations_router.get("/configurations/export")
+@configurations_router.get(
+    "/configurations/export",
+    summary="Export Configurations",
+    description="Export configurations in various formats.",
+    response_description="The configurations in the specified format.",
+)
 async def export_configurations(
     format: str = Query("json", description="Export format")
 ):
-    """Export configurations in various formats."""
+    """
+    Export configurations in various formats.
+
+    - **format**: The export format (e.g., `json`, `csv`, `yaml`).
+    """
     try:
         from ...core.merger import StreamlineVPNMerger
         from ...core.output_manager import OutputManager
@@ -140,7 +177,12 @@ async def export_configurations(
         raise HTTPException(status_code=500, detail=f"Export failed: {str(e)}")
 
 
-@configurations_router.post("/configurations/validate")
+@configurations_router.post(
+    "/configurations/validate",
+    summary="Validate Configurations",
+    description="Validate a list of configurations.",
+    response_description="The validation results.",
+)
 async def validate_configurations(configurations: List[Dict[str, Any]]):
     """Validate a list of configurations."""
     try:
@@ -164,7 +206,12 @@ async def validate_configurations(configurations: List[Dict[str, Any]]):
         raise HTTPException(status_code=500, detail=f"Validation failed: {str(e)}")
 
 
-@configurations_router.delete("/configurations/cache")
+@configurations_router.delete(
+    "/configurations/cache",
+    summary="Clear Cache",
+    description="Clear the configuration cache.",
+    response_description="A confirmation that the cache has been cleared.",
+)
 async def clear_cache():
     """Clear configuration cache."""
     try:
