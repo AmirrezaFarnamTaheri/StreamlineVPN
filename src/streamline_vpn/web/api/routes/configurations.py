@@ -7,13 +7,15 @@ from streamline_vpn.web.dependencies import get_merger
 
 configurations_router = APIRouter(prefix="/api/v1/configurations", tags=["Configurations"])
 
+from fastapi import APIRouter, Depends, Query
+
 @configurations_router.get("")
 async def get_filtered_configurations(
     protocol: Optional[str] = None,
     location: Optional[str] = None,
     min_quality: float = 0.0,
-    limit: int = 100,
-    offset: int = 0,
+    limit: int = Query(100, ge=0, le=1000),
+    offset: int = Query(0, ge=0),
     merger: StreamlineVPNMerger = Depends(get_merger),
 ) -> Dict[str, Any]:
     """Return processed configurations with filtering and pagination."""
