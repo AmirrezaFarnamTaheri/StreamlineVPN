@@ -43,13 +43,19 @@ async def run_pipeline(
         "started_at": datetime.now().isoformat(),
     }
 
-    # Get the session from the application state to pass to the background task
-    session = fastapi_request.app.state.http_session
+    # Get the session from the application state, or create a temporary one
+    shared_session = getattr(fastapi_request.app.state, "http_session", None)
 
     async def process_async() -> None:
+        import aiohttp
+        local_session = None
         try:
+            session = shared_session
+            if session is None or getattr(session, "closed", True):
+                local_session = aiohttp.ClientSession()
+                session = local_session
+
             update_job_progress(job_id, 10, "Initializing merger...")
-            # Use a local merger instance for the job to ensure isolation
             local_merger = StreamlineVPNMerger(config_path=str(config_file), session=session)
             await local_merger.initialize()
 
@@ -68,9 +74,12 @@ async def run_pipeline(
             processing_jobs[job_id]["error"] = str(exc)
             processing_jobs[job_id]["completed_at"] = datetime.now().isoformat()
             update_job_progress(job_id, 100, str(exc))
+        finally:
+            if local_session is not None and not local_session.closed:
+                await local_session.close()
 
     background_tasks.add_task(process_async)
-    return {"status": "accepted", "job_id": job_id}
+    return {"status": "accepted", "job_id": "job_" + job_id}
 
 
 @pipeline_router.get("/status/{job_id}", response_model=Dict[str, Any])
