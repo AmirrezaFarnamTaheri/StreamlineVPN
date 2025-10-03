@@ -5,8 +5,7 @@ global_settings:
   enable_compression: true
   max_concurrent_sources: 10
   user_agent: StreamlineVPN/1.0.0
-sources: !!python/object/new:streamline_vpn.core.source.manager._AwaitableList
-  listitems:
+sources:
   - name: test_source
     type: subscription
     url: https://example.com/source.txt
