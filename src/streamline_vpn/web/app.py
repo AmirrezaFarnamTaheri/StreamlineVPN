@@ -64,8 +64,6 @@ def create_app(merger_class=StreamlineVPNMerger) -> FastAPI:
         shared = getattr(app.state, "http_session", None)
         if shared is not None and not getattr(shared, "closed", True):
             await shared.close()
-        logger.info("API server shutdown complete.")
-        if shared is not None and not getattr(shared, "closed", True):
             await shared.close()
         logger.info("API server shutdown complete.")
 
