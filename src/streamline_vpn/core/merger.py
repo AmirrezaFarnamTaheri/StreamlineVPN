@@ -1,6 +1,7 @@
 # File: src/streamline_vpn/core/merger.py
 
 import asyncio
+import inspect
 import logging
 from datetime import datetime, timedelta
 from typing import Dict, List, Optional, Any, Union
@@ -29,17 +30,24 @@ class StreamlineVPNMerger:
     Handles the complete pipeline from source fetching to final output generation.
     """
 
-    def __init__(self, config_path: str = "config/sources.yaml", **kwargs):
+    def __init__(
+        self,
+        config_path: str = "config/sources.yaml",
+        session: Optional[Any] = None,
+        **kwargs,
+    ):
         """
         Initialize StreamlineVPN Merger.
 
         Args:
             config_path: Path to the sources configuration file
+            session: Optional aiohttp.ClientSession for network requests
             **kwargs: Additional configuration options
         """
         self.config_path = Path(config_path)
         self.config = {}
         self.initialized = False
+        self.session = session
 
         # Core components
         # Instantiate a minimal SourceManager so tests can patch its methods without calling initialize
@@ -140,7 +148,9 @@ class StreamlineVPNMerger:
             self.security_manager = SecurityManager()
 
             # Initialize source manager
-            self.fetcher_service = FetcherService(max_concurrent=self.max_concurrent)
+            self.fetcher_service = FetcherService(
+                max_concurrent=self.max_concurrent, session=self.session
+            )
             await self.fetcher_service.initialize()
             self.source_manager = SourceManager(
                 config_path=self.config_path,
@@ -560,9 +570,21 @@ class StreamlineVPNMerger:
 
         return stats
 
-    def get_configurations(self) -> List[VPNConfiguration]:
+    def get_configurations(
+        self,
+        protocol: Optional[str] = None,
+        location: Optional[str] = None,
+        min_quality: float = 0.0,
+    ) -> List[VPNConfiguration]:
         """Get the last processed configurations."""
-        return self.configurations
+        configs = self.configurations
+        if protocol:
+            configs = [c for c in configs if c.protocol.value == protocol]
+        if location:
+            configs = [c for c in configs if c.metadata.get("location") == location]
+        if min_quality > 0:
+            configs = [c for c in configs if c.quality_score >= min_quality]
+        return configs
 
     def get_status(self) -> Dict[str, Any]:
         """Return a concise status dictionary expected by tests."""
@@ -610,7 +632,9 @@ class StreamlineVPNMerger:
         for name, component in components:
             if component and hasattr(component, "shutdown"):
                 try:
-                    await component.shutdown()
+                    shutdown_method = component.shutdown()
+                    if inspect.isawaitable(shutdown_method):
+                        await shutdown_method
                     logger.debug(f"{name} shutdown complete")
                 except Exception as e:
                     logger.error(f"Error shutting down {name}: {e}")

@@ -1,130 +1,49 @@
-"""
-Source management routes.
-"""
+from typing import Any, Dict
 
-from typing import List, Dict, Any
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, status
 
-sources_router = APIRouter()
+from streamline_vpn.core.merger import StreamlineVPNMerger
+from streamline_vpn.web.dependencies import get_merger
+from streamline_vpn.web.models import AddSourceRequest
 
+sources_router = APIRouter(prefix="/api/v1/sources", tags=["Sources"])
 
-class SourceRoutes:
-    @staticmethod
-    def _get_merger():
-        try:
-            from ...unified_api import get_merger  # type: ignore
+@sources_router.get("")
+async def get_sources(merger: StreamlineVPNMerger = Depends(get_merger)) -> Dict[str, Any]:
+    """Return information about configured sources."""
+    if not hasattr(merger, "source_manager"):
+        raise HTTPException(status_code=503, detail="Source manager not available")
+    return merger.source_manager.get_source_statistics()
 
-            return get_merger()  # may be overridden in tests
-        except Exception:
-            return None
-
-
-@sources_router.get("/sources")
-async def get_sources():
-    """Get all configured sources."""
+@sources_router.post("/add", status_code=status.HTTP_201_CREATED)
+async def add_source(
+    request: AddSourceRequest, merger: StreamlineVPNMerger = Depends(get_merger)
+) -> Dict[str, str]:
+    """Add a new source to the manager."""
+    if not hasattr(merger, "source_manager"):
+        raise HTTPException(status_code=503, detail="Source manager not available")
     try:
-        from ...core.source.manager import SourceManager
+        await merger.source_manager.add_source(str(request.url))
+        return {"message": f"Source {request.url} added successfully"}
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
 
-        source_manager = SourceManager()
-        sources = source_manager.get_all_sources()
+@sources_router.post("/{source_url:path}/blacklist")
+async def blacklist_source(
+    source_url: str, reason: str = "", merger: StreamlineVPNMerger = Depends(get_merger)
+) -> Dict[str, str]:
+    """Blacklist a source."""
+    if not hasattr(merger, "source_manager"):
+        raise HTTPException(status_code=503, detail="Source manager not available")
+    merger.source_manager.blacklist_source(source_url, reason)
+    return {"message": f"Source {source_url} blacklisted"}
 
-        return {"sources": sources, "count": len(sources), "status": "success"}
-    except Exception as e:
-        raise HTTPException(
-            status_code=500, detail=f"Failed to retrieve sources: {str(e)}"
-        )
-
-
-@sources_router.post("/sources")
-async def add_source(source_data: Dict[str, Any]):
-    """Add a new source."""
-    try:
-        from ...core.source.manager import SourceManager
-
-        source_manager = SourceManager()
-        success = source_manager.add_source(source_data)
-
-        if success:
-            return {"status": "success", "message": "Source added successfully"}
-        else:
-            raise HTTPException(status_code=400, detail="Failed to add source")
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Failed to add source: {str(e)}")
-
-
-@sources_router.put("/sources/{source_id}")
-async def update_source(source_id: str, source_data: Dict[str, Any]):
-    """Update an existing source."""
-    try:
-        from ...core.source.manager import SourceManager
-
-        source_manager = SourceManager()
-        success = source_manager.update_source(source_id, source_data)
-
-        if success:
-            return {"status": "success", "message": "Source updated successfully"}
-        else:
-            raise HTTPException(status_code=404, detail="Source not found")
-    except Exception as e:
-        raise HTTPException(
-            status_code=500, detail=f"Failed to update source: {str(e)}"
-        )
-
-
-@sources_router.delete("/sources/{source_id}")
-async def delete_source(source_id: str):
-    """Delete a source."""
-    try:
-        from ...core.source.manager import SourceManager
-
-        source_manager = SourceManager()
-        success = source_manager.delete_source(source_id)
-
-        if success:
-            return {"status": "success", "message": "Source deleted successfully"}
-        else:
-            raise HTTPException(status_code=404, detail="Source not found")
-    except Exception as e:
-        raise HTTPException(
-            status_code=500, detail=f"Failed to delete source: {str(e)}"
-        )
-
-
-@sources_router.post("/sources/{source_id}/refresh")
-async def refresh_source(source_id: str):
-    """Refresh a specific source."""
-    try:
-        from ...core.source.manager import SourceManager
-
-        source_manager = SourceManager()
-        success = source_manager.refresh_source(source_id)
-
-        if success:
-            return {"status": "success", "message": "Source refreshed successfully"}
-        else:
-            raise HTTPException(
-                status_code=404, detail="Source not found or refresh failed"
-            )
-    except Exception as e:
-        raise HTTPException(
-            status_code=500, detail=f"Failed to refresh source: {str(e)}"
-        )
-
-
-@sources_router.get("/sources/{source_id}/status")
-async def get_source_status(source_id: str):
-    """Get source status and health."""
-    try:
-        from ...core.source.manager import SourceManager
-
-        source_manager = SourceManager()
-        status = source_manager.get_source_status(source_id)
-
-        if status:
-            return {"status": "success", "data": status}
-        else:
-            raise HTTPException(status_code=404, detail="Source not found")
-    except Exception as e:
-        raise HTTPException(
-            status_code=500, detail=f"Failed to get source status: {str(e)}"
-        )
+@sources_router.post("/{source_url:path}/whitelist")
+async def whitelist_source(
+    source_url: str, merger: StreamlineVPNMerger = Depends(get_merger)
+) -> Dict[str, str]:
+    """Remove a source from the blacklist."""
+    if not hasattr(merger, "source_manager"):
+        raise HTTPException(status_code=503, detail="Source manager not available")
+    merger.source_manager.whitelist_source(source_url)
+    return {"message": f"Source {source_url} whitelisted"}
