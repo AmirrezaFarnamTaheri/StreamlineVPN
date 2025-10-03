@@ -24,9 +24,27 @@ async def get_filtered_configurations(
     )
     total = len(configs)
     paginated_configs = configs[offset : offset + limit]
+
+    def _to_dict(c: Any) -> Dict[str, Any]:
+        if hasattr(c, "to_dict"):
+            return c.to_dict()  # type: ignore[no-any-return]
+        if isinstance(c, dict):
+            # Normalize protocol enum if present
+            p = c.get("protocol")
+            if hasattr(p, "value"):
+                c = dict(c)
+                c["protocol"] = p.value
+            return c
+        # Fallback best-effort
+        d = getattr(c, "__dict__", {}) or {}
+        if "protocol" in d and hasattr(d["protocol"], "value"):
+            d = dict(d)
+            d["protocol"] = d["protocol"].value
+        return d
+
     return {
         "total": total,
         "limit": limit,
         "offset": offset,
-        "configurations": [c.to_dict() for c in paginated_configs],
+        "configurations": [_to_dict(c) for c in paginated_configs],
     }
