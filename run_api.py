@@ -18,7 +18,7 @@ def main():
         host = os.getenv("API_HOST", "0.0.0.0")
         port = int(os.getenv("API_PORT", "8080"))
 
-        uvicorn.run("streamline_vpn.web.api:create_app", host=host, port=port, reload=True, factory=True)
+        uvicorn.run(app, host=host, port=port, reload=True)
     except ImportError as e:
         print(f"Import error: {e}")
         sys.exit(1)

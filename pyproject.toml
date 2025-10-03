@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "streamline-vpn"
-version = "1.0.0"
+version = "2.0.0"
 description = "StreamlineVPN - Advanced VPN Configuration Manager"
 readme = "README.md"
 license = {text = "MIT"}

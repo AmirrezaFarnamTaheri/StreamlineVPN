@@ -1,12 +1,25 @@
+# StreamlineVPN Sources Configuration
+metadata:
+  version: "2.0"
+  description: "Production VPN source configuration"
+  last_updated: "2024-01-01"
+
 global_settings:
-  cache_duration: 3600
-  default_retry_attempts: 3
-  default_timeout: 30
-  enable_compression: true
-  max_concurrent_sources: 10
-  user_agent: StreamlineVPN/1.0.0
-sources: !!python/object/new:streamline_vpn.core.source.manager._AwaitableList
-  listitems:
-  - name: test_source
-    type: subscription
-    url: https://example.com/source.txt
+  timeout: 30
+  max_concurrent: 10
+  retry_attempts: 3
+  verify_ssl: true
+
+sources:
+  tier_1_premium:
+    description: "High-quality premium sources"
+    weight_multiplier: 1.0
+    sources:
+      - url: "https://raw.githubusercontent.com/mahdibland/V2RayAggregator/master/sub/sub_merge.txt"
+        name: "V2RayAggregator Main"
+        protocols: ["vmess", "vless", "trojan", "shadowsocks"]
+        reliability: 0.95
+      - url: "https://raw.githubusercontent.com/peasoft/NoMoreWalls/master/list.txt"
+        name: "NoMoreWalls"
+        protocols: ["vmess", "vless"]
+        reliability: 0.90

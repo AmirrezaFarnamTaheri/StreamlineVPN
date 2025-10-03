@@ -1,36 +1,115 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-    <title>API Docs</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>StreamlineVPN API Documentation</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 40px; line-height: 1.6; }
+        h1, h2, h3, h4 { color: #333; }
+        code { background-color: #f4f4f4; padding: 2px 4px; border-radius: 4px; }
+        pre { background-color: #f4f4f4; padding: 1em; border-radius: 4px; }
+        .endpoint { border-left: 4px solid #007bff; padding-left: 1em; margin-bottom: 2em; }
+        .endpoint h3 { margin-top: 0; }
+    </style>
 </head>
 <body>
-    <h1>API Documentation</h1>
-    <p>Status: OK</p>
-    <a href="../config_generator.html">Config Generator</a>
-    <a href="../interactive.html">Interactive Panel</a>
-    <section>
-        <h2>Authentication</h2>
-    </section>
-    <section>
-        <h2>Endpoints</h2>
-    </section>
-    <section>
-        <h2>Examples</h2>
-    </section>
-    <section>
-        <h2>Error Codes</h2>
-    </section>
-    <section>
-        <h2>Rate Limits</h2>
-    </section>
-    <section>
-        <h2>Pagination</h2>
-    </section>
-    <section>
-        <h2>WebSocket Streams</h2>
-    </section>
-    <section>
-        <h2>Changelog</h2>
-    </section>
+    <h1>StreamlineVPN API Documentation</h1>
+    <p>The StreamlineVPN API provides a comprehensive REST API for accessing merged VPN configurations and system metrics.</p>
+
+    <h2>Endpoints</h2>
+
+    <div class="endpoint">
+        <h3>Configurations</h3>
+        <h4>GET /api/v1/configurations</h4>
+        <p><strong>Description:</strong> Retrieve processed and merged VPN configurations.</p>
+        <p><strong>Query Parameters:</strong></p>
+        <ul>
+            <li><code>limit</code> (int, optional): The maximum number of configurations to return. Default is 100.</li>
+            <li><code>offset</code> (int, optional): The number of configurations to skip. Default is 0.</li>
+        </ul>
+        <p><strong>Response:</strong> A JSON object containing a list of configurations and pagination details.</p>
+
+        <h4>GET /api/export/{format}</h4>
+        <p><strong>Description:</strong> Export configurations in a specific format.</p>
+        <p><strong>Path Parameters:</strong></p>
+        <ul>
+            <li><code>format</code> (string, required): The output format. Supported formats: <code>json</code>, <code>clash</code>, <code>singbox</code>, <code>base64</code>.</li>
+        </ul>
+        <p><strong>Response:</strong> The configurations in the specified format.</p>
+    </div>
+
+    <div class="endpoint">
+        <h3>Sources</h3>
+        <h4>GET /api/v1/sources</h4>
+        <p><strong>Description:</strong> List configured source URLs.</p>
+        <p><strong>Response:</strong> A JSON object containing a list of source URLs.</p>
+
+        <h4>POST /api/v1/sources/validate-urls</h4>
+        <p><strong>Description:</strong> Validate a list of URLs.</p>
+        <p><strong>Request Body:</strong> A JSON object with a list of URLs.</p>
+        <pre><code>{
+  "urls": ["http://example.com/sub1", "http://example.com/sub2"]
+}</code></pre>
+        <p><strong>Response:</strong> A JSON object with the validation results.</p>
+    </div>
+
+    <div class="endpoint">
+        <h3>Pipeline</h3>
+        <h4>POST /api/v1/pipeline/run</h4>
+        <p><strong>Description:</strong> Trigger the VPN configuration processing pipeline.</p>
+        <p><strong>Request Body:</strong> An optional JSON object with a list of output formats.</p>
+        <pre><code>{
+  "formats": ["clash", "singbox"]
+}</code></pre>
+        <p><strong>Response:</strong> A JSON object with the job ID and status.</p>
+    </div>
+
+    <div class="endpoint">
+        <h3>System</h3>
+        <h4>GET /health</h4>
+        <p><strong>Description:</strong> Health check endpoint.</p>
+        <p><strong>Response:</strong> A JSON object with the system status.</p>
+
+        <h4>GET /api/statistics</h4>
+        <p><strong>Description:</strong> Get processing statistics.</p>
+        <p><strong>Response:</strong> A JSON object with detailed statistics.</p>
+
+        <h4>GET /api/jobs</h4>
+        <p><strong>Description:</strong> Get recent pipeline jobs.</p>
+        <p><strong>Response:</strong> A JSON object with a list of recent jobs.</p>
+
+        <h4>POST /api/v1/cache/clear</h4>
+        <p><strong>Description:</strong> Clear the cache.</p>
+        <p><strong>Response:</strong> A JSON object with the status of the operation.</p>
+    </div>
+
+    <div class="endpoint">
+        <h3>Webhooks</h3>
+        <h4>POST /api/v1/webhooks</h4>
+        <p><strong>Description:</strong> Create a new webhook.</p>
+        <p><strong>Request Body:</strong> A JSON object with the webhook URL and event.</p>
+        <pre><code>{
+  "url": "http://example.com/webhook",
+  "event": "pipeline_finished"
+}</code></pre>
+        <p><strong>Response:</strong> A JSON object with a confirmation message.</p>
+
+        <h4>GET /api/v1/webhooks</h4>
+        <p><strong>Description:</strong> Get all configured webhooks.</p>
+        <p><strong>Response:</strong> A JSON object with a list of webhooks.</p>
+
+        <h4>DELETE /api/v1/webhooks</h4>
+        <p><strong>Description:</strong> Delete a webhook.</p>
+        <p><strong>Query Parameters:</strong></p>
+        <ul>
+            <li><code>url</code> (string, required): The URL of the webhook to delete.</li>
+            <li><code>event</code> (string, required): The event of the webhook to delete.</li>
+        </ul>
+        <p><strong>Response:</strong> A JSON object with a confirmation message.</p>
+    </div>
+
+    <h2>Interactive Documentation</h2>
+    <p>You can access the interactive Swagger UI at <code>/docs</code> when the API server is running.</p>
 </body>
 </html>
