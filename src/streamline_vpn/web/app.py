@@ -44,23 +44,26 @@ def create_app(merger_class=StreamlineVPNMerger) -> FastAPI:
             app.state.merger = None
             if not session.closed:
                 await session.close()
+            # prevent later reuse of a closed session
+            app.state.http_session = None
 
         yield
 
         logger.info("API server shutting down...")
-        if hasattr(app.state, "cleanup_task") and app.state.cleanup_task:
+        if getattr(app.state, "cleanup_task", None):
             app.state.cleanup_task.cancel()
             try:
                 await app.state.cleanup_task
             except asyncio.CancelledError:
                 pass
 
-        if hasattr(app.state, "merger") and app.state.merger:
+        if getattr(app.state, "merger", None):
             await app.state.merger.shutdown()
 
-        if not session.closed:
-            await session.close()
-
+        # Close shared session only if it exists and is open
+        shared = getattr(app.state, "http_session", None)
+        if shared is not None and not getattr(shared, "closed", True):
+            await shared.close()
         logger.info("API server shutdown complete.")
 
     app = FastAPI(
