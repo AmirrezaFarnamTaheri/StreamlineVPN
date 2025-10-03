@@ -1,23 +1,17 @@
 """
-API Route Modules
-=================
-
-This package contains all the API route modules for the application.
-Each module defines a self-contained set of related endpoints.
+API route modules.
 """
 
-from .cache import cache_router
-from .configurations import configurations_router
-from .pipeline import pipeline_router
+from .health import health_router
 from .sources import sources_router
-from .system import system_router
+from .configurations import configurations_router
+from .diagnostics import diagnostics_router
 from .websocket import websocket_router
 
 __all__ = [
-    "cache_router",
-    "configurations_router",
-    "pipeline_router",
+    "health_router",
     "sources_router",
-    "system_router",
+    "configurations_router",
+    "diagnostics_router",
     "websocket_router",
 ]

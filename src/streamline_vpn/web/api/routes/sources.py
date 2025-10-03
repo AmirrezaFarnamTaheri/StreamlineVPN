@@ -1,64 +1,130 @@
-from datetime import datetime
-from typing import Any, Dict
+"""
+Source management routes.
+"""
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from typing import List, Dict, Any
+from fastapi import APIRouter, HTTPException
 
-from streamline_vpn.core.merger import StreamlineVPNMerger
-from ..dependencies import get_merger
-from ..models import AddSourceRequest
-
-sources_router = APIRouter(prefix="/api/v1/sources", tags=["Sources"])
+sources_router = APIRouter()
 
 
-@sources_router.get("/", response_model=Dict[str, Any])
-async def get_sources(merger: StreamlineVPNMerger = Depends(get_merger)) -> Dict[str, Any]:
-    """Return information about configured sources."""
-    if not (hasattr(merger, "source_manager") and merger.source_manager):
-        return {"sources": []}
+class SourceRoutes:
+    @staticmethod
+    def _get_merger():
+        try:
+            from ...unified_api import get_merger  # type: ignore
 
-    source_infos = []
-    for src in merger.source_manager.sources.values():
-        last_check = getattr(src, "last_check", None)
-        source_infos.append({
-            "url": getattr(src, "url", None),
-            "status": "active" if getattr(src, "enabled", True) else "disabled",
-            "configs": getattr(src, "avg_config_count", 0),
-            "last_update": last_check.isoformat() if isinstance(last_check, datetime) else None,
-            "success_rate": getattr(src, "reputation_score", 0.0),
-        })
-    return {"sources": source_infos}
+            return get_merger()  # may be overridden in tests
+        except Exception:
+            return None
 
 
-@sources_router.post("/add", status_code=status.HTTP_201_CREATED, response_model=Dict[str, Any])
-async def add_source(
-    request: AddSourceRequest, merger: StreamlineVPNMerger = Depends(get_merger)
-) -> Dict[str, Any]:
-    """Add a new source to the manager."""
+@sources_router.get("/sources")
+async def get_sources():
+    """Get all configured sources."""
     try:
-        await merger.source_manager.add_source(request.url.strip())
-        return {"status": "success", "message": f"Source added: {request.url}"}
-    except ValueError as exc:
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc))
-    except Exception as exc:
+        from ...core.source.manager import SourceManager
+
+        source_manager = SourceManager()
+        sources = source_manager.get_all_sources()
+
+        return {"sources": sources, "count": len(sources), "status": "success"}
+    except Exception as e:
         raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Failed to add source: {exc}",
+            status_code=500, detail=f"Failed to retrieve sources: {str(e)}"
         )
 
 
-@sources_router.post("/{source_url:path}/blacklist", response_model=Dict[str, str])
-async def blacklist_source(
-    source_url: str, reason: str = "", merger: StreamlineVPNMerger = Depends(get_merger)
-) -> Dict[str, str]:
-    """Blacklist a source."""
-    merger.source_manager.blacklist_source(source_url, reason)
-    return {"message": f"Source {source_url} blacklisted"}
+@sources_router.post("/sources")
+async def add_source(source_data: Dict[str, Any]):
+    """Add a new source."""
+    try:
+        from ...core.source.manager import SourceManager
+
+        source_manager = SourceManager()
+        success = source_manager.add_source(source_data)
+
+        if success:
+            return {"status": "success", "message": "Source added successfully"}
+        else:
+            raise HTTPException(status_code=400, detail="Failed to add source")
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to add source: {str(e)}")
 
 
-@sources_router.post("/{source_url:path}/whitelist", response_model=Dict[str, str])
-async def whitelist_source(
-    source_url: str, merger: StreamlineVPNMerger = Depends(get_merger)
-) -> Dict[str, str]:
-    """Remove a source from the blacklist."""
-    merger.source_manager.whitelist_source(source_url)
-    return {"message": f"Source {source_url} whitelisted"}
+@sources_router.put("/sources/{source_id}")
+async def update_source(source_id: str, source_data: Dict[str, Any]):
+    """Update an existing source."""
+    try:
+        from ...core.source.manager import SourceManager
+
+        source_manager = SourceManager()
+        success = source_manager.update_source(source_id, source_data)
+
+        if success:
+            return {"status": "success", "message": "Source updated successfully"}
+        else:
+            raise HTTPException(status_code=404, detail="Source not found")
+    except Exception as e:
+        raise HTTPException(
+            status_code=500, detail=f"Failed to update source: {str(e)}"
+        )
+
+
+@sources_router.delete("/sources/{source_id}")
+async def delete_source(source_id: str):
+    """Delete a source."""
+    try:
+        from ...core.source.manager import SourceManager
+
+        source_manager = SourceManager()
+        success = source_manager.delete_source(source_id)
+
+        if success:
+            return {"status": "success", "message": "Source deleted successfully"}
+        else:
+            raise HTTPException(status_code=404, detail="Source not found")
+    except Exception as e:
+        raise HTTPException(
+            status_code=500, detail=f"Failed to delete source: {str(e)}"
+        )
+
+
+@sources_router.post("/sources/{source_id}/refresh")
+async def refresh_source(source_id: str):
+    """Refresh a specific source."""
+    try:
+        from ...core.source.manager import SourceManager
+
+        source_manager = SourceManager()
+        success = source_manager.refresh_source(source_id)
+
+        if success:
+            return {"status": "success", "message": "Source refreshed successfully"}
+        else:
+            raise HTTPException(
+                status_code=404, detail="Source not found or refresh failed"
+            )
+    except Exception as e:
+        raise HTTPException(
+            status_code=500, detail=f"Failed to refresh source: {str(e)}"
+        )
+
+
+@sources_router.get("/sources/{source_id}/status")
+async def get_source_status(source_id: str):
+    """Get source status and health."""
+    try:
+        from ...core.source.manager import SourceManager
+
+        source_manager = SourceManager()
+        status = source_manager.get_source_status(source_id)
+
+        if status:
+            return {"status": "success", "data": status}
+        else:
+            raise HTTPException(status_code=404, detail="Source not found")
+    except Exception as e:
+        raise HTTPException(
+            status_code=500, detail=f"Failed to get source status: {str(e)}"
+        )

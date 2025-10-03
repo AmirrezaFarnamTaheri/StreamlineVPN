@@ -1,30 +1,50 @@
-#!/usr/bin/env python3
-"""
-StreamlineVPN CLI
-=================
+import asyncio
+import click
+from typing import Optional
 
-This script serves as the main entry point for the StreamlineVPN command-line
-interface. It discovers and executes the refactored CLI application.
-"""
+from .core.instance import get_merger_instance
 
-import sys
-from pathlib import Path
+@click.group()
+def cli():
+    """Streamline-VPN command-line interface."""
+    pass
 
-# Ensure the source root is on the Python path
-# This allows the CLI to be run directly from the source tree
-if __name__ == "__main__":
-    src_path = Path(__file__).parent.parent
-    if str(src_path) not in sys.path:
-        sys.path.insert(0, str(src_path))
+@cli.command()
+@click.option('--output-dir', default='output', help='Directory to save output files.')
+@click.option('--formats', help='Comma-separated list of output formats (e.g., json,clash).')
+def process(output_dir: str, formats: Optional[str]):
+    """Process all sources and generate configurations."""
+    async def main():
+        merger = await get_merger_instance()
+        format_list = formats.split(',') if formats else None
+        result = await merger.process_all(output_dir=output_dir, formats=format_list)
+        click.echo(f"Processing complete: {result}")
+    asyncio.run(main())
 
-try:
-    # Import the true main function from the modular CLI structure
-    from streamline_vpn.cli.main import main
-except ImportError as e:
-    print(f"Error: Unable to import the StreamlineVPN CLI module. ({e})")
-    print("Please ensure the application is installed correctly or run from the project root.")
-    sys.exit(1)
+@cli.command()
+def list_sources():
+    """List all configured sources."""
+    async def main():
+        merger = await get_merger_instance()
+        sources = merger.source_manager.get_all_sources()
+        for tier, source_list in sources.items():
+            click.echo(f"Tier: {tier}")
+            for source in source_list:
+                click.echo(f"  - {source}")
+    asyncio.run(main())
 
+@cli.command()
+def run_server():
+    """Run the FastAPI web server."""
+    try:
+        import uvicorn
+        from .app import create_unified_app
+    except ImportError as e:
+        click.echo(f"Error: {e}. Please install the required dependencies with 'pip install -r requirements.txt'")
+        return
 
-if __name__ == "__main__":
-    main()
+    app = create_unified_app()
+    uvicorn.run(app, host="0.0.0.0", port=8080)
+
+if __name__ == '__main__':
+    cli()

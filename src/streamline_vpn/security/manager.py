@@ -88,10 +88,7 @@ class SecurityManager:
             "rate_limits_active": len(self.rate_limiter.rate_limits),
         }
 
-    async def shutdown(self) -> None:
-        """Gracefully shuts down the security manager."""
-        # In the future, this could close database connections or save state.
-        logger.info("SecurityManager shut down.")
+    def shutdown(self) -> None:
         return None
 
     def analyze_configuration(self, config: str) -> Dict[str, Any]:

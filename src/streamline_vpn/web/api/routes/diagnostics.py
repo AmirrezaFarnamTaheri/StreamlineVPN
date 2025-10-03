@@ -72,6 +72,7 @@ async def diagnostics_performance():
         # Test async performance
         async def test_async_operation():
             await asyncio.sleep(0.1)
+            return "async_test_complete"
 
         start_time = asyncio.get_event_loop().time()
         result = await test_async_operation()

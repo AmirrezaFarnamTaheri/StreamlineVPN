@@ -10,7 +10,7 @@ from fastapi.responses import JSONResponse
 
 # Re-export merger for tests that patch streamline_vpn.web.api.StreamlineVPNMerger
 from ...core.merger import StreamlineVPNMerger as StreamlineVPNMerger
-# from ..unified_api import UnifiedAPIServer # <-- This causes a circular import
+from ..unified_api import UnifiedAPIServer
 
 # Global merger handle similar to module-level pattern used in tests
 _merger = None

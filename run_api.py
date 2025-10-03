@@ -12,17 +12,13 @@ sys.path.insert(0, str(src_path))
 
 def main():
     try:
+        from streamline_vpn.web.api import create_app
+        app = create_app()
+
         host = os.getenv("API_HOST", "0.0.0.0")
         port = int(os.getenv("API_PORT", "8080"))
 
-        # Use factory pattern for uvicorn to enable reload
-        uvicorn.run(
-            "streamline_vpn.web.api:create_app",
-            host=host,
-            port=port,
-            reload=True,
-            factory=True,
-        )
+        uvicorn.run("streamline_vpn.web.api:create_app", host=host, port=port, reload=True, factory=True)
     except ImportError as e:
         print(f"Import error: {e}")
         sys.exit(1)

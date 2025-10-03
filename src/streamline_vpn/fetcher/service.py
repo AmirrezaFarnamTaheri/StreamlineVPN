@@ -27,20 +27,24 @@ class FetcherService:
 
     def __init__(
         self,
-        session: aiohttp.ClientSession,
         max_concurrent: Optional[int] = None,
         timeout: Optional[int] = None,
         retry_attempts: Optional[int] = None,
         retry_delay: Optional[float] = None,
+        circuit_breaker_threshold: int = 5,
+        rate_limit_requests: int = 60,
+        rate_limit_window: int = 60,
     ):
         """Initialize fetcher service.
 
         Args:
-            session: An initialized aiohttp.ClientSession.
-            max_concurrent: Maximum concurrent requests.
-            timeout: Request timeout in seconds.
-            retry_attempts: Number of retry attempts.
-            retry_delay: Delay between retries in seconds.
+            max_concurrent: Maximum concurrent requests
+            timeout: Request timeout in seconds
+            retry_attempts: Number of retry attempts
+            retry_delay: Delay between retries in seconds
+            circuit_breaker_threshold: Circuit breaker failure threshold
+            rate_limit_requests: Rate limit requests per window
+            rate_limit_window: Rate limit window in seconds
         """
         settings = get_settings()
         s = settings.fetcher
@@ -62,8 +66,8 @@ class FetcherService:
         # Semaphore for concurrency control
         self.semaphore = asyncio.Semaphore(self.max_concurrent)
 
-        # Session for connection pooling - managed externally
-        self.session: aiohttp.ClientSession = session
+        # Session for connection pooling
+        self.session: Optional[aiohttp.ClientSession] = None
 
         # Statistics
         self.stats = {
@@ -77,11 +81,32 @@ class FetcherService:
         # Last error details for diagnostics
         self.last_error: Optional[str] = None
 
-    async def shutdown(self) -> None:
-        """A placeholder for shutdown logic if needed in the future."""
-        logger.info("Fetcher service shut down.")
-        # The session is managed by the application lifespan, so we don't close it here.
-        pass
+    async def __aenter__(self):
+        """Async context manager entry."""
+        await self.initialize()
+        return self
+
+    async def __aexit__(self, exc_type, exc_val, exc_tb):
+        """Async context manager exit."""
+        await self.close()
+
+    async def initialize(self) -> None:
+        """Initialize fetcher service."""
+        if self.session is None or self.session.closed:
+            # Acquire a pooled session asynchronously to avoid event-loop reentrancy
+            from .io_client import _SESSION_MANAGER  # type: ignore
+
+            self.session = await _SESSION_MANAGER.get_session("default")
+
+        logger.info("Fetcher service initialized")
+
+    async def close(self) -> None:
+        """Close fetcher service."""
+        if self.session and not self.session.closed:
+            await self.session.close()
+            self.session = None
+
+        logger.info("Fetcher service closed")
 
     async def fetch(
         self,
