@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>StreamlineVPN Interactive Control Panel</title>
+    <link rel="stylesheet" href="assets/css/style.css">
+    <script src="api-base.js"></script>
+    <style>
+        body {
+            background: linear-gradient(-45deg, #ee7752, #e73c7e, #23a6d5, #23d5ab);
+            background-size: 400% 400%;
+            animation: gradient 15s ease infinite;
+        }
+        @keyframes gradient {
+            0% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+            100% { background-position: 0% 50%; }
+        }
+        .config-generator-steps {
+            display: block;
+        }
+        nav {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 1rem 2rem;
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+        }
+        .nav-links {
+            display: flex;
+            gap: 1rem;
+        }
+        .nav-links a {
+            color: white;
+            text-decoration: none;
+            padding: 0.5rem 1rem;
+            border-radius: 5px;
+            transition: background 0.3s;
+        }
+        .nav-links a:hover {
+            background: rgba(255, 255, 255, 0.2);
+        }
+    </style>
+</head>
+<body>
+    <nav>
+        <div class="logo">
+            <h1>StreamlineVPN</h1>
+        </div>
+        <div class="nav-links">
+            <a href="/">Home</a>
+            <a href="/docs">Documentation</a>
+            <a href="/api/docs">API</a>
+            <a href="/interactive.html">Control Panel</a>
+        </div>
+    </nav>
+    
+    <main>
+        <div class="container">
+            <h1>Interactive Control Panel</h1>
+            
+            <div class="config-generator-steps">
+                <h2>Configuration Generator</h2>
+                <div class="step">
+                    <h3>Step 1: Select Sources</h3>
+                    <p>Choose your VPN configuration sources</p>
+                </div>
+                <div class="step">
+                    <h3>Step 2: Configure Options</h3>
+                    <p>Set processing parameters</p>
+                </div>
+                <div class="step">
+                    <h3>Step 3: Generate</h3>
+                    <p>Process and export configurations</p>
+                </div>
+            </div>
+            
+            <div class="controls">
+                <button id="run-pipeline" class="btn btn-primary">Run Pipeline</button>
+                <button id="view-stats" class="btn btn-secondary">View Statistics</button>
+                <button id="health-check" class="btn btn-info">Health Check</button>
+            </div>
+            
+            <div id="output" class="output-panel">
+                <h3>Output</h3>
+                <pre id="output-content"></pre>
+            </div>
+        </div>
+    </main>
+    
+    <script>
+        // Interactive functionality
+        document.getElementById('run-pipeline').addEventListener('click', async () => {
+            const output = document.getElementById('output-content');
+            output.textContent = 'Running pipeline...';
+            
+            try {
+                const response = await fetch('/api/v1/pipeline/run', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({})
+                });
+                const result = await response.json();
+                output.textContent = JSON.stringify(result, null, 2);
+            } catch (error) {
+                output.textContent = `Error: ${error.message}`;
+            }
+        });
+        
+        document.getElementById('view-stats').addEventListener('click', async () => {
+            const output = document.getElementById('output-content');
+            output.textContent = 'Loading statistics...';
+            
+            try {
+                const response = await fetch('/api/statistics');
+                const result = await response.json();
+                output.textContent = JSON.stringify(result, null, 2);
+            } catch (error) {
+                output.textContent = `Error: ${error.message}`;
+            }
+        });
+        
+        document.getElementById('health-check').addEventListener('click', async () => {
+            const output = document.getElementById('output-content');
+            output.textContent = 'Checking health...';
+            
+            try {
+                const response = await fetch('/api/health');
+                const result = await response.json();
+                output.textContent = JSON.stringify(result, null, 2);
+            } catch (error) {
+                output.textContent = `Error: ${error.message}`;
+            }
+        });
+    </script>
+</body>
+</html>
+</pre>
+

@@ -109,7 +109,7 @@ async def test_circuit_breaker_opens_and_recovers(tmp_path, monkeypatch):
 
     # Cache stats endpoint
     stats = svc.get_cache_stats()
-    assert "l1_cache" in stats and "l2_cache" in stats and "circuit_breaker" in stats
+    assert "l1_cache" in stats and "l2_redis" in stats and "circuit_breaker" in stats
 
 
 @pytest.mark.asyncio
@@ -148,7 +148,7 @@ async def test_cache_set_and_delete_error_branches(tmp_path, monkeypatch):
     assert await svc.delete("k2") is False
 
     # Invalidation calls
-    async def _fake_inval(event_type, context, l2_cache):
+    async def _fake_inval(event_type, context, redis_client):
         return 7
     svc.invalidation_service.invalidate_cache_pattern = _fake_inval  # type: ignore
     assert await svc.invalidate_user_cache("u1") == 7

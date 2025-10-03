@@ -98,6 +98,7 @@ class VLESSParser:
 
             # Preserve original user_id for compatibility
             config.user_id = uuid
+            config.uuid = uuid
             config.security = security
 
             # Update performance stats
