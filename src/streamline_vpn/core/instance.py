@@ -7,9 +7,6 @@ from .merger import StreamlineVPNMerger
 
 _merger_instance: Optional[StreamlineVPNMerger] = None
 _session: Optional[aiohttp.ClientSession] = None
-
-_merger_instance: Optional[StreamlineVPNMerger] = None
-_session: Optional[aiohttp.ClientSession] = None
 _merger_refcount: int = 0
 
 @asynccontextmanager
