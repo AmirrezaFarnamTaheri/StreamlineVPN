@@ -34,6 +34,7 @@ class FetcherService:
         circuit_breaker_threshold: int = 5,
         rate_limit_requests: int = 60,
         rate_limit_window: int = 60,
+        session: Optional[aiohttp.ClientSession] = None,
     ):
         """Initialize fetcher service.
 
@@ -45,6 +46,7 @@ class FetcherService:
             circuit_breaker_threshold: Circuit breaker failure threshold
             rate_limit_requests: Rate limit requests per window
             rate_limit_window: Rate limit window in seconds
+            session: Optional aiohttp.ClientSession for network requests
         """
         settings = get_settings()
         s = settings.fetcher
@@ -67,7 +69,7 @@ class FetcherService:
         self.semaphore = asyncio.Semaphore(self.max_concurrent)
 
         # Session for connection pooling
-        self.session: Optional[aiohttp.ClientSession] = None
+        self.session: Optional[aiohttp.ClientSession] = session
 
         # Statistics
         self.stats = {

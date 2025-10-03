@@ -121,7 +121,7 @@ class VPNConfigGenerator:
 
     def _get_index_html(self) -> str:
         """Get main HTML page."""
-        html_path = Path(__file__).parent / "config_generator.html"
+        html_path = Path(__file__).resolve().parents[2] / "docs" / "config_generator.html"
         try:
             with open(html_path, "r") as f:
                 return f.read()
