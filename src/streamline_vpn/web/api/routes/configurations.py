@@ -2,8 +2,8 @@ from typing import Any, Dict, Optional, List
 
 from fastapi import APIRouter, Depends
 
-from .....core.merger import StreamlineVPNMerger
-from ...dependencies import get_merger
+from streamline_vpn.core.merger import StreamlineVPNMerger
+from streamline_vpn.web.dependencies import get_merger
 
 configurations_router = APIRouter(prefix="/api/v1/configurations", tags=["Configurations"])
 
@@ -17,18 +17,14 @@ async def get_filtered_configurations(
     merger: StreamlineVPNMerger = Depends(get_merger),
 ) -> Dict[str, Any]:
     """Return processed configurations with filtering and pagination."""
-    configs = merger.get_configurations()
-    if protocol:
-        configs = [c for c in configs if c.protocol.value == protocol]
-    if location:
-        configs = [c for c in configs if c.metadata.get("location") == location]
-    if min_quality > 0:
-        configs = [c for c in configs if c.quality_score >= min_quality]
+    configs = merger.get_configurations(
+        protocol=protocol, location=location, min_quality=min_quality
+    )
     total = len(configs)
-    configs = configs[offset : offset + limit]
+    paginated_configs = configs[offset : offset + limit]
     return {
         "total": total,
         "limit": limit,
         "offset": offset,
-        "configurations": [c.to_dict() for c in configs],
+        "configurations": [c.to_dict() for c in paginated_configs],
     }

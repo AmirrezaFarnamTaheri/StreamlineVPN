@@ -1,7 +1,7 @@
 from pydantic import BaseModel
 from typing import List, Optional, Any, Dict
 
-from ...models.formats import OutputFormat
+from streamline_vpn.models.formats import OutputFormat
 
 class PipelineRequest(BaseModel):
     config_path: str = "config/sources.yaml"

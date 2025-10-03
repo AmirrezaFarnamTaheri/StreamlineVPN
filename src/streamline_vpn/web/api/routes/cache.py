@@ -1,7 +1,7 @@
 from fastapi import APIRouter, Depends
 
-from .....core.merger import StreamlineVPNMerger
-from ...dependencies import get_merger
+from streamline_vpn.core.merger import StreamlineVPNMerger
+from streamline_vpn.web.dependencies import get_merger
 
 cache_router = APIRouter(prefix="/api/v1/cache", tags=["Cache"])
 

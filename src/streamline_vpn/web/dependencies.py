@@ -1,5 +1,5 @@
 from fastapi import Request, HTTPException, status
-from ...core.merger import StreamlineVPNMerger
+from ..core.merger import StreamlineVPNMerger
 
 def get_merger(request: Request) -> StreamlineVPNMerger:
     """Get merger instance from application state."""

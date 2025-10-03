@@ -5,10 +5,10 @@ from typing import Any, Dict
 
 from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, status, Request
 
-from .....core.merger import StreamlineVPNMerger
-from .....jobs.pipeline_cleanup import cleanup_processing_jobs, processing_jobs
-from ...dependencies import get_merger
-from ...models import PipelineRequest, ProcessingResponse
+from streamline_vpn.core.merger import StreamlineVPNMerger
+from streamline_vpn.jobs.pipeline_cleanup import cleanup_processing_jobs, processing_jobs
+from streamline_vpn.web.dependencies import get_merger
+from streamline_vpn.web.models import PipelineRequest, ProcessingResponse
 
 pipeline_router = APIRouter(prefix="/api/v1/pipeline", tags=["Pipeline"])
 

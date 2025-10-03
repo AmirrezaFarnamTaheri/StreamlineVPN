@@ -2,9 +2,9 @@ from typing import Any, Dict
 
 from fastapi import APIRouter, Depends, HTTPException, status
 
-from .....core.merger import StreamlineVPNMerger
-from ...dependencies import get_merger
-from ...models import AddSourceRequest
+from streamline_vpn.core.merger import StreamlineVPNMerger
+from streamline_vpn.web.dependencies import get_merger
+from streamline_vpn.web.models import AddSourceRequest
 
 sources_router = APIRouter(prefix="/api/v1/sources", tags=["Sources"])
 
@@ -23,7 +23,7 @@ async def add_source(
     if not hasattr(merger, "source_manager"):
         raise HTTPException(status_code=503, detail="Source manager not available")
     try:
-        await merger.source_manager.add_source(request.url)
+        await merger.source_manager.add_source(str(request.url))
         return {"message": f"Source {request.url} added successfully"}
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
