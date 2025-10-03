@@ -54,15 +54,12 @@ python -m streamline_vpn --config config/sources.yaml --output output
 
 ### Run the API Server
 
-The unified server includes the FastAPI backend and serves the static control panel.
+The unified server includes the FastAPI backend and serves the static control panel. It now uses Hypercorn as the ASGI server for improved performance and stability.
 
 **For Development:**
 ```bash
-# Start the unified server (API + static assets)
+# Start the unified server (API + static assets) with hot-reloading
 python run_unified.py
-
-# Or run uvicorn directly for more options
-uvicorn streamline_vpn.web.unified_api:create_unified_app --host 0.0.0.0 --port 8080 --reload
 ```
 
 ## Docker
