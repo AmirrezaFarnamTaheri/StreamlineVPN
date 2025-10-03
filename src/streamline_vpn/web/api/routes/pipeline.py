@@ -43,7 +43,6 @@ async def run_pipeline(
         "started_at": datetime.now().isoformat(),
     }
 
-    # Get the session from the application state, or create a temporary one
     shared_session = getattr(fastapi_request.app.state, "http_session", None)
 
     async def process_async() -> None:
@@ -79,7 +78,7 @@ async def run_pipeline(
                 await local_session.close()
 
     background_tasks.add_task(process_async)
-    return {"status": "accepted", "job_id": "job_" + job_id}
+    return {"status": "accepted", "job_id": job_id}
 
 
 @pipeline_router.get("/status/{job_id}", response_model=Dict[str, Any])
